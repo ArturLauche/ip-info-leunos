@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'IP Lookup - Your IP & Network Info',
-  description: 'Instantly see your public IP address and associated network information including location, ISP, timezone, and more.',
+  title: 'IP Auskunft - Deine IP & Netzwerk-Info',
+  description: 'Finde sofort deine oeffentliche IP-Adresse und zugehoerige Netzwerkinformationen wie Standort, Anbieter, Zeitzone, Verbindungstyp und mehr.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -35,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body className="font-sans antialiased">
         {children}
         <Analytics />
