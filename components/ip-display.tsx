@@ -162,6 +162,10 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
   const displayIpv4 = data.ipv4;
   const displayIpv6 = data.ipv6 || clientIpv6;
   const primaryIp = displayIpv4 || displayIpv6 || "Unbekannt";
+  const connectionTypeLabel =
+    data.connectionType === "Festnetz"
+      ? "Festnetz (DSL)"
+      : data.connectionType;
 
   return (
     <div className="flex w-full flex-col items-center gap-10">
@@ -231,7 +235,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
         <div className="flex items-center gap-3">
           <ConnectionIcon className="h-6 w-6 text-primary" />
           <span className="text-xl font-semibold text-foreground">
-            {data.connectionType}
+            {connectionTypeLabel}
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
