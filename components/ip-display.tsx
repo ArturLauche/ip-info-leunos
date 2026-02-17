@@ -145,7 +145,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
     );
   }
 
-  const connectionIcon = data.mobile
+  const ConnectionIcon = data.mobile
     ? Smartphone
     : data.proxy
       ? Shield
@@ -229,7 +229,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
       {/* Connection Type Banner */}
       <div className="flex w-full max-w-4xl flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-5">
         <div className="flex items-center gap-3">
-          <connectionIcon className="h-6 w-6 text-primary" />
+          <ConnectionIcon className="h-6 w-6 text-primary" />
           <span className="text-xl font-semibold text-foreground">
             {data.connectionType}
           </span>
