@@ -28,7 +28,7 @@ export function IpLookup() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="IP-Adresse oder Domain eingeben..."
+            placeholder="IPv4, IPv6 oder Domain eingeben..."
             className="h-12 w-full rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
