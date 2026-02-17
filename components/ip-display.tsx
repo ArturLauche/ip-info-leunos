@@ -218,7 +218,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
               IPv6
             </span>
             <span className="text-sm text-muted-foreground">
-              Nicht verfuegbar
+              Nicht verfügbar
             </span>
           </div>
         )}
@@ -266,7 +266,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
               IPv4 Status
             </p>
             <p className="mt-1 truncate text-lg font-semibold text-foreground">
-              {displayIpv4 ? "Verfuegbar" : "Nicht erkannt"}
+              {displayIpv4 ? "Verfügbar" : "Nicht erkannt"}
             </p>
             <p className="truncate text-xs text-muted-foreground font-mono">
               {displayIpv4 || "-"}
@@ -288,7 +288,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
               IPv6 Status
             </p>
             <p className="mt-1 truncate text-lg font-semibold text-foreground">
-              {displayIpv6 ? "Verfuegbar" : "Nicht erkannt"}
+              {displayIpv6 ? "Verfügbar" : "Nicht erkannt"}
             </p>
             <p className="truncate text-xs text-muted-foreground font-mono">
               {displayIpv6 || "-"}
@@ -348,7 +348,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
           icon={Map}
           label="Koordinaten"
           value={`${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`}
-          detail="Breitengrad, Laengengrad"
+          detail="Breitengrad, Längengrad"
         />
         <InfoCard
           icon={MapPin}

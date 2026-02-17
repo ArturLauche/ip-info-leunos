@@ -192,7 +192,7 @@ function detectConnectionType(data: {
       "mpls",
     ])
   ) {
-    return "Geschaeftskundenleitung";
+    return "Geschäftskundenleitung";
   }
 
   return "Festnetz";

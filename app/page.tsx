@@ -15,7 +15,7 @@ export default function Home() {
             IP Auskunft
           </h2>
           <p className="text-sm text-muted-foreground">
-            Deine oeffentliche IP und Netzwerk-Details auf einen Blick
+            Deine öffentliche IP und Netzwerk-Details auf einen Blick
           </p>
         </div>
       </header>

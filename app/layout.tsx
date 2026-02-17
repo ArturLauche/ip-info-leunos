@@ -8,7 +8,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'IP Auskunft - Deine IP & Netzwerk-Info',
-  description: 'Finde sofort deine oeffentliche IP-Adresse und zugehoerige Netzwerkinformationen wie Standort, Anbieter, Zeitzone, Verbindungstyp und mehr.',
+  description: 'Finde sofort deine öffentliche IP-Adresse und zugehörige Netzwerkinformationen wie Standort, Anbieter, Zeitzone, Verbindungstyp und mehr.',
   generator: 'v0.app',
   icons: {
     icon: '/icon.svg',
