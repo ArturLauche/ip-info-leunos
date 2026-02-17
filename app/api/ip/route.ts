@@ -1,6 +1,81 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
+const IP_API_SUPPORTED_LANGUAGES = new Set([
+  "de",
+  "en",
+  "es",
+  "pt-BR",
+  "fr",
+  "ja",
+  "zh-CN",
+  "ru",
+]);
+
+const IP_API_LANGUAGE_ALIASES: Record<string, string> = {
+  "de-at": "de",
+  "de-ch": "de",
+  "de-de": "de",
+  "en-gb": "en",
+  "en-us": "en",
+  "es-es": "es",
+  "es-mx": "es",
+  "fr-ca": "fr",
+  "fr-fr": "fr",
+  "ja-jp": "ja",
+  "pt": "pt-BR",
+  "pt-pt": "pt-BR",
+  "pt-br": "pt-BR",
+  "ru-ru": "ru",
+  "zh": "zh-CN",
+  "zh-hans": "zh-CN",
+  "zh-hk": "zh-CN",
+  "zh-sg": "zh-CN",
+  "zh-tw": "zh-CN",
+};
+
+function resolveIpApiLanguage(request: Request): string {
+  const acceptLanguage = request.headers.get("accept-language");
+
+  if (!acceptLanguage) {
+    return "en";
+  }
+
+  const preferredLanguages = acceptLanguage
+    .split(",")
+    .map((entry) => entry.trim().split(";")[0])
+    .filter(Boolean);
+
+  for (const language of preferredLanguages) {
+    if (IP_API_SUPPORTED_LANGUAGES.has(language)) {
+      return language;
+    }
+
+    const normalizedLanguage = language.toLowerCase();
+    const aliasedLanguage = IP_API_LANGUAGE_ALIASES[normalizedLanguage];
+    if (aliasedLanguage && IP_API_SUPPORTED_LANGUAGES.has(aliasedLanguage)) {
+      return aliasedLanguage;
+    }
+
+    const baseLanguage = normalizedLanguage.split("-")[0];
+    if (baseLanguage && IP_API_SUPPORTED_LANGUAGES.has(baseLanguage)) {
+      return baseLanguage;
+    }
+
+    const aliasedBaseLanguage = baseLanguage
+      ? IP_API_LANGUAGE_ALIASES[baseLanguage]
+      : null;
+    if (
+      aliasedBaseLanguage &&
+      IP_API_SUPPORTED_LANGUAGES.has(aliasedBaseLanguage)
+    ) {
+      return aliasedBaseLanguage;
+    }
+  }
+
+  return "en";
+}
+
 function detectConnectionType(data: {
   isp: string;
   org: string;
@@ -12,77 +87,112 @@ function detectConnectionType(data: {
   const ispLower = (data.isp || "").toLowerCase();
   const orgLower = (data.org || "").toLowerCase();
   const asLower = (data.as || "").toLowerCase();
+  const combinedText = `${ispLower} ${orgLower} ${asLower}`;
+  const hasAnyKeyword = (keywords: string[]) =>
+    keywords.some((keyword) => combinedText.includes(keyword));
 
   if (data.hosting) return "Rechenzentrum / Hosting";
   if (data.proxy) return "Proxy / VPN / Tor";
   if (data.mobile) return "Mobilfunk";
 
-  if (
-    ispLower.includes("starlink") ||
-    orgLower.includes("starlink") ||
-    asLower.includes("starlink") ||
-    ispLower.includes("spacex")
-  ) {
+  if (hasAnyKeyword(["starlink", "spacex"])) {
     return "Starlink (Satellit)";
   }
 
   if (
-    ispLower.includes("satellite") ||
-    ispLower.includes("satellit") ||
-    ispLower.includes("viasat") ||
-    ispLower.includes("hughesnet") ||
-    ispLower.includes("ses astra")
+    hasAnyKeyword([
+      "satellite",
+      "satellit",
+      "viasat",
+      "hughesnet",
+      "ses astra",
+    ])
   ) {
     return "Satellit";
   }
 
   if (
-    ispLower.includes("fiber") ||
-    ispLower.includes("fibre") ||
-    ispLower.includes("glasfaser") ||
-    ispLower.includes("ftth") ||
-    ispLower.includes("fttb") ||
-    ispLower.includes("fttp") ||
-    orgLower.includes("fiber") ||
-    orgLower.includes("glasfaser") ||
-    ispLower.includes("deutsche glasfaser") ||
-    ispLower.includes("init7")
+    hasAnyKeyword([
+      "fiber",
+      "fibre",
+      "glasfaser",
+      "ftth",
+      "fttb",
+      "fttp",
+      "xgs-pon",
+      "gpon",
+      "deutsche glasfaser",
+      "init7",
+    ])
   ) {
     return "Glasfaser";
   }
 
   if (
-    ispLower.includes("cable") ||
-    ispLower.includes("kabel") ||
-    ispLower.includes("vodafone kabel") ||
-    ispLower.includes("unitymedia") ||
-    ispLower.includes("liberty global") ||
-    ispLower.includes("comcast") ||
-    ispLower.includes("charter") ||
-    ispLower.includes("cox") ||
-    ispLower.includes("cablevision") ||
-    ispLower.includes("pyur") ||
-    ispLower.includes("tele columbus")
+    hasAnyKeyword([
+      "cable",
+      "kabel",
+      "docsis",
+      "vodafone kabel",
+      "unitymedia",
+      "liberty global",
+      "comcast",
+      "charter",
+      "cox",
+      "cablevision",
+      "pyur",
+      "tele columbus",
+    ])
   ) {
     return "Kabelinternet (Koax)";
   }
 
   if (
-    ispLower.includes("dsl") ||
-    ispLower.includes("telekom") ||
-    ispLower.includes("t-online") ||
-    ispLower.includes("1&1") ||
-    ispLower.includes("o2") ||
-    ispLower.includes("ewe tel") ||
-    ispLower.includes("netcologne") ||
-    ispLower.includes("m-net") ||
-    ispLower.includes("easybell") ||
-    ispLower.includes("at&t") ||
-    ispLower.includes("centurylink") ||
-    ispLower.includes("bt ") ||
-    orgLower.includes("dsl")
+    hasAnyKeyword([
+      "fwa",
+      "fixed wireless",
+      "fixed-wireless",
+      "wireless broadband",
+      "richtfunk",
+      "wimax",
+    ])
+  ) {
+    return "Funk / Richtfunk";
+  }
+
+  if (
+    hasAnyKeyword([
+      "dsl",
+      "t-online",
+      "adsl",
+      "vdsl",
+      "xdsl",
+      "pppoe",
+      "1&1",
+      "o2",
+      "ewe tel",
+      "netcologne",
+      "m-net",
+      "easybell",
+      "at&t",
+      "centurylink",
+      "bt ",
+    ])
   ) {
     return "DSL";
+  }
+
+  if (
+    hasAnyKeyword([
+      "leased line",
+      "dedicated internet",
+      "dia",
+      "business internet",
+      "enterprise",
+      "mpls",
+    ])
+  ) {
+    return "Geschaeftskundenleitung";
   }
 
   return "Festnetz";
@@ -125,10 +235,10 @@ function extractIps(forwardedFor: string | null, realIp: string | null) {
   return { ipv4, ipv6 };
 }
 
-async function lookupIp(ip: string) {
+async function lookupIp(ip: string, language: string) {
   try {
     const res = await fetch(
-      `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query&lang=de`,
+      `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query&lang=${language}`,
       { cache: "no-store" }
     );
     const data = await res.json();
@@ -163,11 +273,12 @@ const UNKNOWN_RESULT = {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const queryIp = searchParams.get("ip");
+  const language = resolveIpApiLanguage(request);
 
   // If a specific IP was passed (from /check), just look it up
   if (queryIp) {
     const ip = queryIp.trim();
-    const data = await lookupIp(ip);
+    const data = await lookupIp(ip, language);
 
     if (!data) {
       return NextResponse.json({
@@ -212,7 +323,7 @@ export async function GET(request: Request) {
 
   // Use whichever IP we found (prefer IPv4 for geolocation, it tends to be more accurate)
   const primaryIp = ipv4 || ipv6 || "Unknown";
-  const data = await lookupIp(primaryIp);
+  const data = await lookupIp(primaryIp, language);
 
   if (!data) {
     return NextResponse.json({
