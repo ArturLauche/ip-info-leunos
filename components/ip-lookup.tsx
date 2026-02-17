@@ -3,10 +3,16 @@
 import { useState, type FormEvent } from "react";
 import { IpDisplay } from "@/components/ip-display";
 import { Search } from "lucide-react";
+import { uiText, type SupportedLanguage } from "@/lib/i18n";
 
-export function IpLookup() {
+interface IpLookupProps {
+  lang: SupportedLanguage;
+}
+
+export function IpLookup({ lang }: IpLookupProps) {
   const [query, setQuery] = useState("");
   const [submittedIp, setSubmittedIp] = useState<string | null>(null);
+  const text = uiText[lang];
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -17,7 +23,6 @@ export function IpLookup() {
 
   return (
     <div className="flex w-full flex-col items-center gap-10">
-      {/* Search Form */}
       <form
         onSubmit={handleSubmit}
         className="flex w-full max-w-lg items-stretch gap-3"
@@ -28,7 +33,7 @@ export function IpLookup() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="IPv4, IPv6 oder Domain eingeben..."
+            placeholder={text.lookupPlaceholder}
             className="h-12 w-full rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
@@ -36,12 +41,11 @@ export function IpLookup() {
           type="submit"
           className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          Abfragen
+          {text.lookupButton}
         </button>
       </form>
 
-      {/* Results */}
-      {submittedIp && <IpDisplay targetIp={submittedIp} />}
+      {submittedIp && <IpDisplay targetIp={submittedIp} lang={lang} />}
     </div>
   );
 }

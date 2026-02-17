@@ -1,6 +1,22 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
+const IP_API_LANGUAGE_MAP: Record<string, string> = {
+  de: "de",
+  en: "en",
+  fr: "fr",
+  es: "es",
+  pt: "pt-BR",
+  it: "en",
+  nl: "en",
+  pl: "en",
+};
+
+function resolveApiLanguage(lang: string | null): string {
+  if (!lang) return "de";
+  return IP_API_LANGUAGE_MAP[lang] || "de";
+}
+
 function detectConnectionType(data: {
   isp: string;
   org: string;
@@ -8,84 +24,53 @@ function detectConnectionType(data: {
   mobile: boolean;
   proxy: boolean;
   hosting: boolean;
-}): string {
+}): { connectionType: string; connectionEvidence: string } {
   const ispLower = (data.isp || "").toLowerCase();
   const orgLower = (data.org || "").toLowerCase();
   const asLower = (data.as || "").toLowerCase();
 
-  if (data.hosting) return "Rechenzentrum / Hosting";
-  if (data.proxy) return "Proxy / VPN / Tor";
-  if (data.mobile) return "Mobilfunk";
+  if (data.hosting) return { connectionType: "Rechenzentrum / Hosting", connectionEvidence: "hosting=true" };
+  if (data.proxy) return { connectionType: "Proxy / VPN / Tor", connectionEvidence: "proxy=true" };
+  if (data.mobile) return { connectionType: "Mobilfunk", connectionEvidence: "mobile=true" };
 
-  if (
-    ispLower.includes("starlink") ||
-    orgLower.includes("starlink") ||
-    asLower.includes("starlink") ||
-    ispLower.includes("spacex")
-  ) {
-    return "Starlink (Satellit)";
+  const keywordGroups = [
+    {
+      type: "Starlink (Satellit)",
+      values: ["starlink", "spacex"],
+    },
+    {
+      type: "Satellit",
+      values: ["satellite", "satellit", "viasat", "hughesnet", "ses astra"],
+    },
+    {
+      type: "Glasfaser",
+      values: ["fiber", "fibre", "glasfaser", "ftth", "fttb", "fttp", "deutsche glasfaser", "init7"],
+    },
+    {
+      type: "Kabelinternet (Koax)",
+      values: ["cable", "kabel", "vodafone kabel", "unitymedia", "liberty global", "comcast", "charter", "cox", "cablevision", "pyur", "tele columbus"],
+    },
+    {
+      type: "DSL",
+      values: ["dsl", "telekom", "t-online", "1&1", "o2", "ewe tel", "netcologne", "m-net", "easybell", "at&t", "centurylink", "bt "],
+    },
+  ] as const;
+
+  for (const group of keywordGroups) {
+    for (const keyword of group.values) {
+      if (ispLower.includes(keyword)) {
+        return { connectionType: group.type, connectionEvidence: `isp:${keyword}` };
+      }
+      if (orgLower.includes(keyword)) {
+        return { connectionType: group.type, connectionEvidence: `org:${keyword}` };
+      }
+      if (asLower.includes(keyword)) {
+        return { connectionType: group.type, connectionEvidence: `as:${keyword}` };
+      }
+    }
   }
 
-  if (
-    ispLower.includes("satellite") ||
-    ispLower.includes("satellit") ||
-    ispLower.includes("viasat") ||
-    ispLower.includes("hughesnet") ||
-    ispLower.includes("ses astra")
-  ) {
-    return "Satellit";
-  }
-
-  if (
-    ispLower.includes("fiber") ||
-    ispLower.includes("fibre") ||
-    ispLower.includes("glasfaser") ||
-    ispLower.includes("ftth") ||
-    ispLower.includes("fttb") ||
-    ispLower.includes("fttp") ||
-    orgLower.includes("fiber") ||
-    orgLower.includes("glasfaser") ||
-    ispLower.includes("deutsche glasfaser") ||
-    ispLower.includes("init7")
-  ) {
-    return "Glasfaser";
-  }
-
-  if (
-    ispLower.includes("cable") ||
-    ispLower.includes("kabel") ||
-    ispLower.includes("vodafone kabel") ||
-    ispLower.includes("unitymedia") ||
-    ispLower.includes("liberty global") ||
-    ispLower.includes("comcast") ||
-    ispLower.includes("charter") ||
-    ispLower.includes("cox") ||
-    ispLower.includes("cablevision") ||
-    ispLower.includes("pyur") ||
-    ispLower.includes("tele columbus")
-  ) {
-    return "Kabelinternet (Koax)";
-  }
-
-  if (
-    ispLower.includes("dsl") ||
-    ispLower.includes("telekom") ||
-    ispLower.includes("t-online") ||
-    ispLower.includes("1&1") ||
-    ispLower.includes("o2") ||
-    ispLower.includes("ewe tel") ||
-    ispLower.includes("netcologne") ||
-    ispLower.includes("m-net") ||
-    ispLower.includes("easybell") ||
-    ispLower.includes("at&t") ||
-    ispLower.includes("centurylink") ||
-    ispLower.includes("bt ") ||
-    orgLower.includes("dsl")
-  ) {
-    return "DSL";
-  }
-
-  return "Festnetz";
+  return { connectionType: "Festnetz", connectionEvidence: "fallback:default" };
 }
 
 function isIPv6(ip: string): boolean {
@@ -125,10 +110,10 @@ function extractIps(forwardedFor: string | null, realIp: string | null) {
   return { ipv4, ipv6 };
 }
 
-async function lookupIp(ip: string) {
+async function lookupIp(ip: string, lang: string) {
   try {
     const res = await fetch(
-      `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query&lang=de`,
+      `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query&lang=${lang}`,
       { cache: "no-store" }
     );
     const data = await res.json();
@@ -140,101 +125,34 @@ async function lookupIp(ip: string) {
 }
 
 const UNKNOWN_RESULT = {
-  country: "Unbekannt",
+  country: "Unknown",
   countryCode: "",
-  region: "Unbekannt",
-  regionName: "Unbekannt",
-  city: "Unbekannt",
-  zip: "Unbekannt",
+  region: "Unknown",
+  regionName: "Unknown",
+  city: "Unknown",
+  zip: "Unknown",
   lat: 0,
   lon: 0,
-  timezone: "Unbekannt",
-  isp: "Unbekannt",
-  org: "Unbekannt",
-  as: "Unbekannt",
-  asname: "Unbekannt",
+  timezone: "Unknown",
+  isp: "Unknown",
+  org: "Unknown",
+  as: "Unknown",
+  asname: "Unknown",
   reverse: "",
   mobile: false,
   proxy: false,
   hosting: false,
-  connectionType: "Unbekannt",
+  connectionType: "Unknown",
+  connectionEvidence: "fallback:unknown",
 };
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const queryIp = searchParams.get("ip");
+function buildResult(ipv4: string | null, ipv6: string | null, ipVersion: number, data: any) {
+  const detected = detectConnectionType(data);
 
-  // If a specific IP was passed (from /check), just look it up
-  if (queryIp) {
-    const ip = queryIp.trim();
-    const data = await lookupIp(ip);
-
-    if (!data) {
-      return NextResponse.json({
-        ipv4: isIPv4(ip) ? ip : null,
-        ipv6: isIPv6(ip) ? ip : null,
-        ipVersion: isIPv6(ip) ? 6 : 4,
-        ...UNKNOWN_RESULT,
-      });
-    }
-
-    return NextResponse.json({
-      ipv4: isIPv4(data.query || ip) ? (data.query || ip) : null,
-      ipv6: isIPv6(data.query || ip) ? (data.query || ip) : null,
-      ipVersion: isIPv6(data.query || ip) ? 6 : 4,
-      country: data.country,
-      countryCode: data.countryCode,
-      region: data.region,
-      regionName: data.regionName,
-      city: data.city,
-      zip: data.zip,
-      lat: data.lat,
-      lon: data.lon,
-      timezone: data.timezone,
-      isp: data.isp,
-      org: data.org,
-      as: data.as,
-      asname: data.asname,
-      reverse: data.reverse || "",
-      mobile: data.mobile,
-      proxy: data.proxy,
-      hosting: data.hosting,
-      connectionType: detectConnectionType(data),
-    });
-  }
-
-  // Auto-detect from request headers
-  const headersList = await headers();
-  const forwardedFor = headersList.get("x-forwarded-for");
-  const realIp = headersList.get("x-real-ip");
-
-  const { ipv4, ipv6 } = extractIps(forwardedFor, realIp);
-
-  // Use whichever IP we found (prefer IPv4 for geolocation, it tends to be more accurate)
-  const primaryIp = ipv4 || ipv6 || "Unknown";
-  const data = await lookupIp(primaryIp);
-
-  if (!data) {
-    return NextResponse.json({
-      ipv4,
-      ipv6,
-      ipVersion: ipv6 && !ipv4 ? 6 : 4,
-      ...UNKNOWN_RESULT,
-    });
-  }
-
-  // If we got a different IP back from ip-api (e.g. resolved domain), check it
-  const resolvedIp = data.query || primaryIp;
-  let finalIpv4 = ipv4;
-  let finalIpv6 = ipv6;
-
-  if (isIPv4(resolvedIp) && !finalIpv4) finalIpv4 = resolvedIp;
-  if (isIPv6(resolvedIp) && !finalIpv6) finalIpv6 = resolvedIp;
-
-  return NextResponse.json({
-    ipv4: finalIpv4,
-    ipv6: finalIpv6,
-    ipVersion: finalIpv6 && !finalIpv4 ? 6 : 4,
+  return {
+    ipv4,
+    ipv6,
+    ipVersion,
     country: data.country,
     countryCode: data.countryCode,
     region: data.region,
@@ -252,6 +170,56 @@ export async function GET(request: Request) {
     mobile: data.mobile,
     proxy: data.proxy,
     hosting: data.hosting,
-    connectionType: detectConnectionType(data),
-  });
+    connectionType: detected.connectionType,
+    connectionEvidence: detected.connectionEvidence,
+  };
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const queryIp = searchParams.get("ip");
+  const requestLang = resolveApiLanguage(searchParams.get("lang"));
+
+  if (queryIp) {
+    const ip = queryIp.trim();
+    const data = await lookupIp(ip, requestLang);
+
+    if (!data) {
+      return NextResponse.json({
+        ipv4: isIPv4(ip) ? ip : null,
+        ipv6: isIPv6(ip) ? ip : null,
+        ipVersion: isIPv6(ip) ? 6 : 4,
+        ...UNKNOWN_RESULT,
+      });
+    }
+
+    const finalIp = data.query || ip;
+    return NextResponse.json(buildResult(isIPv4(finalIp) ? finalIp : null, isIPv6(finalIp) ? finalIp : null, isIPv6(finalIp) ? 6 : 4, data));
+  }
+
+  const headersList = await headers();
+  const forwardedFor = headersList.get("x-forwarded-for");
+  const realIp = headersList.get("x-real-ip");
+
+  const { ipv4, ipv6 } = extractIps(forwardedFor, realIp);
+  const primaryIp = ipv4 || ipv6 || "Unknown";
+  const data = await lookupIp(primaryIp, requestLang);
+
+  if (!data) {
+    return NextResponse.json({
+      ipv4,
+      ipv6,
+      ipVersion: ipv6 && !ipv4 ? 6 : 4,
+      ...UNKNOWN_RESULT,
+    });
+  }
+
+  const resolvedIp = data.query || primaryIp;
+  let finalIpv4 = ipv4;
+  let finalIpv6 = ipv6;
+
+  if (isIPv4(resolvedIp) && !finalIpv4) finalIpv4 = resolvedIp;
+  if (isIPv6(resolvedIp) && !finalIpv6) finalIpv6 = resolvedIp;
+
+  return NextResponse.json(buildResult(finalIpv4, finalIpv6, finalIpv6 && !finalIpv4 ? 6 : 4, data));
 }
