@@ -69,6 +69,9 @@ export function resolveLocale(acceptLanguage: string | null | undefined): Locale
 }
 
 export type Translation = {
+  appName: string;
+  navHome: string;
+  navCheck: string;
   homeTitle: string;
   homeSubtitle: string;
   checkTitle: string;
@@ -115,6 +118,9 @@ export type Translation = {
 
 export const translations: Record<Locale, Translation> = {
   de: {
+    appName: "IP Info",
+    navHome: "Meine IP",
+    navCheck: "IP Abfrage",
     homeTitle: "IP Auskunft",
     homeSubtitle: "Deine öffentliche IP und Netzwerk-Details auf einen Blick",
     checkTitle: "IP Abfrage",
@@ -159,6 +165,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "Erkannt",
   },
   en: {
+    appName: "IP Info",
+    navHome: "My IP",
+    navCheck: "IP Lookup",
     homeTitle: "IP Info",
     homeSubtitle: "Your public IP and network details at a glance",
     checkTitle: "IP Lookup",
@@ -203,6 +212,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "Detected",
   },
   es: {
+    appName: "IP Info",
+    navHome: "Mi IP",
+    navCheck: "Consulta IP",
     homeTitle: "Información IP",
     homeSubtitle: "Tu IP pública y detalles de red de un vistazo",
     checkTitle: "Consulta IP",
@@ -247,6 +259,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "Detectado",
   },
   fr: {
+    appName: "IP Info",
+    navHome: "Mon IP",
+    navCheck: "Recherche IP",
     homeTitle: "Infos IP",
     homeSubtitle: "Votre IP publique et les détails réseau en un coup d'œil",
     checkTitle: "Recherche IP",
@@ -291,6 +306,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "Détecté",
   },
   "pt-BR": {
+    appName: "IP Info",
+    navHome: "Meu IP",
+    navCheck: "Consulta IP",
     homeTitle: "Informações de IP",
     homeSubtitle: "Seu IP público e detalhes da rede rapidamente",
     checkTitle: "Consulta de IP",
@@ -335,6 +353,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "Detectado",
   },
   ja: {
+    appName: "IP Info",
+    navHome: "マイIP",
+    navCheck: "IP検索",
     homeTitle: "IP情報",
     homeSubtitle: "公開IPとネットワーク情報をひと目で確認",
     checkTitle: "IP検索",
@@ -379,6 +400,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "検出済み",
   },
   ru: {
+    appName: "IP Info",
+    navHome: "Мой IP",
+    navCheck: "Проверка IP",
     homeTitle: "Информация об IP",
     homeSubtitle: "Ваш публичный IP и сетевые данные в одном месте",
     checkTitle: "Проверка IP",
@@ -391,7 +415,7 @@ export const translations: Record<Locale, Translation> = {
     queriedIpAddress: "Запрошенный IP-адрес",
     yourIpAddresses: "Ваши IP-адреса",
     notAvailable: "Недоступно",
-    detectedConnectionType: "Определённый тип подключения",
+    detectedConnectionType: "Определённый тип подключен��я",
     ipv4Status: "Статус IPv4",
     ipv6Status: "Статус IPv6",
     available: "Доступно",
@@ -423,6 +447,9 @@ export const translations: Record<Locale, Translation> = {
     detected: "Определено",
   },
   "zh-CN": {
+    appName: "IP Info",
+    navHome: "我的IP",
+    navCheck: "IP 查询",
     homeTitle: "IP 信息",
     homeSubtitle: "一眼查看你的公网 IP 与网络详情",
     checkTitle: "IP 查询",
@@ -449,7 +476,7 @@ export const translations: Record<Locale, Translation> = {
     isp: "运营商 (ISP)",
     ispDetail: "互联网服务提供商",
     organization: "组织",
-    organizationDetail: "网络组织",
+    organizationDetail: "网���组织",
     asNumber: "AS 编号",
     asFallbackDetail: "自治系统",
     coordinates: "坐标",
