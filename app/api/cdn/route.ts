@@ -1,75 +1,129 @@
 import dns from "node:dns/promises";
 import { NextResponse } from "next/server";
 
-interface CdnDetection {
+type Confidence = "high" | "medium" | "low";
+
+interface CdnSignature {
   provider: string;
-  confidence: "high" | "medium" | "low";
-  reason: string;
+  headerMatches: string[];
+  valueMatches: string[];
+  cnameMatches: string[];
 }
 
-const CDN_SIGNATURES = [
+interface CdnDetection {
+  provider: string;
+  confidence: Confidence;
+  reason: string;
+  matchedSignals: string[];
+}
+
+const CDN_SIGNATURES: CdnSignature[] = [
   {
     provider: "Cloudflare",
-    headerMatches: ["cf-ray", "cf-cache-status", "__cf_bm"],
+    headerMatches: ["cf-ray", "cf-cache-status", "cf-apo-via", "cf-ew-via"],
     valueMatches: ["cloudflare"],
     cnameMatches: ["cloudflare.net"],
   },
   {
+    provider: "Vercel Edge Network",
+    headerMatches: ["x-vercel-id", "x-vercel-cache"],
+    valueMatches: ["vercel"],
+    cnameMatches: ["vercel-dns.com", "vercel.app"],
+  },
+  {
     provider: "Akamai",
-    headerMatches: ["x-akamai", "akamai-grn"],
+    headerMatches: ["x-akamai", "akamai-grn", "x-akamai-staging"],
     valueMatches: ["akamai"],
-    cnameMatches: ["akamai", "edgekey.net", "edgesuite.net"],
+    cnameMatches: ["edgekey.net", "edgesuite.net", "akamai"],
   },
   {
     provider: "Fastly",
-    headerMatches: ["x-served-by", "x-fastly-request-id", "x-cache-hits"],
+    headerMatches: ["x-served-by", "x-fastly-request-id", "x-cache-hits", "x-timer"],
     valueMatches: ["fastly"],
     cnameMatches: ["fastly.net", "map.fastly.net"],
   },
   {
     provider: "Amazon CloudFront",
-    headerMatches: ["x-amz-cf-id", "x-amz-cf-pop"],
+    headerMatches: ["x-amz-cf-id", "x-amz-cf-pop", "x-cache"],
     valueMatches: ["cloudfront"],
     cnameMatches: ["cloudfront.net"],
   },
   {
     provider: "Bunny CDN",
-    headerMatches: ["cdn-pullzone", "cdn-cache"],
+    headerMatches: ["cdn-pullzone", "cdn-cache", "cdn-requestid"],
     valueMatches: ["bunnycdn"],
     cnameMatches: ["b-cdn.net", "bunnycdn"],
   },
   {
     provider: "KeyCDN",
-    headerMatches: ["x-edge-location"],
+    headerMatches: ["x-edge-location", "x-cache"],
     valueMatches: ["keycdn"],
     cnameMatches: ["kxcdn.com", "keycdn"],
   },
   {
     provider: "Google Cloud CDN",
-    headerMatches: ["x-goog-generation"],
+    headerMatches: ["x-goog-generation", "x-goog-hash", "x-guploader-uploadid"],
     valueMatches: ["google frontend", "gws"],
     cnameMatches: ["googlehosted.com", "googleusercontent.com"],
   },
   {
     provider: "Microsoft Azure CDN",
-    headerMatches: ["x-azure-ref", "x-msedge-ref"],
+    headerMatches: ["x-azure-ref", "x-msedge-ref", "x-cache"],
     valueMatches: ["azure"],
-    cnameMatches: ["azureedge.net"],
+    cnameMatches: ["azureedge.net", "trafficmanager.net"],
+  },
+  {
+    provider: "Netlify Edge",
+    headerMatches: ["x-nf-request-id", "x-nf-render-mode"],
+    valueMatches: ["netlify"],
+    cnameMatches: ["netlify.global", "netlify.app"],
+  },
+  {
+    provider: "Imperva / Incapsula",
+    headerMatches: ["x-iinfo", "x-cdn", "x-cdn-forward"],
+    valueMatches: ["incapsula", "imperva"],
+    cnameMatches: ["incapdns.net", "impervadns.net"],
+  },
+  {
+    provider: "Sucuri CDN",
+    headerMatches: ["x-sucuri-id", "x-sucuri-cache"],
+    valueMatches: ["sucuri"],
+    cnameMatches: ["sucuri.net"],
+  },
+  {
+    provider: "Gcore CDN",
+    headerMatches: ["x-gcdn-cache", "x-gcore-request-id"],
+    valueMatches: ["gcore"],
+    cnameMatches: ["gcorelabs.com", "gcdn.co"],
+  },
+  {
+    provider: "CDN77",
+    headerMatches: ["x-cdn77-cache", "x-cdn77"],
+    valueMatches: ["cdn77"],
+    cnameMatches: ["cdn77.org"],
+  },
+  {
+    provider: "StackPath",
+    headerMatches: ["x-sp-edge", "x-sp-cache"],
+    valueMatches: ["stackpath"],
+    cnameMatches: ["stackpathdns.com"],
   },
 ];
 
 function normalizeTarget(input: string) {
-  const trimmed = input.trim().toLowerCase();
+  const trimmed = input.trim();
   if (!trimmed) return null;
 
-  const withProtocol = /^https?:\/\//.test(trimmed)
+  const withProtocol = /^https?:\/\//i.test(trimmed)
     ? trimmed
     : `https://${trimmed}`;
 
   try {
     const parsed = new URL(withProtocol);
+    if (!parsed.hostname) return null;
+
     return {
-      hostname: parsed.hostname,
+      hostname: parsed.hostname.toLowerCase(),
       url: `https://${parsed.hostname}`,
     };
   } catch {
@@ -81,11 +135,14 @@ async function resolveCnameChain(hostname: string) {
   const cnames: string[] = [];
   let current = hostname;
 
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     try {
       const records = await dns.resolveCname(current);
       if (!records.length) break;
+
       const next = records[0].toLowerCase();
+      if (cnames.includes(next)) break;
+
       cnames.push(next);
       current = next;
     } catch {
@@ -96,46 +153,71 @@ async function resolveCnameChain(hostname: string) {
   return cnames;
 }
 
+function mapScoreToConfidence(score: number): Confidence {
+  if (score >= 8) return "high";
+  if (score >= 4) return "medium";
+  return "low";
+}
+
 function detectCdn(headers: Headers, cnameChain: string[]): CdnDetection | null {
   const headerPairs = [...headers.entries()].map(([key, value]) => ({
     key: key.toLowerCase(),
     value: value.toLowerCase(),
   }));
-  const headerKeys = headerPairs.map((item) => item.key);
-  const headerValues = headerPairs.map((item) => item.value);
+
+  const headerKeys = new Set(headerPairs.map((pair) => pair.key));
+  const headerValues = headerPairs.map((pair) => pair.value);
   const cnameJoined = cnameChain.join(" ");
 
+  let bestMatch: CdnDetection | null = null;
+  let bestScore = 0;
+
   for (const signature of CDN_SIGNATURES) {
-    if (signature.headerMatches.some((needle) => headerKeys.includes(needle))) {
-      return {
-        provider: signature.provider,
-        confidence: "high",
-        reason: "Matched unique response headers.",
-      };
+    let score = 0;
+    const matchedSignals: string[] = [];
+
+    for (const needle of signature.headerMatches) {
+      if (headerKeys.has(needle)) {
+        score += 5;
+        matchedSignals.push(`header:${needle}`);
+      }
     }
 
-    if (signature.valueMatches.some((needle) => headerValues.some((value) => value.includes(needle)))) {
-      return {
-        provider: signature.provider,
-        confidence: "medium",
-        reason: "Matched CDN wording in response header values.",
-      };
+    for (const needle of signature.valueMatches) {
+      if (headerValues.some((value) => value.includes(needle))) {
+        score += 3;
+        matchedSignals.push(`header-value:${needle}`);
+      }
     }
 
-    if (signature.cnameMatches.some((needle) => cnameJoined.includes(needle))) {
-      return {
+    for (const needle of signature.cnameMatches) {
+      if (cnameJoined.includes(needle)) {
+        score += 4;
+        matchedSignals.push(`dns:${needle}`);
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = {
         provider: signature.provider,
-        confidence: "medium",
-        reason: "Matched CDN pattern in DNS CNAME chain.",
+        confidence: mapScoreToConfidence(score),
+        reason: `Matched ${matchedSignals.length} CDN signal${matchedSignals.length > 1 ? "s" : ""}.`,
+        matchedSignals,
       };
     }
   }
 
-  if (headerKeys.includes("x-cache") || headerKeys.includes("via")) {
+  if (bestMatch) {
+    return bestMatch;
+  }
+
+  if (headerKeys.has("x-cache") || headerKeys.has("via") || headerKeys.has("cache-status")) {
     return {
       provider: "Unknown CDN / Reverse Proxy",
       confidence: "low",
-      reason: "Caching/proxy headers exist but no known CDN signature matched.",
+      reason: "Caching/proxy headers were found but no provider-specific signature matched.",
+      matchedSignals: ["header:x-cache/via/cache-status"],
     };
   }
 
@@ -165,34 +247,37 @@ export async function GET(request: Request) {
       cache: "no-store",
       redirect: "follow",
       headers: {
-        "user-agent": "ip-info-leunos-cdn-check/1.0",
+        "user-agent": "ip-info-leunos-cdn-check/1.1",
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
 
     responseHeaders = response.headers;
     status = response.status;
   } catch {
-    return NextResponse.json(
-      {
-        target: normalized.hostname,
-        reachable: false,
-        usesCdn: false,
-        detectedCdn: null,
-        confidence: null,
-        reason: "Target could not be reached from the server.",
-        cnameChain,
-        headers: [],
-      },
-      { status: 200 },
-    );
+    return NextResponse.json({
+      target: normalized.hostname,
+      reachable: false,
+      usesCdn: false,
+      detectedCdn: null,
+      confidence: null,
+      reason: "Target could not be reached from the server.",
+      matchedSignals: [],
+      cnameChain,
+      headers: [],
+    });
   }
 
   const detection = detectCdn(responseHeaders, cnameChain);
   const selectedHeaders = [
     "server",
     "via",
+    "cache-status",
     "x-cache",
     "x-served-by",
+    "x-vercel-id",
+    "x-vercel-cache",
+    "x-nf-request-id",
     "cf-ray",
     "cf-cache-status",
     "x-amz-cf-id",
@@ -200,6 +285,7 @@ export async function GET(request: Request) {
     "x-azure-ref",
     "x-msedge-ref",
     "cdn-cache",
+    "x-cdn",
   ]
     .map((header) => {
       const value = responseHeaders.get(header);
@@ -215,6 +301,7 @@ export async function GET(request: Request) {
     detectedCdn: detection?.provider || null,
     confidence: detection?.confidence || null,
     reason: detection?.reason || "No known CDN signature detected.",
+    matchedSignals: detection?.matchedSignals || [],
     cnameChain,
     headers: selectedHeaders,
   });
