@@ -16,7 +16,7 @@ export default function CdnPage() {
               CDN Usage Checker
             </h1>
             <p className="max-w-xl text-sm text-muted-foreground md:text-base">
-              Analyze any domain for CDN usage with stronger detection signals (including Vercel and additional providers).
+              Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).
             </p>
           </div>
         </header>
