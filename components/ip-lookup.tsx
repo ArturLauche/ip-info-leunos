@@ -25,7 +25,7 @@ export function IpLookup({ locale }: IpLookupProps) {
     <div className="flex w-full flex-col items-center gap-10">
       <form
         onSubmit={handleSubmit}
-        className="flex w-full max-w-lg flex-col items-stretch gap-3 sm:flex-row"
+        className="flex w-full max-w-2xl flex-col items-stretch gap-3 sm:flex-row"
       >
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -34,12 +34,12 @@ export function IpLookup({ locale }: IpLookupProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="h-12 w-full rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
         <button
           type="submit"
-          className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           {t.searchButton}
         </button>

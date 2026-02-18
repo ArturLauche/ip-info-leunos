@@ -61,7 +61,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-border hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       aria-label={label}
     >
       {copied ? (
@@ -216,7 +216,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
         )}
       </div>
 
-      <div className="flex w-full max-w-4xl flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-5 text-center">
+      <div className="flex w-full max-w-4xl flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-5 text-center shadow-sm">
         <div className="flex items-center gap-3">
           <ConnectionIcon className="h-6 w-6 text-primary" />
           <span className="text-xl font-semibold text-foreground">
@@ -239,7 +239,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
       </div>
 
       <div className="grid w-full max-w-4xl grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-secondary/50">
+        <div className="flex items-center gap-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Network className="h-5 w-5 text-primary" />
           </div>
@@ -261,7 +261,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-secondary/50">
+        <div className="flex items-center gap-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Network className="h-5 w-5 text-primary" />
           </div>

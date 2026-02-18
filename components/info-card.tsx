@@ -9,9 +9,9 @@ interface InfoCardProps {
 
 export function InfoCard({ icon: Icon, label, value, detail }: InfoCardProps) {
   return (
-    <div className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-secondary/50">
+    <div className="group flex flex-col gap-2.5 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/15">
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
