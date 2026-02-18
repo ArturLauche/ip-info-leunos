@@ -1,12 +1,11 @@
-import { IpLookup } from "@/components/ip-lookup";
-import { getTranslation, resolveLocale } from "@/lib/i18n";
-import { Search, ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { headers } from "next/headers";
+import { getTranslation, resolveLocale } from '@/lib/i18n';
+import { Search, ArrowLeft, Globe } from 'lucide-react';
+import Link from 'next/link';
+import { headers } from 'next/headers';
 
-export default async function CheckPage() {
+export default async function CdnLayout() {
   const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = resolveLocale(headersList.get('accept-language'));
   const t = getTranslation(locale);
 
   return (
@@ -22,31 +21,29 @@ export default async function CheckPage() {
             >
               {t.homeTitle}
             </Link>
-            <span className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground">
-              {t.checkTitle}
-            </span>
             <Link
-              href="/cdn"
+              href="/check"
               className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              CDN Checker
+              {t.checkTitle}
             </Link>
+            <span className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground">
+              CDN Checker
+            </span>
           </nav>
 
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/25">
-            <Search className="h-7 w-7 text-primary" />
+            <Globe className="h-7 w-7 text-primary" />
           </div>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-              {t.checkTitle}
+              CDN Checker
             </h1>
-            <p className="max-w-lg text-sm text-muted-foreground md:text-base">{t.checkSubtitle}</p>
+            <p className="max-w-lg text-sm text-muted-foreground md:text-base">Enter a website URL to check if it's using a Content Delivery Network (CDN) and identify which one.</p>
           </div>
         </header>
 
-        <section className="surface-panel w-full">
-          <IpLookup locale={locale} />
-        </section>
+        <CdnCheckerPage />
 
         <Link
           href="/"
@@ -58,7 +55,7 @@ export default async function CheckPage() {
 
         <footer className="text-xs text-muted-foreground">
           <p>
-            {t.footerDataBy}{" "}
+            {t.footerDataBy}{' '}
             <a
               href="http://ip-api.com"
               target="_blank"

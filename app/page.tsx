@@ -25,6 +25,12 @@ export default async function Home() {
             >
               {t.checkTitle}
             </Link>
+            <Link
+              href="/cdn"
+              className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              CDN Checker
+            </Link>
           </nav>
 
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/25">
