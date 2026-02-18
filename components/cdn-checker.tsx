@@ -31,13 +31,6 @@ interface CdnResult {
   headers: HeaderPair[];
 }
 
-const EXAMPLES = [
-  "vercel.com",
-  "cloudflare.com",
-  "github.com",
-  "wikipedia.org",
-  "nextjs.org",
-];
 
 function confidenceBadge(confidence: CdnResult["confidence"]) {
   if (confidence === "high") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/40";
@@ -93,22 +86,6 @@ export function CdnChecker() {
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <div className="rounded-xl border border-border/70 bg-card/60 p-4 md:p-5">
-        <p className="text-sm font-medium text-foreground">Quick examples</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => setTarget(example)}
-              className="rounded-full border border-border bg-secondary/70 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              {example}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

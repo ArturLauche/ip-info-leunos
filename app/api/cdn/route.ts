@@ -50,15 +50,40 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
   {
     provider: "Bunny CDN",
-    headerMatches: ["cdn-pullzone", "cdn-cache", "cdn-requestid"],
-    valueMatches: ["bunnycdn"],
-    cnameMatches: ["b-cdn.net", "bunnycdn"],
+    headerMatches: ["cdn-pullzone", "cdn-cache", "cdn-requestid", "bcdn-cache-status"],
+    valueMatches: ["bunnycdn", "bunny"],
+    cnameMatches: ["b-cdn.net", "bunnycdn", "bunny.net"],
   },
   {
     provider: "KeyCDN",
     headerMatches: ["x-edge-location", "x-cache"],
     valueMatches: ["keycdn"],
     cnameMatches: ["kxcdn.com", "keycdn"],
+  },
+
+  {
+    provider: "JSDelivr",
+    headerMatches: ["x-jsd-version-type"],
+    valueMatches: ["jsdelivr"],
+    cnameMatches: ["cdn.jsdelivr.net"],
+  },
+  {
+    provider: "UNPKG (Cloudflare-backed)",
+    headerMatches: ["cf-ray", "cf-cache-status"],
+    valueMatches: ["unpkg"],
+    cnameMatches: ["unpkg.com"],
+  },
+  {
+    provider: "Edgio",
+    headerMatches: ["x-ec-custom-error", "x-ec-check-cacheable"],
+    valueMatches: ["edgio", "limelight"],
+    cnameMatches: ["edgecastcdn.net", "llnwd.net", "edgio"],
+  },
+  {
+    provider: "CacheFly",
+    headerMatches: ["x-cf-tsc", "x-cache"],
+    valueMatches: ["cachefly"],
+    cnameMatches: ["cachefly.net"],
   },
   {
     provider: "Google Cloud CDN",
@@ -285,6 +310,8 @@ export async function GET(request: Request) {
     "x-azure-ref",
     "x-msedge-ref",
     "cdn-cache",
+    "bcdn-cache-status",
+    "x-jsd-version-type",
     "x-cdn",
   ]
     .map((header) => {
