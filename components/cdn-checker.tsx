@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import {
   Search,
@@ -11,6 +12,7 @@ import {
   Activity,
   Waypoints,
   Binary,
+  ExternalLink,
 } from "lucide-react";
 
 interface HeaderPair {
@@ -27,10 +29,10 @@ interface CdnResult {
   confidence: "high" | "medium" | "low" | null;
   reason: string;
   matchedSignals: string[];
+  resolvedIps: string[];
   cnameChain: string[];
   headers: HeaderPair[];
 }
-
 
 function confidenceBadge(confidence: CdnResult["confidence"]) {
   if (confidence === "high") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/40";
@@ -140,6 +142,27 @@ export function CdnChecker() {
             <p className="mt-3 text-sm text-muted-foreground">{result.reason}</p>
           </div>
 
+          {!result.usesCdn && result.resolvedIps.length > 0 && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
+              <p className="text-sm font-medium text-foreground">No provider matched - resolved IPs</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You can inspect these IPs in the IP lookup page:
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {result.resolvedIps.map((ip) => (
+                  <Link
+                    key={ip}
+                    href={`/check?ip=${encodeURIComponent(ip)}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-mono text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                  >
+                    {ip}
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
               <div className="flex items-center gap-2 text-foreground">
@@ -172,7 +195,10 @@ export function CdnChecker() {
             {result.matchedSignals.length > 0 ? (
               <ul className="mt-2 flex flex-wrap gap-2 text-xs">
                 {result.matchedSignals.map((signal) => (
-                  <li key={signal} className="rounded-full border border-border bg-secondary px-3 py-1 font-mono text-muted-foreground">
+                  <li
+                    key={signal}
+                    className="rounded-full border border-border bg-secondary px-3 py-1 font-mono text-muted-foreground"
+                  >
                     {signal}
                   </li>
                 ))}

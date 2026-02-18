@@ -60,7 +60,6 @@ const CDN_SIGNATURES: CdnSignature[] = [
     valueMatches: ["keycdn"],
     cnameMatches: ["kxcdn.com", "keycdn"],
   },
-
   {
     provider: "JSDelivr",
     headerMatches: ["x-jsd-version-type"],
@@ -88,13 +87,13 @@ const CDN_SIGNATURES: CdnSignature[] = [
   {
     provider: "Google Cloud CDN",
     headerMatches: ["x-goog-generation", "x-goog-hash", "x-guploader-uploadid"],
-    valueMatches: ["google frontend", "gws"],
+    valueMatches: ["google frontend", "gws", "esf"],
     cnameMatches: ["googlehosted.com", "googleusercontent.com"],
   },
   {
     provider: "Microsoft Azure CDN",
     headerMatches: ["x-azure-ref", "x-msedge-ref", "x-cache"],
-    valueMatches: ["azure"],
+    valueMatches: ["azure", "microsoft"],
     cnameMatches: ["azureedge.net", "trafficmanager.net"],
   },
   {
@@ -196,13 +195,25 @@ async function resolveCnameChain(hostname: string) {
   return cnames;
 }
 
+async function resolveIpAddresses(hostname: string) {
+  const [v4Result, v6Result] = await Promise.allSettled([
+    dns.resolve4(hostname),
+    dns.resolve6(hostname),
+  ]);
+
+  const ipv4 = v4Result.status === "fulfilled" ? v4Result.value : [];
+  const ipv6 = v6Result.status === "fulfilled" ? v6Result.value : [];
+
+  return [...new Set([...ipv4, ...ipv6])].slice(0, 8);
+}
+
 function mapScoreToConfidence(score: number): Confidence {
   if (score >= 8) return "high";
   if (score >= 4) return "medium";
   return "low";
 }
 
-function detectCdn(headers: Headers, cnameChain: string[]): CdnDetection | null {
+function detectCdn(headers: Headers, cnameChain: string[], hostname: string): CdnDetection | null {
   const headerPairs = [...headers.entries()].map(([key, value]) => ({
     key: key.toLowerCase(),
     value: value.toLowerCase(),
@@ -211,6 +222,7 @@ function detectCdn(headers: Headers, cnameChain: string[]): CdnDetection | null 
   const headerKeys = new Set(headerPairs.map((pair) => pair.key));
   const headerValues = headerPairs.map((pair) => pair.value);
   const cnameJoined = cnameChain.join(" ");
+  const serverValue = headers.get("server")?.toLowerCase() || "";
 
   let bestMatch: CdnDetection | null = null;
   let bestScore = 0;
@@ -255,6 +267,32 @@ function detectCdn(headers: Headers, cnameChain: string[]): CdnDetection | null 
     return bestMatch;
   }
 
+  // Heuristic fallback for big platforms that often hide classic CDN headers.
+  if (["gws", "esf"].includes(serverValue) || serverValue.includes("google frontend")) {
+    if (
+      hostname.endsWith("google.com") ||
+      hostname.endsWith("youtube.com") ||
+      hostname.endsWith("googlevideo.com") ||
+      hostname.endsWith("gstatic.com")
+    ) {
+      return {
+        provider: "Google Edge Network",
+        confidence: "low",
+        reason: "Google frontend server fingerprint detected.",
+        matchedSignals: [`header-value:server=${serverValue}`],
+      };
+    }
+  }
+
+  if (serverValue.includes("microsoft") && (hostname.endsWith("bing.com") || hostname.endsWith("msn.com"))) {
+    return {
+      provider: "Microsoft Edge Network",
+      confidence: "low",
+      reason: "Microsoft server fingerprint detected.",
+      matchedSignals: [`header-value:server=${serverValue}`],
+    };
+  }
+
   if (headerKeys.has("x-cache") || headerKeys.has("via") || headerKeys.has("cache-status")) {
     return {
       provider: "Unknown CDN / Reverse Proxy",
@@ -279,7 +317,10 @@ export async function GET(request: Request) {
     );
   }
 
-  const cnameChain = await resolveCnameChain(normalized.hostname);
+  const [cnameChain, resolvedIps] = await Promise.all([
+    resolveCnameChain(normalized.hostname),
+    resolveIpAddresses(normalized.hostname),
+  ]);
 
   let responseHeaders: Headers;
   let status = 0;
@@ -290,7 +331,7 @@ export async function GET(request: Request) {
       cache: "no-store",
       redirect: "follow",
       headers: {
-        "user-agent": "ip-info-leunos-cdn-check/1.1",
+        "user-agent": "ip-info-leunos-cdn-check/1.2",
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
@@ -306,12 +347,13 @@ export async function GET(request: Request) {
       confidence: null,
       reason: "Target could not be reached from the server.",
       matchedSignals: [],
+      resolvedIps,
       cnameChain,
       headers: [],
     });
   }
 
-  const detection = detectCdn(responseHeaders, cnameChain);
+  const detection = detectCdn(responseHeaders, cnameChain, normalized.hostname);
   const selectedHeaders = [
     "server",
     "via",
@@ -350,6 +392,7 @@ export async function GET(request: Request) {
     confidence: detection?.confidence || null,
     reason: detection?.reason || "No known CDN signature detected.",
     matchedSignals: detection?.matchedSignals || [],
+    resolvedIps,
     cnameChain,
     headers: selectedHeaders,
   });
