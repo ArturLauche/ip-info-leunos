@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { InfoCard } from "@/components/info-card";
+import { getTranslation, type Locale } from "@/lib/i18n";
 import {
   Globe,
   MapPin,
@@ -45,9 +46,10 @@ interface IpData {
 
 interface IpDisplayProps {
   targetIp?: string;
+  locale: Locale;
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -60,7 +62,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-      aria-label="IP-Adresse kopieren"
+      aria-label={label}
     >
       {copied ? (
         <Check className="h-4 w-4 text-primary" />
@@ -71,12 +73,13 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function IpDisplay({ targetIp }: IpDisplayProps) {
+export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [clientIpv6, setClientIpv6] = useState<string | null>(null);
   const [ipv6Loading, setIpv6Loading] = useState(false);
+  const t = getTranslation(locale);
 
   useEffect(() => {
     setLoading(true);
@@ -99,7 +102,6 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
       });
   }, [targetIp]);
 
-  // For the home page (no targetIp), also try to detect IPv6 via external service
   useEffect(() => {
     if (targetIp) return;
 
@@ -107,7 +109,6 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
     fetch("https://api64.ipify.org?format=json")
       .then((res) => res.json())
       .then((json) => {
-        // api64 returns IPv6 if available, otherwise IPv4
         if (json.ip && json.ip.includes(":")) {
           setClientIpv6(json.ip);
         }
@@ -138,11 +139,7 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
   }
 
   if (error || !data) {
-    return (
-      <p className="text-center text-muted-foreground">
-        IP-Informationen konnten nicht abgerufen werden.
-      </p>
-    );
+    return <p className="text-center text-muted-foreground">{t.ipInfoError}</p>;
   }
 
   const ConnectionIcon = data.mobile
@@ -154,54 +151,46 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
         : Cable;
 
   const flags: string[] = [];
-  if (data.mobile) flags.push("Mobilfunk");
-  if (data.proxy) flags.push("Proxy/VPN");
-  if (data.hosting) flags.push("Hosting");
+  if (data.mobile) flags.push(t.mobileFlag);
+  if (data.proxy) flags.push(t.proxyFlag);
+  if (data.hosting) flags.push(t.hostingFlag);
 
-  // Determine display IPs
   const displayIpv4 = data.ipv4;
   const displayIpv6 = data.ipv6 || clientIpv6;
-  const primaryIp = displayIpv4 || displayIpv6 || "Unbekannt";
   const connectionTypeLabel =
-    data.connectionType === "Festnetz"
-      ? "Festnetz (DSL)"
-      : data.connectionType;
+    data.connectionType === "Festnetz" ? t.connectionDsl : data.connectionType;
 
   return (
     <div className="flex w-full flex-col items-center gap-10">
-      {/* IP Address Hero */}
       <div className="flex flex-col items-center gap-4">
-        <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-          {targetIp ? "Abgefragte IP-Adresse" : "Deine IP-Adressen"}
+        <p className="text-center text-sm font-medium uppercase tracking-widest text-muted-foreground">
+          {targetIp ? t.queriedIpAddress : t.yourIpAddresses}
         </p>
 
-        {/* IPv4 Row */}
         {displayIpv4 && (
-          <div className="flex items-center gap-3">
+          <div className="flex w-full max-w-full items-center justify-center gap-3">
             <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
               IPv4
             </span>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl font-mono">
+            <h1 className="min-w-0 text-center font-mono text-xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
               {displayIpv4}
             </h1>
-            <CopyButton text={displayIpv4} />
+            <CopyButton text={displayIpv4} label={t.copyIpLabel} />
           </div>
         )}
 
-        {/* IPv6 Row */}
         {displayIpv6 && (
-          <div className="flex items-center gap-3">
+          <div className="flex w-full max-w-full items-center justify-center gap-3">
             <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
               IPv6
             </span>
-            <h2 className="text-lg font-bold tracking-tight text-foreground md:text-xl font-mono break-all text-center">
+            <h2 className="min-w-0 break-all text-center font-mono text-sm font-bold tracking-tight text-foreground sm:text-lg md:text-xl">
               {displayIpv6}
             </h2>
-            <CopyButton text={displayIpv6} />
+            <CopyButton text={displayIpv6} label={t.copyIpLabel} />
           </div>
         )}
 
-        {/* IPv6 loading state */}
         {!targetIp && ipv6Loading && !displayIpv6 && (
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
@@ -211,36 +200,30 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
           </div>
         )}
 
-        {/* No IPv6 available */}
         {!targetIp && !ipv6Loading && !displayIpv6 && displayIpv4 && (
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               IPv6
             </span>
-            <span className="text-sm text-muted-foreground">
-              Nicht verfügbar
-            </span>
+            <span className="text-sm text-muted-foreground">{t.notAvailable}</span>
           </div>
         )}
 
-        {data.city !== "Unbekannt" && (
-          <p className="text-base text-muted-foreground">
+        {data.city !== t.unknown && (
+          <p className="text-center text-base text-muted-foreground">
             {data.city}, {data.regionName}, {data.country}
           </p>
         )}
       </div>
 
-      {/* Connection Type Banner */}
-      <div className="flex w-full max-w-4xl flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-5">
+      <div className="flex w-full max-w-4xl flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-5 text-center">
         <div className="flex items-center gap-3">
           <ConnectionIcon className="h-6 w-6 text-primary" />
           <span className="text-xl font-semibold text-foreground">
             {connectionTypeLabel}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Erkannter Verbindungstyp
-        </p>
+        <p className="text-sm text-muted-foreground">{t.detectedConnectionType}</p>
         {flags.length > 0 && (
           <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
             {flags.map((flag) => (
@@ -255,7 +238,6 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
         )}
       </div>
 
-      {/* IP Version Info Card */}
       <div className="grid w-full max-w-4xl grid-cols-1 gap-4 md:grid-cols-2">
         <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-secondary/50">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -263,19 +245,19 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              IPv4 Status
+              {t.ipv4Status}
             </p>
             <p className="mt-1 truncate text-lg font-semibold text-foreground">
-              {displayIpv4 ? "Verfügbar" : "Nicht erkannt"}
+              {displayIpv4 ? t.available : t.notDetected}
             </p>
-            <p className="truncate text-xs text-muted-foreground font-mono">
+            <p className="truncate font-mono text-xs text-muted-foreground">
               {displayIpv4 || "-"}
             </p>
           </div>
           <span
             className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${displayIpv4 ? "bg-emerald-500/10 text-emerald-400" : "bg-secondary text-muted-foreground"}`}
           >
-            {displayIpv4 ? "Aktiv" : "Inaktiv"}
+            {displayIpv4 ? t.active : t.inactive}
           </span>
         </div>
 
@@ -285,82 +267,59 @@ export function IpDisplay({ targetIp }: IpDisplayProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              IPv6 Status
+              {t.ipv6Status}
             </p>
             <p className="mt-1 truncate text-lg font-semibold text-foreground">
-              {displayIpv6 ? "Verfügbar" : "Nicht erkannt"}
+              {displayIpv6 ? t.available : t.notDetected}
             </p>
-            <p className="truncate text-xs text-muted-foreground font-mono">
+            <p className="truncate font-mono text-xs text-muted-foreground">
               {displayIpv6 || "-"}
             </p>
           </div>
           <span
             className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${displayIpv6 ? "bg-emerald-500/10 text-emerald-400" : "bg-secondary text-muted-foreground"}`}
           >
-            {displayIpv6 ? "Aktiv" : "Inaktiv"}
+            {displayIpv6 ? t.active : t.inactive}
           </span>
         </div>
       </div>
 
-      {/* Info Cards Grid */}
       <div className="grid w-full max-w-4xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <InfoCard
           icon={MapPin}
-          label="Standort"
+          label={t.location}
           value={
-            data.city !== "Unbekannt"
-              ? `${data.city}, ${data.regionName}`
-              : "Unbekannt"
+            data.city !== t.unknown ? `${data.city}, ${data.regionName}` : t.unknown
           }
           detail={data.country}
         />
-        <InfoCard
-          icon={Globe}
-          label="Land"
-          value={data.country}
-          detail={data.countryCode}
-        />
-        <InfoCard
-          icon={Clock}
-          label="Zeitzone"
-          value={data.timezone}
-          detail="IANA Zeitzone"
-        />
-        <InfoCard
-          icon={Wifi}
-          label="Anbieter (ISP)"
-          value={data.isp}
-          detail="Internetdienstanbieter"
-        />
+        <InfoCard icon={Globe} label={t.country} value={data.country} detail={data.countryCode} />
+        <InfoCard icon={Clock} label={t.timezone} value={data.timezone} detail={t.timezoneDetail} />
+        <InfoCard icon={Wifi} label={t.isp} value={data.isp} detail={t.ispDetail} />
         <InfoCard
           icon={Building2}
-          label="Organisation"
+          label={t.organization}
           value={data.org}
-          detail="Netzwerk-Organisation"
+          detail={t.organizationDetail}
         />
         <InfoCard
           icon={Hash}
-          label="AS-Nummer"
+          label={t.asNumber}
           value={data.as}
-          detail={data.asname || "Autonomes System"}
+          detail={data.asname || t.asFallbackDetail}
         />
         <InfoCard
           icon={Map}
-          label="Koordinaten"
+          label={t.coordinates}
           value={`${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`}
-          detail="Breitengrad, Längengrad"
+          detail={t.coordinatesDetail}
         />
-        <InfoCard
-          icon={MapPin}
-          label="Region"
-          value={data.regionName}
-          detail={data.region}
-        />
+        <InfoCard icon={MapPin} label={t.region} value={data.regionName} detail={data.region} />
         <InfoCard
           icon={Hash}
-          label="Postleitzahl"
+          label={t.postalCode}
           value={data.zip || "N/V"}
-          detail="PLZ"
+          detail={t.postalCodeDetail}
         />
       </div>
     </div>
