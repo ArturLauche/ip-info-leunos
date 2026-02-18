@@ -4,10 +4,19 @@ import { Search, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 
-export default async function CheckPage() {
+interface CheckPageProps {
+  searchParams: Promise<{
+    ip?: string;
+    q?: string;
+  }>;
+}
+
+export default async function CheckPage({ searchParams }: CheckPageProps) {
   const headersList = await headers();
   const locale = resolveLocale(headersList.get("accept-language"));
   const t = getTranslation(locale);
+  const params = await searchParams;
+  const initialQuery = params.ip || params.q || "";
 
   return (
     <main className="app-shell">
@@ -39,7 +48,7 @@ export default async function CheckPage() {
         </header>
 
         <section className="surface-panel w-full">
-          <IpLookup locale={locale} />
+          <IpLookup locale={locale} initialQuery={initialQuery} />
         </section>
 
         <Link

@@ -7,11 +7,13 @@ import { Search } from "lucide-react";
 
 interface IpLookupProps {
   locale: Locale;
+  initialQuery?: string;
 }
 
-export function IpLookup({ locale }: IpLookupProps) {
-  const [query, setQuery] = useState("");
-  const [submittedIp, setSubmittedIp] = useState<string | null>(null);
+export function IpLookup({ locale, initialQuery }: IpLookupProps) {
+  const sanitizedInitial = initialQuery?.trim() || "";
+  const [query, setQuery] = useState(sanitizedInitial);
+  const [submittedIp, setSubmittedIp] = useState<string | null>(sanitizedInitial || null);
   const t = getTranslation(locale);
 
   const handleSubmit = (e: FormEvent) => {

@@ -1,0 +1,249 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState, type FormEvent } from "react";
+import {
+  Search,
+  CircleCheck,
+  TriangleAlert,
+  Shield,
+  Sparkles,
+  Globe,
+  Activity,
+  Waypoints,
+  Binary,
+  ExternalLink,
+} from "lucide-react";
+
+interface HeaderPair {
+  key: string;
+  value: string;
+}
+
+interface CdnResult {
+  target: string;
+  reachable: boolean;
+  status?: number;
+  usesCdn: boolean;
+  detectedCdn: string | null;
+  confidence: "high" | "medium" | "low" | null;
+  reason: string;
+  matchedSignals: string[];
+  resolvedIps: string[];
+  cnameChain: string[];
+  headers: HeaderPair[];
+}
+
+function confidenceBadge(confidence: CdnResult["confidence"]) {
+  if (confidence === "high") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/40";
+  if (confidence === "medium") return "bg-amber-500/15 text-amber-300 border-amber-500/40";
+  if (confidence === "low") return "bg-sky-500/15 text-sky-300 border-sky-500/40";
+  return "bg-secondary text-muted-foreground border-border";
+}
+
+export function CdnChecker() {
+  const [target, setTarget] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<CdnResult | null>(null);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = target.trim();
+    if (!trimmed) return;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch(`/api/cdn?target=${encodeURIComponent(trimmed)}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Could not analyze this target.");
+      } else {
+        setResult(data);
+      }
+    } catch {
+      setError("Network error while contacting the CDN checker.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const summary = useMemo(() => {
+    if (!result) return null;
+
+    if (!result.reachable) {
+      return "Target unreachable";
+    }
+
+    if (!result.usesCdn) {
+      return "No confident CDN match";
+    }
+
+    return result.detectedCdn || "CDN detected";
+  }, [result]);
+
+  return (
+    <div className="flex w-full flex-col gap-8">
+      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+            placeholder="example.com"
+            className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {loading ? "Analyzing..." : "Check CDN"}
+        </button>
+      </form>
+
+      {loading && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-24 animate-pulse rounded-xl bg-secondary" />
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          <TriangleAlert className="h-4 w-4" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      {result && (
+        <div className="flex flex-col gap-4">
+          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              {result.usesCdn ? (
+                <CircleCheck className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <Shield className="h-5 w-5 text-muted-foreground" />
+              )}
+              <p className="text-lg font-semibold text-foreground">{summary}</p>
+              <span
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-wider ${confidenceBadge(result.confidence)}`}
+              >
+                {result.confidence || "n/a"}
+              </span>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">{result.reason}</p>
+          </div>
+
+          {!result.usesCdn && result.resolvedIps.length > 0 && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
+              <p className="text-sm font-medium text-foreground">No provider matched - resolved IPs</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You can inspect these IPs in the IP lookup page:
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {result.resolvedIps.map((ip) => (
+                  <Link
+                    key={ip}
+                    href={`/check?ip=${encodeURIComponent(ip)}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-mono text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                  >
+                    {ip}
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-foreground">
+                <Globe className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">Target</p>
+              </div>
+              <p className="mt-2 break-all font-mono text-sm text-muted-foreground">{result.target}</p>
+            </div>
+            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-foreground">
+                <Activity className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">HTTP Status</p>
+              </div>
+              <p className="mt-2 text-lg font-semibold text-foreground">{result.status || "n/a"}</p>
+            </div>
+            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-foreground">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">Provider</p>
+              </div>
+              <p className="mt-2 text-sm font-semibold text-foreground">{result.detectedCdn || "Unknown"}</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Binary className="h-4 w-4 text-primary" />
+              Matched signals
+            </p>
+            {result.matchedSignals.length > 0 ? (
+              <ul className="mt-2 flex flex-wrap gap-2 text-xs">
+                {result.matchedSignals.map((signal) => (
+                  <li
+                    key={signal}
+                    className="rounded-full border border-border bg-secondary px-3 py-1 font-mono text-muted-foreground"
+                  >
+                    {signal}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">No explicit CDN signal matched.</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Waypoints className="h-4 w-4 text-primary" />
+                CNAME chain
+              </p>
+              {result.cnameChain.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {result.cnameChain.map((entry) => (
+                    <li key={entry} className="font-mono">
+                      {entry}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No CNAME records discovered.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <p className="text-sm font-medium text-foreground">Interesting response headers</p>
+              {result.headers.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {result.headers.map((header) => (
+                    <li key={header.key}>
+                      <span className="font-mono text-foreground">{header.key}</span>: {header.value}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No relevant headers found.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
