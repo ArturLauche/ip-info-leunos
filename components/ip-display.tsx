@@ -157,8 +157,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
 
   const displayIpv4 = data.ipv4;
   const displayIpv6 = data.ipv6 || clientIpv6;
-  const connectionTypeLabel =
-    data.connectionType === "Festnetz" ? t.connectionDsl : data.connectionType;
+  const connectionTypeLabel = data.connectionType;
 
   return (
     <div className="flex w-full flex-col items-center gap-10">

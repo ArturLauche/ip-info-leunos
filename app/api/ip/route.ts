@@ -6,14 +6,18 @@ function resolveIpApiLanguage(request: Request): Locale {
   return resolveLocale(request.headers.get("accept-language"));
 }
 
-function detectConnectionType(data: {
-  isp: string;
-  org: string;
-  as: string;
-  mobile: boolean;
-  proxy: boolean;
-  hosting: boolean;
-}): string {
+function detectConnectionType(
+  data: {
+    isp: string;
+    org: string;
+    as: string;
+    mobile: boolean;
+    proxy: boolean;
+    hosting: boolean;
+  },
+  locale: Locale
+): string {
+  const t = getTranslation(locale);
   const ispLower = (data.isp || "").toLowerCase();
   const orgLower = (data.org || "").toLowerCase();
   const asLower = (data.as || "").toLowerCase();
@@ -21,12 +25,12 @@ function detectConnectionType(data: {
   const hasAnyKeyword = (keywords: string[]) =>
     keywords.some((keyword) => combinedText.includes(keyword));
 
-  if (data.hosting) return "Rechenzentrum / Hosting";
-  if (data.proxy) return "Proxy / VPN / Tor";
-  if (data.mobile) return "Mobilfunk";
+  if (data.hosting) return t.connectionHosting;
+  if (data.proxy) return t.connectionProxy;
+  if (data.mobile) return t.connectionMobile;
 
   if (hasAnyKeyword(["starlink", "spacex"])) {
-    return "Starlink (Satellit)";
+    return t.connectionStarlink;
   }
 
   if (
@@ -38,7 +42,7 @@ function detectConnectionType(data: {
       "ses astra",
     ])
   ) {
-    return "Satellit";
+    return t.connectionSatellite;
   }
 
   if (
@@ -55,7 +59,7 @@ function detectConnectionType(data: {
       "init7",
     ])
   ) {
-    return "Glasfaser";
+    return t.connectionFiber;
   }
 
   if (
@@ -74,7 +78,7 @@ function detectConnectionType(data: {
       "tele columbus",
     ])
   ) {
-    return "Kabelinternet (Koax)";
+    return t.connectionCable;
   }
 
   if (
@@ -87,7 +91,7 @@ function detectConnectionType(data: {
       "wimax",
     ])
   ) {
-    return "Funk / Richtfunk";
+    return t.connectionWireless;
   }
 
   if (
@@ -109,7 +113,7 @@ function detectConnectionType(data: {
       "bt ",
     ])
   ) {
-    return "DSL";
+    return t.connectionDsl;
   }
 
   if (
@@ -122,11 +126,12 @@ function detectConnectionType(data: {
       "mpls",
     ])
   ) {
-    return "Geschäftskundenleitung";
+    return t.connectionBusiness;
   }
 
-  return "Festnetz";
+  return t.connectionWired;
 }
+
 
 function isIPv6(ip: string): boolean {
   return ip.includes(":");
@@ -244,7 +249,7 @@ export async function GET(request: Request) {
       mobile: data.mobile,
       proxy: data.proxy,
       hosting: data.hosting,
-      connectionType: detectConnectionType(data),
+      connectionType: detectConnectionType(data, language),
     });
   }
 
@@ -297,6 +302,6 @@ export async function GET(request: Request) {
     mobile: data.mobile,
     proxy: data.proxy,
     hosting: data.hosting,
-    connectionType: detectConnectionType(data),
+    connectionType: detectConnectionType(data, language),
   });
 }
