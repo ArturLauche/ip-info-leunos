@@ -7,12 +7,20 @@ export const runtime = "nodejs";
 type PingMode = "tcp" | "udp" | "eb" | "database";
 type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
 
+interface DatabaseAuth {
+  enabled?: boolean;
+  username?: string;
+  password?: string;
+  database?: string;
+}
+
 interface PingRequest {
   mode?: PingMode;
   target?: string;
   port?: number;
   timeoutMs?: number;
   databaseType?: DatabaseType;
+  auth?: DatabaseAuth;
 }
 
 interface PingResult {
@@ -197,9 +205,7 @@ function socketProbe(
     });
 
     socket.connect(port, target, () => {
-      if (payload) {
-        socket.write(payload);
-      }
+      if (payload) socket.write(payload);
     });
   });
 }
@@ -265,12 +271,109 @@ async function redisProbe(target: string, port: number, timeoutMs: number) {
   });
 }
 
+function buildRedisAuthCommand(username: string, password: string) {
+  if (username) {
+    return `*3\r\n$4\r\nAUTH\r\n$${username.length}\r\n${username}\r\n$${password.length}\r\n${password}\r\n`;
+  }
+
+  return `*2\r\n$4\r\nAUTH\r\n$${password.length}\r\n${password}\r\n`;
+}
+
+async function redisAuthProbe(target: string, port: number, timeoutMs: number, auth: DatabaseAuth) {
+  return new Promise<{ ok: boolean; message: string; details?: Record<string, unknown> }>((resolve) => {
+    const socket = new net.Socket();
+    const username = auth.username || "";
+    const password = auth.password || "";
+    let settled = false;
+    let buffer = "";
+
+    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve({ ok, message, details });
+    };
+
+    socket.setTimeout(timeoutMs);
+    socket.once("timeout", () => finish(false, `Redis auth probe timeout after ${timeoutMs}ms.`));
+    socket.once("error", (error) => finish(false, `Redis auth probe failed: ${error.message}`));
+
+    socket.on("data", (chunk) => {
+      buffer += chunk.toString("utf8");
+
+      if (buffer.includes("\r\n")) {
+        if (buffer.startsWith("+OK")) {
+          socket.write("*1\r\n$4\r\nPING\r\n");
+          buffer = "";
+          return;
+        }
+
+        if (buffer.startsWith("+PONG")) {
+          finish(true, "Authenticated Redis connection succeeded.", { stage: "auth", preview: "+PONG" });
+          return;
+        }
+
+        if (buffer.startsWith("-")) {
+          finish(false, `Redis auth failed: ${buffer.trim()}`, { stage: "auth" });
+        }
+      }
+    });
+
+    socket.connect(port, target, () => {
+      if (!password) {
+        finish(false, "Password is required for Redis authenticated check.", { stage: "auth" });
+        return;
+      }
+      socket.write(buildRedisAuthCommand(username, password));
+    });
+  });
+}
+
+async function databaseAuthPing(
+  target: string,
+  databaseType: DatabaseType,
+  port: number,
+  timeoutMs: number,
+  auth: DatabaseAuth,
+): Promise<PingResult> {
+  const started = Date.now();
+
+  if (databaseType === "redis") {
+    const probe = await redisAuthProbe(target, port, timeoutMs, auth);
+    return {
+      ok: probe.ok,
+      mode: "database",
+      target,
+      port,
+      latencyMs: Date.now() - started,
+      message: probe.message,
+      details: { databaseType, ...(probe.details || {}) },
+    };
+  }
+
+  return {
+    ok: false,
+    mode: "database",
+    target,
+    port,
+    latencyMs: Date.now() - started,
+    message:
+      "Authenticated checks are currently implemented for Redis only in this environment. Use unauthenticated protocol check for other database types.",
+    details: { databaseType, stage: "auth" },
+  };
+}
+
 async function databasePing(
   target: string,
   databaseType: DatabaseType,
   port: number,
   timeoutMs: number,
+  auth: DatabaseAuth,
 ): Promise<PingResult> {
+  if (auth.enabled) {
+    return databaseAuthPing(target, databaseType, port, timeoutMs, auth);
+  }
+
   const started = Date.now();
   const base = await tcpPing(target, port, timeoutMs);
 
@@ -376,7 +479,7 @@ export async function POST(request: Request) {
         ? await udpPing(target, port, timeoutMs)
         : mode === "eb"
           ? await ebPing(target, port, timeoutMs)
-          : await databasePing(target, databaseType, port, timeoutMs);
+          : await databasePing(target, databaseType, port, timeoutMs, payload.auth || {});
 
   return NextResponse.json(result, { status: result.ok ? 200 : 502 });
 }

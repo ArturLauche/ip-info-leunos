@@ -8,7 +8,7 @@ Eine kleine Next.js-Webanwendung zur Anzeige von IP- und Netzwerk-Informationen.
 - Zeigt Standort-/Netzwerkdaten wie Land, Region, Stadt, ISP, AS und Zeitzone.
 - Erkennt Verbindungstyp heuristisch (z. B. Glasfaser, DSL, Kabel, Mobilfunk, Hosting/VPN).
 - Separate Suchseite (`/check`) zum Nachschlagen beliebiger IP-Adressen oder Domains.
-- Ping-/Port-Tester unter `/ping` fuer TCP, UDP, EB-Endpunkte und grundlegende Datenbank-Konnektivitaet.
+- Ping-/Port-Tester unter `/ping` fuer TCP, UDP, EB-Endpunkte und Datenbank-Checks (inkl. optionalem Auth-Check fuer Redis).
 
 ## Tech Stack
 

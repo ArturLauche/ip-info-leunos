@@ -25,21 +25,27 @@ const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
   generic: 0,
 };
 
+const inputClass =
+  "h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm font-sans text-foreground";
+
 export function PingChecker() {
   const [mode, setMode] = useState<PingMode>("tcp");
   const [databaseType, setDatabaseType] = useState<DatabaseType>("postgres");
   const [target, setTarget] = useState("127.0.0.1");
   const [port, setPort] = useState("80");
   const [timeoutMs, setTimeoutMs] = useState("3000");
+  const [useAuth, setUseAuth] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [database, setDatabase] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
 
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
-    if (nextMode === "database") {
-      setPort(String(DB_DEFAULT_PORTS[databaseType]));
-    }
+    if (nextMode === "database") setPort(String(DB_DEFAULT_PORTS[databaseType]));
+    if (nextMode !== "database") setUseAuth(false);
   };
 
   const onDatabaseTypeChange = (nextType: DatabaseType) => {
@@ -67,6 +73,12 @@ export function PingChecker() {
           port: Number(port),
           timeoutMs: Number(timeoutMs),
           databaseType,
+          auth: {
+            enabled: mode === "database" && useAuth,
+            username,
+            password,
+            database,
+          },
         }),
       });
 
@@ -84,14 +96,14 @@ export function PingChecker() {
   };
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col gap-6 font-sans">
       <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm text-foreground">
           Test mode
           <select
             value={mode}
             onChange={(event) => onModeChange(event.target.value as PingMode)}
-            className="h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm"
+            className={inputClass}
           >
             <option value="tcp">TCP port check</option>
             <option value="udp">UDP port probe</option>
@@ -106,7 +118,7 @@ export function PingChecker() {
             value={databaseType}
             disabled={mode !== "database"}
             onChange={(event) => onDatabaseTypeChange(event.target.value as DatabaseType)}
-            className="h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm disabled:opacity-50"
+            className={`${inputClass} disabled:opacity-50`}
           >
             <option value="postgres">PostgreSQL</option>
             <option value="mysql">MySQL</option>
@@ -123,7 +135,7 @@ export function PingChecker() {
             value={target}
             onChange={(event) => setTarget(event.target.value)}
             placeholder="example.com"
-            className="h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm"
+            className={inputClass}
           />
         </label>
 
@@ -133,7 +145,7 @@ export function PingChecker() {
             value={port}
             onChange={(event) => setPort(event.target.value)}
             placeholder="443"
-            className="h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm"
+            className={inputClass}
           />
         </label>
 
@@ -143,9 +155,43 @@ export function PingChecker() {
             value={timeoutMs}
             onChange={(event) => setTimeoutMs(event.target.value)}
             placeholder="3000"
-            className="h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm"
+            className={inputClass}
           />
         </label>
+
+        {mode === "database" && (
+          <label className="md:col-span-2 flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm text-foreground">
+            <input type="checkbox" checked={useAuth} onChange={(event) => setUseAuth(event.target.checked)} />
+            Check with authentication
+          </label>
+        )}
+
+        {mode === "database" && useAuth && (
+          <>
+            <label className="flex flex-col gap-2 text-sm text-foreground">
+              Username
+              <input value={username} onChange={(event) => setUsername(event.target.value)} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-foreground">
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-foreground md:col-span-2">
+              Database (optional)
+              <input
+                value={database}
+                onChange={(event) => setDatabase(event.target.value)}
+                placeholder="postgres / admin / master"
+                className={inputClass}
+              />
+            </label>
+          </>
+        )}
 
         <button
           type="submit"
