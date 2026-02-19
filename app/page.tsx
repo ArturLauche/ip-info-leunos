@@ -1,6 +1,6 @@
 import { IpDisplay } from "@/components/ip-display";
 import { getTranslation, resolveLocale } from "@/lib/i18n";
-import { Globe, Search } from "lucide-react";
+import { Globe, Radar, Search } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 
@@ -42,13 +42,22 @@ export default async function Home() {
           <IpDisplay locale={locale} />
         </section>
 
-        <Link
-          href="/check"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
-        >
-          <Search className="h-4 w-4" />
-          {t.queryOtherIp}
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/check"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
+          >
+            <Search className="h-4 w-4" />
+            {t.queryOtherIp}
+          </Link>
+          <Link
+            href="/ping"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
+          >
+            <Radar className="h-4 w-4" />
+            Ping Tester
+          </Link>
+        </div>
 
         <footer className="text-xs text-muted-foreground">
           <p>
