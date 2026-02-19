@@ -165,13 +165,115 @@ async function ebPing(target: string, port: number, timeoutMs: number): Promise<
   };
 }
 
+function socketProbe(
+  target: string,
+  port: number,
+  timeoutMs: number,
+  payload: Buffer | null,
+  validate: (data: Buffer) => { ok: boolean; message: string; details?: Record<string, unknown> },
+): Promise<{ ok: boolean; latencyMs: number; message: string; details?: Record<string, unknown> }> {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const socket = new net.Socket();
+    let settled = false;
+
+    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve({ ok, latencyMs: Date.now() - started, message, details });
+    };
+
+    socket.setTimeout(timeoutMs);
+    socket.once("timeout", () => finish(false, `Probe timeout after ${timeoutMs}ms.`));
+    socket.once("error", (error) => {
+      finish(false, `Probe failed: ${error.message}`, {
+        code: (error as NodeJS.ErrnoException).code || "UNKNOWN",
+      });
+    });
+    socket.once("data", (chunk) => {
+      const validated = validate(chunk);
+      finish(validated.ok, validated.message, validated.details);
+    });
+
+    socket.connect(port, target, () => {
+      if (payload) {
+        socket.write(payload);
+      }
+    });
+  });
+}
+
+async function postgresProbe(target: string, port: number, timeoutMs: number) {
+  const sslRequest = Buffer.alloc(8);
+  sslRequest.writeInt32BE(8, 0);
+  sslRequest.writeInt32BE(80877103, 4);
+
+  return socketProbe(target, port, timeoutMs, sslRequest, (data) => {
+    const responseCode = String.fromCharCode(data[0] || 0);
+    if (responseCode === "S" || responseCode === "N") {
+      return {
+        ok: true,
+        message: "PostgreSQL handshake response received.",
+        details: { protocolSignal: responseCode === "S" ? "ssl-accepted" : "ssl-rejected" },
+      };
+    }
+
+    return {
+      ok: false,
+      message: "Unexpected PostgreSQL handshake response.",
+      details: { firstByte: data[0] ?? null },
+    };
+  });
+}
+
+async function mysqlProbe(target: string, port: number, timeoutMs: number) {
+  return socketProbe(target, port, timeoutMs, null, (data) => {
+    const protocolVersion = data[4];
+    if (typeof protocolVersion === "number" && protocolVersion > 0) {
+      return {
+        ok: true,
+        message: "MySQL handshake packet received.",
+        details: { protocolVersion },
+      };
+    }
+
+    return {
+      ok: false,
+      message: "Unexpected MySQL handshake payload.",
+      details: { receivedBytes: data.length },
+    };
+  });
+}
+
+async function redisProbe(target: string, port: number, timeoutMs: number) {
+  return socketProbe(target, port, timeoutMs, Buffer.from("*1\r\n$4\r\nPING\r\n"), (data) => {
+    const text = data.toString("utf8").trim();
+    if (text.startsWith("+PONG") || text.startsWith("-NOAUTH") || text.startsWith("-ERR")) {
+      return {
+        ok: true,
+        message: "Redis command response received.",
+        details: { preview: text.slice(0, 80) },
+      };
+    }
+
+    return {
+      ok: false,
+      message: "Unexpected Redis response.",
+      details: { preview: text.slice(0, 80) },
+    };
+  });
+}
+
 async function databasePing(
   target: string,
   databaseType: DatabaseType,
   port: number,
   timeoutMs: number,
 ): Promise<PingResult> {
+  const started = Date.now();
   const base = await tcpPing(target, port, timeoutMs);
+
   if (!base.ok) {
     return {
       ...base,
@@ -181,14 +283,59 @@ async function databasePing(
     };
   }
 
+  if (databaseType === "postgres") {
+    const probe = await postgresProbe(target, port, timeoutMs);
+    return {
+      ok: probe.ok,
+      mode: "database",
+      target,
+      port,
+      latencyMs: Date.now() - started,
+      message: probe.ok
+        ? "PostgreSQL server responded to a pre-auth handshake probe."
+        : `PostgreSQL probe failed: ${probe.message}`,
+      details: { databaseType, stage: "protocol", ...(probe.details || {}) },
+    };
+  }
+
+  if (databaseType === "mysql") {
+    const probe = await mysqlProbe(target, port, timeoutMs);
+    return {
+      ok: probe.ok,
+      mode: "database",
+      target,
+      port,
+      latencyMs: Date.now() - started,
+      message: probe.ok
+        ? "MySQL server sent a pre-auth handshake packet."
+        : `MySQL probe failed: ${probe.message}`,
+      details: { databaseType, stage: "protocol", ...(probe.details || {}) },
+    };
+  }
+
+  if (databaseType === "redis") {
+    const probe = await redisProbe(target, port, timeoutMs);
+    return {
+      ok: probe.ok,
+      mode: "database",
+      target,
+      port,
+      latencyMs: Date.now() - started,
+      message: probe.ok
+        ? "Redis responded to a PING probe (no authentication credentials used)."
+        : `Redis probe failed: ${probe.message}`,
+      details: { databaseType, stage: "protocol", ...(probe.details || {}) },
+    };
+  }
+
   return {
     ...base,
     mode: "database",
-    message: `${databaseType} port is reachable over TCP.`,
+    message: `${databaseType} TCP port is reachable. Protocol-level pre-auth probe is not implemented for this type.`,
     details: {
       databaseType,
       stage: "tcp",
-      note: "Basic connectivity only (no login/auth attempted).",
+      note: "This confirms network reachability to the port, not authentication or full DB readiness.",
     },
   };
 }
