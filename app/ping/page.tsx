@@ -14,7 +14,7 @@ export default function PingPage() {
           <div className="flex flex-col items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Ping & Port Tester</h1>
             <p className="max-w-xl text-sm text-muted-foreground md:text-base">
-              Test TCP/UDP ports, run EB endpoint checks, and verify connectivity to common database ports.
+              Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.
             </p>
           </div>
         </header>

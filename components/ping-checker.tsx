@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Activity, CircleCheck, ServerCrash, Timer } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
+import { Activity, CircleCheck, ServerCrash, Timer, Info, Gauge, ShieldCheck } from "lucide-react";
 
 type PingMode = "tcp" | "udp" | "eb" | "database";
 type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
@@ -26,7 +26,21 @@ const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
 };
 
 const inputClass =
-  "h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm font-sans text-foreground";
+  "h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm font-sans text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+const MODE_LABELS: Record<PingMode, string> = {
+  tcp: "TCP",
+  udp: "UDP",
+  eb: "EB",
+  database: "Database",
+};
+
+const MODE_HELPERS: Record<PingMode, string> = {
+  tcp: "Verifies whether the TCP port accepts a connection.",
+  udp: "Sends a UDP probe and reports immediate response/error behavior.",
+  eb: "Checks TCP first, then tries HTTP/HTTPS endpoint reachability.",
+  database: "Runs pre-auth protocol checks and optional authenticated checks.",
+};
 
 export function PingChecker() {
   const [mode, setMode] = useState<PingMode>("tcp");
@@ -55,6 +69,13 @@ export function PingChecker() {
       if (nextPort) setPort(String(nextPort));
     }
   };
+
+  const effectiveSummary = useMemo(() => {
+    if (mode !== "database") return `${MODE_LABELS[mode]} check against ${target}:${port}`;
+    return useAuth
+      ? `${databaseType} authenticated check against ${target}:${port}`
+      : `${databaseType} protocol check against ${target}:${port}`;
+  }, [databaseType, mode, port, target, useAuth]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,20 +118,38 @@ export function PingChecker() {
 
   return (
     <div className="flex w-full flex-col gap-6 font-sans">
+      <div className="rounded-xl border border-border/80 bg-card/70 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 text-foreground">
+          <Info className="h-4 w-4 text-primary" />
+          Current test plan
+        </p>
+        <p className="mt-2 text-sm">{effectiveSummary}</p>
+      </div>
+
       <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm text-foreground">
-          Test mode
-          <select
-            value={mode}
-            onChange={(event) => onModeChange(event.target.value as PingMode)}
-            className={inputClass}
-          >
-            <option value="tcp">TCP port check</option>
-            <option value="udp">UDP port probe</option>
-            <option value="eb">EB endpoint check</option>
-            <option value="database">Database connectivity</option>
-          </select>
-        </label>
+        <fieldset className="md:col-span-2">
+          <legend className="mb-2 text-sm font-medium text-foreground">Test mode</legend>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => {
+              const active = mode === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onModeChange(value)}
+                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                    active
+                      ? "border-primary bg-primary/15 text-foreground"
+                      : "border-border bg-secondary/60 text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {MODE_LABELS[value]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{MODE_HELPERS[mode]}</p>
+        </fieldset>
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
           Database type
@@ -118,7 +157,7 @@ export function PingChecker() {
             value={databaseType}
             disabled={mode !== "database"}
             onChange={(event) => onDatabaseTypeChange(event.target.value as DatabaseType)}
-            className={`${inputClass} disabled:opacity-50`}
+            className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-50`}
           >
             <option value="postgres">PostgreSQL</option>
             <option value="mysql">MySQL</option>
@@ -149,7 +188,7 @@ export function PingChecker() {
           />
         </label>
 
-        <label className="flex flex-col gap-2 text-sm text-foreground md:col-span-2">
+        <label className="flex flex-col gap-2 text-sm text-foreground">
           Timeout (ms)
           <input
             value={timeoutMs}
@@ -196,7 +235,7 @@ export function PingChecker() {
         <button
           type="submit"
           disabled={loading}
-          className="h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+          className="md:col-span-2 h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Running check..." : "Run ping test"}
         </button>
@@ -228,15 +267,22 @@ export function PingChecker() {
               <Timer className="h-4 w-4 text-primary" />
               Latency: <span className="font-mono text-foreground">{result.latencyMs}ms</span>
             </p>
-            <p>
+            <p className="flex items-center gap-2">
+              <Gauge className="h-4 w-4 text-primary" />
               Target: <span className="font-mono text-foreground">{result.target}:{result.port}</span>
             </p>
           </div>
 
           {result.details && (
-            <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/70 p-3 text-xs text-muted-foreground">
-              {JSON.stringify(result.details, null, 2)}
-            </pre>
+            <div>
+              <p className="mb-2 flex items-center gap-2 text-sm text-foreground">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Details
+              </p>
+              <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/70 p-3 text-xs text-muted-foreground">
+                {JSON.stringify(result.details, null, 2)}
+              </pre>
+            </div>
           )}
         </div>
       )}
