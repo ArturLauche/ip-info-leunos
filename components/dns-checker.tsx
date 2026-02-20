@@ -1,5 +1,7 @@
 "use client";
 
+import { type Locale } from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { CircleCheck, Search, TriangleAlert } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
@@ -19,11 +21,16 @@ interface DnsResult {
   records: DnsRecord[];
 }
 
-export function DnsChecker() {
+interface DnsCheckerProps {
+  locale: Locale;
+}
+
+export function DnsChecker({ locale }: DnsCheckerProps) {
   const [target, setTarget] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DnsResult | null>(null);
+  const t = getToolTranslation(locale);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,12 +46,12 @@ export function DnsChecker() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "DNS lookup failed.");
+        setError(data.error || t.dnsLookupError);
       } else {
         setResult(data as DnsResult);
       }
     } catch {
-      setError("Network error while contacting /api/dns.");
+      setError(t.dnsNetworkError);
     } finally {
       setLoading(false);
     }
@@ -59,7 +66,7 @@ export function DnsChecker() {
             type="text"
             value={target}
             onChange={(event) => setTarget(event.target.value)}
-            placeholder="example.com"
+            placeholder={t.targetPlaceholder}
             className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
@@ -68,7 +75,7 @@ export function DnsChecker() {
           disabled={loading}
           className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Looking up..." : "Lookup DNS"}
+          {loading ? t.lookupInProgress : t.dnsLookupButton}
         </button>
       </form>
 
@@ -83,11 +90,11 @@ export function DnsChecker() {
         <div className="space-y-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
           <p className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <CircleCheck className="h-5 w-5 text-emerald-400" />
-            DNS records for {result.target}
+            {t.dnsRecordsFor} {result.target}
           </p>
 
           <div>
-            <p className="text-sm font-medium text-foreground">Resolved addresses</p>
+            <p className="text-sm font-medium text-foreground">{t.resolvedAddresses}</p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
               {result.addresses.length > 0 ? (
                 result.addresses.map((address) => (
@@ -96,13 +103,13 @@ export function DnsChecker() {
                   </li>
                 ))
               ) : (
-                <li>No A/AAAA lookup result.</li>
+                <li>{t.noAddressResult}</li>
               )}
             </ul>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-foreground">Record details</p>
+            <p className="text-sm font-medium text-foreground">{t.recordDetails}</p>
             <div className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
               <pre>{JSON.stringify(result.records, null, 2)}</pre>
             </div>

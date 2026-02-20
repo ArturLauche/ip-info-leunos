@@ -1,7 +1,14 @@
 import { DnsChecker } from "@/components/dns-checker";
+import { resolveLocale } from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { Network } from "lucide-react";
+import { headers } from "next/headers";
 
-export default function DnsPage() {
+export default async function DnsPage() {
+  const headersList = await headers();
+  const locale = resolveLocale(headersList.get("accept-language"));
+  const t = getToolTranslation(locale);
+
   return (
     <main className="app-shell">
       <div className="app-gradient" aria-hidden />
@@ -12,15 +19,13 @@ export default function DnsPage() {
             <Network className="h-7 w-7 text-primary" />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">DNS Lookup</h1>
-            <p className="max-w-xl text-sm text-muted-foreground md:text-base">
-              Query domain DNS records (A, AAAA, CNAME, MX, NS, TXT, SRV) from a single page.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{t.dnsTitle}</h1>
+            <p className="max-w-xl text-sm text-muted-foreground md:text-base">{t.dnsSubtitle}</p>
           </div>
         </header>
 
         <section className="surface-panel w-full">
-          <DnsChecker />
+          <DnsChecker locale={locale} />
         </section>
       </div>
     </main>
