@@ -1,14 +1,14 @@
-# IP Auskunft
+# IP Info
 
-Eine kleine Next.js-Webanwendung zur Anzeige von IP- und Netzwerk-Informationen.
+A small Next.js web application that displays IP and network information for the current visitor, and also lets you look up any public IP address or domain.
 
 ## Features
 
-- Zeigt deine erkannte **IPv4** und – wenn verfuegbar – **IPv6**.
-- Zeigt Standort-/Netzwerkdaten wie Land, Region, Stadt, ISP, AS und Zeitzone.
-- Erkennt Verbindungstyp heuristisch (z. B. Glasfaser, DSL, Kabel, Mobilfunk, Hosting/VPN).
-- Separate Suchseite (`/check`) zum Nachschlagen beliebiger IP-Adressen oder Domains.
-- Ping-/Port-Tester unter `/ping` fuer TCP, UDP, EB-Endpunkte und Datenbank-Checks (inkl. optionalem Auth-Check fuer Redis).
+- Detects and shows your current **IPv4** and (when available) **IPv6**.
+- Displays geolocation/network metadata such as country, region, city, ISP, AS, and timezone.
+- Provides a heuristic connection-type label (for example fiber, DSL, cable, mobile, hosting/VPN).
+- Includes a dedicated lookup page at `/check` for searching custom IPs or domains.
+- Includes a network testing page at `/ping` for TCP, UDP, EB endpoints, and database checks (including optional Redis auth checks).
 
 ## Tech Stack
 
@@ -16,66 +16,68 @@ Eine kleine Next.js-Webanwendung zur Anzeige von IP- und Netzwerk-Informationen.
 - **UI:** React 19 + TypeScript
 - **Styling:** Tailwind CSS 4
 - **Icons:** lucide-react
-- **Analytics:** @vercel/analytics
-- **Datenquelle:** `ip-api.com` (Server-seitig) und `api64.ipify.org` (Client-seitig fuer IPv6-Erkennung)
+- **Analytics:** `@vercel/analytics`
+- **Data sources:**
+  - `ip-api.com` (server-side IP metadata)
+  - `api64.ipify.org` (client-side IPv6 detection)
 
-## Ist die Seite statisch?
+## Is this a static site?
 
-Kurz: **Nein, nicht rein statisch.**
+Short answer: **No, this is not purely static.**
 
-Warum:
+Why:
 
-- Es gibt eine API-Route unter `app/api/ip/route.ts`, die zur Laufzeit Request-Header ausliest (`x-forwarded-for`, `x-real-ip`) und externe Daten abruft.
-- Diese Route nutzt `fetch(..., { cache: "no-store" })` fuer Live-Abfragen.
-- Das Frontend ruft diese API client-seitig per `fetch("/api/ip")` auf und rendert die Ergebnisse dynamisch.
+- The API route `app/api/ip/route.ts` reads runtime request headers (`x-forwarded-for`, `x-real-ip`) and fetches external data.
+- That route uses `fetch(..., { cache: "no-store" })` for live lookups.
+- The frontend calls `fetch("/api/ip")` at runtime and renders dynamic results.
 
-Damit ist das Projekt eine **dynamische Next.js-Anwendung** (mit Client- und Server-Logik), keine rein statisch exportierte Seite.
+So this repository is a **dynamic Next.js application** with both client and server logic.
 
-## Hosting: statisch oder Server?
+## Hosting requirements
 
-**Aktueller Stand:** Du brauchst einen **Node/Next.js-Server** (oder eine Plattform mit Serverless Functions).
+**Current architecture:** requires a **Node/Next.js runtime** (or serverless functions).
 
-- **Nicht ausreichend:** reines Static Hosting (nur HTML/CSS/JS, z. B. klassisches Netlify Static, GitHub Pages, S3 ohne Functions).
-- **Geeignet:** Vercel, Railway, Render, Fly.io, Docker/VPS mit `pnpm build && pnpm start`.
+- **Not enough:** pure static hosting only (HTML/CSS/JS with no server runtime).
+- **Works well:** Vercel, Railway, Render, Fly.io, or Docker/VPS using `pnpm build && pnpm start`.
 
-Grund: Die API-Route `app/api/ip/route.ts` laeuft serverseitig und wird vom Frontend zur Laufzeit aufgerufen.
+Reason: `app/api/ip/route.ts` is executed server-side and is required by the frontend.
 
-### Wenn du unbedingt statisch hosten willst
+### If you must deploy statically
 
-Dann musst du die App umbauen und `app/api/ip/route.ts` entfernen/ersetzen, z. B. indem das Frontend direkt einen externen API-Dienst aufruft (inkl. CORS-/Rate-Limit-Handling). Das ist ein Architekturwechsel und nicht der aktuelle Stand dieses Repos.
+You would need to redesign the app and remove/replace `app/api/ip/route.ts` (for example by calling an external API directly from the browser and handling CORS/rate limits). That is an architectural change and not the current state of this project.
 
-## Projektstruktur (Auszug)
+## Project structure (excerpt)
 
-- `app/page.tsx` – Startseite (eigene IP anzeigen)
-- `app/check/page.tsx` – Suchseite fuer fremde IP/Domain
-- `app/api/ip/route.ts` – Server-API fuer IP-Lookup und Aufbereitung
-- `components/ip-display.tsx` – Anzeige der IP- und Metadaten
-- `components/ip-lookup.tsx` – Eingabeformular fuer manuelle Abfrage
+- `app/page.tsx` — Home page (shows your own IP)
+- `app/check/page.tsx` — Lookup page for external IP/domain
+- `app/api/ip/route.ts` — Server API for IP lookup and normalization
+- `components/ip-display.tsx` — IP and metadata presentation UI
+- `components/ip-lookup.tsx` — Manual lookup input form
 
-## Lokale Entwicklung
+## Local development
 
-Voraussetzungen:
+### Requirements
 
 - Node.js 20+
 - pnpm
 
-Installation & Start:
+### Install and run
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Danach unter `http://localhost:3000` aufrufen.
+Open `http://localhost:3000`.
 
-## Build & Produktion
+## Production build
 
 ```bash
 pnpm build
 pnpm start
 ```
 
-## Hinweise
+## Notes
 
-- Die Genauigkeit von Standort/Provider-Daten haengt vom Upstream-Dienst (`ip-api.com`) ab.
-- Wenn keine IPv6-Adresse verfuegbar ist, wird das in der UI entsprechend angezeigt.
+- Geolocation and ISP accuracy depends on the upstream provider (`ip-api.com`).
+- If IPv6 is not available for the client network, the UI will show that accordingly.
