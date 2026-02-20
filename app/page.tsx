@@ -1,5 +1,6 @@
 import { IpDisplay } from "@/components/ip-display";
 import { getTranslation, resolveLocale } from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { Globe, Network, Radar, Search } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
@@ -8,6 +9,7 @@ export default async function Home() {
   const headersList = await headers();
   const locale = resolveLocale(headersList.get("accept-language"));
   const t = getTranslation(locale);
+  const toolT = getToolTranslation(locale);
 
   return (
     <main className="app-shell">
@@ -55,21 +57,21 @@ export default async function Home() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
           >
             <Radar className="h-4 w-4" />
-            Ping Tester
+            {toolT.pingTabLabel}
           </Link>
           <Link
             href="/dns"
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
           >
             <Network className="h-4 w-4" />
-            DNS Lookup
+            {toolT.dnsTabLabel}
           </Link>
           <Link
             href="/whois"
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
           >
             <Search className="h-4 w-4" />
-            WHOIS Lookup
+            {toolT.whoisTabLabel}
           </Link>
         </div>
 

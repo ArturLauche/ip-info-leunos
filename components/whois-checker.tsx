@@ -1,5 +1,7 @@
 "use client";
 
+import { type Locale } from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { CircleCheck, Search, TriangleAlert } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
@@ -11,11 +13,16 @@ interface WhoisResult {
   note?: string;
 }
 
-export function WhoisChecker() {
+interface WhoisCheckerProps {
+  locale: Locale;
+}
+
+export function WhoisChecker({ locale }: WhoisCheckerProps) {
   const [target, setTarget] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WhoisResult | null>(null);
+  const t = getToolTranslation(locale);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -31,12 +38,12 @@ export function WhoisChecker() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "WHOIS lookup failed.");
+        setError(data.error || t.whoisLookupError);
       } else {
         setResult(data as WhoisResult);
       }
     } catch {
-      setError("Network error while contacting /api/whois.");
+      setError(t.whoisNetworkError);
     } finally {
       setLoading(false);
     }
@@ -51,7 +58,7 @@ export function WhoisChecker() {
             type="text"
             value={target}
             onChange={(event) => setTarget(event.target.value)}
-            placeholder="example.com or 8.8.8.8"
+            placeholder={t.whoisPlaceholder}
             className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
@@ -60,7 +67,7 @@ export function WhoisChecker() {
           disabled={loading}
           className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Looking up..." : "Lookup WHOIS"}
+          {loading ? t.lookupInProgress : t.whoisLookupButton}
         </button>
       </form>
 
@@ -75,23 +82,23 @@ export function WhoisChecker() {
         <div className="space-y-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
           <p className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <CircleCheck className="h-5 w-5 text-emerald-400" />
-            WHOIS for {result.target}
+            {t.whoisFor} {result.target}
           </p>
 
           <div className="text-sm text-muted-foreground">
             <p>
-              Queried server: <span className="font-mono text-foreground">{result.server}</span>
+              {t.queriedServer}: <span className="font-mono text-foreground">{result.server}</span>
             </p>
             {result.refer && (
               <p>
-                Referral source: <span className="font-mono text-foreground">{result.refer}</span>
+                {t.referralSource}: <span className="font-mono text-foreground">{result.refer}</span>
               </p>
             )}
             {result.note && <p>{result.note}</p>}
           </div>
 
           <div className="max-h-[32rem] overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
-            <pre className="whitespace-pre-wrap break-words">{result.raw || "No WHOIS data returned."}</pre>
+            <pre className="whitespace-pre-wrap break-words">{result.raw || t.noWhoisData}</pre>
           </div>
         </div>
       )}

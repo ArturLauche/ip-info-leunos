@@ -1,5 +1,7 @@
 "use client";
 
+import { type Locale } from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { FormEvent, useMemo, useState } from "react";
 import { Activity, CircleCheck, ServerCrash, Timer, Info, Gauge, ShieldCheck } from "lucide-react";
 
@@ -28,21 +30,11 @@ const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
 const inputClass =
   "h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm font-sans text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30";
 
-const MODE_LABELS: Record<PingMode, string> = {
-  tcp: "TCP",
-  udp: "UDP",
-  eb: "EB",
-  database: "Database",
-};
+interface PingCheckerProps {
+  locale: Locale;
+}
 
-const MODE_HELPERS: Record<PingMode, string> = {
-  tcp: "Verifies whether the TCP port accepts a connection.",
-  udp: "Sends a UDP probe and reports immediate response/error behavior.",
-  eb: "Checks TCP first, then tries HTTP/HTTPS endpoint reachability.",
-  database: "Runs pre-auth protocol checks and optional authenticated checks.",
-};
-
-export function PingChecker() {
+export function PingChecker({ locale }: PingCheckerProps) {
   const [mode, setMode] = useState<PingMode>("tcp");
   const [databaseType, setDatabaseType] = useState<DatabaseType>("postgres");
   const [target, setTarget] = useState("127.0.0.1");
@@ -55,6 +47,21 @@ export function PingChecker() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
+  const t = getToolTranslation(locale);
+
+  const modeLabels: Record<PingMode, string> = {
+    tcp: "TCP",
+    udp: "UDP",
+    eb: "EB",
+    database: t.pingModeDatabase,
+  };
+
+  const modeHelpers: Record<PingMode, string> = {
+    tcp: t.pingModeHelperTcp,
+    udp: t.pingModeHelperUdp,
+    eb: t.pingModeHelperEb,
+    database: t.pingModeHelperDatabase,
+  };
 
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
@@ -71,11 +78,13 @@ export function PingChecker() {
   };
 
   const effectiveSummary = useMemo(() => {
-    if (mode !== "database") return `${MODE_LABELS[mode]} check against ${target}:${port}`;
+    if (mode === "tcp") return `${t.pingCurrentPlanTcp} ${target}:${port}`;
+    if (mode === "udp") return `${t.pingCurrentPlanUdp} ${target}:${port}`;
+    if (mode === "eb") return `${t.pingCurrentPlanEb} ${target}:${port}`;
     return useAuth
-      ? `${databaseType} authenticated check against ${target}:${port}`
-      : `${databaseType} protocol check against ${target}:${port}`;
-  }, [databaseType, mode, port, target, useAuth]);
+      ? `${databaseType} ${t.pingCurrentPlanDbAuth} ${target}:${port}`
+      : `${databaseType} ${t.pingCurrentPlanDbProtocol} ${target}:${port}`;
+  }, [databaseType, mode, port, target, t, useAuth]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -105,12 +114,12 @@ export function PingChecker() {
 
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error || data.message || "Ping check failed.");
+        setError(data.error || data.message || t.pingCheckFailed);
       } else {
         setResult(data as PingResult);
       }
     } catch {
-      setError("Network error while contacting /api/ping.");
+      setError(t.pingNetworkError);
     } finally {
       setLoading(false);
     }
@@ -121,14 +130,14 @@ export function PingChecker() {
       <div className="rounded-xl border border-border/80 bg-card/70 p-4 text-sm text-muted-foreground">
         <p className="flex items-center gap-2 text-foreground">
           <Info className="h-4 w-4 text-primary" />
-          Current test plan
+          {t.pingPlan}
         </p>
         <p className="mt-2 text-sm">{effectiveSummary}</p>
       </div>
 
       <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <fieldset className="md:col-span-2">
-          <legend className="mb-2 text-sm font-medium text-foreground">Test mode</legend>
+          <legend className="mb-2 text-sm font-medium text-foreground">{t.pingTestMode}</legend>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => {
               const active = mode === value;
@@ -143,16 +152,16 @@ export function PingChecker() {
                       : "border-border bg-secondary/60 text-muted-foreground hover:border-primary/40"
                   }`}
                 >
-                  {MODE_LABELS[value]}
+                  {modeLabels[value]}
                 </button>
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{MODE_HELPERS[mode]}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{modeHelpers[mode]}</p>
         </fieldset>
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
-          Database type
+          {t.pingDatabaseType}
           <select
             value={databaseType}
             disabled={mode !== "database"}
@@ -169,7 +178,7 @@ export function PingChecker() {
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
-          Target host / IP
+          {t.pingTargetHost}
           <input
             value={target}
             onChange={(event) => setTarget(event.target.value)}
@@ -179,7 +188,7 @@ export function PingChecker() {
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
-          Port
+          {t.pingPort}
           <input
             value={port}
             onChange={(event) => setPort(event.target.value)}
@@ -189,7 +198,7 @@ export function PingChecker() {
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
-          Timeout (ms)
+          {t.pingTimeout}
           <input
             value={timeoutMs}
             onChange={(event) => setTimeoutMs(event.target.value)}
@@ -201,18 +210,18 @@ export function PingChecker() {
         {mode === "database" && (
           <label className="md:col-span-2 flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm text-foreground">
             <input type="checkbox" checked={useAuth} onChange={(event) => setUseAuth(event.target.checked)} />
-            Check with authentication
+            {t.pingUseAuth}
           </label>
         )}
 
         {mode === "database" && useAuth && (
           <>
             <label className="flex flex-col gap-2 text-sm text-foreground">
-              Username
+              {t.pingUsername}
               <input value={username} onChange={(event) => setUsername(event.target.value)} className={inputClass} />
             </label>
             <label className="flex flex-col gap-2 text-sm text-foreground">
-              Password
+              {t.pingPassword}
               <input
                 type="password"
                 value={password}
@@ -221,7 +230,7 @@ export function PingChecker() {
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-foreground md:col-span-2">
-              Database (optional)
+              {t.pingDatabaseOptional}
               <input
                 value={database}
                 onChange={(event) => setDatabase(event.target.value)}
@@ -237,7 +246,7 @@ export function PingChecker() {
           disabled={loading}
           className="md:col-span-2 h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Running check..." : "Run ping test"}
+          {loading ? t.pingRunning : t.pingRunButton}
         </button>
       </form>
 
@@ -261,15 +270,15 @@ export function PingChecker() {
           <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-3">
             <p className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
-              Mode: <span className="font-mono text-foreground">{result.mode}</span>
+              {t.pingModeLabel}: <span className="font-mono text-foreground">{result.mode}</span>
             </p>
             <p className="flex items-center gap-2">
               <Timer className="h-4 w-4 text-primary" />
-              Latency: <span className="font-mono text-foreground">{result.latencyMs}ms</span>
+              {t.pingLatencyLabel}: <span className="font-mono text-foreground">{result.latencyMs}ms</span>
             </p>
             <p className="flex items-center gap-2">
               <Gauge className="h-4 w-4 text-primary" />
-              Target: <span className="font-mono text-foreground">{result.target}:{result.port}</span>
+              {t.pingTargetLabel}: <span className="font-mono text-foreground">{result.target}:{result.port}</span>
             </p>
           </div>
 
@@ -277,7 +286,7 @@ export function PingChecker() {
             <div>
               <p className="mb-2 flex items-center gap-2 text-sm text-foreground">
                 <ShieldCheck className="h-4 w-4 text-primary" />
-                Details
+                {t.pingDetailsLabel}
               </p>
               <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/70 p-3 text-xs text-muted-foreground">
                 {JSON.stringify(result.details, null, 2)}
