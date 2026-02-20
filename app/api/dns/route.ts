@@ -13,17 +13,44 @@ interface DnsRecord {
   value: DnsRecordValue;
 }
 
-function normalizeTarget(target: string) {
-  return target.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "").toLowerCase();
+interface ResolveResult {
+  type: RecordType;
+  records: DnsRecord[];
+  error?: string;
 }
 
-async function resolveByType(hostname: string, type: RecordType): Promise<DnsRecord[]> {
+function normalizeTarget(target: string) {
+  const trimmed = target.trim();
+  if (!trimmed) return "";
+
+  const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    return parsed.hostname.replace(/\.$/, "").toLowerCase();
+  } catch {
+    return trimmed
+      .split(/[/?#]/)[0]
+      .replace(/:\d+$/, "")
+      .replace(/^\[|\]$/g, "")
+      .replace(/\.$/, "")
+      .toLowerCase();
+  }
+}
+
+async function resolveByType(hostname: string, type: RecordType): Promise<ResolveResult> {
   try {
     const records = await dns.resolve(hostname, type);
-    if (!records.length) return [];
-    return records.map((value) => ({ type, value: value as DnsRecordValue }));
-  } catch {
-    return [];
+    return {
+      type,
+      records: records.map((value) => ({ type, value: value as DnsRecordValue })),
+    };
+  } catch (error) {
+    return {
+      type,
+      records: [],
+      error: (error as NodeJS.ErrnoException).code || (error as Error).message,
+    };
   }
 }
 
@@ -40,25 +67,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Please provide a valid domain." }, { status: 400 });
   }
 
-  try {
-    const [lookup, recordsByType] = await Promise.all([
-      dns.lookup(hostname, { all: true }),
-      Promise.all(RECORD_TYPES.map((type) => resolveByType(hostname, type))),
-    ]);
+  const [lookupResult, recordsByType] = await Promise.all([
+    dns.lookup(hostname, { all: true }).then(
+      (value) => ({ ok: true as const, value }),
+      (error) => ({ ok: false as const, error: error as NodeJS.ErrnoException }),
+    ),
+    Promise.all(RECORD_TYPES.map((type) => resolveByType(hostname, type))),
+  ]);
 
-    const records = recordsByType.flat();
+  const records = recordsByType.flatMap((entry) => entry.records);
+  const addresses = lookupResult.ok ? lookupResult.value : [];
 
-    return NextResponse.json({
-      target: hostname,
-      addresses: lookup,
-      records,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: `DNS lookup failed: ${(error as Error).message}`,
-      },
-      { status: 400 },
-    );
-  }
+  return NextResponse.json({
+    target: hostname,
+    addresses,
+    records,
+    lookupError: lookupResult.ok ? null : lookupResult.error.code || lookupResult.error.message,
+    recordErrors: recordsByType
+      .filter((entry) => entry.error)
+      .map((entry) => ({ type: entry.type, error: entry.error })),
+  });
 }
