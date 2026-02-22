@@ -8,6 +8,7 @@ A small Next.js web application that displays IP and network information for the
 - Displays geolocation/network metadata such as country, region, city, ISP, AS, and timezone.
 - Provides a heuristic connection-type label (for example fiber, DSL, cable, mobile, hosting/VPN).
 - Includes a dedicated lookup page at `/check` for searching custom IPs or domains.
+- Includes an extensive reputation checker for IPs/domains (DNSBL, RDAP age, TLS, SPF/DMARC, PTR, and proxy/hosting heuristics).
 - Includes a network testing page at `/ping` for TCP, UDP, EB endpoints, and database checks (including optional Redis auth checks).
 
 ## Tech Stack

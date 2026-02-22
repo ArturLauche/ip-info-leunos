@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { IpDisplay } from "@/components/ip-display";
 import { getTranslation, type Locale } from "@/lib/i18n";
 import { Search } from "lucide-react";
+import { ReputationCheck } from "@/components/reputation-check";
 
 interface IpLookupProps {
   locale: Locale;
@@ -48,6 +49,7 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
       </form>
 
       {submittedIp && <IpDisplay targetIp={submittedIp} locale={locale} />}
+      {submittedIp && <ReputationCheck target={submittedIp} />}
     </div>
   );
 }
