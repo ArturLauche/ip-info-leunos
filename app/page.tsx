@@ -4,6 +4,16 @@ import { getToolTranslation } from "@/lib/tool-i18n";
 import { Globe, Network, Radar, Search, Shield } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "IP Auskunft - Meine öffentliche IP anzeigen",
+  description:
+    "Ermittle in Sekunden deine öffentliche IPv4/IPv6-Adresse inklusive Standort, Provider, ASN und Verbindungstyp.",
+  path: "/",
+  keywords: ["öffentliche IP", "IPv4", "IPv6", "IP Standort"],
+});
 
 export default async function Home() {
   const headersList = await headers();

@@ -3,6 +3,15 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Radar } from "lucide-react";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Ping & Port Test",
+  description: "Teste Erreichbarkeit und Latenz für Hosts, Ports und Dienste mit dem integrierten Ping- und Netzwerk-Checker.",
+  path: "/ping",
+  keywords: ['Ping Test', 'Port Check', 'Latenz'],
+});
 
 export default async function PingPage() {
   const headersList = await headers();

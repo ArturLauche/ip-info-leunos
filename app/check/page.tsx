@@ -3,6 +3,15 @@ import { getTranslation, resolveLocale } from "@/lib/i18n";
 import { Search, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "IP Check - IP oder Domain analysieren",
+  description: "Prüfe jede öffentliche IP-Adresse oder Domain inklusive Standort, ASN, Provider, Reverse DNS und Netzwerkdaten.",
+  path: "/check",
+  keywords: ['IP prüfen', 'Domain prüfen', 'IP Check'],
+});
 
 interface CheckPageProps {
   searchParams: Promise<{

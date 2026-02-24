@@ -1,5 +1,14 @@
 import { ClientDnsScanner } from "@/components/client-dns-scanner";
 import { Shield } from "lucide-react";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Client DNS & Privacy Scan",
+  description: "Analysiere aktive DNS-Resolver, identifiziere Provider und bewerte Datenschutz-Aspekte deiner DNS-Auflösung.",
+  path: "/client-dns",
+  keywords: ['Client DNS', 'DNS Privacy', 'Resolver Check'],
+});
 
 export default function ClientDnsPage() {
   return (
