@@ -5,7 +5,7 @@ export const siteConfig = {
   shortName: "IP Auskunft",
   description:
     "Kostenlose IP- und Netzwerk-Tools: öffentliche IP anzeigen, IP-/Domain-Checks, DNS-Lookups, Whois, CDN-Erkennung und Erreichbarkeitstests.",
-  url: "https://ip-auskunft.de",
+  url: "https://ip-info.leunos.com",
   locale: "de_DE",
   keywords: [
     "IP Adresse",
