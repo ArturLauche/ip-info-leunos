@@ -1,112 +1,112 @@
-# IP Auskunft – IP-, DNS-, Whois-, CDN- und Netzwerk-Checks mit Next.js
+# IP Auskunft – IP, DNS, Whois, CDN, and Network Checks with Next.js
 
-IP Auskunft ist eine moderne Next.js-Anwendung, mit der du deine eigene öffentliche IP-Adresse analysierst und zusätzliche Netzwerk-Tools (IP/Domain-Check, DNS-Lookups, Whois-Abfragen, CDN-Erkennung, Ping/Port-Tests, Client-DNS-Scan) über eine einheitliche Oberfläche nutzen kannst.
+IP Auskunft is a modern Next.js application that helps users inspect their own public IP address and run additional network tools (IP/domain lookup, DNS lookups, Whois queries, CDN detection, ping/port tests, and a client DNS privacy scan) from one unified interface.
 
-## Warum dieses Projekt?
+## Why this project?
 
-Viele „What is my IP?“-Seiten zeigen nur eine Zahl. Dieses Projekt geht deutlich weiter:
+Many “What is my IP?” websites only display an IP number. This project goes further:
 
-- **Kontext statt Rohdaten:** Standort, ASN, Provider, Zeitzone und Verbindungstyp.
-- **Mehrere Werkzeuge in einer App:** Diagnose, Lookup und Netzwerkprüfung ohne Toolwechsel.
-- **Fokus auf Performance + SEO:** strukturierte Metadaten, Open Graph, Sitemap, Robots und strukturierte Daten.
+- **Context, not just raw data:** country, region, ASN, ISP, timezone, and connection type.
+- **Multiple tools in one app:** diagnostics and lookups without switching services.
+- **Performance and SEO focus:** structured metadata, Open Graph, sitemap, robots, and JSON-LD.
 
-## Feature-Überblick
+## Features
 
-### Kernfunktionen
+### Core tools
 
-- **Eigene IP erkennen** (IPv4 + wenn verfügbar IPv6).
-- **IP/Domain Lookup** über `/check`.
-- **DNS Lookup** über `/dns` (mehrere Record-Typen).
-- **Whois Lookup** über `/whois`.
-- **CDN Erkennung** über `/cdn`.
-- **Ping/Netzwerk-Checks** über `/ping`.
-- **Client DNS & Privacy Scan** über `/client-dns`.
+- **Show your own IP** (IPv4 and, when available, IPv6).
+- **IP/Domain lookup** at `/check`.
+- **DNS lookup** at `/dns` (multiple record types).
+- **Whois lookup** at `/whois`.
+- **CDN detection** at `/cdn`.
+- **Ping/network checks** at `/ping`.
+- **Client DNS & privacy scan** at `/client-dns`.
 
-### SEO-Optimierungen (aktualisiert)
+### SEO enhancements
 
-- Zentrale **Site-SEO-Konfiguration** (`lib/seo.ts`).
-- **Metadata Base**, kanonische URLs, Keywords und Robots-Direktiven.
-- Seitenbezogene Metadaten für die wichtigsten Tool-Seiten.
-- **Open Graph** + **Twitter Card** Defaults.
-- **JSON-LD WebSite-Schema** im Root-Layout.
-- Dynamische **`/sitemap.xml`**, **`/robots.txt`** und **`/manifest.webmanifest`** via App Router.
+- Central **SEO configuration** in `lib/seo.ts`.
+- **Metadata base**, canonical URLs, keywords, and robots directives.
+- Route-level metadata for major tool pages.
+- **Open Graph** and **Twitter Card** defaults.
+- **JSON-LD WebSite schema** in the root layout.
+- Dynamic **`/sitemap.xml`**, **`/robots.txt`**, and **`/manifest.webmanifest`** using the App Router.
 
-## Tech Stack
+## Tech stack
 
 - **Framework:** Next.js 16 (App Router)
 - **Runtime/UI:** React 19 + TypeScript
 - **Styling:** Tailwind CSS 4
 - **Monitoring:** `@vercel/analytics`, `@vercel/speed-insights`
-- **Externe Datenquellen:**
-  - `ip-api.com` (IP- und Netzwerk-Metadaten)
-  - `api64.ipify.org` (IPv6-Erkennung)
+- **External data providers:**
+  - `ip-api.com` (IP and network metadata)
+  - `api64.ipify.org` (IPv6 detection)
 
-## Projektstruktur (gekürzt)
+## Project structure (excerpt)
 
 ```text
 app/
-  layout.tsx              # globales Layout + globale SEO-Metadaten + JSON-LD
-  page.tsx                # Startseite (eigene IP)
-  check/page.tsx          # IP/Domain-Check
-  ping/page.tsx           # Netzwerk-/Ping-Checks
-  dns/page.tsx            # DNS-Tool
-  whois/page.tsx          # Whois-Tool
-  cdn/page.tsx            # CDN-Check
-  client-dns/page.tsx     # Client DNS & Privacy
-  sitemap.ts              # generiert /sitemap.xml
-  robots.ts               # generiert /robots.txt
-  manifest.ts             # generiert /manifest.webmanifest
+  layout.tsx              # global layout + global SEO metadata + JSON-LD
+  page.tsx                # homepage (your own IP)
+  check/page.tsx          # IP/domain lookup
+  ping/page.tsx           # ping/network checks
+  dns/page.tsx            # DNS tool
+  whois/page.tsx          # Whois tool
+  cdn/page.tsx            # CDN checker
+  client-dns/page.tsx     # client DNS & privacy tool
+  sitemap.ts              # generates /sitemap.xml
+  robots.ts               # generates /robots.txt
+  manifest.ts             # generates /manifest.webmanifest
 lib/
-  seo.ts                  # SEO-Konfiguration + Metadata-Factory
+  seo.ts                  # SEO config + metadata factory
 ```
 
-## Voraussetzungen
+## Requirements
 
 - **Node.js 20+**
 - **pnpm**
 
-## Lokale Entwicklung
+## Local development
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Danach im Browser öffnen:
+Then open:
 
 - `http://localhost:3000`
 
-## Build & Produktion
+## Production build
 
 ```bash
 pnpm build
 pnpm start
 ```
 
-## Qualitätssicherung
+## Quality checks
 
 ```bash
 pnpm lint
 ```
 
-## Deployment-Hinweise
+## Deployment notes
 
-Die App ist **nicht rein statisch**, da serverseitige API-Routen und Laufzeitdaten genutzt werden.
+This app is **not purely static**, because it relies on server-side API routes and runtime data.
 
-Geeignet sind z. B.:
+Recommended targets:
 
 - Vercel
 - Railway
 - Render
 - Fly.io
-- Docker/VPS (mit `pnpm build && pnpm start`)
+- Docker/VPS (with `pnpm build && pnpm start`)
 
-## Datenschutz & Genauigkeit
+## Data accuracy & privacy
 
-- Standort-/Providerdaten hängen von externen Quellen ab und können variieren.
-- IPv6 wird nur angezeigt, wenn das Client-Netzwerk IPv6 bereitstellt.
-- Für produktive Nutzung bitte eine eigene Datenschutzerklärung bereitstellen, wenn Analytics aktiviert ist.
+- Geolocation/provider details depend on external data sources and may vary.
+- IPv6 is shown only if the client network supports IPv6.
+- For production, add your own privacy policy if analytics are enabled.
 
-## Lizenz
+## License
 
-Aktuell ist in diesem Repository keine explizite Lizenzdatei enthalten. Wenn das Projekt öffentlich genutzt werden soll, ergänze bitte eine passende `LICENSE`.
+There is currently no explicit license file in this repository. If you plan to distribute this project publicly, add an appropriate `LICENSE`.
