@@ -1,7 +1,7 @@
 import { IpDisplay } from "@/components/ip-display";
 import { getTranslation, resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { Globe, Network, Radar, Search } from "lucide-react";
+import { Globe, Network, Radar, Search, Shield } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 
@@ -72,6 +72,13 @@ export default async function Home() {
           >
             <Search className="h-4 w-4" />
             {toolT.whoisTabLabel}
+          </Link>
+          <Link
+            href="/client-dns"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-secondary/80"
+          >
+            <Shield className="h-4 w-4" />
+            Client DNS
           </Link>
         </div>
 
