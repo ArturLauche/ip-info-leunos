@@ -3,6 +3,15 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Network } from "lucide-react";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "DNS Lookup & DNS Records prüfen",
+  description: "Führe DNS-Lookups für A, AAAA, MX, TXT, NS und weitere Records durch und analysiere DNS-Konfigurationen.",
+  path: "/dns",
+  keywords: ['DNS Lookup', 'DNS Records', 'MX Check'],
+});
 
 export default async function DnsPage() {
   const headersList = await headers();

@@ -1,74 +1,80 @@
-# IP Info
+# IP Auskunft – IP, DNS, Whois, CDN, and Network Checks with Next.js
 
-A small Next.js web application that displays IP and network information for the current visitor, and also lets you look up any public IP address or domain.
+IP Auskunft is a modern Next.js application that helps users inspect their own public IP address and run additional network tools (IP/domain lookup, DNS lookups, Whois queries, CDN detection, ping/port tests, and a client DNS privacy scan) from one unified interface.
+
+## Why this project?
+
+Many “What is my IP?” websites only display an IP number. This project goes further:
+
+- **Context, not just raw data:** country, region, ASN, ISP, timezone, and connection type.
+- **Multiple tools in one app:** diagnostics and lookups without switching services.
+- **Performance and SEO focus:** structured metadata, Open Graph, sitemap, robots, and JSON-LD.
 
 ## Features
 
-- Detects and shows your current **IPv4** and (when available) **IPv6**.
-- Displays geolocation/network metadata such as country, region, city, ISP, AS, and timezone.
-- Provides a heuristic connection-type label (for example fiber, DSL, cable, mobile, hosting/VPN).
-- Includes a dedicated lookup page at `/check` for searching custom IPs or domains.
-- Includes a network testing page at `/ping` for TCP, UDP, EB endpoints, and database checks (including optional Redis auth checks).
+### Core tools
 
-## Tech Stack
+- **Show your own IP** (IPv4 and, when available, IPv6).
+- **IP/Domain lookup** at `/check`.
+- **DNS lookup** at `/dns` (multiple record types).
+- **Whois lookup** at `/whois`.
+- **CDN detection** at `/cdn`.
+- **Ping/network checks** at `/ping`.
+- **Client DNS & privacy scan** at `/client-dns`.
+
+### SEO enhancements
+
+- Central **SEO configuration** in `lib/seo.ts`.
+- **Metadata base**, canonical URLs, keywords, and robots directives.
+- Route-level metadata for major tool pages.
+- **Open Graph** and **Twitter Card** defaults.
+- **JSON-LD WebSite schema** in the root layout.
+- Dynamic **`/sitemap.xml`**, **`/robots.txt`**, and **`/manifest.webmanifest`** using the App Router.
+
+## Tech stack
 
 - **Framework:** Next.js 16 (App Router)
-- **UI:** React 19 + TypeScript
+- **Runtime/UI:** React 19 + TypeScript
 - **Styling:** Tailwind CSS 4
-- **Icons:** lucide-react
-- **Analytics:** `@vercel/analytics`
-- **Data sources:**
-  - `ip-api.com` (server-side IP metadata)
-  - `api64.ipify.org` (client-side IPv6 detection)
-
-## Is this a static site?
-
-Short answer: **No, this is not purely static.**
-
-Why:
-
-- The API route `app/api/ip/route.ts` reads runtime request headers (`x-forwarded-for`, `x-real-ip`) and fetches external data.
-- That route uses `fetch(..., { cache: "no-store" })` for live lookups.
-- The frontend calls `fetch("/api/ip")` at runtime and renders dynamic results.
-
-So this repository is a **dynamic Next.js application** with both client and server logic.
-
-## Hosting requirements
-
-**Current architecture:** requires a **Node/Next.js runtime** (or serverless functions).
-
-- **Not enough:** pure static hosting only (HTML/CSS/JS with no server runtime).
-- **Works well:** Vercel, Railway, Render, Fly.io, or Docker/VPS using `pnpm build && pnpm start`.
-
-Reason: `app/api/ip/route.ts` is executed server-side and is required by the frontend.
-
-### If you must deploy statically
-
-You would need to redesign the app and remove/replace `app/api/ip/route.ts` (for example by calling an external API directly from the browser and handling CORS/rate limits). That is an architectural change and not the current state of this project.
+- **Monitoring:** `@vercel/analytics`, `@vercel/speed-insights`
+- **External data providers:**
+  - `ip-api.com` (IP and network metadata)
+  - `api64.ipify.org` (IPv6 detection)
 
 ## Project structure (excerpt)
 
-- `app/page.tsx` — Home page (shows your own IP)
-- `app/check/page.tsx` — Lookup page for external IP/domain
-- `app/api/ip/route.ts` — Server API for IP lookup and normalization
-- `components/ip-display.tsx` — IP and metadata presentation UI
-- `components/ip-lookup.tsx` — Manual lookup input form
+```text
+app/
+  layout.tsx              # global layout + global SEO metadata + JSON-LD
+  page.tsx                # homepage (your own IP)
+  check/page.tsx          # IP/domain lookup
+  ping/page.tsx           # ping/network checks
+  dns/page.tsx            # DNS tool
+  whois/page.tsx          # Whois tool
+  cdn/page.tsx            # CDN checker
+  client-dns/page.tsx     # client DNS & privacy tool
+  sitemap.ts              # generates /sitemap.xml
+  robots.ts               # generates /robots.txt
+  manifest.ts             # generates /manifest.webmanifest
+lib/
+  seo.ts                  # SEO config + metadata factory
+```
+
+## Requirements
+
+- **Node.js 20+**
+- **pnpm**
 
 ## Local development
-
-### Requirements
-
-- Node.js 20+
-- pnpm
-
-### Install and run
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000`.
+Then open:
+
+- `http://localhost:3000`
 
 ## Production build
 
@@ -77,7 +83,30 @@ pnpm build
 pnpm start
 ```
 
-## Notes
+## Quality checks
 
-- Geolocation and ISP accuracy depends on the upstream provider (`ip-api.com`).
-- If IPv6 is not available for the client network, the UI will show that accordingly.
+```bash
+pnpm lint
+```
+
+## Deployment notes
+
+This app is **not purely static**, because it relies on server-side API routes and runtime data.
+
+Recommended targets:
+
+- Vercel
+- Railway
+- Render
+- Fly.io
+- Docker/VPS (with `pnpm build && pnpm start`)
+
+## Data accuracy & privacy
+
+- Geolocation/provider details depend on external data sources and may vary.
+- IPv6 is shown only if the client network supports IPv6.
+- For production, add your own privacy policy if analytics are enabled.
+
+## License
+
+There is currently no explicit license file in this repository. If you plan to distribute this project publicly, add an appropriate `LICENSE`.

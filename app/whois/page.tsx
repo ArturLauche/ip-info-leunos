@@ -3,6 +3,15 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Search } from "lucide-react";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Whois Lookup für Domains und IPs",
+  description: "Rufe Whois-Daten für Domains und IP-Adressräume ab, inklusive Registrar-, Inhaber- und Ablauf-Informationen.",
+  path: "/whois",
+  keywords: ['Whois Lookup', 'Domain Whois', 'IP Whois'],
+});
 
 export default async function WhoisPage() {
   const headersList = await headers();
