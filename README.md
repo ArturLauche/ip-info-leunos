@@ -1,83 +1,112 @@
-# IP Info
+# IP Auskunft – IP-, DNS-, Whois-, CDN- und Netzwerk-Checks mit Next.js
 
-A small Next.js web application that displays IP and network information for the current visitor, and also lets you look up any public IP address or domain.
+IP Auskunft ist eine moderne Next.js-Anwendung, mit der du deine eigene öffentliche IP-Adresse analysierst und zusätzliche Netzwerk-Tools (IP/Domain-Check, DNS-Lookups, Whois-Abfragen, CDN-Erkennung, Ping/Port-Tests, Client-DNS-Scan) über eine einheitliche Oberfläche nutzen kannst.
 
-## Features
+## Warum dieses Projekt?
 
-- Detects and shows your current **IPv4** and (when available) **IPv6**.
-- Displays geolocation/network metadata such as country, region, city, ISP, AS, and timezone.
-- Provides a heuristic connection-type label (for example fiber, DSL, cable, mobile, hosting/VPN).
-- Includes a dedicated lookup page at `/check` for searching custom IPs or domains.
-- Includes a network testing page at `/ping` for TCP, UDP, EB endpoints, and database checks (including optional Redis auth checks).
+Viele „What is my IP?“-Seiten zeigen nur eine Zahl. Dieses Projekt geht deutlich weiter:
+
+- **Kontext statt Rohdaten:** Standort, ASN, Provider, Zeitzone und Verbindungstyp.
+- **Mehrere Werkzeuge in einer App:** Diagnose, Lookup und Netzwerkprüfung ohne Toolwechsel.
+- **Fokus auf Performance + SEO:** strukturierte Metadaten, Open Graph, Sitemap, Robots und strukturierte Daten.
+
+## Feature-Überblick
+
+### Kernfunktionen
+
+- **Eigene IP erkennen** (IPv4 + wenn verfügbar IPv6).
+- **IP/Domain Lookup** über `/check`.
+- **DNS Lookup** über `/dns` (mehrere Record-Typen).
+- **Whois Lookup** über `/whois`.
+- **CDN Erkennung** über `/cdn`.
+- **Ping/Netzwerk-Checks** über `/ping`.
+- **Client DNS & Privacy Scan** über `/client-dns`.
+
+### SEO-Optimierungen (aktualisiert)
+
+- Zentrale **Site-SEO-Konfiguration** (`lib/seo.ts`).
+- **Metadata Base**, kanonische URLs, Keywords und Robots-Direktiven.
+- Seitenbezogene Metadaten für die wichtigsten Tool-Seiten.
+- **Open Graph** + **Twitter Card** Defaults.
+- **JSON-LD WebSite-Schema** im Root-Layout.
+- Dynamische **`/sitemap.xml`**, **`/robots.txt`** und **`/manifest.webmanifest`** via App Router.
 
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router)
-- **UI:** React 19 + TypeScript
+- **Runtime/UI:** React 19 + TypeScript
 - **Styling:** Tailwind CSS 4
-- **Icons:** lucide-react
-- **Analytics:** `@vercel/analytics`
-- **Data sources:**
-  - `ip-api.com` (server-side IP metadata)
-  - `api64.ipify.org` (client-side IPv6 detection)
+- **Monitoring:** `@vercel/analytics`, `@vercel/speed-insights`
+- **Externe Datenquellen:**
+  - `ip-api.com` (IP- und Netzwerk-Metadaten)
+  - `api64.ipify.org` (IPv6-Erkennung)
 
-## Is this a static site?
+## Projektstruktur (gekürzt)
 
-Short answer: **No, this is not purely static.**
+```text
+app/
+  layout.tsx              # globales Layout + globale SEO-Metadaten + JSON-LD
+  page.tsx                # Startseite (eigene IP)
+  check/page.tsx          # IP/Domain-Check
+  ping/page.tsx           # Netzwerk-/Ping-Checks
+  dns/page.tsx            # DNS-Tool
+  whois/page.tsx          # Whois-Tool
+  cdn/page.tsx            # CDN-Check
+  client-dns/page.tsx     # Client DNS & Privacy
+  sitemap.ts              # generiert /sitemap.xml
+  robots.ts               # generiert /robots.txt
+  manifest.ts             # generiert /manifest.webmanifest
+lib/
+  seo.ts                  # SEO-Konfiguration + Metadata-Factory
+```
 
-Why:
+## Voraussetzungen
 
-- The API route `app/api/ip/route.ts` reads runtime request headers (`x-forwarded-for`, `x-real-ip`) and fetches external data.
-- That route uses `fetch(..., { cache: "no-store" })` for live lookups.
-- The frontend calls `fetch("/api/ip")` at runtime and renders dynamic results.
+- **Node.js 20+**
+- **pnpm**
 
-So this repository is a **dynamic Next.js application** with both client and server logic.
-
-## Hosting requirements
-
-**Current architecture:** requires a **Node/Next.js runtime** (or serverless functions).
-
-- **Not enough:** pure static hosting only (HTML/CSS/JS with no server runtime).
-- **Works well:** Vercel, Railway, Render, Fly.io, or Docker/VPS using `pnpm build && pnpm start`.
-
-Reason: `app/api/ip/route.ts` is executed server-side and is required by the frontend.
-
-### If you must deploy statically
-
-You would need to redesign the app and remove/replace `app/api/ip/route.ts` (for example by calling an external API directly from the browser and handling CORS/rate limits). That is an architectural change and not the current state of this project.
-
-## Project structure (excerpt)
-
-- `app/page.tsx` — Home page (shows your own IP)
-- `app/check/page.tsx` — Lookup page for external IP/domain
-- `app/api/ip/route.ts` — Server API for IP lookup and normalization
-- `components/ip-display.tsx` — IP and metadata presentation UI
-- `components/ip-lookup.tsx` — Manual lookup input form
-
-## Local development
-
-### Requirements
-
-- Node.js 20+
-- pnpm
-
-### Install and run
+## Lokale Entwicklung
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000`.
+Danach im Browser öffnen:
 
-## Production build
+- `http://localhost:3000`
+
+## Build & Produktion
 
 ```bash
 pnpm build
 pnpm start
 ```
 
-## Notes
+## Qualitätssicherung
 
-- Geolocation and ISP accuracy depends on the upstream provider (`ip-api.com`).
-- If IPv6 is not available for the client network, the UI will show that accordingly.
+```bash
+pnpm lint
+```
+
+## Deployment-Hinweise
+
+Die App ist **nicht rein statisch**, da serverseitige API-Routen und Laufzeitdaten genutzt werden.
+
+Geeignet sind z. B.:
+
+- Vercel
+- Railway
+- Render
+- Fly.io
+- Docker/VPS (mit `pnpm build && pnpm start`)
+
+## Datenschutz & Genauigkeit
+
+- Standort-/Providerdaten hängen von externen Quellen ab und können variieren.
+- IPv6 wird nur angezeigt, wenn das Client-Netzwerk IPv6 bereitstellt.
+- Für produktive Nutzung bitte eine eigene Datenschutzerklärung bereitstellen, wenn Analytics aktiviert ist.
+
+## Lizenz
+
+Aktuell ist in diesem Repository keine explizite Lizenzdatei enthalten. Wenn das Projekt öffentlich genutzt werden soll, ergänze bitte eine passende `LICENSE`.
