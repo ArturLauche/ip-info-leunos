@@ -1,4 +1,5 @@
 import dns from "node:dns";
+import net from "node:net";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -80,7 +81,32 @@ const KNOWN_RESOLVERS: Record<string, ResolverProfile> = {
 };
 
 function normalizeResolver(address: string) {
-  return address.replace(/^\[|\]$/g, "").split("%", 1)[0];
+  const trimmed = address.trim();
+
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("[")) {
+    const closingBracket = trimmed.indexOf("]");
+    if (closingBracket > 1) {
+      return trimmed.slice(1, closingBracket).split("%", 1)[0];
+    }
+  }
+
+  if (net.isIP(trimmed)) {
+    return trimmed.split("%", 1)[0];
+  }
+
+  const lastColon = trimmed.lastIndexOf(":");
+  if (lastColon > -1) {
+    const host = trimmed.slice(0, lastColon);
+    const maybePort = trimmed.slice(lastColon + 1);
+
+    if (/^\d+$/.test(maybePort) && net.isIP(host)) {
+      return host.split("%", 1)[0];
+    }
+  }
+
+  return trimmed.split("%", 1)[0];
 }
 
 function inspectResolver(address: string) {
@@ -114,7 +140,12 @@ function scorePrivacy(level: "high" | "medium" | "low") {
 }
 
 export async function GET() {
-  const resolvers = dns.getServers().map(inspectResolver);
+  const resolvers = dns
+    .getServers()
+    .map(normalizeResolver)
+    .filter(Boolean)
+    .filter((address, index, all) => all.indexOf(address) === index)
+    .map(inspectResolver);
 
   const privacyScore =
     resolvers.length > 0
@@ -123,7 +154,8 @@ export async function GET() {
 
   return NextResponse.json({
     checkedAt: new Date().toISOString(),
-    environment: "This scanner inspects the DNS resolvers visible to this app runtime. In local runs this usually matches your device.",
+    environment:
+      "This scanner inspects the DNS resolvers visible to the app runtime. On hosted deployments this reflects server-side DNS, not necessarily your local device DNS.",
     resolvers,
     privacyScore,
     summary:
