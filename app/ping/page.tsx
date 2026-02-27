@@ -5,6 +5,7 @@ import { Radar } from "lucide-react";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
+export const runtime = 'edge'
 
 export const metadata: Metadata = createPageMetadata({
   title: "Ping & Port Test",

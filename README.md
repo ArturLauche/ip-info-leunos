@@ -93,7 +93,33 @@ pnpm lint
 
 This app is **not purely static**, because it relies on server-side API routes and runtime data.
 
-Recommended targets:
+### Cloudflare Pages
+
+This repository is prepared for Cloudflare Pages using `@cloudflare/next-on-pages`.
+
+**Cloudflare Pages build settings**
+
+- **Framework preset:** `None`
+- **Build command:** `pnpm build:pages`
+- **Build output directory:** `.vercel/output/static`
+- **Root directory:** `/` (repo root)
+- **Node.js version:** `20+`
+
+**Environment/setup arguments**
+
+- `NPM_FLAGS=--version` *(optional sanity variable, Pages handles pnpm automatically when lockfile is present)*
+- `NEXT_TELEMETRY_DISABLED=1` *(optional)*
+
+**Local Pages preview**
+
+```bash
+pnpm build:pages
+pnpm preview:pages
+```
+
+Cloudflare runtime limitations mean raw TCP/UDP socket checks are unavailable there; the API endpoints gracefully fall back to HTTP/RDAP-compatible behavior.
+
+Other recommended targets:
 
 - Vercel
 - Railway

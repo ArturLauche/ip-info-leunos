@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getTranslation, resolveLocale, type Locale } from "@/lib/i18n";
+export const runtime = 'edge'
 
 function resolveIpApiLanguage(request: Request): Locale {
   return resolveLocale(request.headers.get("accept-language"));

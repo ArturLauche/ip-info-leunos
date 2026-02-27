@@ -5,6 +5,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
+export const runtime = 'edge'
 
 export const metadata: Metadata = createPageMetadata({
   title: "IP Check - IP oder Domain analysieren",
