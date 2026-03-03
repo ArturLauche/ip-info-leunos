@@ -2,7 +2,7 @@
 
 import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { CircleCheck, Search, TriangleAlert } from "lucide-react";
+import { CircleCheck, Search, TriangleAlert, Server, Sparkles } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 interface WhoisResult {
@@ -51,7 +51,15 @@ export function WhoisChecker({ locale }: WhoisCheckerProps) {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
+      <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 font-medium text-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          UX hint
+        </p>
+        <p className="mt-2 text-xs leading-relaxed">WHOIS zeigt Registrierungsdaten und zuständige Server. Nutze eine Domain oder IP-Adresse als Ziel.</p>
+      </div>
+
+      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 rounded-2xl border border-border/80 bg-card/60 p-4 sm:flex-row sm:p-5">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -85,16 +93,17 @@ export function WhoisChecker({ locale }: WhoisCheckerProps) {
             {t.whoisFor} {result.target}
           </p>
 
-          <div className="text-sm text-muted-foreground">
-            <p>
-              {t.queriedServer}: <span className="font-mono text-foreground">{result.server}</span>
+          <div className="rounded-xl border border-border/70 bg-secondary/30 p-4 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2 font-medium text-foreground">
+              <Server className="h-4 w-4 text-primary" />
+              {t.queriedServer}: <span className="font-mono">{result.server}</span>
             </p>
             {result.refer && (
-              <p>
+              <p className="mt-2">
                 {t.referralSource}: <span className="font-mono text-foreground">{result.refer}</span>
               </p>
             )}
-            {result.note && <p>{result.note}</p>}
+            {result.note && <p className="mt-2">{result.note}</p>}
           </div>
 
           <div className="max-h-[32rem] overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">

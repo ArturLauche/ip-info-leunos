@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { CircleCheck, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type PrivacyLevel = "high" | "medium" | "low";
@@ -65,6 +65,16 @@ export function ClientDnsScanner() {
 
   return (
     <div className="flex w-full flex-col gap-4">
+      <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 font-medium text-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          UX hint
+        </p>
+        <p className="mt-2 text-xs leading-relaxed">
+          Ergebnisse können sich durch VPN, Unternehmensnetzwerke oder Browser-DNS unterscheiden. Führe bei Bedarf einen Rescan aus.
+        </p>
+      </div>
+
       <div className="rounded-xl border border-border/70 bg-card/60 p-4">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">DNS privacy estimate</p>
         {loading ? (

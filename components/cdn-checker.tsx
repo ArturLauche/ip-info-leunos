@@ -95,7 +95,17 @@ export function CdnChecker({ locale }: CdnCheckerProps) {
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
+      <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 font-medium text-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          UX hint
+        </p>
+        <p className="mt-2 text-xs leading-relaxed">
+          Prüfe zuerst die Root-Domain und danach eine wichtige Subdomain, um CDN-Unterschiede zwischen Endpunkten zu erkennen.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 rounded-2xl border border-border/80 bg-card/60 p-4 sm:flex-row sm:p-5">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input

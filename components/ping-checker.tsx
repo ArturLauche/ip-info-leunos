@@ -3,7 +3,17 @@
 import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { FormEvent, useMemo, useState } from "react";
-import { Activity, CircleCheck, ServerCrash, Timer, Info, Gauge, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  CircleCheck,
+  ServerCrash,
+  Timer,
+  Info,
+  Gauge,
+  ShieldCheck,
+  Sparkles,
+  WandSparkles,
+} from "lucide-react";
 
 type PingMode = "tcp" | "udp" | "eb" | "database";
 type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
@@ -127,17 +137,33 @@ export function PingChecker({ locale }: PingCheckerProps) {
 
   return (
     <div className="flex w-full flex-col gap-6 font-sans">
-      <div className="rounded-xl border border-border/80 bg-card/70 p-4 text-sm text-muted-foreground">
-        <p className="flex items-center gap-2 text-foreground">
-          <Info className="h-4 w-4 text-primary" />
-          {t.pingPlan}
-        </p>
-        <p className="mt-2 text-sm">{effectiveSummary}</p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-border/80 bg-card/70 p-4 text-sm text-muted-foreground md:col-span-2">
+          <p className="flex items-center gap-2 text-foreground">
+            <Info className="h-4 w-4 text-primary" />
+            {t.pingPlan}
+          </p>
+          <p className="mt-2 text-sm">{effectiveSummary}</p>
+        </div>
+
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 font-medium text-foreground">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Quick tip
+          </p>
+          <p className="mt-2 text-xs leading-relaxed">
+            Start with TCP and a 3000ms timeout for stable baseline checks, then switch to UDP or EB for service-specific
+            verification.
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 rounded-2xl border border-border/80 bg-card/60 p-4 md:grid-cols-2 md:p-5">
         <fieldset className="md:col-span-2">
-          <legend className="mb-2 text-sm font-medium text-foreground">{t.pingTestMode}</legend>
+          <legend className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+            <WandSparkles className="h-4 w-4 text-primary" />
+            {t.pingTestMode}
+          </legend>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => {
               const active = mode === value;
@@ -148,7 +174,7 @@ export function PingChecker({ locale }: PingCheckerProps) {
                   onClick={() => onModeChange(value)}
                   className={`rounded-lg border px-3 py-2 text-sm transition ${
                     active
-                      ? "border-primary bg-primary/15 text-foreground"
+                      ? "border-primary bg-primary/15 text-foreground shadow-sm"
                       : "border-border bg-secondary/60 text-muted-foreground hover:border-primary/40"
                   }`}
                 >
@@ -189,12 +215,7 @@ export function PingChecker({ locale }: PingCheckerProps) {
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
           {t.pingPort}
-          <input
-            value={port}
-            onChange={(event) => setPort(event.target.value)}
-            placeholder="443"
-            className={inputClass}
-          />
+          <input value={port} onChange={(event) => setPort(event.target.value)} placeholder="443" className={inputClass} />
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
@@ -251,19 +272,13 @@ export function PingChecker({ locale }: PingCheckerProps) {
       </form>
 
       {error && (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-          {error}
-        </div>
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
       )}
 
       {result && (
         <div className="space-y-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
           <p className="flex items-center gap-2 text-lg font-semibold">
-            {result.ok ? (
-              <CircleCheck className="h-5 w-5 text-emerald-400" />
-            ) : (
-              <ServerCrash className="h-5 w-5 text-destructive" />
-            )}
+            {result.ok ? <CircleCheck className="h-5 w-5 text-emerald-400" /> : <ServerCrash className="h-5 w-5 text-destructive" />}
             {result.message}
           </p>
 

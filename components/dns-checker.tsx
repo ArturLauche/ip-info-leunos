@@ -2,7 +2,7 @@
 
 import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { CircleCheck, Search, TriangleAlert } from "lucide-react";
+import { CircleCheck, Search, TriangleAlert, Sparkles, Binary, Network } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 interface DnsAddress {
@@ -59,7 +59,15 @@ export function DnsChecker({ locale }: DnsCheckerProps) {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
+      <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 font-medium text-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          UX hint
+        </p>
+        <p className="mt-2 text-xs leading-relaxed">Suche zuerst die Domain (z. B. example.com), dann eine Subdomain wie api.example.com.</p>
+      </div>
+
+      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 rounded-2xl border border-border/80 bg-card/60 p-4 sm:flex-row sm:p-5">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -93,25 +101,33 @@ export function DnsChecker({ locale }: DnsCheckerProps) {
             {t.dnsRecordsFor} {result.target}
           </p>
 
-          <div>
-            <p className="text-sm font-medium text-foreground">{t.resolvedAddresses}</p>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              {result.addresses.length > 0 ? (
-                result.addresses.map((address) => (
-                  <li key={`${address.address}-${address.family}`} className="font-mono">
-                    {address.address} (IPv{address.family})
-                  </li>
-                ))
-              ) : (
-                <li>{t.noAddressResult}</li>
-              )}
-            </ul>
-          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-border/70 bg-secondary/30 p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Network className="h-4 w-4 text-primary" />
+                {t.resolvedAddresses}
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                {result.addresses.length > 0 ? (
+                  result.addresses.map((address) => (
+                    <li key={`${address.address}-${address.family}`} className="font-mono">
+                      {address.address} (IPv{address.family})
+                    </li>
+                  ))
+                ) : (
+                  <li>{t.noAddressResult}</li>
+                )}
+              </ul>
+            </div>
 
-          <div>
-            <p className="text-sm font-medium text-foreground">{t.recordDetails}</p>
-            <div className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
-              <pre>{JSON.stringify(result.records, null, 2)}</pre>
+            <div className="rounded-xl border border-border/70 bg-secondary/30 p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Binary className="h-4 w-4 text-primary" />
+                {t.recordDetails}
+              </p>
+              <div className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-background/40 p-3 font-mono text-xs text-foreground">
+                <pre>{JSON.stringify(result.records, null, 2)}</pre>
+              </div>
             </div>
           </div>
         </div>
