@@ -123,12 +123,8 @@ export async function GET() {
 
   return NextResponse.json({
     checkedAt: new Date().toISOString(),
-    environment: "This scanner inspects the DNS resolvers visible to this app runtime. In local runs this usually matches your device.",
     resolvers,
+    resolverCount: resolvers.length,
     privacyScore,
-    summary:
-      resolvers.length === 0
-        ? "No resolvers were returned by the runtime DNS stack."
-        : `Detected ${resolvers.length} resolver${resolvers.length === 1 ? "" : "s"} from the active network stack.`,
   });
 }

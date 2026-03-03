@@ -1,16 +1,24 @@
 import { ClientDnsScanner } from "@/components/client-dns-scanner";
+import { resolveLocale } from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { Shield } from "lucide-react";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Client DNS & Privacy Scan",
-  description: "Analysiere aktive DNS-Resolver, identifiziere Provider und bewerte Datenschutz-Aspekte deiner DNS-Auflösung.",
+  description:
+    "Analysiere aktive DNS-Resolver, identifiziere Provider und bewerte Datenschutz-Aspekte deiner DNS-Auflösung.",
   path: "/client-dns",
-  keywords: ['Client DNS', 'DNS Privacy', 'Resolver Check'],
+  keywords: ["Client DNS", "DNS Privacy", "Resolver Check"],
 });
 
-export default function ClientDnsPage() {
+export default async function ClientDnsPage() {
+  const headersList = await headers();
+  const locale = resolveLocale(headersList.get("accept-language"));
+  const t = getToolTranslation(locale);
+
   return (
     <main className="app-shell">
       <div className="app-gradient" aria-hidden />
@@ -21,15 +29,13 @@ export default function ClientDnsPage() {
             <Shield className="h-7 w-7 text-primary" />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Client DNS & Privacy Scan</h1>
-            <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-              Detect active DNS resolvers used by this runtime, identify known DNS providers, and estimate privacy posture with practical guidance.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{t.clientDnsTitle}</h1>
+            <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t.clientDnsSubtitle}</p>
           </div>
         </header>
 
         <section className="surface-panel w-full">
-          <ClientDnsScanner />
+          <ClientDnsScanner locale={locale} />
         </section>
       </div>
     </main>
