@@ -5,6 +5,7 @@ type ToolTranslation = {
   dnsTabLabel: string;
   whoisTabLabel: string;
   cdnTabLabel: string;
+  clientDnsTabLabel: string;
   pingTitle: string;
   pingSubtitle: string;
   dnsTitle: string;
@@ -13,6 +14,8 @@ type ToolTranslation = {
   whoisSubtitle: string;
   cdnTitle: string;
   cdnSubtitle: string;
+  clientDnsTitle: string;
+  clientDnsSubtitle: string;
   targetPlaceholder: string;
   lookupInProgress: string;
   dnsLookupButton: string;
@@ -78,6 +81,27 @@ type ToolTranslation = {
   cdnNoCname: string;
   cdnInterestingHeaders: string;
   cdnNoHeaders: string;
+  clientDnsEstimate: string;
+  clientDnsScanning: string;
+  clientDnsCheckedAt: string;
+  clientDnsNoData: string;
+  clientDnsRuntimeEnvironment: string;
+  clientDnsEnvironmentPrefix: string;
+  clientDnsSummaryPrefix: string;
+  clientDnsDetectedResolvers: string;
+  clientDnsDetectedResolversPlural: string;
+  clientDnsNoResolvers: string;
+  clientDnsStrong: string;
+  clientDnsModerate: string;
+  clientDnsWeak: string;
+  clientDnsHighPrivacy: string;
+  clientDnsMediumPrivacy: string;
+  clientDnsLowPrivacy: string;
+  clientDnsProviderPolicy: string;
+  clientDnsGuidanceIntro: string;
+  clientDnsGuidancePrefer: string;
+  clientDnsGuidanceNetworks: string;
+  clientDnsRescan: string;
 };
 
 const en: ToolTranslation = {
@@ -85,6 +109,7 @@ const en: ToolTranslation = {
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
   cdnTabLabel: "CDN Checker",
+  clientDnsTabLabel: "Client DNS Scan",
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
@@ -93,6 +118,9 @@ const en: ToolTranslation = {
   whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
   cdnSubtitle: "Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).",
+  clientDnsTitle: "Client DNS & Privacy Scan",
+  clientDnsSubtitle:
+    "Detect active DNS resolvers used by this runtime, identify known DNS providers, and estimate privacy posture with practical guidance.",
   targetPlaceholder: "example.com",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
@@ -158,6 +186,29 @@ const en: ToolTranslation = {
   cdnNoCname: "No CNAME records discovered.",
   cdnInterestingHeaders: "Interesting response headers",
   cdnNoHeaders: "No relevant headers found.",
+  clientDnsEstimate: "DNS privacy estimate",
+  clientDnsScanning: "Scanning active resolvers...",
+  clientDnsCheckedAt: "Checked at",
+  clientDnsNoData: "No DNS scan results available right now.",
+  clientDnsRuntimeEnvironment: "This scanner inspects the DNS resolvers visible to this app runtime. In local runs this usually matches your device.",
+  clientDnsEnvironmentPrefix: "Environment:",
+  clientDnsSummaryPrefix: "Summary:",
+  clientDnsDetectedResolvers: "Detected resolver",
+  clientDnsDetectedResolversPlural: "Detected resolvers",
+  clientDnsNoResolvers: "No resolvers were returned by the runtime DNS stack.",
+  clientDnsStrong: "Strong privacy posture",
+  clientDnsModerate: "Moderate privacy posture",
+  clientDnsWeak: "Weak privacy posture",
+  clientDnsHighPrivacy: "high privacy",
+  clientDnsMediumPrivacy: "medium privacy",
+  clientDnsLowPrivacy: "low privacy",
+  clientDnsProviderPolicy: "Provider policy page",
+  clientDnsGuidanceIntro:
+    "DNS resolvers can still see your queried domains unless you use encrypted DNS (DoH/DoT) and a privacy-focused provider.",
+  clientDnsGuidancePrefer:
+    "Prefer resolvers with transparent data-retention policies and optional malware blocking.",
+  clientDnsGuidanceNetworks: "Enterprise/VPN networks may intentionally override your local DNS settings.",
+  clientDnsRescan: "Rescan DNS",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -165,6 +216,7 @@ const de: Partial<ToolTranslation> = {
   dnsTabLabel: "DNS-Abfrage",
   whoisTabLabel: "WHOIS-Abfrage",
   cdnTabLabel: "CDN-Prüfer",
+  clientDnsTabLabel: "Client-DNS-Scan",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
@@ -173,6 +225,9 @@ const de: Partial<ToolTranslation> = {
   whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
   cdnSubtitle: "Analysiere beliebige Domains auf CDN-Nutzung und wahrscheinlichen Anbieter (u. a. CloudFront, Google Cloud CDN, Azure CDN, Vercel).",
+  clientDnsTitle: "Client-DNS- & Datenschutz-Scan",
+  clientDnsSubtitle:
+    "Erkenne aktive DNS-Resolver dieser Laufzeit, identifiziere bekannte DNS-Anbieter und bewerte die Datenschutzlage mit konkreten Hinweisen.",
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",
@@ -235,6 +290,29 @@ const de: Partial<ToolTranslation> = {
   cdnNoCname: "Keine CNAME-Einträge gefunden.",
   cdnInterestingHeaders: "Auffällige Response-Header",
   cdnNoHeaders: "Keine relevanten Header gefunden.",
+  clientDnsEstimate: "DNS-Datenschutzbewertung",
+  clientDnsScanning: "Aktive Resolver werden gescannt...",
+  clientDnsCheckedAt: "Geprüft am",
+  clientDnsNoData: "Aktuell liegen keine DNS-Scan-Ergebnisse vor.",
+  clientDnsRuntimeEnvironment: "Dieser Scanner prüft die DNS-Resolver, die für diese App-Laufzeit sichtbar sind. Bei lokalen Ausführungen entspricht das meist deinem Gerät.",
+  clientDnsEnvironmentPrefix: "Umgebung:",
+  clientDnsSummaryPrefix: "Zusammenfassung:",
+  clientDnsDetectedResolvers: "Erkannter Resolver",
+  clientDnsDetectedResolversPlural: "Erkannte Resolver",
+  clientDnsNoResolvers: "Vom DNS-Stack der Laufzeit wurden keine Resolver zurückgegeben.",
+  clientDnsStrong: "Starke Datenschutzlage",
+  clientDnsModerate: "Mittlere Datenschutzlage",
+  clientDnsWeak: "Schwache Datenschutzlage",
+  clientDnsHighPrivacy: "hoher Datenschutz",
+  clientDnsMediumPrivacy: "mittlerer Datenschutz",
+  clientDnsLowPrivacy: "niedriger Datenschutz",
+  clientDnsProviderPolicy: "Anbieter-Richtlinie",
+  clientDnsGuidanceIntro:
+    "DNS-Resolver können deine abgefragten Domains weiterhin sehen, sofern du kein verschlüsseltes DNS (DoH/DoT) mit einem datenschutzfreundlichen Anbieter nutzt.",
+  clientDnsGuidancePrefer:
+    "Bevorzuge Resolver mit transparenten Richtlinien zur Datenspeicherung und optionalem Malware-Schutz.",
+  clientDnsGuidanceNetworks: "Enterprise-/VPN-Netzwerke können lokale DNS-Einstellungen absichtlich überschreiben.",
+  clientDnsRescan: "DNS erneut scannen",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
