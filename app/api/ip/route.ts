@@ -136,6 +136,35 @@ function isIPv4(ip: string): boolean {
   return /^\d{1,3}(\.\d{1,3}){3}$/.test(ip);
 }
 
+function normalizeLookupTarget(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const parseCandidate = (candidate: string) => {
+    try {
+      const parsed = new URL(candidate);
+      return parsed.hostname || trimmed;
+    } catch {
+      return null;
+    }
+  };
+
+  const directParsed = parseCandidate(trimmed);
+  if (directParsed) return directParsed;
+
+  if (trimmed.startsWith("//")) {
+    const protocolRelativeParsed = parseCandidate(`http:${trimmed}`);
+    if (protocolRelativeParsed) return protocolRelativeParsed;
+  }
+
+  if (/[/?#]/.test(trimmed)) {
+    const withProtocolParsed = parseCandidate(`http://${trimmed}`);
+    if (withProtocolParsed) return withProtocolParsed;
+  }
+
+  return trimmed;
+}
+
 function extractIps(forwardedFor: string | null, realIp: string | null) {
   let ipv4: string | null = null;
   let ipv6: string | null = null;
@@ -211,7 +240,7 @@ export async function GET(request: Request) {
 
   // If a specific IP was passed (from /check), just look it up
   if (queryIp) {
-    const ip = queryIp.trim();
+    const ip = normalizeLookupTarget(queryIp);
     const data = await lookupIp(ip, language);
 
     if (!data) {
