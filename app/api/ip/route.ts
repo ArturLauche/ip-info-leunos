@@ -13,6 +13,7 @@ function detectConnectionType(data: {
   mobile: boolean;
   proxy: boolean;
   hosting: boolean;
+  proxyType?: string;
 }): string {
   const ispLower = (data.isp || "").toLowerCase();
   const orgLower = (data.org || "").toLowerCase();
@@ -22,7 +23,12 @@ function detectConnectionType(data: {
     keywords.some((keyword) => combinedText.includes(keyword));
 
   if (data.hosting) return "Rechenzentrum / Hosting";
-  if (data.proxy) return "Proxy / VPN / Tor";
+  if (data.proxy) {
+    if (data.proxyType === "tor") return "Tor Exit Node";
+    if (data.proxyType === "vpn") return "VPN / Anonymizer";
+    if (data.proxyType === "hosting-proxy") return "Datacenter Relay / Proxy";
+    return "Proxy / VPN / Tor";
+  }
   if (data.mobile) return "Mobilfunk";
 
   if (hasAnyKeyword(["starlink", "spacex"])) {
@@ -128,6 +134,138 @@ function detectConnectionType(data: {
   return "Festnetz";
 }
 
+type ProxyAssessment = {
+  isProxy: boolean;
+  proxyType: "tor" | "vpn" | "hosting-proxy" | "unknown";
+  confidence: "none" | "low" | "medium" | "high";
+  reasons: string[];
+};
+
+function assessProxyRisk(data: {
+  isp: string;
+  org: string;
+  as: string;
+  reverse?: string;
+  proxy: boolean;
+  hosting: boolean;
+  mobile: boolean;
+}): ProxyAssessment {
+  const combined = `${data.isp || ""} ${data.org || ""} ${data.as || ""} ${data.reverse || ""}`.toLowerCase();
+
+  const includesAny = (keywords: string[]) =>
+    keywords.some((keyword) => combined.includes(keyword));
+
+  const torKeywords = [" tor ", ".tor", "tor-exit", "tor exit", "tor relay", "onion"]; 
+  const vpnKeywords = [
+    "vpn",
+    "wireguard",
+    "openvpn",
+    "ipsec",
+    "nordvpn",
+    "mullvad",
+    "expressvpn",
+    "protonvpn",
+    "surfshark",
+    "cyberghost",
+    "pia",
+    "private internet access",
+    "tunnel",
+    "zerotier",
+    "tailscale",
+  ];
+  const proxyKeywords = [
+    "proxy",
+    "socks",
+    "residential gateway",
+    "anonymizer",
+    "exit node",
+    "forwarder",
+  ];
+  const datacenterKeywords = [
+    "digitalocean",
+    "ovh",
+    "hetzner",
+    "linode",
+    "amazon",
+    "aws",
+    "google cloud",
+    "microsoft",
+    "azure",
+    "oracle cloud",
+    "vultr",
+    "choopa",
+    "leaseweb",
+    "contabo",
+    "datacenter",
+    "colo",
+    "colocation",
+  ];
+  const residentialKeywords = [
+    "telekom",
+    "vodafone",
+    "comcast",
+    "charter",
+    "cox",
+    "orange",
+    "telefonica",
+    "verizon",
+    "at&t",
+    "bell",
+    "movistar",
+    "free",
+    "bt",
+  ];
+
+  const reasons: string[] = [];
+  let score = 0;
+  let proxyType: ProxyAssessment["proxyType"] = "unknown";
+
+  if (data.proxy) {
+    score += 4;
+    reasons.push("upstream-provider-flagged-proxy");
+  }
+  if (data.hosting) {
+    score += 2;
+    reasons.push("upstream-provider-flagged-hosting");
+  }
+  if (includesAny(torKeywords)) {
+    score += 5;
+    proxyType = "tor";
+    reasons.push("tor-signature");
+  }
+  if (includesAny(vpnKeywords)) {
+    score += 3;
+    if (proxyType === "unknown") proxyType = "vpn";
+    reasons.push("vpn-signature");
+  }
+  if (includesAny(proxyKeywords)) {
+    score += 2;
+    if (proxyType === "unknown") proxyType = "hosting-proxy";
+    reasons.push("proxy-signature");
+  }
+  if (data.hosting && includesAny(datacenterKeywords)) {
+    score += 2;
+    if (proxyType === "unknown") proxyType = "hosting-proxy";
+    reasons.push("datacenter-signature");
+  }
+
+  if (data.mobile || includesAny(residentialKeywords)) {
+    score -= 3;
+    reasons.push("residential-or-mobile-signal");
+  }
+
+  const isProxy = score >= 4 || proxyType === "tor";
+  const confidence: ProxyAssessment["confidence"] = !isProxy
+    ? "none"
+    : score >= 7
+      ? "high"
+      : score >= 5
+        ? "medium"
+        : "low";
+
+  return { isProxy, proxyType, confidence, reasons };
+}
+
 function isIPv6(ip: string): boolean {
   return ip.includes(":");
 }
@@ -228,8 +366,67 @@ function getUnknownResult(language: Locale) {
     reverse: "",
     mobile: false,
     proxy: false,
+    proxyType: "unknown",
+    proxyConfidence: "none",
+    proxyReasons: [] as string[],
     hosting: false,
     connectionType: t.unknown,
+  };
+}
+
+function toResponsePayload(
+  source: any,
+  ip: string,
+  ipv4: string | null,
+  ipv6: string | null
+) {
+  const proxyAssessment = assessProxyRisk({
+    isp: source.isp,
+    org: source.org,
+    as: source.as,
+    reverse: source.reverse,
+    proxy: source.proxy,
+    hosting: source.hosting,
+    mobile: source.mobile,
+  });
+
+  const resolvedQuery = source.query || ip;
+  const responseIpv4 = isIPv4(resolvedQuery) ? resolvedQuery : ipv4;
+  const responseIpv6 = isIPv6(resolvedQuery) ? resolvedQuery : ipv6;
+
+  return {
+    ipv4: responseIpv4,
+    ipv6: responseIpv6,
+    ipVersion: responseIpv6 && !responseIpv4 ? 6 : 4,
+    country: source.country,
+    countryCode: source.countryCode,
+    region: source.region,
+    regionName: source.regionName,
+    city: source.city,
+    zip: source.zip,
+    lat: source.lat,
+    lon: source.lon,
+    timezone: source.timezone,
+    isp: source.isp,
+    org: source.org,
+    as: source.as,
+    asname: source.asname,
+    reverse: source.reverse || "",
+    mobile: source.mobile,
+    proxy: proxyAssessment.isProxy,
+    proxyType: proxyAssessment.proxyType,
+    proxyConfidence: proxyAssessment.confidence,
+    proxyReasons: proxyAssessment.reasons,
+    hosting: source.hosting,
+    connectionType: detectConnectionType({
+      isp: source.isp,
+      org: source.org,
+      as: source.as,
+      mobile: source.mobile,
+      proxy: proxyAssessment.isProxy,
+      hosting: source.hosting,
+      proxyType: proxyAssessment.proxyType,
+    }),
   };
 }
 
@@ -253,27 +450,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      ipv4: isIPv4(data.query || ip) ? (data.query || ip) : null,
-      ipv6: isIPv6(data.query || ip) ? (data.query || ip) : null,
-      ipVersion: isIPv6(data.query || ip) ? 6 : 4,
-      country: data.country,
-      countryCode: data.countryCode,
-      region: data.region,
-      regionName: data.regionName,
-      city: data.city,
-      zip: data.zip,
-      lat: data.lat,
-      lon: data.lon,
-      timezone: data.timezone,
-      isp: data.isp,
-      org: data.org,
-      as: data.as,
-      asname: data.asname,
-      reverse: data.reverse || "",
-      mobile: data.mobile,
-      proxy: data.proxy,
-      hosting: data.hosting,
-      connectionType: detectConnectionType(data),
+      ...toResponsePayload(data, ip, isIPv4(ip) ? ip : null, isIPv6(ip) ? ip : null),
     });
   }
 
@@ -297,35 +474,7 @@ export async function GET(request: Request) {
     });
   }
 
-  // If we got a different IP back from ip-api (e.g. resolved domain), check it
-  const resolvedIp = data.query || primaryIp;
-  let finalIpv4 = ipv4;
-  let finalIpv6 = ipv6;
-
-  if (isIPv4(resolvedIp) && !finalIpv4) finalIpv4 = resolvedIp;
-  if (isIPv6(resolvedIp) && !finalIpv6) finalIpv6 = resolvedIp;
-
   return NextResponse.json({
-    ipv4: finalIpv4,
-    ipv6: finalIpv6,
-    ipVersion: finalIpv6 && !finalIpv4 ? 6 : 4,
-    country: data.country,
-    countryCode: data.countryCode,
-    region: data.region,
-    regionName: data.regionName,
-    city: data.city,
-    zip: data.zip,
-    lat: data.lat,
-    lon: data.lon,
-    timezone: data.timezone,
-    isp: data.isp,
-    org: data.org,
-    as: data.as,
-    asname: data.asname,
-    reverse: data.reverse || "",
-    mobile: data.mobile,
-    proxy: data.proxy,
-    hosting: data.hosting,
-    connectionType: detectConnectionType(data),
+    ...toResponsePayload(data, primaryIp, ipv4, ipv6),
   });
 }
