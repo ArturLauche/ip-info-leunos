@@ -40,6 +40,9 @@ interface IpData {
   reverse: string;
   mobile: boolean;
   proxy: boolean;
+  proxyType?: "tor" | "vpn" | "hosting-proxy" | "unknown";
+  proxyConfidence?: "none" | "low" | "medium" | "high";
+  proxyReasons?: string[];
   hosting: boolean;
   connectionType: string;
 }
@@ -152,7 +155,17 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
 
   const flags: string[] = [];
   if (data.mobile) flags.push(t.mobileFlag);
-  if (data.proxy) flags.push(t.proxyFlag);
+  if (data.proxy) {
+    const proxyLabel =
+      data.proxyType === "tor"
+        ? "Tor"
+        : data.proxyType === "vpn"
+          ? "VPN"
+          : data.proxyType === "hosting-proxy"
+            ? "Proxy"
+            : t.proxyFlag;
+    flags.push(proxyLabel);
+  }
   if (data.hosting) flags.push(t.hostingFlag);
 
   const displayIpv4 = data.ipv4;
