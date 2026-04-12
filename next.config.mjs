@@ -6,6 +6,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean),
+    },
+  },
 }
 
 export default nextConfig
