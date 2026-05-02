@@ -1,6 +1,14 @@
 import dgram from "node:dgram";
 import net from "node:net";
-import { NextResponse } from "next/server";
+import { z } from "zod";
+import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import {
+  assertPublicTarget,
+  fetchPublicUrl,
+  isIPv6Address,
+  TargetValidationError,
+} from "@/lib/network/target";
 
 export const runtime = "nodejs";
 
@@ -22,6 +30,22 @@ interface PingRequest {
   databaseType?: DatabaseType;
   auth?: DatabaseAuth;
 }
+
+const pingRequestSchema = z.object({
+  mode: z.enum(["tcp", "udp", "eb", "database"]).default("tcp"),
+  target: z.string().trim().min(1).max(253),
+  port: z.coerce.number().int().min(1).max(65535).optional(),
+  timeoutMs: z.coerce.number().int().min(500).max(10_000).default(3000),
+  databaseType: z.enum(["postgres", "mysql", "redis", "mongodb", "mssql", "generic"]).default("generic"),
+  auth: z
+    .object({
+      enabled: z.boolean().optional(),
+      username: z.string().max(256).optional(),
+      password: z.string().max(1024).optional(),
+      database: z.string().max(256).optional(),
+    })
+    .optional(),
+});
 
 interface PingResult {
   ok: boolean;
@@ -47,10 +71,29 @@ function sanitizeHost(target: string) {
   return target.trim().replace(/^\[|\]$/g, "");
 }
 
+function formatHostForUrl(hostname: string) {
+  return isIPv6Address(hostname) ? `[${hostname}]` : hostname;
+}
+
 function normalizePort(value: number | undefined, fallback = 0): number {
   if (typeof value !== "number" || !Number.isInteger(value)) return fallback;
   if (value < 1 || value > 65535) return fallback;
   return value;
+}
+
+function validatePublicPort(port: number) {
+  const allowList = process.env.PUBLIC_ALLOWED_PING_PORTS?.split(",")
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535);
+
+  if (allowList?.length && !allowList.includes(port)) {
+    throw new TargetValidationError(
+      "target_blocked",
+      "This port is not enabled for public checks on this deployment.",
+      403,
+      { port, allowedPorts: allowList },
+    );
+  }
 }
 
 function tcpPing(target: string, port: number, timeoutMs: number): Promise<PingResult> {
@@ -82,7 +125,7 @@ function tcpPing(target: string, port: number, timeoutMs: number): Promise<PingR
 function udpPing(target: string, port: number, timeoutMs: number): Promise<PingResult> {
   return new Promise((resolve) => {
     const started = Date.now();
-    const socket = dgram.createSocket("udp4");
+    const socket = dgram.createSocket(isIPv6Address(target) ? "udp6" : "udp4");
     let settled = false;
 
     const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
@@ -122,12 +165,13 @@ function udpPing(target: string, port: number, timeoutMs: number): Promise<PingR
   });
 }
 
-async function ebPing(target: string, port: number, timeoutMs: number): Promise<PingResult> {
-  const tcpResult = await tcpPing(target, port, timeoutMs);
+async function ebPing(displayTarget: string, connectionTarget: string, port: number, timeoutMs: number): Promise<PingResult> {
+  const tcpResult = await tcpPing(connectionTarget, port, timeoutMs);
   if (!tcpResult.ok) {
     return {
       ...tcpResult,
       mode: "eb",
+      target: displayTarget,
       message: `EB check failed at TCP stage: ${tcpResult.message}`,
       details: { stage: "tcp", ...(tcpResult.details || {}) },
     };
@@ -138,20 +182,18 @@ async function ebPing(target: string, port: number, timeoutMs: number): Promise<
 
   for (const scheme of schemes) {
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const response = await fetch(`${scheme}://${target}:${port}/`, {
+      const response = await fetchPublicUrl(`${scheme}://${formatHostForUrl(displayTarget)}:${port}/`, {
         method: "GET",
-        redirect: "manual",
-        signal: controller.signal,
         cache: "no-store",
+        timeoutMs,
+        maxRedirects: 2,
+        maxContentLengthBytes: 512_000,
       });
-      clearTimeout(timer);
 
       return {
         ok: true,
         mode: "eb",
-        target,
+        target: displayTarget,
         port,
         latencyMs: Date.now() - started,
         message: `Endpoint reachable via ${scheme.toUpperCase()} (status ${response.status}).`,
@@ -165,7 +207,7 @@ async function ebPing(target: string, port: number, timeoutMs: number): Promise<
   return {
     ok: true,
     mode: "eb",
-    target,
+    target: displayTarget,
     port,
     latencyMs: Date.now() - started,
     message: "TCP open, but no HTTP(S) response detected on this endpoint.",
@@ -444,42 +486,59 @@ async function databasePing(
 }
 
 export async function POST(request: Request) {
-  let payload: PingRequest;
+  const limited = enforceRateLimit(request, "ping", { limit: 20, windowMs: 60_000 });
+  if (limited) return limited;
+
+  let rawPayload: unknown;
 
   try {
-    payload = (await request.json()) as PingRequest;
+    rawPayload = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return apiError("bad_request", "Invalid JSON body.", 400);
   }
 
+  const parsedPayload = pingRequestSchema.safeParse(rawPayload);
+
+  if (!parsedPayload.success) {
+    return apiValidationError(parsedPayload.error);
+  }
+
+  const payload = parsedPayload.data satisfies PingRequest;
   const mode = payload.mode || "tcp";
-  const target = sanitizeHost(payload.target || "");
   const timeoutMs = Math.min(Math.max(payload.timeoutMs || DEFAULT_TIMEOUT_MS, 500), 10000);
-
-  if (!target) {
-    return NextResponse.json({ error: "Please provide a target host or IP." }, { status: 400 });
-  }
-
-  if (!["tcp", "udp", "eb", "database"].includes(mode)) {
-    return NextResponse.json({ error: "mode must be tcp, udp, eb, or database." }, { status: 400 });
-  }
 
   const databaseType = payload.databaseType || "generic";
   const defaultPort = mode === "database" ? DB_DEFAULT_PORTS[databaseType] || 0 : 0;
   const port = normalizePort(payload.port, defaultPort);
 
   if (!port) {
-    return NextResponse.json({ error: "Please provide a valid port (1-65535)." }, { status: 400 });
+    return apiError("bad_request", "Please provide a valid port (1-65535).", 400);
+  }
+
+  let target: string;
+  let connectionTarget: string;
+
+  try {
+    validatePublicPort(port);
+    const publicTarget = await assertPublicTarget(sanitizeHost(payload.target || ""));
+    target = publicTarget.hostname;
+    connectionTarget = publicTarget.addresses[0] || publicTarget.hostname;
+  } catch (error) {
+    if (error instanceof TargetValidationError) {
+      return apiError(error.code, error.message, error.status, error.details);
+    }
+
+    return apiError("invalid_target", "Please provide a valid public target host or IP.", 400);
   }
 
   const result =
     mode === "tcp"
-      ? await tcpPing(target, port, timeoutMs)
+      ? { ...(await tcpPing(connectionTarget, port, timeoutMs)), target }
       : mode === "udp"
-        ? await udpPing(target, port, timeoutMs)
+        ? { ...(await udpPing(connectionTarget, port, timeoutMs)), target }
         : mode === "eb"
-          ? await ebPing(target, port, timeoutMs)
-          : await databasePing(target, databaseType, port, timeoutMs, payload.auth || {});
+          ? await ebPing(target, connectionTarget, port, timeoutMs)
+          : { ...(await databasePing(connectionTarget, databaseType, port, timeoutMs, payload.auth || {})), target };
 
-  return NextResponse.json(result, { status: result.ok ? 200 : 502 });
+  return apiOk(result);
 }

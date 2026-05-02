@@ -1,7 +1,19 @@
 import dns from "node:dns/promises";
-import { NextResponse } from "next/server";
+import { z } from "zod";
+import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import {
+  assertPublicUrl,
+  fetchPublicUrl,
+  normalizeWebUrl,
+  TargetValidationError,
+} from "@/lib/network/target";
 
 type Confidence = "high" | "medium" | "low";
+
+const cdnQuerySchema = z.object({
+  target: z.string().trim().min(1).max(2048),
+});
 
 interface CdnSignature {
   provider: string;
@@ -152,27 +164,6 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
 ];
 
-function normalizeTarget(input: string) {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-
-  const withProtocol = /^https?:\/\//i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`;
-
-  try {
-    const parsed = new URL(withProtocol);
-    if (!parsed.hostname) return null;
-
-    return {
-      hostname: parsed.hostname.toLowerCase(),
-      url: `https://${parsed.hostname}`,
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function resolveCnameChain(hostname: string) {
   const cnames: string[] = [];
   let current = hostname;
@@ -213,7 +204,7 @@ function mapScoreToConfidence(score: number): Confidence {
   return "low";
 }
 
-function detectCdn(headers: Headers, cnameChain: string[], hostname: string): CdnDetection | null {
+export function detectCdn(headers: Headers, cnameChain: string[], hostname: string): CdnDetection | null {
   const headerPairs = [...headers.entries()].map(([key, value]) => ({
     key: key.toLowerCase(),
     value: value.toLowerCase(),
@@ -306,30 +297,52 @@ function detectCdn(headers: Headers, cnameChain: string[], hostname: string): Cd
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const target = searchParams.get("target") || "";
-  const normalized = normalizeTarget(target);
+  const limited = enforceRateLimit(request, "cdn", { limit: 20, windowMs: 60_000 });
+  if (limited) return limited;
 
-  if (!normalized) {
-    return NextResponse.json(
-      { error: "Please provide a valid domain or URL via ?target=." },
-      { status: 400 },
-    );
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = cdnQuerySchema.safeParse({
+    target: searchParams.get("target"),
+  });
+
+  if (!parsedQuery.success) {
+    return apiValidationError(parsedQuery.error);
   }
 
-  const [cnameChain, resolvedIps] = await Promise.all([
-    resolveCnameChain(normalized.hostname),
-    resolveIpAddresses(normalized.hostname),
+  let normalized: URL;
+  let hostname: string;
+  let resolvedIps: string[];
+
+  try {
+    normalized = normalizeWebUrl(parsedQuery.data.target);
+    const publicUrl = await assertPublicUrl(normalized);
+    hostname = publicUrl.hostname;
+    resolvedIps = publicUrl.addresses.slice(0, 8);
+  } catch (error) {
+    if (error instanceof TargetValidationError) {
+      return apiError(error.code, error.message, error.status, error.details);
+    }
+
+    return apiError("invalid_target", "Please provide a valid public domain or URL.", 400);
+  }
+
+  const [cnameChain, dnsResolvedIps] = await Promise.all([
+    resolveCnameChain(hostname),
+    resolveIpAddresses(hostname),
   ]);
+
+  resolvedIps = [...new Set([...resolvedIps, ...dnsResolvedIps])].slice(0, 8);
 
   let responseHeaders: Headers;
   let status = 0;
 
   try {
-    const response = await fetch(normalized.url, {
+    const response = await fetchPublicUrl(normalized, {
       method: "GET",
       cache: "no-store",
-      redirect: "follow",
+      maxRedirects: 3,
+      timeoutMs: 6_000,
+      maxContentLengthBytes: 1_000_000,
       headers: {
         "user-agent": "ip-info-leunos-cdn-check/1.2",
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -338,9 +351,13 @@ export async function GET(request: Request) {
 
     responseHeaders = response.headers;
     status = response.status;
-  } catch {
-    return NextResponse.json({
-      target: normalized.hostname,
+  } catch (error) {
+    if (error instanceof TargetValidationError) {
+      return apiError(error.code, error.message, error.status, error.details);
+    }
+
+    return apiOk({
+      target: hostname,
       reachable: false,
       usesCdn: false,
       detectedCdn: null,
@@ -353,7 +370,7 @@ export async function GET(request: Request) {
     });
   }
 
-  const detection = detectCdn(responseHeaders, cnameChain, normalized.hostname);
+  const detection = detectCdn(responseHeaders, cnameChain, hostname);
   const selectedHeaders = [
     "server",
     "via",
@@ -383,8 +400,8 @@ export async function GET(request: Request) {
     })
     .filter((item): item is { key: string; value: string } => Boolean(item));
 
-  return NextResponse.json({
-    target: normalized.hostname,
+  return apiOk({
+    target: hostname,
     reachable: true,
     status,
     usesCdn: Boolean(detection),

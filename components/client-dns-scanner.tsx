@@ -2,8 +2,9 @@
 
 import { getToolTranslation } from "@/lib/tool-i18n";
 import type { Locale } from "@/lib/i18n";
+import { unwrapApiResponse } from "@/lib/api/client";
 import { CircleCheck, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type PrivacyLevel = "high" | "medium" | "low";
 
@@ -17,6 +18,7 @@ type ResolverResult = {
 
 type ScanResponse = {
   checkedAt: string;
+  scope: "server-runtime";
   privacyScore: number;
   resolverCount: number;
   resolvers: ResolverResult[];
@@ -38,29 +40,25 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResponse | null>(null);
 
-  const runScan = async () => {
+  const runScan = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch("/api/client-dns", { cache: "no-store" });
-      const data = (await response.json()) as ScanResponse;
-
-      if (!response.ok) {
-        throw new Error("Scan failed.");
-      }
+      const data = unwrapApiResponse<ScanResponse>(await response.json());
 
       setResult(data);
-    } catch {
-      setError(t.clientDnsNoData);
+    } catch (scanError) {
+      setError((scanError as Error).message || t.clientDnsNoData);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t.clientDnsNoData]);
 
   useEffect(() => {
     runScan();
-  }, []);
+  }, [runScan]);
 
   const privacyLabel = useMemo(() => {
     if (!result) return t.cdnConfidenceNa;

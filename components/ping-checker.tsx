@@ -1,9 +1,22 @@
 "use client";
 
 import { type Locale } from "@/lib/i18n";
+import { unwrapApiResponse } from "@/lib/api/client";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { FormEvent, useMemo, useState } from "react";
-import { Activity, CircleCheck, ServerCrash, Timer, Info, Gauge, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  Check,
+  ChevronDown,
+  CircleCheck,
+  Gauge,
+  Info,
+  LockKeyhole,
+  ServerCrash,
+  ShieldCheck,
+  Timer,
+} from "lucide-react";
 
 type PingMode = "tcp" | "udp" | "eb" | "database";
 type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
@@ -27,27 +40,85 @@ const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
   generic: 0,
 };
 
+const DB_DEFAULT_PORT_SET = new Set(Object.values(DB_DEFAULT_PORTS).filter((value) => value > 0));
+
+const MODE_DEFAULT_PORTS: Record<Exclude<PingMode, "database">, number> = {
+  tcp: 80,
+  udp: 53,
+  eb: 443,
+};
+
+const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
+  { value: "postgres", label: "PostgreSQL" },
+  { value: "mysql", label: "MySQL" },
+  { value: "redis", label: "Redis" },
+  { value: "mongodb", label: "MongoDB" },
+  { value: "mssql", label: "MS SQL Server" },
+  { value: "generic", label: "Generic TCP DB" },
+];
+
+const getDatabaseOptionDetail = (value: DatabaseType, locale: Locale) => {
+  const defaultPort = DB_DEFAULT_PORTS[value];
+  if (defaultPort) return `${defaultPort} / TCP`;
+  return locale === "de" ? "Manueller Port" : "Custom port";
+};
+
 const inputClass =
   "h-11 rounded-lg border border-border bg-secondary/70 px-3 text-sm font-sans text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 interface PingCheckerProps {
   locale: Locale;
+  initialTarget?: string;
+  initialPort?: string;
+  initialMode?: PingMode;
 }
 
-export function PingChecker({ locale }: PingCheckerProps) {
-  const [mode, setMode] = useState<PingMode>("tcp");
+export function PingChecker({
+  locale,
+  initialTarget = "example.com",
+  initialPort = "80",
+  initialMode = "tcp",
+}: PingCheckerProps) {
+  const router = useRouter();
+  const [mode, setMode] = useState<PingMode>(initialMode);
   const [databaseType, setDatabaseType] = useState<DatabaseType>("postgres");
-  const [target, setTarget] = useState("127.0.0.1");
-  const [port, setPort] = useState("80");
+  const [target, setTarget] = useState(initialTarget);
+  const [port, setPort] = useState(initialPort);
   const [timeoutMs, setTimeoutMs] = useState("3000");
   const [useAuth, setUseAuth] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [database, setDatabase] = useState("");
+  const [databaseMenuOpen, setDatabaseMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
+  const databaseMenuRef = useRef<HTMLDivElement>(null);
   const t = getToolTranslation(locale);
+
+  useEffect(() => {
+    if (!databaseMenuOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!databaseMenuRef.current?.contains(event.target as Node)) {
+        setDatabaseMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setDatabaseMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [databaseMenuOpen]);
 
   const modeLabels: Record<PingMode, string> = {
     tcp: "TCP",
@@ -63,14 +134,28 @@ export function PingChecker({ locale }: PingCheckerProps) {
     database: t.pingModeHelperDatabase,
   };
 
+  const selectedDatabase =
+    DATABASE_OPTIONS.find((option) => option.value === databaseType) ?? DATABASE_OPTIONS[0];
+  const selectedDatabaseDetail = getDatabaseOptionDetail(selectedDatabase.value, locale);
+
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
-    if (nextMode === "database") setPort(String(DB_DEFAULT_PORTS[databaseType]));
-    if (nextMode !== "database") setUseAuth(false);
+    setDatabaseMenuOpen(false);
+
+    if (nextMode === "database") {
+      setPort(String(DB_DEFAULT_PORTS[databaseType]));
+      return;
+    }
+
+    setUseAuth(false);
+    if (DB_DEFAULT_PORT_SET.has(Number(port))) {
+      setPort(String(MODE_DEFAULT_PORTS[nextMode]));
+    }
   };
 
   const onDatabaseTypeChange = (nextType: DatabaseType) => {
     setDatabaseType(nextType);
+    setDatabaseMenuOpen(false);
     if (mode === "database") {
       const nextPort = DB_DEFAULT_PORTS[nextType];
       if (nextPort) setPort(String(nextPort));
@@ -82,9 +167,9 @@ export function PingChecker({ locale }: PingCheckerProps) {
     if (mode === "udp") return `${t.pingCurrentPlanUdp} ${target}:${port}`;
     if (mode === "eb") return `${t.pingCurrentPlanEb} ${target}:${port}`;
     return useAuth
-      ? `${databaseType} ${t.pingCurrentPlanDbAuth} ${target}:${port}`
-      : `${databaseType} ${t.pingCurrentPlanDbProtocol} ${target}:${port}`;
-  }, [databaseType, mode, port, target, t, useAuth]);
+      ? `${selectedDatabase.label} ${t.pingCurrentPlanDbAuth} ${target}:${port}`
+      : `${selectedDatabase.label} ${t.pingCurrentPlanDbProtocol} ${target}:${port}`;
+  }, [mode, port, selectedDatabase.label, target, t, useAuth]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -92,6 +177,11 @@ export function PingChecker({ locale }: PingCheckerProps) {
     setLoading(true);
     setError(null);
     setResult(null);
+
+    router.replace(
+      `/ping?mode=${encodeURIComponent(mode)}&target=${encodeURIComponent(target)}&port=${encodeURIComponent(port)}`,
+      { scroll: false },
+    );
 
     try {
       const response = await fetch("/api/ping", {
@@ -112,14 +202,10 @@ export function PingChecker({ locale }: PingCheckerProps) {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || data.message || t.pingCheckFailed);
-      } else {
-        setResult(data as PingResult);
-      }
-    } catch {
-      setError(t.pingNetworkError);
+      const data = unwrapApiResponse<PingResult>(await response.json());
+      setResult(data);
+    } catch (checkError) {
+      setError((checkError as Error).message || t.pingNetworkError);
     } finally {
       setLoading(false);
     }
@@ -160,22 +246,61 @@ export function PingChecker({ locale }: PingCheckerProps) {
           <p className="mt-2 text-xs text-muted-foreground">{modeHelpers[mode]}</p>
         </fieldset>
 
-        <label className="flex flex-col gap-2 text-sm text-foreground">
-          {t.pingDatabaseType}
-          <select
-            value={databaseType}
-            disabled={mode !== "database"}
-            onChange={(event) => onDatabaseTypeChange(event.target.value as DatabaseType)}
-            className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            <option value="postgres">PostgreSQL</option>
-            <option value="mysql">MySQL</option>
-            <option value="redis">Redis</option>
-            <option value="mongodb">MongoDB</option>
-            <option value="mssql">MS SQL Server</option>
-            <option value="generic">Generic TCP DB</option>
-          </select>
-        </label>
+        {mode === "database" && (
+          <div ref={databaseMenuRef} className="relative flex flex-col gap-2 text-sm text-foreground md:col-span-2">
+            <span>{t.pingDatabaseType}</span>
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={databaseMenuOpen}
+              onClick={() => setDatabaseMenuOpen((open) => !open)}
+              className="flex h-12 items-center justify-between gap-3 rounded-lg border border-border bg-secondary/70 px-3 text-left text-sm font-medium text-foreground transition hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate">{selectedDatabase.label}</span>
+                <span className="text-xs font-normal text-muted-foreground">{selectedDatabaseDetail}</span>
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                  databaseMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {databaseMenuOpen && (
+              <div
+                role="listbox"
+                className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-[0_20px_50px_-20px_rgb(0_0_0_/_0.7)]"
+              >
+                {DATABASE_OPTIONS.map((option) => {
+                  const active = option.value === databaseType;
+                  const optionDetail = getDatabaseOptionDetail(option.value, locale);
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => onDatabaseTypeChange(option.value)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition ${
+                        active
+                          ? "bg-primary/15 text-foreground"
+                          : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                      }`}
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm font-medium">{option.label}</span>
+                        <span className="text-xs">{optionDetail}</span>
+                      </span>
+                      {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <label className="flex flex-col gap-2 text-sm text-foreground">
           {t.pingTargetHost}
@@ -208,10 +333,33 @@ export function PingChecker({ locale }: PingCheckerProps) {
         </label>
 
         {mode === "database" && (
-          <label className="md:col-span-2 flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm text-foreground">
-            <input type="checkbox" checked={useAuth} onChange={(event) => setUseAuth(event.target.checked)} />
-            {t.pingUseAuth}
-          </label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={useAuth}
+            onClick={() => setUseAuth((enabled) => !enabled)}
+            className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition md:col-span-2 ${
+              useAuth
+                ? "border-primary/80 bg-primary/15 text-foreground"
+                : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <span
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition ${
+                  useAuth ? "border-primary bg-primary" : "border-border bg-muted"
+                }`}
+              >
+                <span
+                  className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-foreground shadow transition-transform ${
+                    useAuth ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              <span className="font-medium">{t.pingUseAuth}</span>
+            </span>
+            <LockKeyhole className={`h-4 w-4 shrink-0 ${useAuth ? "text-primary" : "text-muted-foreground"}`} />
+          </button>
         )}
 
         {mode === "database" && useAuth && (

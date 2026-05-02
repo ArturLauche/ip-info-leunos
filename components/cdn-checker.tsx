@@ -1,13 +1,15 @@
 "use client";
 
 import { type Locale } from "@/lib/i18n";
+import { unwrapApiResponse } from "@/lib/api/client";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { ErrorPanel } from "@/components/error-panel";
+import { ToolSearchForm } from "@/components/tool-search-form";
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Search,
   CircleCheck,
-  TriangleAlert,
   Shield,
   Sparkles,
   Globe,
@@ -45,17 +47,17 @@ function confidenceBadge(confidence: CdnResult["confidence"]) {
 
 interface CdnCheckerProps {
   locale: Locale;
+  initialTarget?: string;
 }
 
-export function CdnChecker({ locale }: CdnCheckerProps) {
-  const [target, setTarget] = useState("");
+export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CdnResult | null>(null);
   const t = getToolTranslation(locale);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const runCheck = useCallback(async (target: string, updateUrl = true) => {
     const trimmed = target.trim();
     if (!trimmed) return;
 
@@ -63,21 +65,26 @@ export function CdnChecker({ locale }: CdnCheckerProps) {
     setError(null);
     setResult(null);
 
+    if (updateUrl) {
+      router.replace(`/cdn?target=${encodeURIComponent(trimmed)}`, { scroll: false });
+    }
+
     try {
       const response = await fetch(`/api/cdn?target=${encodeURIComponent(trimmed)}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || t.cdnAnalyzeError);
-      } else {
-        setResult(data);
-      }
-    } catch {
-      setError(t.cdnNetworkError);
+      const data = unwrapApiResponse<CdnResult>(await response.json());
+      setResult(data);
+    } catch (checkError) {
+      setError((checkError as Error).message || t.cdnNetworkError);
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, t.cdnNetworkError]);
+
+  useEffect(() => {
+    if (initialTarget.trim()) {
+      runCheck(initialTarget, false);
+    }
+  }, [initialTarget, runCheck]);
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -95,25 +102,14 @@ export function CdnChecker({ locale }: CdnCheckerProps) {
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-            placeholder={t.targetPlaceholder}
-            className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? t.cdnAnalyzing : t.cdnAnalyzeButton}
-        </button>
-      </form>
+      <ToolSearchForm
+        initialValue={initialTarget}
+        placeholder={t.targetPlaceholder}
+        submitLabel={t.cdnAnalyzeButton}
+        loadingLabel={t.cdnAnalyzing}
+        loading={loading}
+        onSubmit={runCheck}
+      />
 
       {loading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -123,12 +119,7 @@ export function CdnChecker({ locale }: CdnCheckerProps) {
         </div>
       )}
 
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          <TriangleAlert className="h-4 w-4" />
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorPanel message={error} />}
 
       {result && (
         <div className="flex flex-col gap-4">

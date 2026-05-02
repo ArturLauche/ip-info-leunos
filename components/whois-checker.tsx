@@ -1,106 +1,167 @@
 "use client";
 
+import { ErrorPanel } from "@/components/error-panel";
+import { ResultPanel } from "@/components/result-panel";
+import { ToolSearchForm } from "@/components/tool-search-form";
+import { unwrapApiResponse } from "@/lib/api/client";
 import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { CircleCheck, Search, TriangleAlert } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+
+interface WhoisSummary {
+  registrar?: string;
+  created?: string;
+  expires?: string;
+  updated?: string;
+  status: string[];
+  nameservers: string[];
+}
 
 interface WhoisResult {
   target: string;
   server: string;
   raw: string;
+  summary?: WhoisSummary;
   refer?: string;
   note?: string;
 }
 
 interface WhoisCheckerProps {
   locale: Locale;
+  initialTarget?: string;
 }
 
-export function WhoisChecker({ locale }: WhoisCheckerProps) {
-  const [target, setTarget] = useState("");
+function SummaryRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+
+  return (
+    <p>
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="font-mono text-foreground">{value}</span>
+    </p>
+  );
+}
+
+export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WhoisResult | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const runLookup = useCallback(async (target: string, updateUrl = true) => {
     const trimmed = target.trim();
     if (!trimmed) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
+    setShowRaw(false);
+
+    if (updateUrl) {
+      router.replace(`/whois?target=${encodeURIComponent(trimmed)}`, { scroll: false });
+    }
 
     try {
       const response = await fetch(`/api/whois?target=${encodeURIComponent(trimmed)}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || t.whoisLookupError);
-      } else {
-        setResult(data as WhoisResult);
-      }
-    } catch {
-      setError(t.whoisNetworkError);
+      const data = unwrapApiResponse<WhoisResult>(await response.json());
+      setResult(data);
+    } catch (lookupError) {
+      setError((lookupError as Error).message || t.whoisLookupError);
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, t.whoisLookupError]);
+
+  useEffect(() => {
+    if (initialTarget.trim()) {
+      runLookup(initialTarget, false);
+    }
+  }, [initialTarget, runLookup]);
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-            placeholder={t.whoisPlaceholder}
-            className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? t.lookupInProgress : t.whoisLookupButton}
-        </button>
-      </form>
+      <ToolSearchForm
+        initialValue={initialTarget}
+        placeholder={t.whoisPlaceholder}
+        submitLabel={t.whoisLookupButton}
+        loadingLabel={t.lookupInProgress}
+        loading={loading}
+        onSubmit={runLookup}
+      />
 
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          <TriangleAlert className="h-4 w-4" />
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorPanel message={error} />}
 
       {result && (
-        <div className="space-y-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-          <p className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <CircleCheck className="h-5 w-5 text-emerald-400" />
-            {t.whoisFor} {result.target}
-          </p>
-
-          <div className="text-sm text-muted-foreground">
-            <p>
-              {t.queriedServer}: <span className="font-mono text-foreground">{result.server}</span>
-            </p>
-            {result.refer && (
+        <ResultPanel title={`${t.whoisFor} ${result.target}`}>
+          <div className="grid gap-4 text-sm md:grid-cols-2">
+            <div className="rounded-lg border border-border bg-secondary/40 p-3 text-muted-foreground">
               <p>
-                {t.referralSource}: <span className="font-mono text-foreground">{result.refer}</span>
+                {t.queriedServer}: <span className="font-mono text-foreground">{result.server}</span>
               </p>
+              {result.refer && (
+                <p>
+                  {t.referralSource}: <span className="font-mono text-foreground">{result.refer}</span>
+                </p>
+              )}
+              {result.note && <p className="mt-2">{result.note}</p>}
+            </div>
+
+            {result.summary && (
+              <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm">
+                <SummaryRow label="Registrar" value={result.summary.registrar} />
+                <SummaryRow label="Created" value={result.summary.created} />
+                <SummaryRow label="Updated" value={result.summary.updated} />
+                <SummaryRow label="Expires" value={result.summary.expires} />
+              </div>
             )}
-            {result.note && <p>{result.note}</p>}
           </div>
 
-          <div className="max-h-[32rem] overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
-            <pre className="whitespace-pre-wrap break-words">{result.raw || t.noWhoisData}</pre>
-          </div>
-        </div>
+          {result.summary && (result.summary.status.length > 0 || result.summary.nameservers.length > 0) && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-border bg-secondary/40 p-3">
+                <p className="text-sm font-medium text-foreground">Status</p>
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {result.summary.status.length > 0 ? (
+                    result.summary.status.map((status) => <li key={status}>{status}</li>)
+                  ) : (
+                    <li>-</li>
+                  )}
+                </ul>
+              </div>
+              <div className="rounded-lg border border-border bg-secondary/40 p-3">
+                <p className="text-sm font-medium text-foreground">Nameservers</p>
+                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {result.summary.nameservers.length > 0 ? (
+                    result.summary.nameservers.map((nameserver) => (
+                      <li key={nameserver} className="font-mono">
+                        {nameserver}
+                      </li>
+                    ))
+                  ) : (
+                    <li>-</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowRaw((value) => !value)}
+            className="h-10 rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+          >
+            {showRaw ? "Hide raw output" : "Show raw output"}
+          </button>
+
+          {showRaw && (
+            <div className="max-h-[32rem] overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
+              <pre className="whitespace-pre-wrap break-words">{result.raw || t.noWhoisData}</pre>
+            </div>
+          )}
+        </ResultPanel>
       )}
     </div>
   );

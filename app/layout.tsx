@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { siteConfig } from '@/lib/seo'
 
-const _geist = Geist({ subsets: ['latin'] })
-const _geistMono = Geist_Mono({ subsets: ['latin'] })
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -50,6 +51,9 @@ const jsonLd = {
   inLanguage: 'de-DE',
 }
 
+const matomoUrl = process.env.NEXT_PUBLIC_MATOMO_URL?.replace(/\/$/, '')
+const matomoSiteId = process.env.NEXT_PUBLIC_MATOMO_SITE_ID
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -57,27 +61,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body className="font-sans antialiased">
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+        {matomoUrl && matomoSiteId && (
+          <Script id="matomo-analytics" strategy="afterInteractive">
+            {`
               var _paq = window._paq = window._paq || [];
               _paq.push(['trackPageView']);
               _paq.push(['enableLinkTracking']);
               (function() {
-                var u='//analytics.leunos.com/';
-                _paq.push(['setTrackerUrl', u+'piwik.php']);
-                _paq.push(['setSiteId', '1']);
+                var u='${matomoUrl}/';
+                _paq.push(['setTrackerUrl', u+'matomo.php']);
+                _paq.push(['setSiteId', '${matomoSiteId}']);
                 var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-                g.async=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+                g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
               })();
-            `,
-          }}
-        />
+            `}
+          </Script>
+        )}
         {children}
       </body>
     </html>

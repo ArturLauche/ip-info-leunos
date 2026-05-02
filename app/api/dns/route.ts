@@ -1,10 +1,17 @@
 import dns from "node:dns/promises";
-import { NextResponse } from "next/server";
+import { z } from "zod";
+import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { assertPublicTarget, TargetValidationError } from "@/lib/network/target";
 
 export const runtime = "nodejs";
 
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SRV"] as const;
 type RecordType = (typeof RECORD_TYPES)[number];
+
+const dnsQuerySchema = z.object({
+  target: z.string().trim().min(1).max(253),
+});
 
 type DnsRecordValue = string | number | boolean | null | DnsRecordValue[] | { [key: string]: DnsRecordValue };
 
@@ -19,28 +26,10 @@ interface ResolveResult {
   error?: string;
 }
 
-function normalizeTarget(target: string) {
-  const trimmed = target.trim();
-  if (!trimmed) return "";
-
-  const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-
-  try {
-    const parsed = new URL(withProtocol);
-    return parsed.hostname.replace(/\.$/, "").toLowerCase();
-  } catch {
-    return trimmed
-      .split(/[/?#]/)[0]
-      .replace(/:\d+$/, "")
-      .replace(/^\[|\]$/g, "")
-      .replace(/\.$/, "")
-      .toLowerCase();
-  }
-}
-
 async function resolveByType(hostname: string, type: RecordType): Promise<ResolveResult> {
   try {
-    const records = await dns.resolve(hostname, type);
+    const resolved = await dns.resolve(hostname, type);
+    const records = Array.isArray(resolved) ? resolved : [resolved];
     return {
       type,
       records: records.map((value) => ({ type, value: value as DnsRecordValue })),
@@ -55,16 +44,29 @@ async function resolveByType(hostname: string, type: RecordType): Promise<Resolv
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const target = searchParams.get("target");
+  const limited = enforceRateLimit(request, "dns", { limit: 40, windowMs: 60_000 });
+  if (limited) return limited;
 
-  if (!target || !target.trim()) {
-    return NextResponse.json({ error: "Missing target query parameter." }, { status: 400 });
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = dnsQuerySchema.safeParse({
+    target: searchParams.get("target"),
+  });
+
+  if (!parsedQuery.success) {
+    return apiValidationError(parsedQuery.error);
   }
 
-  const hostname = normalizeTarget(target);
-  if (!hostname) {
-    return NextResponse.json({ error: "Please provide a valid domain." }, { status: 400 });
+  let hostname: string;
+
+  try {
+    const target = await assertPublicTarget(parsedQuery.data.target);
+    hostname = target.hostname;
+  } catch (error) {
+    if (error instanceof TargetValidationError) {
+      return apiError(error.code, error.message, error.status, error.details);
+    }
+
+    return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
   }
 
   const [lookupResult, recordsByType] = await Promise.all([
@@ -78,7 +80,7 @@ export async function GET(request: Request) {
   const records = recordsByType.flatMap((entry) => entry.records);
   const addresses = lookupResult.ok ? lookupResult.value : [];
 
-  return NextResponse.json({
+  return apiOk({
     target: hostname,
     addresses,
     records,

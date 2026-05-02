@@ -1,112 +1,85 @@
-# IP Auskunft – IP, DNS, Whois, CDN, and Network Checks with Next.js
+# IP Auskunft
 
-IP Auskunft is a modern Next.js application that helps users inspect their own public IP address and run additional network tools (IP/domain lookup, DNS lookups, Whois queries, CDN detection, ping/port tests, and a client DNS privacy scan) from one unified interface.
-
-## Why this project?
-
-Many “What is my IP?” websites only display an IP number. This project goes further:
-
-- **Context, not just raw data:** country, region, ASN, ISP, timezone, and connection type.
-- **Multiple tools in one app:** diagnostics and lookups without switching services.
-- **Performance and SEO focus:** structured metadata, Open Graph, sitemap, robots, and JSON-LD.
+IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public IP metadata and running bounded checks against public internet targets.
 
 ## Features
 
-### Core tools
+- Show the visitor's public IPv4/IPv6 metadata.
+- Look up a public IP address or public domain at `/check`.
+- Query DNS records at `/dns`.
+- Query WHOIS/RDAP data at `/whois`.
+- Detect common CDN and edge-provider signals at `/cdn`.
+- Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
+- Inspect DNS resolvers visible to the app runtime at `/client-dns`.
 
-- **Show your own IP** (IPv4 and, when available, IPv6).
-- **IP/Domain lookup** at `/check`.
-- **DNS lookup** at `/dns` (multiple record types).
-- **Whois lookup** at `/whois`.
-- **CDN detection** at `/cdn`.
-- **Ping/network checks** at `/ping`.
-- **Client DNS & privacy scan** at `/client-dns`.
+## Public-Site Safety Model
 
-### SEO enhancements
+The API routes are designed for public deployment. They validate inputs with `zod`, rate-limit requests in memory, enforce timeouts, and block targets that resolve to private, loopback, link-local, multicast, reserved, documentation, and cloud-metadata address ranges.
 
-- Central **SEO configuration** in `lib/seo.ts`.
-- **Metadata base**, canonical URLs, keywords, and robots directives.
-- Route-level metadata for major tool pages.
-- **Open Graph** and **Twitter Card** defaults.
-- **JSON-LD WebSite schema** in the root layout.
-- Dynamic **`/sitemap.xml`**, **`/robots.txt`**, and **`/manifest.webmanifest`** using the App Router.
+Blocked examples include:
 
-## Tech stack
+- `localhost`, `*.local`, and other internal-looking hostnames
+- `127.0.0.0/8`
+- `10.0.0.0/8`
+- `172.16.0.0/12`
+- `192.168.0.0/16`
+- `169.254.169.254`
+- `::1`, `fc00::/7`, and `fe80::/10`
 
-- **Framework:** Next.js 16 (App Router)
-- **Runtime/UI:** React 19 + TypeScript
-- **Styling:** Tailwind CSS 4
-- **Monitoring:** `@vercel/analytics`, `@vercel/speed-insights`
-- **External data providers:**
-  - `ip-api.com` (IP and network metadata)
-  - `api64.ipify.org` (IPv6 detection)
+Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
 
-## Project structure (excerpt)
+## Runtime DNS Scan Note
 
-```text
-app/
-  layout.tsx              # global layout + global SEO metadata + JSON-LD
-  page.tsx                # homepage (your own IP)
-  check/page.tsx          # IP/domain lookup
-  ping/page.tsx           # ping/network checks
-  dns/page.tsx            # DNS tool
-  whois/page.tsx          # Whois tool
-  cdn/page.tsx            # CDN checker
-  client-dns/page.tsx     # client DNS & privacy tool
-  sitemap.ts              # generates /sitemap.xml
-  robots.ts               # generates /robots.txt
-  manifest.ts             # generates /manifest.webmanifest
-lib/
-  seo.ts                  # SEO config + metadata factory
+`/client-dns` is intentionally named as a runtime DNS resolver scan. It reports DNS resolvers visible to the app runtime. In production this normally describes the hosting platform or server runtime, not the end user's browser DNS configuration. True browser DNS leak detection requires dedicated DNS infrastructure and is outside this app's current scope.
+
+## Analytics
+
+Matomo is disabled unless both public environment variables are configured:
+
+```bash
+NEXT_PUBLIC_MATOMO_URL=https://analytics.example.com
+NEXT_PUBLIC_MATOMO_SITE_ID=1
 ```
 
-## Requirements
+## Tech Stack
 
-- **Node.js 20+**
-- **pnpm**
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- zod for request validation
+- Vitest for focused unit tests
 
-## Local development
+## Local Development
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Then open:
+Open `http://localhost:3000`.
 
-- `http://localhost:3000`
-
-## Production build
-
-```bash
-pnpm build
-pnpm start
-```
-
-## Quality checks
+## Quality Checks
 
 ```bash
 pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-## Deployment notes
+The build no longer ignores TypeScript errors.
 
-This app is **not purely static**, because it relies on server-side API routes and runtime data.
+## Deployment
 
-Recommended targets:
+This app is not purely static because the tools use server-side API routes. Deploy it to a Node-capable target such as Vercel, Railway, Render, Fly.io, or Docker/VPS.
 
-- Vercel
-- Railway
-- Render
-- Fly.io
-- Docker/VPS (with `pnpm build && pnpm start`)
+## External Providers
 
-## Data accuracy & privacy
-
-- Geolocation/provider details depend on external data sources and may vary.
-- IPv6 is shown only if the client network supports IPv6.
-- For production, add your own privacy policy if analytics are enabled.
+- `ip-api.com` for IP metadata
+- `api64.ipify.org` for client-side IPv6 discovery
+- `rdap.org` as WHOIS fallback
 
 ## License
 
-There is currently no explicit license file in this repository. If you plan to distribute this project publicly, add an appropriate `LICENSE`.
+No explicit license file is included. Add a `LICENSE` before public redistribution.

@@ -6,6 +6,7 @@ type ToolTranslation = {
   whoisTabLabel: string;
   cdnTabLabel: string;
   clientDnsTabLabel: string;
+  runtimeDnsTabLabel: string;
   pingTitle: string;
   pingSubtitle: string;
   dnsTitle: string;
@@ -16,6 +17,8 @@ type ToolTranslation = {
   cdnSubtitle: string;
   clientDnsTitle: string;
   clientDnsSubtitle: string;
+  runtimeDnsTitle: string;
+  runtimeDnsSubtitle: string;
   targetPlaceholder: string;
   lookupInProgress: string;
   dnsLookupButton: string;
@@ -109,7 +112,8 @@ const en: ToolTranslation = {
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
   cdnTabLabel: "CDN Checker",
-  clientDnsTabLabel: "Client DNS Scan",
+  clientDnsTabLabel: "Runtime DNS Scan",
+  runtimeDnsTabLabel: "Runtime DNS Scan",
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
@@ -118,9 +122,12 @@ const en: ToolTranslation = {
   whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
   cdnSubtitle: "Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).",
-  clientDnsTitle: "Client DNS & Privacy Scan",
+  clientDnsTitle: "Runtime DNS Resolver Scan",
   clientDnsSubtitle:
-    "Detect active DNS resolvers used by this runtime, identify known DNS providers, and estimate privacy posture with practical guidance.",
+    "Detect DNS resolvers visible to this server runtime, identify known DNS providers, and estimate privacy posture with practical guidance.",
+  runtimeDnsTitle: "Runtime DNS Resolver Scan",
+  runtimeDnsSubtitle:
+    "Inspect the DNS resolvers visible to this app runtime. This is server/runtime visibility, not a browser DNS leak test.",
   targetPlaceholder: "example.com",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
@@ -190,7 +197,7 @@ const en: ToolTranslation = {
   clientDnsScanning: "Scanning active resolvers...",
   clientDnsCheckedAt: "Checked at",
   clientDnsNoData: "No DNS scan results available right now.",
-  clientDnsRuntimeEnvironment: "This scanner inspects the DNS resolvers visible to this app runtime. In local runs this usually matches your device.",
+  clientDnsRuntimeEnvironment: "This scanner inspects DNS resolvers visible to the app runtime. In production this describes the server or hosting platform, not the visitor browser.",
   clientDnsEnvironmentPrefix: "Environment:",
   clientDnsSummaryPrefix: "Summary:",
   clientDnsDetectedResolvers: "Detected resolver",
@@ -216,7 +223,8 @@ const de: Partial<ToolTranslation> = {
   dnsTabLabel: "DNS-Abfrage",
   whoisTabLabel: "WHOIS-Abfrage",
   cdnTabLabel: "CDN-Prüfer",
-  clientDnsTabLabel: "Client-DNS-Scan",
+  clientDnsTabLabel: "Runtime-DNS-Scan",
+  runtimeDnsTabLabel: "Runtime-DNS-Scan",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
@@ -225,9 +233,12 @@ const de: Partial<ToolTranslation> = {
   whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
   cdnSubtitle: "Analysiere beliebige Domains auf CDN-Nutzung und wahrscheinlichen Anbieter (u. a. CloudFront, Google Cloud CDN, Azure CDN, Vercel).",
-  clientDnsTitle: "Client-DNS- & Datenschutz-Scan",
+  clientDnsTitle: "Runtime-DNS-Resolver-Scan",
   clientDnsSubtitle:
-    "Erkenne aktive DNS-Resolver dieser Laufzeit, identifiziere bekannte DNS-Anbieter und bewerte die Datenschutzlage mit konkreten Hinweisen.",
+    "Erkenne DNS-Resolver, die für diese App-Laufzeit sichtbar sind, und bewerte die Datenschutzlage mit konkreten Hinweisen.",
+  runtimeDnsTitle: "Runtime-DNS-Resolver-Scan",
+  runtimeDnsSubtitle:
+    "Prüft die DNS-Resolver, die für diese App-Laufzeit sichtbar sind. Das ist Server-/Runtime-Sichtbarkeit, kein Browser-DNS-Leak-Test.",
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",
@@ -294,7 +305,7 @@ const de: Partial<ToolTranslation> = {
   clientDnsScanning: "Aktive Resolver werden gescannt...",
   clientDnsCheckedAt: "Geprüft am",
   clientDnsNoData: "Aktuell liegen keine DNS-Scan-Ergebnisse vor.",
-  clientDnsRuntimeEnvironment: "Dieser Scanner prüft die DNS-Resolver, die für diese App-Laufzeit sichtbar sind. Bei lokalen Ausführungen entspricht das meist deinem Gerät.",
+  clientDnsRuntimeEnvironment: "Dieser Scanner prüft DNS-Resolver, die für die App-Laufzeit sichtbar sind. In Produktion beschreibt das den Server oder die Hosting-Plattform, nicht den Browser des Besuchers.",
   clientDnsEnvironmentPrefix: "Umgebung:",
   clientDnsSummaryPrefix: "Zusammenfassung:",
   clientDnsDetectedResolvers: "Erkannter Resolver",

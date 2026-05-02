@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { InfoCard } from "@/components/info-card";
 import { getTranslation, type Locale } from "@/lib/i18n";
+import { unwrapApiResponse } from "@/lib/api/client";
 import {
   Globe,
   MapPin,
@@ -96,7 +97,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     fetch(url)
       .then((res) => res.json())
       .then((json) => {
-        setData(json);
+        setData(unwrapApiResponse<IpData>(json));
         setLoading(false);
       })
       .catch(() => {

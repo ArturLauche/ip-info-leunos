@@ -1,5 +1,6 @@
 import dns from "node:dns";
-import { NextResponse } from "next/server";
+import { apiOk } from "@/lib/api/response";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -113,7 +114,10 @@ function scorePrivacy(level: "high" | "medium" | "low") {
   return 30;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = enforceRateLimit(request, "runtime-dns", { limit: 30, windowMs: 60_000 });
+  if (limited) return limited;
+
   const resolvers = dns.getServers().map(inspectResolver);
 
   const privacyScore =
@@ -121,8 +125,9 @@ export async function GET() {
       ? Math.round(resolvers.reduce((acc, item) => acc + scorePrivacy(item.privacy), 0) / resolvers.length)
       : 0;
 
-  return NextResponse.json({
+  return apiOk({
     checkedAt: new Date().toISOString(),
+    scope: "server-runtime",
     resolvers,
     resolverCount: resolvers.length,
     privacyScore,

@@ -1,9 +1,13 @@
 "use client";
 
+import { ErrorPanel } from "@/components/error-panel";
+import { ResultPanel } from "@/components/result-panel";
+import { ToolSearchForm } from "@/components/tool-search-form";
+import { unwrapApiResponse } from "@/lib/api/client";
 import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { CircleCheck, Search, TriangleAlert } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface DnsAddress {
   address: string;
@@ -19,80 +23,79 @@ interface DnsResult {
   target: string;
   addresses: DnsAddress[];
   records: DnsRecord[];
+  lookupError?: string | null;
+  recordErrors?: Array<{ type: string; error?: string }>;
 }
 
 interface DnsCheckerProps {
   locale: Locale;
+  initialTarget?: string;
 }
 
-export function DnsChecker({ locale }: DnsCheckerProps) {
-  const [target, setTarget] = useState("");
+export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DnsResult | null>(null);
+  const [selectedType, setSelectedType] = useState("ALL");
   const t = getToolTranslation(locale);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const runLookup = useCallback(async (target: string, updateUrl = true) => {
     const trimmed = target.trim();
     if (!trimmed) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
+    setSelectedType("ALL");
+
+    if (updateUrl) {
+      router.replace(`/dns?target=${encodeURIComponent(trimmed)}`, { scroll: false });
+    }
 
     try {
       const response = await fetch(`/api/dns?target=${encodeURIComponent(trimmed)}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || t.dnsLookupError);
-      } else {
-        setResult(data as DnsResult);
-      }
-    } catch {
-      setError(t.dnsNetworkError);
+      const data = unwrapApiResponse<DnsResult>(await response.json());
+      setResult(data);
+    } catch (lookupError) {
+      setError((lookupError as Error).message || t.dnsLookupError);
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, t.dnsLookupError]);
+
+  useEffect(() => {
+    if (initialTarget.trim()) {
+      runLookup(initialTarget, false);
+    }
+  }, [initialTarget, runLookup]);
+
+  const recordTypes = useMemo(() => {
+    if (!result) return [];
+    return [...new Set(result.records.map((record) => record.type))].sort();
+  }, [result]);
+
+  const visibleRecords = useMemo(() => {
+    if (!result) return [];
+    if (selectedType === "ALL") return result.records;
+    return result.records.filter((record) => record.type === selectedType);
+  }, [result, selectedType]);
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-            placeholder={t.targetPlaceholder}
-            className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? t.lookupInProgress : t.dnsLookupButton}
-        </button>
-      </form>
+      <ToolSearchForm
+        initialValue={initialTarget}
+        placeholder={t.targetPlaceholder}
+        submitLabel={t.dnsLookupButton}
+        loadingLabel={t.lookupInProgress}
+        loading={loading}
+        onSubmit={runLookup}
+      />
 
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          <TriangleAlert className="h-4 w-4" />
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorPanel message={error} />}
 
       {result && (
-        <div className="space-y-4 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-          <p className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <CircleCheck className="h-5 w-5 text-emerald-400" />
-            {t.dnsRecordsFor} {result.target}
-          </p>
-
+        <ResultPanel title={`${t.dnsRecordsFor} ${result.target}`}>
           <div>
             <p className="text-sm font-medium text-foreground">{t.resolvedAddresses}</p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
@@ -103,18 +106,50 @@ export function DnsChecker({ locale }: DnsCheckerProps) {
                   </li>
                 ))
               ) : (
-                <li>{t.noAddressResult}</li>
+                <li>{result.lookupError || t.noAddressResult}</li>
               )}
             </ul>
           </div>
 
+          {recordTypes.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {["ALL", ...recordTypes].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setSelectedType(type)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    selectedType === type
+                      ? "border-primary bg-primary/15 text-foreground"
+                      : "border-border bg-secondary/60 text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div>
             <p className="text-sm font-medium text-foreground">{t.recordDetails}</p>
             <div className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
-              <pre>{JSON.stringify(result.records, null, 2)}</pre>
+              <pre>{JSON.stringify(visibleRecords, null, 2)}</pre>
             </div>
           </div>
-        </div>
+
+          {result.recordErrors && result.recordErrors.length > 0 && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+              <p className="font-medium text-amber-100">Record lookup notes</p>
+              <ul className="mt-2 space-y-1">
+                {result.recordErrors.map((entry) => (
+                  <li key={`${entry.type}-${entry.error}`}>
+                    <span className="font-mono">{entry.type}</span>: {entry.error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </ResultPanel>
       )}
     </div>
   );

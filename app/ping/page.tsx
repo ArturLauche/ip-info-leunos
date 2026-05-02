@@ -1,4 +1,5 @@
 import { PingChecker } from "@/components/ping-checker";
+import { ToolPageShell } from "@/components/tool-page-shell";
 import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Radar } from "lucide-react";
@@ -13,30 +14,36 @@ export const metadata: Metadata = createPageMetadata({
   keywords: ['Ping Test', 'Port Check', 'Latenz'],
 });
 
-export default async function PingPage() {
+type PingMode = "tcp" | "udp" | "eb" | "database";
+
+interface PingPageProps {
+  searchParams: Promise<{ target?: string; port?: string; mode?: string }>;
+}
+
+function normalizeMode(value: string | undefined): PingMode {
+  return value === "udp" || value === "eb" || value === "database" ? value : "tcp";
+}
+
+export default async function PingPage({ searchParams }: PingPageProps) {
   const headersList = await headers();
   const locale = resolveLocale(headersList.get("accept-language"));
   const t = getToolTranslation(locale);
+  const params = await searchParams;
 
   return (
-    <main className="app-shell">
-      <div className="app-gradient" aria-hidden />
-
-      <div className="z-10 flex w-full max-w-5xl flex-col items-center gap-8 px-4 py-10 md:py-16">
-        <header className="flex w-full max-w-2xl flex-col items-center gap-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/25">
-            <Radar className="h-7 w-7 text-primary" />
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{t.pingTitle}</h1>
-            <p className="max-w-xl text-sm text-muted-foreground md:text-base">{t.pingSubtitle}</p>
-          </div>
-        </header>
-
-        <section className="surface-panel w-full">
-          <PingChecker locale={locale} />
-        </section>
-      </div>
-    </main>
+    <ToolPageShell
+      locale={locale}
+      active="ping"
+      icon={Radar}
+      title={t.pingTitle}
+      subtitle={t.pingSubtitle}
+    >
+      <PingChecker
+        locale={locale}
+        initialTarget={params.target || "example.com"}
+        initialPort={params.port || "80"}
+        initialMode={normalizeMode(params.mode)}
+      />
+    </ToolPageShell>
   );
 }

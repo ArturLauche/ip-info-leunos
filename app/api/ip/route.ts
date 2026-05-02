@@ -1,6 +1,66 @@
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import net from "node:net";
+import { z } from "zod";
+import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { getTranslation, resolveLocale, type Locale } from "@/lib/i18n";
+import {
+  assertPublicIpAddress,
+  assertPublicTarget,
+  TargetValidationError,
+} from "@/lib/network/target";
+
+const ipQuerySchema = z.object({
+  ip: z.string().trim().min(1).max(253).optional(),
+});
+
+type IpApiPayload = {
+  status: "success" | "fail";
+  message?: string;
+  country?: string;
+  countryCode?: string;
+  region?: string;
+  regionName?: string;
+  city?: string;
+  zip?: string;
+  lat?: number;
+  lon?: number;
+  timezone?: string;
+  isp?: string;
+  org?: string;
+  as?: string;
+  asname?: string;
+  reverse?: string;
+  mobile?: boolean;
+  proxy?: boolean;
+  hosting?: boolean;
+  query?: string;
+};
+
+const ipApiPayloadSchema = z
+  .object({
+    status: z.enum(["success", "fail"]),
+    message: z.string().optional(),
+    country: z.string().optional(),
+    countryCode: z.string().optional(),
+    region: z.string().optional(),
+    regionName: z.string().optional(),
+    city: z.string().optional(),
+    zip: z.string().optional(),
+    lat: z.number().optional(),
+    lon: z.number().optional(),
+    timezone: z.string().optional(),
+    isp: z.string().optional(),
+    org: z.string().optional(),
+    as: z.string().optional(),
+    asname: z.string().optional(),
+    reverse: z.string().optional(),
+    mobile: z.boolean().optional(),
+    proxy: z.boolean().optional(),
+    hosting: z.boolean().optional(),
+    query: z.string().optional(),
+  })
+  .passthrough();
 
 function resolveIpApiLanguage(request: Request): Locale {
   return resolveLocale(request.headers.get("accept-language"));
@@ -266,41 +326,12 @@ function assessProxyRisk(data: {
   return { isProxy, proxyType, confidence, reasons };
 }
 
-function isIPv6(ip: string): boolean {
-  return ip.includes(":");
-}
-
 function isIPv4(ip: string): boolean {
-  return /^\d{1,3}(\.\d{1,3}){3}$/.test(ip);
+  return net.isIP(ip) === 4;
 }
 
-function normalizeLookupTarget(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-
-  const parseCandidate = (candidate: string) => {
-    try {
-      const parsed = new URL(candidate);
-      return parsed.hostname || trimmed;
-    } catch {
-      return null;
-    }
-  };
-
-  const directParsed = parseCandidate(trimmed);
-  if (directParsed) return directParsed;
-
-  if (trimmed.startsWith("//")) {
-    const protocolRelativeParsed = parseCandidate(`http:${trimmed}`);
-    if (protocolRelativeParsed) return protocolRelativeParsed;
-  }
-
-  if (/[/?#]/.test(trimmed)) {
-    const withProtocolParsed = parseCandidate(`http://${trimmed}`);
-    if (withProtocolParsed) return withProtocolParsed;
-  }
-
-  return trimmed;
+function isIPv6(ip: string): boolean {
+  return net.isIP(ip) === 6;
 }
 
 function extractIps(forwardedFor: string | null, realIp: string | null) {
@@ -332,17 +363,25 @@ function extractIps(forwardedFor: string | null, realIp: string | null) {
   return { ipv4, ipv6 };
 }
 
-async function lookupIp(ip: string, language: string) {
+async function lookupIp(ip: string, language: string): Promise<IpApiPayload | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+
   try {
     const res = await fetch(
       `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting,query&lang=${language}`,
-      { cache: "no-store" }
+      { cache: "no-store", signal: controller.signal },
     );
-    const data = await res.json();
+    const parsed = ipApiPayloadSchema.safeParse(await res.json());
+    if (!parsed.success) return null;
+
+    const data = parsed.data;
     if (data.status === "fail") return null;
     return data;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -375,19 +414,19 @@ function getUnknownResult(language: Locale) {
 }
 
 function toResponsePayload(
-  source: any,
+  source: IpApiPayload,
   ip: string,
   ipv4: string | null,
   ipv6: string | null
 ) {
   const proxyAssessment = assessProxyRisk({
-    isp: source.isp,
-    org: source.org,
-    as: source.as,
+    isp: source.isp || "",
+    org: source.org || "",
+    as: source.as || "",
     reverse: source.reverse,
-    proxy: source.proxy,
-    hosting: source.hosting,
-    mobile: source.mobile,
+    proxy: Boolean(source.proxy),
+    hosting: Boolean(source.hosting),
+    mobile: Boolean(source.mobile),
   });
 
   const resolvedQuery = source.query || ip;
@@ -398,50 +437,73 @@ function toResponsePayload(
     ipv4: responseIpv4,
     ipv6: responseIpv6,
     ipVersion: responseIpv6 && !responseIpv4 ? 6 : 4,
-    country: source.country,
-    countryCode: source.countryCode,
-    region: source.region,
-    regionName: source.regionName,
-    city: source.city,
-    zip: source.zip,
-    lat: source.lat,
-    lon: source.lon,
-    timezone: source.timezone,
-    isp: source.isp,
-    org: source.org,
-    as: source.as,
-    asname: source.asname,
+    country: source.country || "",
+    countryCode: source.countryCode || "",
+    region: source.region || "",
+    regionName: source.regionName || "",
+    city: source.city || "",
+    zip: source.zip || "",
+    lat: source.lat ?? 0,
+    lon: source.lon ?? 0,
+    timezone: source.timezone || "",
+    isp: source.isp || "",
+    org: source.org || "",
+    as: source.as || "",
+    asname: source.asname || "",
     reverse: source.reverse || "",
-    mobile: source.mobile,
+    mobile: Boolean(source.mobile),
     proxy: proxyAssessment.isProxy,
     proxyType: proxyAssessment.proxyType,
     proxyConfidence: proxyAssessment.confidence,
     proxyReasons: proxyAssessment.reasons,
-    hosting: source.hosting,
+    hosting: Boolean(source.hosting),
     connectionType: detectConnectionType({
-      isp: source.isp,
-      org: source.org,
-      as: source.as,
-      mobile: source.mobile,
+      isp: source.isp || "",
+      org: source.org || "",
+      as: source.as || "",
+      mobile: Boolean(source.mobile),
       proxy: proxyAssessment.isProxy,
-      hosting: source.hosting,
+      hosting: Boolean(source.hosting),
       proxyType: proxyAssessment.proxyType,
     }),
   };
 }
 
 export async function GET(request: Request) {
+  const limited = enforceRateLimit(request, "ip", { limit: 80, windowMs: 60_000 });
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
-  const queryIp = searchParams.get("ip");
+  const parsedQuery = ipQuerySchema.safeParse({
+    ip: searchParams.get("ip") || undefined,
+  });
+
+  if (!parsedQuery.success) {
+    return apiValidationError(parsedQuery.error);
+  }
+
+  const queryIp = parsedQuery.data.ip;
   const language = resolveIpApiLanguage(request);
 
   // If a specific IP was passed (from /check), just look it up
   if (queryIp) {
-    const ip = normalizeLookupTarget(queryIp);
+    let ip: string;
+
+    try {
+      const target = await assertPublicTarget(queryIp);
+      ip = target.hostname;
+    } catch (error) {
+      if (error instanceof TargetValidationError) {
+        return apiError(error.code, error.message, error.status, error.details);
+      }
+
+      return apiError("invalid_target", "Please provide a valid public IP address or domain.", 400);
+    }
+
     const data = await lookupIp(ip, language);
 
     if (!data) {
-      return NextResponse.json({
+      return apiOk({
         ipv4: isIPv4(ip) ? ip : null,
         ipv6: isIPv6(ip) ? ip : null,
         ipVersion: isIPv6(ip) ? 6 : 4,
@@ -449,7 +511,7 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json({
+    return apiOk({
       ...toResponsePayload(data, ip, isIPv4(ip) ? ip : null, isIPv6(ip) ? ip : null),
     });
   }
@@ -462,11 +524,20 @@ export async function GET(request: Request) {
   const { ipv4, ipv6 } = extractIps(forwardedFor, realIp);
 
   // Use whichever IP we found (prefer IPv4 for geolocation, it tends to be more accurate)
-  const primaryIp = ipv4 || ipv6 || "Unknown";
-  const data = await lookupIp(primaryIp, language);
+  const primaryIp = ipv4 || ipv6 || "";
+  let data: IpApiPayload | null = null;
+
+  if (primaryIp) {
+    try {
+      assertPublicIpAddress(primaryIp);
+      data = await lookupIp(primaryIp, language);
+    } catch {
+      data = null;
+    }
+  }
 
   if (!data) {
-    return NextResponse.json({
+    return apiOk({
       ipv4,
       ipv6,
       ipVersion: ipv6 && !ipv4 ? 6 : 4,
@@ -474,7 +545,7 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.json({
+  return apiOk({
     ...toResponsePayload(data, primaryIp, ipv4, ipv6),
   });
 }
