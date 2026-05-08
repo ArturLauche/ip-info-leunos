@@ -32,15 +32,6 @@ Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` 
 
 `/client-dns` is intentionally named as a runtime DNS resolver scan. It reports DNS resolvers visible to the app runtime. In production this normally describes the hosting platform or server runtime, not the end user's browser DNS configuration. True browser DNS leak detection requires dedicated DNS infrastructure and is outside this app's current scope.
 
-## Analytics
-
-Matomo is disabled unless both public environment variables are configured:
-
-```bash
-NEXT_PUBLIC_MATOMO_URL=https://analytics.example.com
-NEXT_PUBLIC_MATOMO_SITE_ID=1
-```
-
 ## Tech Stack
 
 - Next.js 16 App Router

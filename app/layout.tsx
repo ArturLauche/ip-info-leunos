@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import Script from 'next/script'
 import './globals.css'
 import { siteConfig } from '@/lib/seo'
 
@@ -51,9 +50,6 @@ const jsonLd = {
   inLanguage: 'de-DE',
 }
 
-const matomoUrl = process.env.NEXT_PUBLIC_MATOMO_URL?.replace(/\/$/, '')
-const matomoSiteId = process.env.NEXT_PUBLIC_MATOMO_SITE_ID
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -66,22 +62,6 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {matomoUrl && matomoSiteId && (
-          <Script id="matomo-analytics" strategy="afterInteractive">
-            {`
-              var _paq = window._paq = window._paq || [];
-              _paq.push(['trackPageView']);
-              _paq.push(['enableLinkTracking']);
-              (function() {
-                var u='${matomoUrl}/';
-                _paq.push(['setTrackerUrl', u+'matomo.php']);
-                _paq.push(['setSiteId', '${matomoSiteId}']);
-                var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-                g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-              })();
-            `}
-          </Script>
-        )}
         {children}
       </body>
     </html>
