@@ -68,7 +68,8 @@ This app is not purely static because the tools use server-side API routes. Depl
 ## External Providers
 
 - `ip-api.com` for IP metadata
-- `api64.ipify.org` for client-side IPv6 discovery
+- `api64.ipify.org` for primary client-side IPv6 discovery
+- `checkip.amazonaws.com` as a client-side IP discovery fallback
 - `rdap.org` as WHOIS fallback
 
 ## License
