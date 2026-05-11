@@ -338,29 +338,41 @@ function extractIps(forwardedFor: string | null, realIp: string | null) {
   let ipv4: string | null = null;
   let ipv6: string | null = null;
 
-  const candidates: string[] = [];
+  const candidates: Array<{ ip: string; source: string }> = [];
 
   if (forwardedFor) {
-    forwardedFor.split(",").forEach((part) => {
+    forwardedFor.split(",").forEach((part, index) => {
       const trimmed = part.trim();
-      if (trimmed) candidates.push(trimmed);
+      if (trimmed) {
+        candidates.push({ ip: trimmed, source: `x-forwarded-for[${index}]` });
+      }
     });
   }
   if (realIp) {
-    candidates.push(realIp.trim());
+    const trimmed = realIp.trim();
+    if (trimmed) candidates.push({ ip: trimmed, source: "x-real-ip" });
   }
 
-  for (const candidate of candidates) {
-    if (!ipv4 && isIPv4(candidate)) {
-      ipv4 = candidate;
+  const localIpChecks = candidates.flatMap((candidate) => {
+    const version: 4 | 6 | null = isIPv4(candidate.ip)
+      ? 4
+      : isIPv6(candidate.ip)
+        ? 6
+        : null;
+    return version ? [{ ...candidate, version }] : [];
+  });
+
+  for (const candidate of localIpChecks) {
+    if (!ipv4 && candidate.version === 4) {
+      ipv4 = candidate.ip;
     }
-    if (!ipv6 && isIPv6(candidate)) {
-      ipv6 = candidate;
+    if (!ipv6 && candidate.version === 6) {
+      ipv6 = candidate.ip;
     }
     if (ipv4 && ipv6) break;
   }
 
-  return { ipv4, ipv6 };
+  return { ipv4, ipv6, localIpChecks };
 }
 
 async function lookupIp(ip: string, language: string): Promise<IpApiPayload | null> {
@@ -417,7 +429,8 @@ function toResponsePayload(
   source: IpApiPayload,
   ip: string,
   ipv4: string | null,
-  ipv6: string | null
+  ipv6: string | null,
+  localIpChecks: Array<{ ip: string; source: string; version: 4 | 6 }> = [],
 ) {
   const proxyAssessment = assessProxyRisk({
     isp: source.isp || "",
@@ -437,6 +450,19 @@ function toResponsePayload(
     ipv4: responseIpv4,
     ipv6: responseIpv6,
     ipVersion: responseIpv6 && !responseIpv4 ? 6 : 4,
+    ipSources: {
+      ipv4: responseIpv4
+        ? isIPv4(resolvedQuery)
+          ? "ip-api-query"
+          : localIpChecks.find((check) => check.ip === responseIpv4)?.source || "request-header"
+        : undefined,
+      ipv6: responseIpv6
+        ? isIPv6(resolvedQuery)
+          ? "ip-api-query"
+          : localIpChecks.find((check) => check.ip === responseIpv6)?.source || "request-header"
+        : undefined,
+    },
+    localIpChecks,
     country: source.country || "",
     countryCode: source.countryCode || "",
     region: source.region || "",
@@ -507,6 +533,11 @@ export async function GET(request: Request) {
         ipv4: isIPv4(ip) ? ip : null,
         ipv6: isIPv6(ip) ? ip : null,
         ipVersion: isIPv6(ip) ? 6 : 4,
+        ipSources: {
+          ipv4: isIPv4(ip) ? "query-target" : undefined,
+          ipv6: isIPv6(ip) ? "query-target" : undefined,
+        },
+        localIpChecks: [],
         ...getUnknownResult(language),
       });
     }
@@ -521,7 +552,7 @@ export async function GET(request: Request) {
   const forwardedFor = headersList.get("x-forwarded-for");
   const realIp = headersList.get("x-real-ip");
 
-  const { ipv4, ipv6 } = extractIps(forwardedFor, realIp);
+  const { ipv4, ipv6, localIpChecks } = extractIps(forwardedFor, realIp);
 
   // Use whichever IP we found (prefer IPv4 for geolocation, it tends to be more accurate)
   const primaryIp = ipv4 || ipv6 || "";
@@ -541,11 +572,20 @@ export async function GET(request: Request) {
       ipv4,
       ipv6,
       ipVersion: ipv6 && !ipv4 ? 6 : 4,
+      ipSources: {
+        ipv4: ipv4
+          ? localIpChecks.find((check) => check.ip === ipv4)?.source || "request-header"
+          : undefined,
+        ipv6: ipv6
+          ? localIpChecks.find((check) => check.ip === ipv6)?.source || "request-header"
+          : undefined,
+      },
+      localIpChecks,
       ...getUnknownResult(language),
     });
   }
 
   return apiOk({
-    ...toResponsePayload(data, primaryIp, ipv4, ipv6),
+    ...toResponsePayload(data, primaryIp, ipv4, ipv6, localIpChecks),
   });
 }

@@ -5,6 +5,12 @@ import { InfoCard } from "@/components/info-card";
 import { getTranslation, type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
 import {
+  discoverClientIp,
+  resolveDisplayIps,
+  type ClientIpDiscoveryResult,
+  type LocalIpCheck,
+} from "@/lib/client-ip-discovery";
+import {
   Globe,
   MapPin,
   Building2,
@@ -46,6 +52,11 @@ interface IpData {
   proxyReasons?: string[];
   hosting: boolean;
   connectionType: string;
+  ipSources?: {
+    ipv4?: string;
+    ipv6?: string;
+  };
+  localIpChecks?: LocalIpCheck[];
 }
 
 interface IpDisplayProps {
@@ -81,7 +92,8 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [clientIpv6, setClientIpv6] = useState<string | null>(null);
+  const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(null);
+  const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(null);
   const [ipv6Loading, setIpv6Loading] = useState(false);
   const t = getTranslation(locale);
 
@@ -109,19 +121,39 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   useEffect(() => {
     if (targetIp) return;
 
+    let active = true;
     setIpv6Loading(true);
-    fetch("https://api64.ipify.org?format=json")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.ip && json.ip.includes(":")) {
-          setClientIpv6(json.ip);
-        }
-        setIpv6Loading(false);
-      })
-      .catch(() => {
-        setIpv6Loading(false);
-      });
+    setClientIpv6(null);
+
+    discoverClientIp({ preferredVersion: 6 }).then((result) => {
+      if (!active) return;
+      setClientIpv6(result);
+      setIpv6Loading(false);
+    });
+
+    return () => {
+      active = false;
+    };
   }, [targetIp]);
+
+  useEffect(() => {
+    if (targetIp || loading || error || !data) return;
+
+    const displayIps = resolveDisplayIps(data);
+    if (displayIps.ipv4) {
+      setClientIpv4(null);
+      return;
+    }
+
+    let active = true;
+    discoverClientIp({ preferredVersion: 4 }).then((result) => {
+      if (active) setClientIpv4(result);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [data, error, loading, targetIp]);
 
   if (loading) {
     return (
@@ -169,8 +201,9 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   }
   if (data.hosting) flags.push(t.hostingFlag);
 
-  const displayIpv4 = data.ipv4;
-  const displayIpv6 = data.ipv6 || clientIpv6;
+  const displayIps = resolveDisplayIps(data, clientIpv4, clientIpv6);
+  const displayIpv4 = displayIps.ipv4?.ip || null;
+  const displayIpv6 = displayIps.ipv6?.ip || null;
   const connectionTypeLabel =
     data.connectionType === "Festnetz" ? t.connectionDsl : data.connectionType;
 
