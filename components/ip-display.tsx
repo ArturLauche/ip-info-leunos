@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { InfoCard } from "@/components/info-card";
 import { getTranslation, type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
+import { discoverExternalIp, getIpVersion, findIpInObject } from "@/lib/network/ip-discovery";
 import {
   Globe,
   MapPin,
@@ -81,8 +82,8 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [clientIpv6, setClientIpv6] = useState<string | null>(null);
-  const [ipv6Loading, setIpv6Loading] = useState(false);
+  const [externalIp, setExternalIp] = useState<{ ip: string; source: string } | null>(null);
+  const [externalLoading, setExternalLoading] = useState(false);
   const t = getTranslation(locale);
 
   useEffect(() => {
@@ -90,9 +91,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     setError(false);
     setData(null);
 
-    const url = targetIp
-      ? `/api/ip?ip=${encodeURIComponent(targetIp)}`
-      : "/api/ip";
+    const url = targetIp ? `/api/ip?ip=${encodeURIComponent(targetIp)}` : "/api/ip";
 
     fetch(url)
       .then((res) => res.json())
@@ -109,19 +108,54 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   useEffect(() => {
     if (targetIp) return;
 
-    setIpv6Loading(true);
-    fetch("https://api64.ipify.org?format=json")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.ip && json.ip.includes(":")) {
-          setClientIpv6(json.ip);
+    setExternalLoading(true);
+    discoverExternalIp()
+      .then((result) => {
+        if (result) {
+          setExternalIp({ ip: result.ip, source: result.source });
         }
-        setIpv6Loading(false);
+        setExternalLoading(false);
       })
       .catch(() => {
-        setIpv6Loading(false);
+        setExternalLoading(false);
       });
   }, [targetIp]);
+
+  const resolvedIpv4 = useMemo(() => {
+    if (!data) return null;
+
+    // 1. Primary IPv4 result
+    if (data.ipv4) return { ip: data.ipv4, source: "primary" };
+
+    // 2. IPv4 found in other local fields
+    const localFallback = findIpInObject(data, 4);
+    if (localFallback) return { ip: localFallback, source: "local_fallback" };
+
+    // 3. External provider if it's IPv4
+    if (externalIp && getIpVersion(externalIp.ip) === 4) {
+      return { ip: externalIp.ip, source: `external_${externalIp.source}` };
+    }
+
+    return null;
+  }, [data, externalIp]);
+
+  const resolvedIpv6 = useMemo(() => {
+    if (!data) return null;
+
+    // 1. Primary IPv6 result
+    if (data.ipv6) return { ip: data.ipv6, source: "primary" };
+
+    // 2. External provider if it's IPv6 (most common for enrichment)
+    if (externalIp && getIpVersion(externalIp.ip) === 6) {
+      return { ip: externalIp.ip, source: `external_${externalIp.source}` };
+    }
+
+    // 3. IPv6 found in other local fields
+    const localFallback = findIpInObject(data, 6);
+    if (localFallback) return { ip: localFallback, source: "local_fallback" };
+
+    return null;
+  }, [data, externalIp]);
 
   if (loading) {
     return (
@@ -169,8 +203,8 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   }
   if (data.hosting) flags.push(t.hostingFlag);
 
-  const displayIpv4 = data.ipv4;
-  const displayIpv6 = data.ipv6 || clientIpv6;
+  const displayIpv4 = resolvedIpv4?.ip;
+  const displayIpv6 = resolvedIpv6?.ip;
   const connectionTypeLabel =
     data.connectionType === "Festnetz" ? t.connectionDsl : data.connectionType;
 
@@ -190,6 +224,11 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               {displayIpv4}
             </h1>
             <CopyButton text={displayIpv4} label={t.copyIpLabel} />
+            {process.env.NODE_ENV === "development" && resolvedIpv4?.source && (
+              <span className="text-[10px] text-muted-foreground opacity-50" title={`Source: ${resolvedIpv4.source}`}>
+                [{resolvedIpv4.source}]
+              </span>
+            )}
           </div>
         )}
 
@@ -202,10 +241,15 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               {displayIpv6}
             </h2>
             <CopyButton text={displayIpv6} label={t.copyIpLabel} />
+            {process.env.NODE_ENV === "development" && resolvedIpv6?.source && (
+              <span className="text-[10px] text-muted-foreground opacity-50" title={`Source: ${resolvedIpv6.source}`}>
+                [{resolvedIpv6.source}]
+              </span>
+            )}
           </div>
         )}
 
-        {!targetIp && ipv6Loading && !displayIpv6 && (
+        {!targetIp && externalLoading && !displayIpv6 && (
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               IPv6
@@ -214,7 +258,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           </div>
         )}
 
-        {!targetIp && !ipv6Loading && !displayIpv6 && displayIpv4 && (
+        {!targetIp && !externalLoading && !displayIpv6 && displayIpv4 && (
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               IPv6
