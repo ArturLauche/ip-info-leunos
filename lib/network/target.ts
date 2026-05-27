@@ -71,7 +71,7 @@ const IPV6_BLOCKED_RANGES: Array<[bigint, number, string]> = [
 ];
 
 const DEFAULT_DNS_TIMEOUT_MS = 3_000;
-const DEFAULT_MAX_RESOLVED_ADDRESSES = 16;
+const DEFAULT_MAX_RETURNED_ADDRESSES = 16;
 
 export function isIpAddress(value: string) {
   return net.isIP(stripIpv6Brackets(value)) !== 0;
@@ -244,14 +244,13 @@ export function assertPublicIpAddress(address: string) {
 
 export async function resolveTargetAddresses(
   hostname: string,
-  options: { timeoutMs?: number; maxAddresses?: number } = {},
+  options: { timeoutMs?: number } = {},
 ) {
   if (isIpAddress(hostname)) {
     return [stripIpv6Brackets(hostname)];
   }
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_DNS_TIMEOUT_MS;
-  const maxAddresses = options.maxAddresses ?? DEFAULT_MAX_RESOLVED_ADDRESSES;
 
   try {
     const records = await withTimeout(
@@ -266,7 +265,7 @@ export async function resolveTargetAddresses(
         ),
     );
 
-    return [...new Set(records.map((record) => record.address))].slice(0, maxAddresses);
+    return [...new Set(records.map((record) => record.address))];
   } catch (error) {
     if (error instanceof TargetValidationError) throw error;
 
@@ -281,17 +280,19 @@ export async function resolveTargetAddresses(
 
 export async function assertPublicTarget(input: string): Promise<PublicTarget> {
   const hostname = normalizeLookupTarget(input);
-  const addresses = await resolveTargetAddresses(hostname);
+  const resolvedAddresses = await resolveTargetAddresses(hostname);
 
-  if (!addresses.length) {
+  if (!resolvedAddresses.length) {
     throw new TargetValidationError("network_error", "The target did not resolve to any address.", 400, {
       hostname,
     });
   }
 
-  for (const address of addresses) {
+  for (const address of resolvedAddresses) {
     assertPublicIpAddress(address);
   }
+
+  const addresses = resolvedAddresses.slice(0, DEFAULT_MAX_RETURNED_ADDRESSES);
 
   return { input, hostname, addresses };
 }
