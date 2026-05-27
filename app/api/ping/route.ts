@@ -9,18 +9,16 @@ import {
   isIPv6Address,
   TargetValidationError,
 } from "@/lib/network/target";
+import {
+  DB_DEFAULT_PORTS,
+  probeDatabase,
+  type DatabaseAuth,
+  type DatabaseType,
+} from "@/lib/network/database-probes";
 
 export const runtime = "nodejs";
 
 type PingMode = "tcp" | "udp" | "eb" | "database";
-type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
-
-interface DatabaseAuth {
-  enabled?: boolean;
-  username?: string;
-  password?: string;
-  database?: string;
-}
 
 interface PingRequest {
   mode?: PingMode;
@@ -58,14 +56,6 @@ interface PingResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 3000;
-const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
-  postgres: 5432,
-  mysql: 3306,
-  redis: 6379,
-  mongodb: 27017,
-  mssql: 1433,
-  generic: 0,
-};
 
 function sanitizeHost(target: string) {
   return target.trim().replace(/^\[|\]$/g, "");
@@ -190,6 +180,8 @@ async function ebPing(displayTarget: string, connectionTarget: string, port: num
         maxContentLengthBytes: 512_000,
       });
 
+      await response.body?.cancel();
+
       return {
         ok: true,
         mode: "eb",
@@ -212,276 +204,6 @@ async function ebPing(displayTarget: string, connectionTarget: string, port: num
     latencyMs: Date.now() - started,
     message: "TCP open, but no HTTP(S) response detected on this endpoint.",
     details: { stage: "http", status: "no-response" },
-  };
-}
-
-function socketProbe(
-  target: string,
-  port: number,
-  timeoutMs: number,
-  payload: Buffer | null,
-  validate: (data: Buffer) => { ok: boolean; message: string; details?: Record<string, unknown> },
-): Promise<{ ok: boolean; latencyMs: number; message: string; details?: Record<string, unknown> }> {
-  return new Promise((resolve) => {
-    const started = Date.now();
-    const socket = new net.Socket();
-    let settled = false;
-
-    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve({ ok, latencyMs: Date.now() - started, message, details });
-    };
-
-    socket.setTimeout(timeoutMs);
-    socket.once("timeout", () => finish(false, `Probe timeout after ${timeoutMs}ms.`));
-    socket.once("error", (error) => {
-      finish(false, `Probe failed: ${error.message}`, {
-        code: (error as NodeJS.ErrnoException).code || "UNKNOWN",
-      });
-    });
-    socket.once("data", (chunk) => {
-      const validated = validate(chunk);
-      finish(validated.ok, validated.message, validated.details);
-    });
-
-    socket.connect(port, target, () => {
-      if (payload) socket.write(payload);
-    });
-  });
-}
-
-async function postgresProbe(target: string, port: number, timeoutMs: number) {
-  const sslRequest = Buffer.alloc(8);
-  sslRequest.writeInt32BE(8, 0);
-  sslRequest.writeInt32BE(80877103, 4);
-
-  return socketProbe(target, port, timeoutMs, sslRequest, (data) => {
-    const responseCode = String.fromCharCode(data[0] || 0);
-    if (responseCode === "S" || responseCode === "N") {
-      return {
-        ok: true,
-        message: "PostgreSQL handshake response received.",
-        details: { protocolSignal: responseCode === "S" ? "ssl-accepted" : "ssl-rejected" },
-      };
-    }
-
-    return {
-      ok: false,
-      message: "Unexpected PostgreSQL handshake response.",
-      details: { firstByte: data[0] ?? null },
-    };
-  });
-}
-
-async function mysqlProbe(target: string, port: number, timeoutMs: number) {
-  return socketProbe(target, port, timeoutMs, null, (data) => {
-    const protocolVersion = data[4];
-    if (typeof protocolVersion === "number" && protocolVersion > 0) {
-      return {
-        ok: true,
-        message: "MySQL handshake packet received.",
-        details: { protocolVersion },
-      };
-    }
-
-    return {
-      ok: false,
-      message: "Unexpected MySQL handshake payload.",
-      details: { receivedBytes: data.length },
-    };
-  });
-}
-
-async function redisProbe(target: string, port: number, timeoutMs: number) {
-  return socketProbe(target, port, timeoutMs, Buffer.from("*1\r\n$4\r\nPING\r\n"), (data) => {
-    const text = data.toString("utf8").trim();
-    if (text.startsWith("+PONG") || text.startsWith("-NOAUTH") || text.startsWith("-ERR")) {
-      return {
-        ok: true,
-        message: "Redis command response received.",
-        details: { preview: text.slice(0, 80) },
-      };
-    }
-
-    return {
-      ok: false,
-      message: "Unexpected Redis response.",
-      details: { preview: text.slice(0, 80) },
-    };
-  });
-}
-
-function buildRedisAuthCommand(username: string, password: string) {
-  if (username) {
-    return `*3\r\n$4\r\nAUTH\r\n$${username.length}\r\n${username}\r\n$${password.length}\r\n${password}\r\n`;
-  }
-
-  return `*2\r\n$4\r\nAUTH\r\n$${password.length}\r\n${password}\r\n`;
-}
-
-async function redisAuthProbe(target: string, port: number, timeoutMs: number, auth: DatabaseAuth) {
-  return new Promise<{ ok: boolean; message: string; details?: Record<string, unknown> }>((resolve) => {
-    const socket = new net.Socket();
-    const username = auth.username || "";
-    const password = auth.password || "";
-    let settled = false;
-    let buffer = "";
-
-    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve({ ok, message, details });
-    };
-
-    socket.setTimeout(timeoutMs);
-    socket.once("timeout", () => finish(false, `Redis auth probe timeout after ${timeoutMs}ms.`));
-    socket.once("error", (error) => finish(false, `Redis auth probe failed: ${error.message}`));
-
-    socket.on("data", (chunk) => {
-      buffer += chunk.toString("utf8");
-
-      if (buffer.includes("\r\n")) {
-        if (buffer.startsWith("+OK")) {
-          socket.write("*1\r\n$4\r\nPING\r\n");
-          buffer = "";
-          return;
-        }
-
-        if (buffer.startsWith("+PONG")) {
-          finish(true, "Authenticated Redis connection succeeded.", { stage: "auth", preview: "+PONG" });
-          return;
-        }
-
-        if (buffer.startsWith("-")) {
-          finish(false, `Redis auth failed: ${buffer.trim()}`, { stage: "auth" });
-        }
-      }
-    });
-
-    socket.connect(port, target, () => {
-      if (!password) {
-        finish(false, "Password is required for Redis authenticated check.", { stage: "auth" });
-        return;
-      }
-      socket.write(buildRedisAuthCommand(username, password));
-    });
-  });
-}
-
-async function databaseAuthPing(
-  target: string,
-  databaseType: DatabaseType,
-  port: number,
-  timeoutMs: number,
-  auth: DatabaseAuth,
-): Promise<PingResult> {
-  const started = Date.now();
-
-  if (databaseType === "redis") {
-    const probe = await redisAuthProbe(target, port, timeoutMs, auth);
-    return {
-      ok: probe.ok,
-      mode: "database",
-      target,
-      port,
-      latencyMs: Date.now() - started,
-      message: probe.message,
-      details: { databaseType, ...(probe.details || {}) },
-    };
-  }
-
-  return {
-    ok: false,
-    mode: "database",
-    target,
-    port,
-    latencyMs: Date.now() - started,
-    message:
-      "Authenticated checks are currently implemented for Redis only in this environment. Use unauthenticated protocol check for other database types.",
-    details: { databaseType, stage: "auth" },
-  };
-}
-
-async function databasePing(
-  target: string,
-  databaseType: DatabaseType,
-  port: number,
-  timeoutMs: number,
-  auth: DatabaseAuth,
-): Promise<PingResult> {
-  if (auth.enabled) {
-    return databaseAuthPing(target, databaseType, port, timeoutMs, auth);
-  }
-
-  const started = Date.now();
-  const base = await tcpPing(target, port, timeoutMs);
-
-  if (!base.ok) {
-    return {
-      ...base,
-      mode: "database",
-      message: `${databaseType} connectivity failed: ${base.message}`,
-      details: { databaseType, stage: "tcp", ...(base.details || {}) },
-    };
-  }
-
-  if (databaseType === "postgres") {
-    const probe = await postgresProbe(target, port, timeoutMs);
-    return {
-      ok: probe.ok,
-      mode: "database",
-      target,
-      port,
-      latencyMs: Date.now() - started,
-      message: probe.ok
-        ? "PostgreSQL server responded to a pre-auth handshake probe."
-        : `PostgreSQL probe failed: ${probe.message}`,
-      details: { databaseType, stage: "protocol", ...(probe.details || {}) },
-    };
-  }
-
-  if (databaseType === "mysql") {
-    const probe = await mysqlProbe(target, port, timeoutMs);
-    return {
-      ok: probe.ok,
-      mode: "database",
-      target,
-      port,
-      latencyMs: Date.now() - started,
-      message: probe.ok
-        ? "MySQL server sent a pre-auth handshake packet."
-        : `MySQL probe failed: ${probe.message}`,
-      details: { databaseType, stage: "protocol", ...(probe.details || {}) },
-    };
-  }
-
-  if (databaseType === "redis") {
-    const probe = await redisProbe(target, port, timeoutMs);
-    return {
-      ok: probe.ok,
-      mode: "database",
-      target,
-      port,
-      latencyMs: Date.now() - started,
-      message: probe.ok
-        ? "Redis responded to a PING probe (no authentication credentials used)."
-        : `Redis probe failed: ${probe.message}`,
-      details: { databaseType, stage: "protocol", ...(probe.details || {}) },
-    };
-  }
-
-  return {
-    ...base,
-    mode: "database",
-    message: `${databaseType} TCP port is reachable. Protocol-level pre-auth probe is not implemented for this type.`,
-    details: {
-      databaseType,
-      stage: "tcp",
-      note: "This confirms network reachability to the port, not authentication or full DB readiness.",
-    },
   };
 }
 
@@ -538,7 +260,18 @@ export async function POST(request: Request) {
         ? { ...(await udpPing(connectionTarget, port, timeoutMs)), target }
         : mode === "eb"
           ? await ebPing(target, connectionTarget, port, timeoutMs)
-          : { ...(await databasePing(connectionTarget, databaseType, port, timeoutMs, payload.auth || {})), target };
+          : {
+              ...(await probeDatabase({
+                target: connectionTarget,
+                databaseType,
+                port,
+                timeoutMs,
+                auth: payload.auth || {},
+              })),
+              mode: "database" as const,
+              target,
+              port,
+            };
 
   return apiOk(result);
 }

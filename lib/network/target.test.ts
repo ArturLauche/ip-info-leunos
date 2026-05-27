@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
+import dns from "node:dns/promises";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertPublicIpAddress,
   assertPublicTarget,
   normalizeLookupTarget,
+  normalizeWebUrl,
   TargetValidationError,
 } from "./target";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("network target validation", () => {
   it("normalizes URLs, domains, IPv4, and bracketed IPv6", () => {
@@ -12,6 +18,12 @@ describe("network target validation", () => {
     expect(normalizeLookupTarget("example.com/path")).toBe("example.com");
     expect(normalizeLookupTarget("1.1.1.1")).toBe("1.1.1.1");
     expect(normalizeLookupTarget("[2606:4700:4700::1111]")).toBe("2606:4700:4700::1111");
+    expect(normalizeLookupTarget("https://Münich.example/path")).toBe("xn--mnich-kva.example");
+  });
+
+  it("rejects unsupported URL schemes and credentials", () => {
+    expect(() => normalizeWebUrl("ftp://example.com")).toThrow(TargetValidationError);
+    expect(() => normalizeWebUrl("https://user:pass@example.com")).toThrow(TargetValidationError);
   });
 
   it("blocks local and internal hostnames", async () => {
@@ -39,9 +51,41 @@ describe("network target validation", () => {
   });
 
   it("blocks private and reserved IPv6 ranges", () => {
-    for (const address of ["::1", "fc00::1", "fe80::1", "2001:db8::1"]) {
+    for (const address of ["::1", "fc00::1", "fe80::1", "2001:db8::1", "2001::1"]) {
       expect(() => assertPublicIpAddress(address), address).toThrow(TargetValidationError);
     }
+  });
+
+  it("blocks private IPv4 ranges inside IPv4-mapped IPv6 addresses", () => {
+    for (const address of ["::ffff:192.168.1.10", "0:0:0:0:0:ffff:0a00:0001"]) {
+      expect(() => assertPublicIpAddress(address), address).toThrow(TargetValidationError);
+    }
+  });
+
+  it("validates every resolved address before returning a capped display list", async () => {
+    vi.spyOn(dns, "lookup").mockResolvedValueOnce([
+      ...Array.from({ length: 17 }, (_, index) => ({
+        address: `8.8.8.${index + 1}`,
+        family: 4,
+      })),
+      { address: "127.0.0.1", family: 4 },
+    ] as never);
+
+    await expect(assertPublicTarget("many.example")).rejects.toMatchObject({
+      code: "target_blocked",
+    } satisfies Partial<TargetValidationError>);
+
+    vi.spyOn(dns, "lookup").mockResolvedValueOnce(
+      Array.from({ length: 20 }, (_, index) => ({
+        address: `8.8.4.${index + 1}`,
+        family: 4,
+      })) as never,
+    );
+
+    await expect(assertPublicTarget("many.example")).resolves.toMatchObject({
+      hostname: "many.example",
+      addresses: Array.from({ length: 16 }, (_, index) => `8.8.4.${index + 1}`),
+    });
   });
 
   it("allows known public resolver addresses", async () => {

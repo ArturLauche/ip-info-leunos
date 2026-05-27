@@ -1,5 +1,6 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import { domainToASCII } from "node:url";
 
 export type TargetErrorCode = "invalid_target" | "target_blocked" | "timeout" | "network_error";
 
@@ -46,6 +47,7 @@ const IPV4_BLOCKED_RANGES: Array<[number, number, string]> = [
   [ipv4ToNumber("172.16.0.0"), 12, "private"],
   [ipv4ToNumber("192.0.0.0"), 24, "ietf-protocol-assignment"],
   [ipv4ToNumber("192.0.2.0"), 24, "documentation"],
+  [ipv4ToNumber("192.88.99.0"), 24, "deprecated-6to4-relay"],
   [ipv4ToNumber("192.168.0.0"), 16, "private"],
   [ipv4ToNumber("198.18.0.0"), 15, "benchmark"],
   [ipv4ToNumber("198.51.100.0"), 24, "documentation"],
@@ -60,12 +62,16 @@ const IPV6_BLOCKED_RANGES: Array<[bigint, number, string]> = [
   [ipv6ToBigInt("64:ff9b::"), 96, "translation-prefix"],
   [ipv6ToBigInt("100::"), 64, "discard-prefix"],
   [ipv6ToBigInt("2001:2::"), 48, "benchmark"],
+  [ipv6ToBigInt("2001::"), 32, "teredo"],
   [ipv6ToBigInt("2001:db8::"), 32, "documentation"],
   [ipv6ToBigInt("2002::"), 16, "6to4"],
   [ipv6ToBigInt("fc00::"), 7, "unique-local"],
   [ipv6ToBigInt("fe80::"), 10, "link-local"],
   [ipv6ToBigInt("ff00::"), 8, "multicast"],
 ];
+
+const DEFAULT_DNS_TIMEOUT_MS = 3_000;
+const DEFAULT_MAX_RETURNED_ADDRESSES = 16;
 
 export function isIpAddress(value: string) {
   return net.isIP(stripIpv6Brackets(value)) !== 0;
@@ -137,30 +143,26 @@ export function normalizeWebUrl(input: string, defaultProtocol: "https:" | "http
     throw new TargetValidationError("invalid_target", "Please provide a valid URL or domain.");
   }
 
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    throw new TargetValidationError("invalid_target", "Only HTTP and HTTPS targets are supported.");
-  }
-
-  if (parsed.username || parsed.password) {
-    throw new TargetValidationError("invalid_target", "Credentials are not allowed in URLs.");
-  }
-
-  parsed.hash = "";
-  normalizeHostname(parsed.hostname);
-  return parsed;
+  return normalizeParsedWebUrl(parsed);
 }
 
 export function normalizeHostname(hostname: string) {
-  const normalized = stripIpv6Brackets(hostname)
+  const normalizedInput = stripIpv6Brackets(hostname)
     .trim()
     .replace(/\.$/, "")
     .toLowerCase();
 
-  if (!normalized || normalized.length > 253) {
+  if (!normalizedInput || normalizedInput.length > 253) {
     throw new TargetValidationError("invalid_target", "Please provide a valid host or IP.");
   }
 
-  if (isIpAddress(normalized)) return normalized;
+  if (isIpAddress(normalizedInput)) return normalizedInput;
+
+  const normalized = domainToASCII(normalizedInput).toLowerCase();
+
+  if (!normalized || normalized.length > 253) {
+    throw new TargetValidationError("invalid_target", "Please provide a valid host or IP.");
+  }
 
   if (BLOCKED_HOSTNAMES.has(normalized) || BLOCKED_SUFFIXES.some((suffix) => normalized.endsWith(suffix))) {
     throw new TargetValidationError(
@@ -182,6 +184,23 @@ export function normalizeHostname(hostname: string) {
   }
 
   return normalized;
+}
+
+function normalizeParsedWebUrl(parsed: URL) {
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new TargetValidationError("invalid_target", "Only HTTP and HTTPS targets are supported.");
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new TargetValidationError("invalid_target", "Credentials are not allowed in URLs.");
+  }
+
+  parsed.hash = "";
+  const hostname = normalizeHostname(parsed.hostname);
+  if (!isIPv6Address(hostname)) {
+    parsed.hostname = hostname;
+  }
+  return parsed;
 }
 
 export function assertPublicIpAddress(address: string) {
@@ -223,15 +242,33 @@ export function assertPublicIpAddress(address: string) {
   throw new TargetValidationError("invalid_target", "Please provide a valid IP address.");
 }
 
-export async function resolveTargetAddresses(hostname: string) {
+export async function resolveTargetAddresses(
+  hostname: string,
+  options: { timeoutMs?: number } = {},
+) {
   if (isIpAddress(hostname)) {
     return [stripIpv6Brackets(hostname)];
   }
 
+  const timeoutMs = options.timeoutMs ?? DEFAULT_DNS_TIMEOUT_MS;
+
   try {
-    const records = await dns.lookup(hostname, { all: true, verbatim: true });
+    const records = await withTimeout(
+      dns.lookup(hostname, { all: true, verbatim: true }),
+      timeoutMs,
+      () =>
+        new TargetValidationError(
+          "timeout",
+          "The target DNS lookup timed out.",
+          408,
+          { hostname, timeoutMs },
+        ),
+    );
+
     return [...new Set(records.map((record) => record.address))];
   } catch (error) {
+    if (error instanceof TargetValidationError) throw error;
+
     throw new TargetValidationError(
       "network_error",
       "The target could not be resolved.",
@@ -243,29 +280,44 @@ export async function resolveTargetAddresses(hostname: string) {
 
 export async function assertPublicTarget(input: string): Promise<PublicTarget> {
   const hostname = normalizeLookupTarget(input);
-  const addresses = await resolveTargetAddresses(hostname);
+  const resolvedAddresses = await resolveTargetAddresses(hostname);
 
-  if (!addresses.length) {
+  if (!resolvedAddresses.length) {
     throw new TargetValidationError("network_error", "The target did not resolve to any address.", 400, {
       hostname,
     });
   }
 
-  for (const address of addresses) {
+  for (const address of resolvedAddresses) {
     assertPublicIpAddress(address);
   }
+
+  const addresses = resolvedAddresses.slice(0, DEFAULT_MAX_RETURNED_ADDRESSES);
 
   return { input, hostname, addresses };
 }
 
 export async function assertPublicUrl(input: string | URL): Promise<PublicUrl> {
-  const parsed = typeof input === "string" ? normalizeWebUrl(input) : input;
+  const parsed = typeof input === "string" ? normalizeWebUrl(input) : normalizeParsedWebUrl(new URL(input.toString()));
   const target = await assertPublicTarget(parsed.hostname);
 
   return {
     ...target,
     url: parsed.toString(),
   };
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, createError: () => TargetValidationError) {
+  let timer: NodeJS.Timeout | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(createError()), timeoutMs);
+    timer.unref?.();
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 export async function fetchPublicUrl(
@@ -354,13 +406,17 @@ function blockedIPv6Range(address: string) {
 }
 
 function getMappedIPv4(address: string) {
-  const normalized = address.toLowerCase();
-  if (!normalized.startsWith("::ffff:")) return null;
+  const value = ipv6ToBigInt(address);
+  if ((value >> BigInt(32)) !== BigInt(0xffff)) return null;
 
-  const tail = normalized.slice("::ffff:".length);
-  if (net.isIP(tail) === 4) return tail;
+  const mapped = Number(value & BigInt(0xffffffff));
 
-  return null;
+  return [
+    (mapped >>> 24) & 0xff,
+    (mapped >>> 16) & 0xff,
+    (mapped >>> 8) & 0xff,
+    mapped & 0xff,
+  ].join(".");
 }
 
 function ipv4ToNumber(address: string) {
