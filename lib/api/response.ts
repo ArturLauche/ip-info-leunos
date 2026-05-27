@@ -26,8 +26,21 @@ export type ApiFailure = {
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 
+function withDefaultHeaders(init?: ResponseInit): ResponseInit {
+  const headers = new Headers(init?.headers);
+
+  if (!headers.has("cache-control")) {
+    headers.set("cache-control", "no-store");
+  }
+
+  return {
+    ...init,
+    headers,
+  };
+}
+
 export function apiOk<T>(data: T, init?: ResponseInit) {
-  return NextResponse.json<ApiSuccess<T>>({ ok: true, data }, init);
+  return NextResponse.json<ApiSuccess<T>>({ ok: true, data }, withDefaultHeaders(init));
 }
 
 export function apiError(
@@ -45,7 +58,7 @@ export function apiError(
         ...(details === undefined ? {} : { details }),
       },
     },
-    { status },
+    withDefaultHeaders({ status }),
   );
 }
 

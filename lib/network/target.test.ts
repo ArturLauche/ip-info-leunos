@@ -3,6 +3,7 @@ import {
   assertPublicIpAddress,
   assertPublicTarget,
   normalizeLookupTarget,
+  normalizeWebUrl,
   TargetValidationError,
 } from "./target";
 
@@ -12,6 +13,12 @@ describe("network target validation", () => {
     expect(normalizeLookupTarget("example.com/path")).toBe("example.com");
     expect(normalizeLookupTarget("1.1.1.1")).toBe("1.1.1.1");
     expect(normalizeLookupTarget("[2606:4700:4700::1111]")).toBe("2606:4700:4700::1111");
+    expect(normalizeLookupTarget("https://Münich.example/path")).toBe("xn--mnich-kva.example");
+  });
+
+  it("rejects unsupported URL schemes and credentials", () => {
+    expect(() => normalizeWebUrl("ftp://example.com")).toThrow(TargetValidationError);
+    expect(() => normalizeWebUrl("https://user:pass@example.com")).toThrow(TargetValidationError);
   });
 
   it("blocks local and internal hostnames", async () => {
@@ -39,7 +46,13 @@ describe("network target validation", () => {
   });
 
   it("blocks private and reserved IPv6 ranges", () => {
-    for (const address of ["::1", "fc00::1", "fe80::1", "2001:db8::1"]) {
+    for (const address of ["::1", "fc00::1", "fe80::1", "2001:db8::1", "2001::1"]) {
+      expect(() => assertPublicIpAddress(address), address).toThrow(TargetValidationError);
+    }
+  });
+
+  it("blocks private IPv4 ranges inside IPv4-mapped IPv6 addresses", () => {
+    for (const address of ["::ffff:192.168.1.10", "0:0:0:0:0:ffff:0a00:0001"]) {
       expect(() => assertPublicIpAddress(address), address).toThrow(TargetValidationError);
     }
   });

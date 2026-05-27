@@ -351,6 +351,7 @@ export async function GET(request: Request) {
 
     responseHeaders = response.headers;
     status = response.status;
+    await response.body?.cancel();
   } catch (error) {
     if (error instanceof TargetValidationError) {
       return apiError(error.code, error.message, error.status, error.details);
