@@ -30,6 +30,9 @@ type SocketValidation = {
   message: string;
   details?: Record<string, unknown>;
 };
+type SocketValidationResult = SocketValidation | null;
+
+const MAX_SOCKET_PROBE_RESPONSE_BYTES = 64_000;
 
 export async function probeDatabase({
   target,
@@ -163,12 +166,14 @@ function socketProbe(
   port: number,
   timeoutMs: number,
   payload: Buffer | null,
-  validate: (data: Buffer) => SocketValidation,
+  validate: (data: Buffer) => SocketValidationResult,
 ): Promise<DatabaseProbeResult> {
   return new Promise((resolve) => {
     const started = Date.now();
     const socket = new net.Socket();
     let settled = false;
+    const chunks: Buffer[] = [];
+    let receivedBytes = 0;
 
     const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
       if (settled) return;
@@ -184,9 +189,27 @@ function socketProbe(
         code: (error as NodeJS.ErrnoException).code || "UNKNOWN",
       });
     });
-    socket.once("close", () => finish(false, "Probe connection closed before a response was received."));
-    socket.once("data", (chunk) => {
-      const validated = validate(chunk);
+    socket.once("close", () => {
+      finish(false, "Probe connection closed before a complete response was received.", {
+        receivedBytes,
+      });
+    });
+    socket.on("data", (chunk) => {
+      receivedBytes += chunk.length;
+
+      if (receivedBytes > MAX_SOCKET_PROBE_RESPONSE_BYTES) {
+        finish(false, "Probe response exceeded the public response size limit.", {
+          maxBytes: MAX_SOCKET_PROBE_RESPONSE_BYTES,
+          receivedBytes,
+        });
+        return;
+      }
+
+      chunks.push(chunk);
+      const buffered = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, receivedBytes);
+      const validated = validate(buffered);
+      if (!validated) return;
+
       finish(validated.ok, validated.message, validated.details);
     });
 
@@ -202,6 +225,8 @@ async function postgresProbe(target: string, port: number, timeoutMs: number) {
   sslRequest.writeInt32BE(80877103, 4);
 
   return socketProbe(target, port, timeoutMs, sslRequest, (data) => {
+    if (data.length < 1) return null;
+
     const responseCode = String.fromCharCode(data[0] || 0);
     if (responseCode === "S" || responseCode === "N") {
       return {
@@ -221,6 +246,8 @@ async function postgresProbe(target: string, port: number, timeoutMs: number) {
 
 async function mysqlProbe(target: string, port: number, timeoutMs: number) {
   return socketProbe(target, port, timeoutMs, null, (data) => {
+    if (data.length < 5) return null;
+
     const protocolVersion = data[4];
     if (typeof protocolVersion === "number" && protocolVersion > 0) {
       return {
@@ -241,6 +268,8 @@ async function mysqlProbe(target: string, port: number, timeoutMs: number) {
 async function redisProbe(target: string, port: number, timeoutMs: number) {
   return socketProbe(target, port, timeoutMs, Buffer.from("*1\r\n$4\r\nPING\r\n"), (data) => {
     const text = data.toString("utf8").trim();
+    if (!text.includes("\r\n")) return null;
+
     if (text.startsWith("+PONG") || text.startsWith("-NOAUTH") || text.startsWith("-ERR")) {
       return {
         ok: true,
@@ -259,18 +288,22 @@ async function redisProbe(target: string, port: number, timeoutMs: number) {
 
 async function mongodbProbe(target: string, port: number, timeoutMs: number) {
   return socketProbe(target, port, timeoutMs, buildMongoHelloMessage(), (data) => {
-    if (data.length < 16) {
+    if (data.length < 16) return null;
+
+    const messageLength = data.readInt32LE(0);
+    if (messageLength < 16) {
       return {
         ok: false,
-        message: "MongoDB response was shorter than a wire message header.",
-        details: { receivedBytes: data.length },
+        message: "MongoDB response declared an invalid wire message length.",
+        details: { messageLength },
       };
     }
 
-    const messageLength = data.readInt32LE(0);
+    if (data.length < messageLength) return null;
+
     const opCode = data.readInt32LE(12);
 
-    if (messageLength >= 16 && [1, 2013].includes(opCode)) {
+    if ([1, 2013].includes(opCode)) {
       return {
         ok: true,
         message: "MongoDB wire protocol response received.",
@@ -288,16 +321,19 @@ async function mongodbProbe(target: string, port: number, timeoutMs: number) {
 
 async function mssqlProbe(target: string, port: number, timeoutMs: number) {
   return socketProbe(target, port, timeoutMs, buildMssqlPreloginPacket(), (data) => {
-    if (data.length < 8) {
-      return {
-        ok: false,
-        message: "TDS response was shorter than a packet header.",
-        details: { receivedBytes: data.length },
-      };
-    }
+    if (data.length < 8) return null;
 
     const packetType = data[0];
     const packetLength = data.readUInt16BE(2);
+    if (packetLength < 8) {
+      return {
+        ok: false,
+        message: "TDS response declared an invalid packet length.",
+        details: { packetLength },
+      };
+    }
+
+    if (data.length < packetLength) return null;
 
     if ((packetType === 0x04 || packetType === 0x12) && packetLength >= 8) {
       return {
