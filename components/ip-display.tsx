@@ -26,6 +26,7 @@ import {
   Server,
   Network,
 } from "lucide-react";
+import Link from "next/link";
 
 interface IpData {
   ipv4: string | null;
@@ -349,12 +350,33 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           value={data.org}
           detail={t.organizationDetail}
         />
-        <InfoCard
-          icon={Hash}
-          label={t.asNumber}
-          value={data.as}
-          detail={data.asname || t.asFallbackDetail}
-        />
+        <div className="group flex flex-col gap-2.5 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/15">
+              <Hash className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {t.asNumber}
+            </span>
+          </div>
+          {(() => {
+            const asnMatch = data.as.match(/^(AS\d+)/i);
+            if (asnMatch) {
+              return (
+                <Link
+                  href={`/asn?asn=${encodeURIComponent(asnMatch[1])}`}
+                  className="truncate text-lg font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
+                >
+                  {data.as}
+                </Link>
+              );
+            }
+            return <p className="truncate text-lg font-semibold text-foreground">{data.as}</p>;
+          })()}
+          <p className="truncate text-xs text-muted-foreground">
+            {data.asname || t.asFallbackDetail}
+          </p>
+        </div>
         <InfoCard
           icon={Map}
           label={t.coordinates}

@@ -111,6 +111,11 @@ export type Translation = {
   unknown: string;
   connectionDsl: string;
   detected: string;
+  asnTitle: string;
+  asnSubtitle: string;
+  asnSearchPlaceholder: string;
+  asnSearchButton: string;
+  asnLookupInProgress: string;
 };
 
 export const translations: Record<Locale, Translation> = {
@@ -157,6 +162,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "Unbekannt",
     connectionDsl: "Festnetz (DSL)",
     detected: "Erkannt",
+    asnTitle: "ASN-Abfrage",
+    asnSubtitle: "Autonome Systemnummer mit Routing-, Peering- und IX-Daten anzeigen",
+    asnSearchPlaceholder: "AS-Nummer eingeben (z.B. AS8881 oder 8881)...",
+    asnSearchButton: "ASN suchen",
+    asnLookupInProgress: "ASN wird gesucht...",
   },
   en: {
     homeTitle: "IP Info",
@@ -201,6 +211,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "Unknown",
     connectionDsl: "Wired (DSL)",
     detected: "Detected",
+    asnTitle: "ASN Lookup",
+    asnSubtitle: "View autonomous system number details with routing, peering, and IX data",
+    asnSearchPlaceholder: "Enter ASN (e.g. AS8881 or 8881)...",
+    asnSearchButton: "Lookup ASN",
+    asnLookupInProgress: "Looking up ASN...",
   },
   es: {
     homeTitle: "Información IP",
@@ -245,6 +260,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "Desconocido",
     connectionDsl: "Fijo (DSL)",
     detected: "Detectado",
+    asnTitle: "Consulta ASN",
+    asnSubtitle: "Ver detalles del número de sistema autónomo con datos de routing, peering e IX",
+    asnSearchPlaceholder: "Ingresa ASN (ej. AS8881 o 8881)...",
+    asnSearchButton: "Buscar ASN",
+    asnLookupInProgress: "Buscando ASN...",
   },
   fr: {
     homeTitle: "Infos IP",
@@ -289,6 +309,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "Inconnu",
     connectionDsl: "Filaire (DSL)",
     detected: "Détecté",
+    asnTitle: "Recherche ASN",
+    asnSubtitle: "Afficher les détails du numéro de système autonome avec données de routage, peering et IX",
+    asnSearchPlaceholder: "Entrez l'ASN (ex. AS8881 ou 8881)...",
+    asnSearchButton: "Rechercher ASN",
+    asnLookupInProgress: "Recherche de l'ASN...",
   },
   "pt-BR": {
     homeTitle: "Informações de IP",
@@ -333,6 +358,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "Desconhecido",
     connectionDsl: "Fixa (DSL)",
     detected: "Detectado",
+    asnTitle: "Consulta ASN",
+    asnSubtitle: "Ver detalhes do número de sistema autônomo com dados de roteamento, peering e IX",
+    asnSearchPlaceholder: "Digite o ASN (ex. AS8881 ou 8881)...",
+    asnSearchButton: "Buscar ASN",
+    asnLookupInProgress: "Buscando ASN...",
   },
   ja: {
     homeTitle: "IP情報",
@@ -377,6 +407,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "不明",
     connectionDsl: "固定回線 (DSL)",
     detected: "検出済み",
+    asnTitle: "ASN検索",
+    asnSubtitle: "ルーティング、ピアリング、IXデータを含む自律システム番号の詳細を表示",
+    asnSearchPlaceholder: "ASNを入力（例：AS8881または8881）...",
+    asnSearchButton: "ASN検索",
+    asnLookupInProgress: "ASNを検索中...",
   },
   ru: {
     homeTitle: "Информация об IP",
@@ -421,6 +456,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "Неизвестно",
     connectionDsl: "Проводной (DSL)",
     detected: "Определено",
+    asnTitle: "Поиск ASN",
+    asnSubtitle: "Просмотр номера автономной системы с данными маршрутизации, пиринга и IX",
+    asnSearchPlaceholder: "Введите ASN (например AS8881 или 8881)...",
+    asnSearchButton: "Найти ASN",
+    asnLookupInProgress: "Поиск ASN...",
   },
   "zh-CN": {
     homeTitle: "IP 信息",
@@ -465,6 +505,11 @@ export const translations: Record<Locale, Translation> = {
     unknown: "未知",
     connectionDsl: "有线 (DSL)",
     detected: "已检测",
+    asnTitle: "ASN 查询",
+    asnSubtitle: "查看自治系统编号详情，包含路由、对等互联和 IX 数据",
+    asnSearchPlaceholder: "输入 ASN（例如 AS8881 或 8881）...",
+    asnSearchButton: "查询 ASN",
+    asnLookupInProgress: "正在查询 ASN...",
   },
 };
 

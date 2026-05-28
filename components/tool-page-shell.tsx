@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   Globe,
+  Hash,
   Network,
   Radar,
   Search,
@@ -14,7 +15,7 @@ import type { Locale } from "@/lib/i18n";
 import { getTranslation } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
-type ToolKey = "home" | "check" | "ping" | "dns" | "whois" | "cdn" | "runtime-dns";
+type ToolKey = "home" | "check" | "ping" | "dns" | "whois" | "cdn" | "runtime-dns" | "asn";
 
 const primaryLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
   { key: "home", href: "/", icon: Globe },
@@ -26,6 +27,7 @@ const diagnosticLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> =
   { key: "dns", href: "/dns", icon: Network },
   { key: "whois", href: "/whois", icon: Activity },
   { key: "cdn", href: "/cdn", icon: ShieldCheck },
+  { key: "asn", href: "/asn", icon: Hash },
   { key: "runtime-dns", href: "/client-dns", icon: Shield },
 ];
 
@@ -40,6 +42,7 @@ function labelFor(key: ToolKey, locale: Locale) {
     dns: toolT.dnsTabLabel,
     whois: toolT.whoisTabLabel,
     cdn: toolT.cdnTabLabel,
+    asn: toolT.asnTabLabel,
     "runtime-dns": toolT.runtimeDnsTabLabel,
   };
 
