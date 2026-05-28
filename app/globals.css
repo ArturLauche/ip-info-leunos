@@ -105,4 +105,63 @@
   .surface-panel {
     @apply rounded-2xl border border-border/80 bg-card/75 p-5 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_8%,transparent),0_20px_45px_-25px_color-mix(in_oklab,var(--background)_35%,black)] backdrop-blur md:p-8;
   }
+
+  /* ── Navigation bar ── */
+  .nav-bar {
+    @apply flex w-full flex-wrap items-center justify-center gap-2 rounded-2xl border border-border/70 bg-card/60 p-2 backdrop-blur-lg;
+  }
+
+  /* ── Primary nav links (featured tools) ── */
+  .nav-primary-link {
+    @apply relative inline-flex h-10 items-center gap-2.5 rounded-xl px-4 text-sm font-semibold tracking-tight transition-all duration-200;
+  }
+
+  .nav-primary-icon-wrap {
+    @apply flex h-6 w-6 items-center justify-center rounded-lg;
+    background: color-mix(in oklab, var(--primary) 16%, transparent);
+  }
+
+  .nav-primary-active {
+    @apply text-primary-foreground;
+    background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 80%, oklch(0.5 0.14 230)));
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--primary) 40%, transparent),
+      0 2px 12px -2px color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+
+  .nav-primary-active .nav-primary-icon-wrap {
+    background: color-mix(in oklab, var(--primary-foreground) 18%, transparent);
+  }
+
+  .nav-primary-idle {
+    @apply text-foreground/85;
+    background: color-mix(in oklab, var(--primary) 8%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary) 14%, transparent);
+  }
+
+  .nav-primary-idle:hover {
+    background: color-mix(in oklab, var(--primary) 16%, transparent);
+    border-color: color-mix(in oklab, var(--primary) 28%, transparent);
+    @apply text-foreground;
+  }
+
+  /* ── Diagnostic nav links (compact pills) ── */
+  .nav-diag-link {
+    @apply inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all duration-150;
+  }
+
+  .nav-diag-active {
+    @apply text-primary-foreground;
+    background: var(--primary);
+    box-shadow: 0 1px 6px -1px color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+
+  .nav-diag-idle {
+    @apply text-muted-foreground;
+  }
+
+  .nav-diag-idle:hover {
+    @apply text-foreground;
+    background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  }
 }
