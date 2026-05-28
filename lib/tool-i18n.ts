@@ -113,6 +113,63 @@ type ToolTranslation = {
   clientDnsGuidancePrefer: string;
   clientDnsGuidanceNetworks: string;
   clientDnsRescan: string;
+  asnTabLabel: string;
+  asnTitle: string;
+  asnSubtitle: string;
+  asnPlaceholder: string;
+  asnLookupButton: string;
+  asnLoading: string;
+  asnInvalidInput: string;
+  asnNetworkError: string;
+  asnNotFound: string;
+  asnNotAvailable: string;
+  asnIdentityTitle: string;
+  asnNameLabel: string;
+  asnCountryLabel: string;
+  asnRegistryLabel: string;
+  asnAllocatedLabel: string;
+  asnDomainLabel: string;
+  asnTypeLabel: string;
+  asnNumIpsLabel: string;
+  asnRpkiLabel: string;
+  asnPrefixesTitle: string;
+  asnPrefixes4Label: string;
+  asnPrefixes6Label: string;
+  asnNoPrefixes: string;
+  asnRelationsTitle: string;
+  asnPeersLabel: string;
+  asnUpstreamsLabel: string;
+  asnDownstreamsLabel: string;
+  asnNoRelations: string;
+  asnPeeringTitle: string;
+  asnAkaLabel: string;
+  asnWebsiteLabel: string;
+  asnLookingGlassLabel: string;
+  asnRouteServerLabel: string;
+  asnTrafficLabel: string;
+  asnPolicyGeneralLabel: string;
+  asnPolicyLocationsLabel: string;
+  asnPolicyRatioLabel: string;
+  asnPolicyContractsLabel: string;
+  asnInfoPrefixes4Label: string;
+  asnInfoPrefixes6Label: string;
+  asnNoPeeringDb: string;
+  asnIxTitle: string;
+  asnNoIx: string;
+  asnFacilitiesTitle: string;
+  asnNoFacilities: string;
+  asnSourcesTitle: string;
+  asnWarningsTitle: string;
+  asnSourceIpinfo: string;
+  asnSourcePeeringdb: string;
+  asnSourceAvailable: string;
+  asnSourceUnavailable: string;
+  asnSourceNotConfigured: string;
+  asnSourceError: string;
+  asnViewOnIpinfo: string;
+  asnViewOnPeeringdb: string;
+  asnYes: string;
+  asnNo: string;
 };
 
 const en: ToolTranslation = {
@@ -232,6 +289,64 @@ const en: ToolTranslation = {
     "Prefer resolvers with transparent data-retention policies and optional malware blocking.",
   clientDnsGuidanceNetworks: "Enterprise/VPN networks may intentionally override your local DNS settings.",
   clientDnsRescan: "Rescan DNS",
+  asnTabLabel: "ASN Lookup",
+  asnTitle: "ASN Lookup",
+  asnSubtitle:
+    "Look up an Autonomous System Number to combine IPinfo-style routing data with PeeringDB peering details.",
+  asnPlaceholder: "Enter an ASN, e.g. AS8881 or 8881",
+  asnLookupButton: "Lookup ASN",
+  asnLoading: "Looking up...",
+  asnInvalidInput: "Please enter a valid ASN, for example AS8881 or 8881.",
+  asnNetworkError: "Network error while contacting the ASN lookup.",
+  asnNotFound: "No public data was found for this ASN.",
+  asnNotAvailable: "n/a",
+  asnIdentityTitle: "ASN identity",
+  asnNameLabel: "Name",
+  asnCountryLabel: "Country",
+  asnRegistryLabel: "Registry",
+  asnAllocatedLabel: "Allocated",
+  asnDomainLabel: "Domain",
+  asnTypeLabel: "Type",
+  asnNumIpsLabel: "IPv4 addresses",
+  asnRpkiLabel: "RPKI",
+  asnPrefixesTitle: "IP prefixes",
+  asnPrefixes4Label: "IPv4 prefixes",
+  asnPrefixes6Label: "IPv6 prefixes",
+  asnNoPrefixes: "No prefixes available.",
+  asnRelationsTitle: "Routing relationships",
+  asnPeersLabel: "Peers",
+  asnUpstreamsLabel: "Upstreams",
+  asnDownstreamsLabel: "Downstreams",
+  asnNoRelations: "No routing relationships available.",
+  asnPeeringTitle: "PeeringDB profile",
+  asnAkaLabel: "Also known as",
+  asnWebsiteLabel: "Website",
+  asnLookingGlassLabel: "Looking glass",
+  asnRouteServerLabel: "Route server",
+  asnTrafficLabel: "Traffic level",
+  asnPolicyGeneralLabel: "Peering policy",
+  asnPolicyLocationsLabel: "Policy locations",
+  asnPolicyRatioLabel: "Ratio required",
+  asnPolicyContractsLabel: "Contract required",
+  asnInfoPrefixes4Label: "Declared IPv4 prefixes",
+  asnInfoPrefixes6Label: "Declared IPv6 prefixes",
+  asnNoPeeringDb: "This ASN does not maintain a PeeringDB profile.",
+  asnIxTitle: "Internet exchange presence",
+  asnNoIx: "No exchange presence listed.",
+  asnFacilitiesTitle: "Facility presence",
+  asnNoFacilities: "No facility presence listed.",
+  asnSourcesTitle: "Data sources",
+  asnWarningsTitle: "Notes",
+  asnSourceIpinfo: "IPinfo",
+  asnSourcePeeringdb: "PeeringDB",
+  asnSourceAvailable: "Available",
+  asnSourceUnavailable: "No data",
+  asnSourceNotConfigured: "Not configured",
+  asnSourceError: "Error",
+  asnViewOnIpinfo: "View on IPinfo",
+  asnViewOnPeeringdb: "View on PeeringDB",
+  asnYes: "Yes",
+  asnNo: "No",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -348,6 +463,62 @@ const de: Partial<ToolTranslation> = {
     "Bevorzuge Resolver mit transparenten Richtlinien zur Datenspeicherung und optionalem Malware-Schutz.",
   clientDnsGuidanceNetworks: "Enterprise-/VPN-Netzwerke können lokale DNS-Einstellungen absichtlich überschreiben.",
   clientDnsRescan: "DNS erneut scannen",
+  asnTabLabel: "ASN-Abfrage",
+  asnTitle: "ASN-Abfrage",
+  asnSubtitle:
+    "Frage eine Autonomous-System-Nummer ab und kombiniere IPinfo-Routing-Daten mit PeeringDB-Peering-Details.",
+  asnPlaceholder: "ASN eingeben, z. B. AS8881 oder 8881",
+  asnLookupButton: "ASN abfragen",
+  asnLoading: "Suche läuft...",
+  asnInvalidInput: "Bitte gib eine gültige ASN ein, z. B. AS8881 oder 8881.",
+  asnNetworkError: "Netzwerkfehler bei der ASN-Abfrage.",
+  asnNotFound: "Für diese ASN wurden keine öffentlichen Daten gefunden.",
+  asnNotAvailable: "n. v.",
+  asnIdentityTitle: "ASN-Identität",
+  asnNameLabel: "Name",
+  asnCountryLabel: "Land",
+  asnRegistryLabel: "Registry",
+  asnAllocatedLabel: "Zugeteilt",
+  asnDomainLabel: "Domain",
+  asnTypeLabel: "Typ",
+  asnNumIpsLabel: "IPv4-Adressen",
+  asnRpkiLabel: "RPKI",
+  asnPrefixesTitle: "IP-Präfixe",
+  asnPrefixes4Label: "IPv4-Präfixe",
+  asnPrefixes6Label: "IPv6-Präfixe",
+  asnNoPrefixes: "Keine Präfixe verfügbar.",
+  asnRelationsTitle: "Routing-Beziehungen",
+  asnPeersLabel: "Peers",
+  asnUpstreamsLabel: "Upstreams",
+  asnDownstreamsLabel: "Downstreams",
+  asnNoRelations: "Keine Routing-Beziehungen verfügbar.",
+  asnPeeringTitle: "PeeringDB-Profil",
+  asnAkaLabel: "Auch bekannt als",
+  asnWebsiteLabel: "Webseite",
+  asnLookingGlassLabel: "Looking Glass",
+  asnRouteServerLabel: "Route Server",
+  asnTrafficLabel: "Traffic-Niveau",
+  asnPolicyGeneralLabel: "Peering-Richtlinie",
+  asnPolicyLocationsLabel: "Richtlinien-Standorte",
+  asnPolicyRatioLabel: "Ratio erforderlich",
+  asnPolicyContractsLabel: "Vertrag erforderlich",
+  asnInfoPrefixes4Label: "Angegebene IPv4-Präfixe",
+  asnInfoPrefixes6Label: "Angegebene IPv6-Präfixe",
+  asnNoPeeringDb: "Diese ASN pflegt kein PeeringDB-Profil.",
+  asnIxTitle: "Internet-Exchange-Präsenz",
+  asnNoIx: "Keine Exchange-Präsenz hinterlegt.",
+  asnFacilitiesTitle: "Standort-Präsenz",
+  asnNoFacilities: "Keine Standort-Präsenz hinterlegt.",
+  asnSourcesTitle: "Datenquellen",
+  asnWarningsTitle: "Hinweise",
+  asnSourceAvailable: "Verfügbar",
+  asnSourceUnavailable: "Keine Daten",
+  asnSourceNotConfigured: "Nicht konfiguriert",
+  asnSourceError: "Fehler",
+  asnViewOnIpinfo: "Auf IPinfo ansehen",
+  asnViewOnPeeringdb: "Auf PeeringDB ansehen",
+  asnYes: "Ja",
+  asnNo: "Nein",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
