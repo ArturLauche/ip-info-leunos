@@ -5,29 +5,13 @@ import type { Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { CircleCheck, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ResolverPrivacy, RuntimeDnsScanResult } from "@/lib/runtime-dns";
 
-type PrivacyLevel = "high" | "medium" | "low";
-
-type ResolverResult = {
-  address: string;
-  provider: string;
-  privacy: PrivacyLevel;
-  notes: string;
-  homepage: string | null;
-};
-
-type ScanResponse = {
-  checkedAt: string;
-  scope: "server-runtime";
-  privacyScore: number;
-  resolverCount: number;
-  resolvers: ResolverResult[];
-};
-
-function privacyBadge(level: PrivacyLevel) {
+function privacyBadge(level: ResolverPrivacy) {
   if (level === "high") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
   if (level === "medium") return "bg-amber-500/15 text-amber-300 border-amber-500/30";
-  return "bg-rose-500/15 text-rose-300 border-rose-500/30";
+  if (level === "low") return "bg-rose-500/15 text-rose-300 border-rose-500/30";
+  return "border-border bg-secondary text-muted-foreground";
 }
 
 interface ClientDnsScannerProps {
@@ -38,7 +22,7 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
   const t = getToolTranslation(locale);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ScanResponse | null>(null);
+  const [result, setResult] = useState<RuntimeDnsScanResult | null>(null);
 
   const runScan = useCallback(async () => {
     setLoading(true);
@@ -46,7 +30,7 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
 
     try {
       const response = await fetch("/api/client-dns", { cache: "no-store" });
-      const data = unwrapApiResponse<ScanResponse>(await response.json());
+      const data = unwrapApiResponse<RuntimeDnsScanResult>(await response.json());
 
       setResult(data);
     } catch (scanError) {
@@ -62,15 +46,17 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
 
   const privacyLabel = useMemo(() => {
     if (!result) return t.cdnConfidenceNa;
+    if (result.privacyScore === null) return t.clientDnsUnknownPrivacy;
     if (result.privacyScore >= 80) return t.clientDnsStrong;
     if (result.privacyScore >= 55) return t.clientDnsModerate;
     return t.clientDnsWeak;
   }, [result, t]);
 
-  const privacyTextByLevel: Record<PrivacyLevel, string> = {
+  const privacyTextByLevel: Record<ResolverPrivacy, string> = {
     high: t.clientDnsHighPrivacy,
     medium: t.clientDnsMediumPrivacy,
     low: t.clientDnsLowPrivacy,
+    unknown: t.clientDnsUnknownPrivacyLabel,
   };
 
   return (
@@ -84,7 +70,9 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
           </div>
         ) : result ? (
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <p className="text-2xl font-semibold text-foreground">{result.privacyScore}/100</p>
+            <p className="text-2xl font-semibold text-foreground">
+              {result.privacyScore === null ? t.clientDnsNotScored : `${result.privacyScore}/100`}
+            </p>
             <p className="text-sm text-muted-foreground">{privacyLabel}</p>
             <p className="text-xs text-muted-foreground">
               {t.clientDnsCheckedAt} {new Date(result.checkedAt).toLocaleString()}
@@ -98,7 +86,13 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
       {result && (
         <>
           <div className="rounded-xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
-            <strong>{t.clientDnsEnvironmentPrefix}</strong> {t.clientDnsRuntimeEnvironment}
+            <p>
+              <strong>{t.clientDnsEnvironmentPrefix}</strong> {t.clientDnsRuntimeEnvironment}
+            </p>
+            <p className="mt-2">
+              <strong>{t.clientDnsMethodPrefix}</strong> {t.clientDnsMethodRuntime}
+            </p>
+            <p className="mt-2 text-amber-200">{t.clientDnsLeakTestCaveat}</p>
           </div>
 
           <div className="rounded-xl border border-border/70 bg-card/60 p-4 text-sm text-foreground">
@@ -111,6 +105,12 @@ export function ClientDnsScanner({ locale }: ClientDnsScannerProps) {
                   : `${result.resolverCount} ${result.resolverCount === 1 ? t.clientDnsDetectedResolvers : t.clientDnsDetectedResolversPlural}` }
               </span>
             </p>
+            {result.resolverCount > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {result.knownResolverCount} {t.clientDnsKnownResolvers},{" "}
+                {result.unknownResolverCount} {t.clientDnsUnknownResolvers}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-3">

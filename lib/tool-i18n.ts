@@ -89,17 +89,25 @@ type ToolTranslation = {
   clientDnsCheckedAt: string;
   clientDnsNoData: string;
   clientDnsRuntimeEnvironment: string;
+  clientDnsMethodPrefix: string;
+  clientDnsMethodRuntime: string;
+  clientDnsLeakTestCaveat: string;
   clientDnsEnvironmentPrefix: string;
   clientDnsSummaryPrefix: string;
   clientDnsDetectedResolvers: string;
   clientDnsDetectedResolversPlural: string;
+  clientDnsKnownResolvers: string;
+  clientDnsUnknownResolvers: string;
   clientDnsNoResolvers: string;
   clientDnsStrong: string;
   clientDnsModerate: string;
   clientDnsWeak: string;
+  clientDnsUnknownPrivacy: string;
+  clientDnsNotScored: string;
   clientDnsHighPrivacy: string;
   clientDnsMediumPrivacy: string;
   clientDnsLowPrivacy: string;
+  clientDnsUnknownPrivacyLabel: string;
   clientDnsProviderPolicy: string;
   clientDnsGuidanceIntro: string;
   clientDnsGuidancePrefer: string;
@@ -198,17 +206,25 @@ const en: ToolTranslation = {
   clientDnsCheckedAt: "Checked at",
   clientDnsNoData: "No DNS scan results available right now.",
   clientDnsRuntimeEnvironment: "This scanner inspects DNS resolvers visible to the app runtime. In production this describes the server or hosting platform, not the visitor browser.",
+  clientDnsMethodPrefix: "Method:",
+  clientDnsMethodRuntime: "Node.js runtime resolver configuration (dns.getServers).",
+  clientDnsLeakTestCaveat: "This is not a dnsleaktest.com-style browser DNS leak test and should not be compared as one.",
   clientDnsEnvironmentPrefix: "Environment:",
   clientDnsSummaryPrefix: "Summary:",
   clientDnsDetectedResolvers: "Detected resolver",
   clientDnsDetectedResolversPlural: "Detected resolvers",
+  clientDnsKnownResolvers: "known",
+  clientDnsUnknownResolvers: "unknown",
   clientDnsNoResolvers: "No resolvers were returned by the runtime DNS stack.",
   clientDnsStrong: "Strong privacy posture",
   clientDnsModerate: "Moderate privacy posture",
   clientDnsWeak: "Weak privacy posture",
+  clientDnsUnknownPrivacy: "Unknown privacy posture",
+  clientDnsNotScored: "Not scored",
   clientDnsHighPrivacy: "high privacy",
   clientDnsMediumPrivacy: "medium privacy",
   clientDnsLowPrivacy: "low privacy",
+  clientDnsUnknownPrivacyLabel: "unknown",
   clientDnsProviderPolicy: "Provider policy page",
   clientDnsGuidanceIntro:
     "DNS resolvers can still see your queried domains unless you use encrypted DNS (DoH/DoT) and a privacy-focused provider.",
@@ -306,17 +322,25 @@ const de: Partial<ToolTranslation> = {
   clientDnsCheckedAt: "Geprüft am",
   clientDnsNoData: "Aktuell liegen keine DNS-Scan-Ergebnisse vor.",
   clientDnsRuntimeEnvironment: "Dieser Scanner prüft DNS-Resolver, die für die App-Laufzeit sichtbar sind. In Produktion beschreibt das den Server oder die Hosting-Plattform, nicht den Browser des Besuchers.",
+  clientDnsMethodPrefix: "Methode:",
+  clientDnsMethodRuntime: "Node.js-Runtime-Resolver-Konfiguration (dns.getServers).",
+  clientDnsLeakTestCaveat: "Das ist kein Browser-DNS-Leak-Test wie dnsleaktest.com und sollte nicht so verglichen werden.",
   clientDnsEnvironmentPrefix: "Umgebung:",
   clientDnsSummaryPrefix: "Zusammenfassung:",
   clientDnsDetectedResolvers: "Erkannter Resolver",
   clientDnsDetectedResolversPlural: "Erkannte Resolver",
+  clientDnsKnownResolvers: "bekannt",
+  clientDnsUnknownResolvers: "unbekannt",
   clientDnsNoResolvers: "Vom DNS-Stack der Laufzeit wurden keine Resolver zurückgegeben.",
   clientDnsStrong: "Starke Datenschutzlage",
   clientDnsModerate: "Mittlere Datenschutzlage",
   clientDnsWeak: "Schwache Datenschutzlage",
+  clientDnsUnknownPrivacy: "Unbekannte Datenschutzlage",
+  clientDnsNotScored: "Nicht bewertet",
   clientDnsHighPrivacy: "hoher Datenschutz",
   clientDnsMediumPrivacy: "mittlerer Datenschutz",
   clientDnsLowPrivacy: "niedriger Datenschutz",
+  clientDnsUnknownPrivacyLabel: "unbekannt",
   clientDnsProviderPolicy: "Anbieter-Richtlinie",
   clientDnsGuidanceIntro:
     "DNS-Resolver können deine abgefragten Domains weiterhin sehen, sofern du kein verschlüsseltes DNS (DoH/DoT) mit einem datenschutzfreundlichen Anbieter nutzt.",
