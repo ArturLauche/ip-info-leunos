@@ -49,14 +49,16 @@ function labelFor(key: ToolKey, locale: Locale) {
   return labels[key];
 }
 
-function PrimaryNavLink({
+function NavLink({
   item,
   active,
   locale,
+  compact = false,
 }: {
   item: { key: ToolKey; href: string; icon: LucideIcon };
   active: ToolKey;
   locale: Locale;
+  compact?: boolean;
 }) {
   const ItemIcon = item.icon;
   const isActive = active === item.key;
@@ -64,34 +66,15 @@ function PrimaryNavLink({
   return (
     <Link
       href={item.href}
-      className={`nav-primary-link ${isActive ? "nav-primary-active" : "nav-primary-idle"}`}
+      className={`inline-flex items-center rounded-lg font-medium transition-colors ${
+        compact ? "h-8 gap-1.5 px-2.5 text-xs" : "h-9 gap-2 px-3 text-sm"
+      } ${
+        isActive
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+      }`}
     >
-      <span className="nav-primary-icon-wrap">
-        <ItemIcon className="h-4 w-4" />
-      </span>
-      {labelFor(item.key, locale)}
-    </Link>
-  );
-}
-
-function DiagnosticNavLink({
-  item,
-  active,
-  locale,
-}: {
-  item: { key: ToolKey; href: string; icon: LucideIcon };
-  active: ToolKey;
-  locale: Locale;
-}) {
-  const ItemIcon = item.icon;
-  const isActive = active === item.key;
-
-  return (
-    <Link
-      href={item.href}
-      className={`nav-diag-link ${isActive ? "nav-diag-active" : "nav-diag-idle"}`}
-    >
-      <ItemIcon className="h-3.5 w-3.5 shrink-0" />
+      <ItemIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
       {labelFor(item.key, locale)}
     </Link>
   );
@@ -121,19 +104,16 @@ export function ToolPageShell({
       <div className="app-gradient" aria-hidden />
 
       <div className="z-10 flex w-full max-w-5xl flex-col items-center gap-8 px-4 py-8 md:py-12">
-        {/* ── Navigation ── */}
-        <nav className="nav-bar">
-          {/* Primary tools — prominent */}
-          <div className="flex items-center gap-1.5">
+        <nav className="flex w-full flex-wrap items-center justify-center gap-2 rounded-2xl border border-border/70 bg-card/75 p-2 backdrop-blur">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {primaryLinks.map((item) => (
-              <PrimaryNavLink key={item.key} item={item} active={active} locale={locale} />
+              <NavLink key={item.key} item={item} active={active} locale={locale} />
             ))}
           </div>
-
-          {/* Diagnostic tools — compact pills */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5">
+          <div className="hidden h-6 w-px bg-border/80 md:block" aria-hidden />
+          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-2 md:border-l-0 md:border-t-0 md:pt-0">
             {diagnosticLinks.map((item) => (
-              <DiagnosticNavLink key={item.key} item={item} active={active} locale={locale} />
+              <NavLink key={item.key} item={item} active={active} locale={locale} compact />
             ))}
           </div>
         </nav>
