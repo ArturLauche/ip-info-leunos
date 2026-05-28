@@ -160,6 +160,11 @@ function sourceLabel(status: string, available: string, unavailable: string, not
   }
 }
 
+interface AsnCheckerProps {
+  locale: Locale;
+  initialAsn?: string;
+}
+
 export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   const router = useRouter();
   const { toast } = useToast();
