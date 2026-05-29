@@ -2,11 +2,8 @@ import { z } from "zod";
 import { apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { asnDisplay, asnQuerySchema, type NormalizedAsn } from "@/lib/asn";
-import { createCache } from "@/lib/api/cache";
 
-const FETCH_TIMEOUT_MS = 5_000;
-const FETCH_MAX_RETRIES = 1;
-const asnCache = createCache<AsnResponse>({ ttlMs: 5 * 60 * 1000, maxEntries: 500 });
+const FETCH_TIMEOUT_MS = 8_000;
 
 type SourceStatus = "available" | "unavailable" | "error" | "not_configured";
 
@@ -88,35 +85,19 @@ type AsnResponse = {
   warnings: string[];
 };
 
-async function fetchWithTimeout(
-  url: string,
-  timeoutMs: number,
-  retries = FETCH_MAX_RETRIES,
-): Promise<unknown> {
-  let lastError: unknown;
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<unknown> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch(url, { cache: "no-store", signal: controller.signal });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      lastError = error;
-      const isAbort = error instanceof DOMException && error.name === "AbortError";
-      const isHttp5xx = error instanceof Error && /HTTP 5\d{2}/.test(error.message);
-      if (attempt < retries && (isAbort || isHttp5xx)) continue;
-      throw error;
-    } finally {
-      clearTimeout(timer);
+  try {
+    const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
   }
-
-  throw lastError;
 }
 
 const ripestatOverviewSchema = z.object({
@@ -394,13 +375,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ asn:
   }
 
   const asnNumber = parsed.data;
-  const cacheKey = `AS${asnNumber}`;
-
-  const result = await asnCache.getOrFetch(cacheKey, () => fetchAsnData(asnNumber));
-  return apiOk(result);
-}
-
-async function fetchAsnData(asnNumber: number): Promise<AsnResponse> {
   const asn = { display: asnDisplay(asnNumber), number: asnNumber };
   const result = emptyResponse(asn);
   const ipinfoToken = process.env.IPINFO_TOKEN;
@@ -592,5 +566,5 @@ async function fetchAsnData(asnNumber: number): Promise<AsnResponse> {
 
   if (!result.name) result.name = asn.display;
 
-  return result;
+  return apiOk(result);
 }
