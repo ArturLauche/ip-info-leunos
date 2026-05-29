@@ -1,7 +1,6 @@
 "use client";
 
 import { ErrorPanel } from "@/components/error-panel";
-import { InfoCard } from "@/components/info-card";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { asnDisplay, normalizeAsnInput } from "@/lib/asn";
@@ -10,19 +9,17 @@ import { getToolTranslation } from "@/lib/tool-i18n";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   Globe,
   Building2,
   Network,
-  Hash,
   Shield,
-  ArrowUpDown,
   ExternalLink,
   Server,
   Wifi,
   Route,
   MapPin,
-  Clock,
   CircleCheck,
   TriangleAlert,
   ChevronDown,
@@ -30,7 +27,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Shuffle,
+  Zap,
+  Activity,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface AsnNeighbor {
   asn: number;
@@ -110,7 +110,7 @@ interface AsnResult {
   warnings: string[];
 }
 
-type NeighborSort = "power" | "asn" | "name";
+type NeighborSort = "power" | "asn";
 
 function sortNeighbors(neighbors: AsnNeighbor[], sort: NeighborSort): AsnNeighbor[] {
   const sorted = [...neighbors];
@@ -119,8 +119,6 @@ function sortNeighbors(neighbors: AsnNeighbor[], sort: NeighborSort): AsnNeighbo
       return sorted.sort((a, b) => b.power - a.power);
     case "asn":
       return sorted.sort((a, b) => a.asn - b.asn);
-    case "name":
-      return sorted;
   }
 }
 
@@ -128,6 +126,13 @@ function formatSpeed(speed: number): string {
   if (speed >= 1_000_000) return `${speed / 1_000_000} Tbps`;
   if (speed >= 1_000) return `${speed / 1_000} Gbps`;
   return `${speed} Mbps`;
+}
+
+function speedColor(speed: number): string {
+  if (speed >= 100_000) return "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+  if (speed >= 10_000) return "bg-sky-500/20 text-sky-300 border-sky-500/40";
+  if (speed >= 1_000) return "bg-violet-500/20 text-violet-300 border-violet-500/40";
+  return "bg-muted text-muted-foreground border-border";
 }
 
 function sourceBadge(status: string) {
@@ -160,82 +165,122 @@ function sourceLabel(status: string, available: string, unavailable: string, not
   }
 }
 
-function NeighborSection({
+function SectionCard({
   title,
   icon: Icon,
+  count,
+  children,
+}: {
+  title: string;
+  icon: LucideIcon;
+  count?: number;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-border/80 bg-card/70 shadow-sm">
+      <div className="flex items-center gap-2 border-b border-border/60 px-5 py-3">
+        <Icon className="h-4 w-4 text-primary" />
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+        {count !== undefined && count > 0 && (
+          <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            {count}
+          </span>
+        )}
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+function StatPill({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-lg border border-border/60 bg-secondary/30 px-4 py-2.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-bold text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function NeighborTable({
   neighbors,
   emptyMessage,
   t,
 }: {
-  title: string;
-  icon: typeof ArrowUpRight;
   neighbors: AsnNeighbor[];
   emptyMessage: string;
   t: ReturnType<typeof getToolTranslation>;
 }) {
   const [sort, setSort] = useState<NeighborSort>("power");
-  const [visibleCount, setVisibleCount] = useState(30);
+  const [visibleCount, setVisibleCount] = useState(25);
 
   const sorted = useMemo(() => sortNeighbors(neighbors, sort), [neighbors, sort]);
   const visible = sorted.slice(0, visibleCount);
   const hasMore = visibleCount < sorted.length;
 
-  return (
-    <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Icon className="h-4 w-4 text-primary" />
-          {title}
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-            {neighbors.length}
-          </span>
-        </p>
-        <div className="flex gap-1">
-          {([["power", t.asnSortByPower], ["asn", t.asnSortByAsn]] as const).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setSort(key)}
-              className={`rounded-md px-2 py-1 text-xs transition-colors ${
-                sort === key
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+  if (neighbors.length === 0) {
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+  }
 
-      {neighbors.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">{emptyMessage}</p>
-      ) : (
-        <>
-          <div className="mt-3 flex flex-wrap gap-2">
+  return (
+    <div>
+      <div className="mb-3 flex gap-1">
+        {([["power", t.asnSortByPower], ["asn", t.asnSortByAsn]] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSort(key)}
+            className={`rounded-md px-2 py-1 text-xs transition-colors ${
+              sort === key
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="overflow-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground">
+              <th className="py-2 pr-4 text-left font-medium">{t.asnNeighborTable}</th>
+              <th className="py-2 pr-4 text-right font-medium">{t.asnNeighborPower}</th>
+              <th className="py-2 pr-4 text-right font-medium">IPv4</th>
+              <th className="py-2 text-right font-medium">IPv6</th>
+            </tr>
+          </thead>
+          <tbody>
             {visible.map((n) => (
-              <Link
-                key={n.asn}
-                href={`/asn?asn=${encodeURIComponent(asnDisplay(n.asn))}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs font-mono text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-              >
-                {asnDisplay(n.asn)}
-                <span className="text-muted-foreground">
-                  {n.power > 0 && `(${n.power})`}
-                </span>
-              </Link>
+              <tr key={n.asn} className="border-b border-border/40 transition-colors hover:bg-secondary/30">
+                <td className="py-2 pr-4">
+                  <Link
+                    href={`/asn?asn=${encodeURIComponent(asnDisplay(n.asn))}`}
+                    className="font-mono font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    {asnDisplay(n.asn)}
+                  </Link>
+                </td>
+                <td className="py-2 pr-4 text-right">
+                  <span className="inline-flex items-center gap-1">
+                    <Activity className="h-3 w-3 text-muted-foreground" />
+                    {n.power}
+                  </span>
+                </td>
+                <td className="py-2 pr-4 text-right font-mono text-muted-foreground">{n.v4Peers.toLocaleString()}</td>
+                <td className="py-2 text-right font-mono text-muted-foreground">{n.v6Peers.toLocaleString()}</td>
+              </tr>
             ))}
-          </div>
-          {hasMore && (
-            <button
-              type="button"
-              onClick={() => setVisibleCount((c) => c + 30)}
-              className="mt-3 text-xs font-medium text-primary transition-colors hover:text-primary/80"
-            >
-              {t.asnLoadMore} ({sorted.length - visibleCount})
-            </button>
-          )}
-        </>
+          </tbody>
+        </table>
+      </div>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setVisibleCount((c) => c + 25)}
+          className="mt-3 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          {t.asnLoadMore} ({sorted.length - visibleCount})
+        </button>
       )}
     </div>
   );
@@ -297,11 +342,10 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
       {loading && (
         <div className="flex flex-col gap-4">
-          <div className="h-40 animate-pulse rounded-xl bg-secondary" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl bg-secondary" />
-            ))}
+          <div className="h-32 animate-pulse rounded-xl bg-secondary" />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="h-64 animate-pulse rounded-xl bg-secondary lg:col-span-1" />
+            <div className="h-64 animate-pulse rounded-xl bg-secondary lg:col-span-2" />
           </div>
         </div>
       )}
@@ -309,7 +353,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
           {result.warnings.length > 0 && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
               <div className="flex items-center gap-2 font-medium text-amber-100">
@@ -324,382 +368,435 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
             </div>
           )}
 
-          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Network className="h-6 w-6 text-primary" />
+          {/* ── Hero Header ── */}
+          <div className="rounded-xl border border-border/80 bg-card/70 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                  <Network className="h-7 w-7 text-primary" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">{result.asn}</h2>
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                        result.announced
+                          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                          : "border-border bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {result.announced ? t.asnAnnounced : t.asnNotAnnounced}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{result.name}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">{result.asn}</h2>
-                <p className="text-sm text-muted-foreground">{result.name}</p>
+
+              {/* Quick stats pills */}
+              <div className="flex flex-wrap gap-2">
+                {result.peeringdb && result.peeringdb.ixCount > 0 && (
+                  <StatPill label={t.asnIxCount} value={result.peeringdb.ixCount} />
+                )}
+                {result.peeringdb && result.peeringdb.facilityCount > 0 && (
+                  <StatPill label={t.asnFacCount} value={result.peeringdb.facilityCount} />
+                )}
+                {(result.prefixes4Count > 0 || result.prefixes6Count > 0) && (
+                  <StatPill label={t.asnTotalPrefixes} value={result.prefixes4Count + result.prefixes6Count} />
+                )}
+                {result.numIps > 0 && (
+                  <StatPill label={t.asnNumIps} value={result.numIps.toLocaleString()} />
+                )}
               </div>
-              <span
-                className={`ml-auto rounded-full border px-3 py-1 text-xs font-medium ${
-                  result.announced
-                    ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
-                    : "border-border bg-secondary text-muted-foreground"
-                }`}
-              >
-                {result.announced ? t.asnAnnounced : t.asnNotAnnounced}
-              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {result.country && (
-              <InfoCard icon={Globe} label={mainT.country} value={result.country} />
-            )}
-            {result.registry && (
-              <InfoCard icon={Building2} label={t.asnRegistry} value={result.registry} />
-            )}
-            {result.allocated && (
-              <InfoCard icon={Clock} label={t.asnAllocated} value={result.allocated} />
-            )}
-            {result.domain && (
-              <InfoCard
-                icon={Globe}
-                label={t.asnDomain}
-                value={result.domain}
-                detail={result.type || undefined}
-              />
-            )}
-            {result.type && !result.domain && (
-              <InfoCard icon={Shield} label={t.asnType} value={result.type} />
-            )}
-            {result.numIps > 0 && (
-              <InfoCard icon={Hash} label={t.asnNumIps} value={result.numIps.toLocaleString()} />
-            )}
-          </div>
+          {/* ── Main Two-Column Layout ── */}
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            {/* Left sidebar */}
+            <div className="flex flex-col gap-5 lg:col-span-1">
+              {/* Network Info */}
+              <SectionCard title={t.asnNetworkInfo} icon={Globe}>
+                <dl className="space-y-3">
+                  {result.country && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-xs text-muted-foreground">{mainT.country}</dt>
+                      <dd className="text-sm font-medium text-foreground">{result.country}</dd>
+                    </div>
+                  )}
+                  {result.registry && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-xs text-muted-foreground">{t.asnRegistry}</dt>
+                      <dd className="text-sm font-medium text-foreground">{result.registry}</dd>
+                    </div>
+                  )}
+                  {result.allocated && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-xs text-muted-foreground">{t.asnAllocated}</dt>
+                      <dd className="text-sm font-medium text-foreground">{result.allocated}</dd>
+                    </div>
+                  )}
+                  {result.type && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-xs text-muted-foreground">{t.asnType}</dt>
+                      <dd className="text-sm font-medium text-foreground">{result.type}</dd>
+                    </div>
+                  )}
+                  {result.domain && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-xs text-muted-foreground">{t.asnDomain}</dt>
+                      <dd className="truncate text-sm font-medium text-foreground">{result.domain}</dd>
+                    </div>
+                  )}
+                </dl>
+              </SectionCard>
 
-          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Network className="h-4 w-4 text-primary" />
-              {t.asnPrefixes}
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                <p className="text-xs text-muted-foreground">{t.asnPrefixes4Count}</p>
-                <p className="mt-1 text-lg font-bold text-foreground">{result.prefixes4Count}</p>
-              </div>
-              <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                <p className="text-xs text-muted-foreground">{t.asnPrefixes6Count}</p>
-                <p className="mt-1 text-lg font-bold text-foreground">{result.prefixes6Count}</p>
-              </div>
-            </div>
-
-            {(result.prefixes4.length > 0 || result.prefixes6.length > 0) && (
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => setPrefixesExpanded(!prefixesExpanded)}
-                  className="flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
-                >
-                  {prefixesExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  {prefixesExpanded ? t.asnShowAll : `${t.asnShowAll} (${result.prefixes4.length + result.prefixes6.length})`}
-                </button>
-                {prefixesExpanded && (
-                  <div className="mt-2 max-h-60 overflow-auto rounded-lg border border-border bg-secondary/40 p-3">
-                    {result.prefixes4.length > 0 && (
-                      <div className="mb-2">
-                        <p className="text-xs font-medium text-muted-foreground">IPv4</p>
-                        <ul className="mt-1 space-y-0.5 font-mono text-xs text-foreground">
-                          {result.prefixes4.map((p) => (
-                            <li key={p}>{p}</li>
-                          ))}
-                        </ul>
+              {/* Peering Policy (PeeringDB) */}
+              {result.peeringdb && (
+                <SectionCard title={t.asnPeering} icon={Shield}>
+                  <dl className="space-y-3">
+                    {result.peeringdb.traffic && (
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs text-muted-foreground">{t.asnTraffic}</dt>
+                        <dd className="text-sm font-medium text-foreground">{result.peeringdb.traffic}</dd>
                       </div>
                     )}
-                    {result.prefixes6.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">IPv6</p>
-                        <ul className="mt-1 space-y-0.5 font-mono text-xs text-foreground">
-                          {result.prefixes6.map((p) => (
-                            <li key={p}>{p}</li>
-                          ))}
-                        </ul>
+                    {result.peeringdb.policyGeneral && (
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs text-muted-foreground">{t.asnPolicyGeneral}</dt>
+                        <dd className="text-sm font-medium text-foreground">{result.peeringdb.policyGeneral}</dd>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                    {result.peeringdb.policyLocations && (
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs text-muted-foreground">{t.asnPolicyLocations}</dt>
+                        <dd className="text-sm font-medium text-foreground">{result.peeringdb.policyLocations}</dd>
+                      </div>
+                    )}
+                    {result.peeringdb.policyRatio && (
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs text-muted-foreground">{t.asnPolicyRatio}</dt>
+                        <dd className="text-sm font-medium text-foreground">{result.peeringdb.policyRatio}</dd>
+                      </div>
+                    )}
+                    {result.peeringdb.policyContracts && (
+                      <div className="flex items-center justify-between">
+                        <dt className="text-xs text-muted-foreground">{t.asnPolicyContracts}</dt>
+                        <dd className="text-sm font-medium text-foreground">{result.peeringdb.policyContracts}</dd>
+                      </div>
+                    )}
+                  </dl>
 
-          {result.visibility.v4.totalRisPeers > 0 && (
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Wifi className="h-4 w-4 text-primary" />
-                {t.asnVisibility}
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                  <p className="text-xs text-muted-foreground">IPv4 — {t.asnRisPeers}</p>
-                  <p className="mt-1 text-lg font-bold text-foreground">
-                    {result.visibility.v4.risPeersSeeing} / {result.visibility.v4.totalRisPeers}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                  <p className="text-xs text-muted-foreground">IPv6 — {t.asnRisPeers}</p>
-                  <p className="mt-1 text-lg font-bold text-foreground">
-                    {result.visibility.v6.risPeersSeeing} / {result.visibility.v6.totalRisPeers}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {result.rpki && (
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Shield className="h-4 w-4 text-primary" />
-                {t.asnRpkiStatus}
-              </p>
-              <div className="mt-3">
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    result.rpki.status === "valid"
-                      ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
-                      : result.rpki.status === "invalid"
-                        ? "border-red-500/40 bg-red-500/15 text-red-300"
-                        : "border-border bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {result.rpki.status === "valid"
-                    ? t.asnRpkiValid
-                    : result.rpki.status === "invalid"
-                      ? t.asnRpkiInvalid
-                      : t.asnRpkiNotFound}
-                </span>
-                {result.rpki.validator && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Validator: {result.rpki.validator}
-                  </p>
-                )}
-                {result.rpki.roas.length > 0 && (
-                  <div className="mt-2 overflow-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-border text-muted-foreground">
-                          <th className="py-1 pr-3 text-left font-medium">Prefix</th>
-                          <th className="py-1 pr-3 text-left font-medium">Origin</th>
-                          <th className="py-1 pr-3 text-left font-medium">Validity</th>
-                          <th className="py-1 text-left font-medium">Max Length</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {result.rpki.roas.map((roa, i) => (
-                          <tr key={`${roa.prefix}-${i}`} className="border-b border-border/50">
-                            <td className="py-1 pr-3 font-mono text-foreground">{roa.prefix}</td>
-                            <td className="py-1 pr-3 font-mono text-foreground">{asnDisplay(Number(roa.origin))}</td>
-                            <td className="py-1 pr-3 text-foreground">{roa.validity}</td>
-                            <td className="py-1 text-foreground">{roa.maxLength}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-4">
-            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Route className="h-4 w-4 text-primary" />
-              {t.asnRouting}
-            </p>
-            <NeighborSection
-              title={t.asnUpstreams}
-              icon={ArrowUpRight}
-              neighbors={result.upstreams}
-              emptyMessage={t.asnNoUpstreams}
-              t={t}
-            />
-            <NeighborSection
-              title={t.asnPeers}
-              icon={Shuffle}
-              neighbors={result.peers}
-              emptyMessage={t.asnNoPeers}
-              t={t}
-            />
-            <NeighborSection
-              title={t.asnDownstreams}
-              icon={ArrowDownRight}
-              neighbors={result.downstreams}
-              emptyMessage={t.asnNoDownstreams}
-              t={t}
-            />
-          </div>
-
-          {result.peeringdb && (
-            <>
-              <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Globe className="h-4 w-4 text-primary" />
-                  {t.asnPeering}
-                </p>
-                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {result.peeringdb.traffic && (
-                    <InfoCard icon={Wifi} label={t.asnTraffic} value={result.peeringdb.traffic} />
-                  )}
-                  {result.peeringdb.policyGeneral && (
-                    <InfoCard icon={Shield} label={t.asnPolicyGeneral} value={result.peeringdb.policyGeneral} />
-                  )}
-                  {result.peeringdb.policyLocations && (
-                    <InfoCard icon={MapPin} label={t.asnPolicyLocations} value={result.peeringdb.policyLocations} />
-                  )}
-                  {result.peeringdb.policyRatio && (
-                    <InfoCard icon={ArrowUpDown} label={t.asnPolicyRatio} value={result.peeringdb.policyRatio} />
-                  )}
-                  {result.peeringdb.policyContracts && (
-                    <InfoCard icon={Building2} label={t.asnPolicyContracts} value={result.peeringdb.policyContracts} />
-                  )}
-                  {result.peeringdb.infoPrefixes4 > 0 && (
-                    <InfoCard
-                      icon={Hash}
-                      label={t.asnPrefixes4}
-                      value={result.peeringdb.infoPrefixes4.toLocaleString()}
-                    />
-                  )}
-                  {result.peeringdb.infoPrefixes6 > 0 && (
-                    <InfoCard
-                      icon={Hash}
-                      label={t.asnPrefixes6}
-                      value={result.peeringdb.infoPrefixes6.toLocaleString()}
-                    />
-                  )}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  {result.peeringdb.website && (
-                    <a
-                      href={result.peeringdb.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                    >
-                      <Globe className="h-3.5 w-3.5" />
-                      {t.asnWebsite}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                  {result.peeringdb.lookingGlass && (
-                    <a
-                      href={result.peeringdb.lookingGlass}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                    >
-                      <Server className="h-3.5 w-3.5" />
-                      {t.asnLookingGlass}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                  {result.peeringdb.routeServer && (
-                    <a
-                      href={result.peeringdb.routeServer}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                    >
-                      <Route className="h-3.5 w-3.5" />
-                      {t.asnRouteServer}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Network className="h-4 w-4 text-primary" />
-                  {t.asnIxPresence}
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                    {result.peeringdb.ixlan.length}
-                  </span>
-                </p>
-                {result.peeringdb.ixlan.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">{t.asnNoIx}</p>
-                ) : (
-                  <div className="mt-3 overflow-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-border text-muted-foreground">
-                          <th className="py-1.5 pr-3 text-left font-medium">Exchange</th>
-                          <th className="py-1.5 pr-3 text-left font-medium">{t.asnSpeed}</th>
-                          <th className="py-1.5 pr-3 text-left font-medium">IPv4</th>
-                          <th className="py-1.5 pr-3 text-left font-medium">IPv6</th>
-                          <th className="py-1.5 text-left font-medium">{t.asnRouteServerPeer}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {result.peeringdb.ixlan.map((ix) => (
-                          <tr key={ix.id} className="border-b border-border/50">
-                            <td className="py-1.5 pr-3 font-medium text-foreground">{ix.name}</td>
-                            <td className="py-1.5 pr-3 text-muted-foreground">{formatSpeed(ix.speed)}</td>
-                            <td className="py-1.5 pr-3 font-mono text-foreground">{ix.ipaddr4}</td>
-                            <td className="py-1.5 pr-3 font-mono text-foreground">{ix.ipaddr6}</td>
-                            <td className="py-1.5 text-foreground">{ix.isRsPeer ? "Yes" : "No"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  {t.asnFacilityPresence}
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                    {result.peeringdb.facilities.length}
-                  </span>
-                </p>
-                {result.peeringdb.facilities.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">{t.asnNoFacilities}</p>
-                ) : (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {result.peeringdb.facilities.map((fac) => (
-                      <div
-                        key={fac.id}
-                        className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs"
+                  {/* External links */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {result.peeringdb.website && (
+                      <a
+                        href={result.peeringdb.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
                       >
-                        <p className="font-medium text-foreground">{fac.name}</p>
-                        <p className="text-muted-foreground">
-                          {fac.city}
-                          {fac.country ? `, ${fac.country}` : ""}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <CircleCheck className="h-4 w-4 text-primary" />
-              {t.asnSources}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {([["ripestat", t.asnSourceRipestat], ["peeringdb", t.asnSourcePeeringdb], ["ipinfo", t.asnSourceIpinfo]] as const).map(
-                ([key, label]) => (
-                  <span
-                    key={key}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${sourceBadge(result.sources[key])}`}
-                  >
-                    {label}:{" "}
-                    {sourceLabel(
-                      result.sources[key],
-                      t.asnSourceAvailable,
-                      t.asnSourceUnavailable,
-                      t.asnSourceNotConfigured,
-                      t.asnSourceError,
+                        <Globe className="h-3 w-3" />
+                        {t.asnWebsite}
+                        <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
                     )}
-                  </span>
-                ),
+                    {result.peeringdb.lookingGlass && (
+                      <a
+                        href={result.peeringdb.lookingGlass}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                      >
+                        <Server className="h-3 w-3" />
+                        {t.asnLookingGlass}
+                        <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    )}
+                    {result.peeringdb.routeServer && (
+                      <a
+                        href={result.peeringdb.routeServer}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                      >
+                        <Route className="h-3 w-3" />
+                        {t.asnRouteServer}
+                        <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    )}
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* Visibility */}
+              {result.visibility.v4.totalRisPeers > 0 && (
+                <SectionCard title={t.asnVisibility} icon={Wifi}>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                        <span>IPv4</span>
+                        <span>{result.visibility.v4.risPeersSeeing} / {result.visibility.v4.totalRisPeers}</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{
+                            width: `${Math.min(100, (result.visibility.v4.risPeersSeeing / result.visibility.v4.totalRisPeers) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                        <span>IPv6</span>
+                        <span>{result.visibility.v6.risPeersSeeing} / {result.visibility.v6.totalRisPeers}</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{
+                            width: `${Math.min(100, (result.visibility.v6.risPeersSeeing / result.visibility.v6.totalRisPeers) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* RPKI */}
+              {result.rpki && (
+                <SectionCard title={t.asnRpkiStatus} icon={Shield}>
+                  <div className="mb-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                        result.rpki.status === "valid"
+                          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                          : result.rpki.status === "invalid"
+                            ? "border-red-500/40 bg-red-500/15 text-red-300"
+                            : "border-border bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {result.rpki.status === "valid" && <CircleCheck className="h-3 w-3" />}
+                      {result.rpki.status === "valid"
+                        ? t.asnRpkiValid
+                        : result.rpki.status === "invalid"
+                          ? t.asnRpkiInvalid
+                          : t.asnRpkiNotFound}
+                    </span>
+                  </div>
+                  {result.rpki.roas.length > 0 && (
+                    <div className="overflow-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border text-muted-foreground">
+                            <th className="py-1.5 pr-3 text-left font-medium">Prefix</th>
+                            <th className="py-1.5 pr-3 text-left font-medium">Origin</th>
+                            <th className="py-1.5 text-left font-medium">Validity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.rpki.roas.map((roa, i) => (
+                            <tr key={`${roa.prefix}-${i}`} className="border-b border-border/40">
+                              <td className="py-1.5 pr-3 font-mono text-foreground">{roa.prefix}</td>
+                              <td className="py-1.5 pr-3 font-mono text-foreground">{asnDisplay(Number(roa.origin))}</td>
+                              <td className="py-1.5 text-foreground">{roa.validity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </SectionCard>
+              )}
+
+              {/* Data Sources */}
+              <SectionCard title={t.asnSources} icon={CircleCheck}>
+                <div className="space-y-2">
+                  {([["ripestat", t.asnSourceRipestat], ["peeringdb", t.asnSourcePeeringdb], ["ipinfo", t.asnSourceIpinfo]] as const).map(
+                    ([key, label]) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{label}</span>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${sourceBadge(result.sources[key])}`}
+                        >
+                          {sourceLabel(
+                            result.sources[key],
+                            t.asnSourceAvailable,
+                            t.asnSourceUnavailable,
+                            t.asnSourceNotConfigured,
+                            t.asnSourceError,
+                          )}
+                        </span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* Right main content */}
+            <div className="flex flex-col gap-5 lg:col-span-2">
+              {/* IX Presence - PeeringDB style table */}
+              {result.peeringdb && (
+                <SectionCard title={t.asnIxPresence} icon={Network} count={result.peeringdb.ixlan.length}>
+                  {result.peeringdb.ixlan.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t.asnNoIx}</p>
+                  ) : (
+                    <div className="overflow-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border text-muted-foreground">
+                            <th className="py-2 pr-4 text-left font-medium">Exchange</th>
+                            <th className="py-2 pr-4 text-left font-medium">{t.asnSpeed}</th>
+                            <th className="py-2 pr-4 text-left font-medium">IPv4</th>
+                            <th className="py-2 pr-4 text-left font-medium">IPv6</th>
+                            <th className="py-2 pr-3 text-center font-medium">{t.asnRouteServerPeer}</th>
+                            <th className="py-2 text-center font-medium">{t.asnOperational}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.peeringdb.ixlan.map((ix) => (
+                            <tr key={ix.id} className="border-b border-border/40 transition-colors hover:bg-secondary/20">
+                              <td className="py-2.5 pr-4 font-medium text-foreground">{ix.name}</td>
+                              <td className="py-2.5 pr-4">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${speedColor(ix.speed)}`}
+                                >
+                                  <Zap className="h-3 w-3" />
+                                  {formatSpeed(ix.speed)}
+                                </span>
+                              </td>
+                              <td className="py-2.5 pr-4 font-mono text-muted-foreground">{ix.ipaddr4 || "\u2014"}</td>
+                              <td className="py-2.5 pr-4 font-mono text-muted-foreground">{ix.ipaddr6 || "\u2014"}</td>
+                              <td className="py-2.5 pr-3 text-center">
+                                {ix.isRsPeer ? (
+                                  <CircleCheck className="mx-auto h-4 w-4 text-emerald-400" />
+                                ) : (
+                                  <span className="text-muted-foreground">\u2014</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <span
+                                  className={`inline-block h-2 w-2 rounded-full ${
+                                    ix.operational ? "bg-emerald-400" : "bg-muted-foreground/40"
+                                  }`}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </SectionCard>
+              )}
+
+              {/* Prefixes */}
+              <SectionCard title={t.asnPrefixes} icon={Network}>
+                <div className="mb-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-border/60 bg-secondary/30 p-3">
+                    <p className="text-xs text-muted-foreground">{t.asnPrefixes4Count}</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{result.prefixes4Count}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/60 bg-secondary/30 p-3">
+                    <p className="text-xs text-muted-foreground">{t.asnPrefixes6Count}</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{result.prefixes6Count}</p>
+                  </div>
+                </div>
+
+                {(result.prefixes4.length > 0 || result.prefixes6.length > 0) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPrefixesExpanded(!prefixesExpanded)}
+                      className="flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+                    >
+                      {prefixesExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {prefixesExpanded ? t.asnShowAll : `${t.asnShowAll} (${result.prefixes4.length + result.prefixes6.length})`}
+                    </button>
+                    {prefixesExpanded && (
+                      <div className="mt-3 max-h-60 overflow-auto rounded-lg border border-border/60 bg-secondary/20">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="sticky top-0 border-b border-border bg-card/90 text-muted-foreground backdrop-blur">
+                              <th className="py-2 px-3 text-left font-medium">Prefix</th>
+                              <th className="py-2 px-3 text-left font-medium">Family</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {result.prefixes4.map((p) => (
+                              <tr key={p} className="border-b border-border/30">
+                                <td className="py-1.5 px-3 font-mono text-foreground">{p}</td>
+                                <td className="py-1.5 px-3 text-muted-foreground">IPv4</td>
+                              </tr>
+                            ))}
+                            {result.prefixes6.map((p) => (
+                              <tr key={p} className="border-b border-border/30">
+                                <td className="py-1.5 px-3 font-mono text-foreground">{p}</td>
+                                <td className="py-1.5 px-3 text-muted-foreground">IPv6</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+              </SectionCard>
+
+              {/* Routing: Upstreams */}
+              <SectionCard title={t.asnUpstreams} icon={ArrowUpRight} count={result.upstreams.length}>
+                <NeighborTable
+                  neighbors={result.upstreams}
+                  emptyMessage={t.asnNoUpstreams}
+                  t={t}
+                />
+              </SectionCard>
+
+              {/* Routing: Peers */}
+              <SectionCard title={t.asnPeers} icon={Shuffle} count={result.peers.length}>
+                <NeighborTable
+                  neighbors={result.peers}
+                  emptyMessage={t.asnNoPeers}
+                  t={t}
+                />
+              </SectionCard>
+
+              {/* Routing: Downstreams */}
+              <SectionCard title={t.asnDownstreams} icon={ArrowDownRight} count={result.downstreams.length}>
+                <NeighborTable
+                  neighbors={result.downstreams}
+                  emptyMessage={t.asnNoDownstreams}
+                  t={t}
+                />
+              </SectionCard>
+
+              {/* Facilities */}
+              {result.peeringdb && (
+                <SectionCard title={t.asnFacilityPresence} icon={Building2} count={result.peeringdb.facilities.length}>
+                  {result.peeringdb.facilities.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t.asnNoFacilities}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {result.peeringdb.facilities.map((fac) => (
+                        <div
+                          key={fac.id}
+                          className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-secondary/20 p-3 transition-colors hover:border-primary/30 hover:bg-secondary/40"
+                        >
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">{fac.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {fac.city}
+                              {fac.country ? `, ${fac.country}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </SectionCard>
               )}
             </div>
           </div>

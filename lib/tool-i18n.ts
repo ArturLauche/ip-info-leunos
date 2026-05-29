@@ -147,6 +147,17 @@ type ToolTranslation = {
   asnRisPeers: string;
   asnRipestatAttribution: string;
   asnPeeringdbAttribution: string;
+  asnNetworkInfo: string;
+  asnQuickStats: string;
+  asnIxCount: string;
+  asnFacCount: string;
+  asnTotalPrefixes: string;
+  asnOperational: string;
+  asnYes: string;
+  asnNo: string;
+  asnNoData: string;
+  asnNeighborTable: string;
+  asnNeighborPower: string;
 };
 
 const en: ToolTranslation = {
@@ -296,6 +307,17 @@ const en: ToolTranslation = {
   asnRisPeers: "RIS peers seeing",
   asnRipestatAttribution: "Routing data by",
   asnPeeringdbAttribution: "Peering data by",
+  asnNetworkInfo: "Network Info",
+  asnQuickStats: "Quick Stats",
+  asnIxCount: "IXPs",
+  asnFacCount: "Facilities",
+  asnTotalPrefixes: "Total Prefixes",
+  asnOperational: "Operational",
+  asnYes: "Yes",
+  asnNo: "No",
+  asnNoData: "No data",
+  asnNeighborTable: "ASN",
+  asnNeighborPower: "Power",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -442,6 +464,17 @@ const de: Partial<ToolTranslation> = {
   asnRisPeers: "RIS-Peers",
   asnRipestatAttribution: "Routing-Daten von",
   asnPeeringdbAttribution: "Peering-Daten von",
+  asnNetworkInfo: "Netzwerk-Info",
+  asnQuickStats: "Schnellübersicht",
+  asnIxCount: "IXPs",
+  asnFacCount: "Rechenzentren",
+  asnTotalPrefixes: "Präfixe gesamt",
+  asnOperational: "Operativ",
+  asnYes: "Ja",
+  asnNo: "Nein",
+  asnNoData: "Keine Daten",
+  asnNeighborTable: "ASN",
+  asnNeighborPower: "Power",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
