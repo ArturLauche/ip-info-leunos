@@ -11,7 +11,6 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
 - Inspect ASN profiles with routing, peering, and IX data at `/asn`.
-- Inspect DNS resolvers configured for the app runtime at `/client-dns`.
 
 ## Public-Site Safety Model
 
@@ -28,20 +27,6 @@ Blocked examples include:
 - `::1`, `fc00::/7`, and `fe80::/10`
 
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
-
-## Runtime DNS Resolver Scan
-
-`/client-dns` is a server-runtime DNS resolver scan. It reports DNS resolvers configured for the Next.js runtime via `node:dns.getServers()`.
-
-Important limitations:
-
-- In production, the result normally describes the hosting platform, container, VM, or server runtime.
-- It does not describe the visitor's browser DNS configuration, Secure DNS/DoH settings, VPN DNS, proxy DNS, router upstreams, or transparent DNS interception.
-- It is not comparable to dnsleaktest.com. A browser DNS leak test requires dedicated authoritative DNS infrastructure and unique test hostnames so the service can observe which recursive resolvers actually request those names.
-
-The API response marks this explicitly with `scope: "server-runtime"`, `method: "node-dns-getservers"`, `accuracy: "runtime-configuration"`, and `leakTestComparable: false`.
-
-Resolver privacy scoring is intentionally conservative. Known public resolvers can receive a privacy score based on the built-in provider profile. Private, loopback, link-local, invalid, or unknown public resolvers are reported with `privacy: "unknown"`, and the overall `privacyScore` is `null` instead of guessing.
 
 ## ASN Lookup
 

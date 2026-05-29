@@ -5,8 +5,6 @@ type ToolTranslation = {
   dnsTabLabel: string;
   whoisTabLabel: string;
   cdnTabLabel: string;
-  clientDnsTabLabel: string;
-  runtimeDnsTabLabel: string;
   pingTitle: string;
   pingSubtitle: string;
   dnsTitle: string;
@@ -15,10 +13,6 @@ type ToolTranslation = {
   whoisSubtitle: string;
   cdnTitle: string;
   cdnSubtitle: string;
-  clientDnsTitle: string;
-  clientDnsSubtitle: string;
-  runtimeDnsTitle: string;
-  runtimeDnsSubtitle: string;
   targetPlaceholder: string;
   lookupInProgress: string;
   dnsLookupButton: string;
@@ -84,35 +78,6 @@ type ToolTranslation = {
   cdnNoCname: string;
   cdnInterestingHeaders: string;
   cdnNoHeaders: string;
-  clientDnsEstimate: string;
-  clientDnsScanning: string;
-  clientDnsCheckedAt: string;
-  clientDnsNoData: string;
-  clientDnsRuntimeEnvironment: string;
-  clientDnsMethodPrefix: string;
-  clientDnsMethodRuntime: string;
-  clientDnsLeakTestCaveat: string;
-  clientDnsEnvironmentPrefix: string;
-  clientDnsSummaryPrefix: string;
-  clientDnsDetectedResolvers: string;
-  clientDnsDetectedResolversPlural: string;
-  clientDnsKnownResolvers: string;
-  clientDnsUnknownResolvers: string;
-  clientDnsNoResolvers: string;
-  clientDnsStrong: string;
-  clientDnsModerate: string;
-  clientDnsWeak: string;
-  clientDnsUnknownPrivacy: string;
-  clientDnsNotScored: string;
-  clientDnsHighPrivacy: string;
-  clientDnsMediumPrivacy: string;
-  clientDnsLowPrivacy: string;
-  clientDnsUnknownPrivacyLabel: string;
-  clientDnsProviderPolicy: string;
-  clientDnsGuidanceIntro: string;
-  clientDnsGuidancePrefer: string;
-  clientDnsGuidanceNetworks: string;
-  clientDnsRescan: string;
   asnTabLabel: string;
   asnTitle: string;
   asnSubtitle: string;
@@ -189,8 +154,6 @@ const en: ToolTranslation = {
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
   cdnTabLabel: "CDN Checker",
-  clientDnsTabLabel: "Runtime DNS Scan",
-  runtimeDnsTabLabel: "Runtime DNS Scan",
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
@@ -199,12 +162,6 @@ const en: ToolTranslation = {
   whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
   cdnSubtitle: "Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).",
-  clientDnsTitle: "Runtime DNS Resolver Scan",
-  clientDnsSubtitle:
-    "Detect DNS resolvers visible to this server runtime, identify known DNS providers, and estimate privacy posture with practical guidance.",
-  runtimeDnsTitle: "Runtime DNS Resolver Scan",
-  runtimeDnsSubtitle:
-    "Inspect the DNS resolvers visible to this app runtime. This is server/runtime visibility, not a browser DNS leak test.",
   targetPlaceholder: "example.com",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
@@ -270,37 +227,6 @@ const en: ToolTranslation = {
   cdnNoCname: "No CNAME records discovered.",
   cdnInterestingHeaders: "Interesting response headers",
   cdnNoHeaders: "No relevant headers found.",
-  clientDnsEstimate: "DNS privacy estimate",
-  clientDnsScanning: "Scanning active resolvers...",
-  clientDnsCheckedAt: "Checked at",
-  clientDnsNoData: "No DNS scan results available right now.",
-  clientDnsRuntimeEnvironment: "This scanner inspects DNS resolvers visible to the app runtime. In production this describes the server or hosting platform, not the visitor browser.",
-  clientDnsMethodPrefix: "Method:",
-  clientDnsMethodRuntime: "Node.js runtime resolver configuration (dns.getServers).",
-  clientDnsLeakTestCaveat: "This is not a dnsleaktest.com-style browser DNS leak test and should not be compared as one.",
-  clientDnsEnvironmentPrefix: "Environment:",
-  clientDnsSummaryPrefix: "Summary:",
-  clientDnsDetectedResolvers: "Detected resolver",
-  clientDnsDetectedResolversPlural: "Detected resolvers",
-  clientDnsKnownResolvers: "known",
-  clientDnsUnknownResolvers: "unknown",
-  clientDnsNoResolvers: "No resolvers were returned by the runtime DNS stack.",
-  clientDnsStrong: "Strong privacy posture",
-  clientDnsModerate: "Moderate privacy posture",
-  clientDnsWeak: "Weak privacy posture",
-  clientDnsUnknownPrivacy: "Unknown privacy posture",
-  clientDnsNotScored: "Not scored",
-  clientDnsHighPrivacy: "high privacy",
-  clientDnsMediumPrivacy: "medium privacy",
-  clientDnsLowPrivacy: "low privacy",
-  clientDnsUnknownPrivacyLabel: "unknown",
-  clientDnsProviderPolicy: "Provider policy page",
-  clientDnsGuidanceIntro:
-    "DNS resolvers can still see your queried domains unless you use encrypted DNS (DoH/DoT) and a privacy-focused provider.",
-  clientDnsGuidancePrefer:
-    "Prefer resolvers with transparent data-retention policies and optional malware blocking.",
-  clientDnsGuidanceNetworks: "Enterprise/VPN networks may intentionally override your local DNS settings.",
-  clientDnsRescan: "Rescan DNS",
   asnTabLabel: "ASN Lookup",
   asnTitle: "ASN Lookup",
   asnSubtitle: "View autonomous system details with routing, peering, and IX data from RIPEstat and PeeringDB.",
@@ -377,8 +303,6 @@ const de: Partial<ToolTranslation> = {
   dnsTabLabel: "DNS-Abfrage",
   whoisTabLabel: "WHOIS-Abfrage",
   cdnTabLabel: "CDN-Prüfer",
-  clientDnsTabLabel: "Runtime-DNS-Scan",
-  runtimeDnsTabLabel: "Runtime-DNS-Scan",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
@@ -387,12 +311,6 @@ const de: Partial<ToolTranslation> = {
   whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
   cdnSubtitle: "Analysiere beliebige Domains auf CDN-Nutzung und wahrscheinlichen Anbieter (u. a. CloudFront, Google Cloud CDN, Azure CDN, Vercel).",
-  clientDnsTitle: "Runtime-DNS-Resolver-Scan",
-  clientDnsSubtitle:
-    "Erkenne DNS-Resolver, die für diese App-Laufzeit sichtbar sind, und bewerte die Datenschutzlage mit konkreten Hinweisen.",
-  runtimeDnsTitle: "Runtime-DNS-Resolver-Scan",
-  runtimeDnsSubtitle:
-    "Prüft die DNS-Resolver, die für diese App-Laufzeit sichtbar sind. Das ist Server-/Runtime-Sichtbarkeit, kein Browser-DNS-Leak-Test.",
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",
@@ -455,37 +373,6 @@ const de: Partial<ToolTranslation> = {
   cdnNoCname: "Keine CNAME-Einträge gefunden.",
   cdnInterestingHeaders: "Auffällige Response-Header",
   cdnNoHeaders: "Keine relevanten Header gefunden.",
-  clientDnsEstimate: "DNS-Datenschutzbewertung",
-  clientDnsScanning: "Aktive Resolver werden gescannt...",
-  clientDnsCheckedAt: "Geprüft am",
-  clientDnsNoData: "Aktuell liegen keine DNS-Scan-Ergebnisse vor.",
-  clientDnsRuntimeEnvironment: "Dieser Scanner prüft DNS-Resolver, die für die App-Laufzeit sichtbar sind. In Produktion beschreibt das den Server oder die Hosting-Plattform, nicht den Browser des Besuchers.",
-  clientDnsMethodPrefix: "Methode:",
-  clientDnsMethodRuntime: "Node.js-Runtime-Resolver-Konfiguration (dns.getServers).",
-  clientDnsLeakTestCaveat: "Das ist kein Browser-DNS-Leak-Test wie dnsleaktest.com und sollte nicht so verglichen werden.",
-  clientDnsEnvironmentPrefix: "Umgebung:",
-  clientDnsSummaryPrefix: "Zusammenfassung:",
-  clientDnsDetectedResolvers: "Erkannter Resolver",
-  clientDnsDetectedResolversPlural: "Erkannte Resolver",
-  clientDnsKnownResolvers: "bekannt",
-  clientDnsUnknownResolvers: "unbekannt",
-  clientDnsNoResolvers: "Vom DNS-Stack der Laufzeit wurden keine Resolver zurückgegeben.",
-  clientDnsStrong: "Starke Datenschutzlage",
-  clientDnsModerate: "Mittlere Datenschutzlage",
-  clientDnsWeak: "Schwache Datenschutzlage",
-  clientDnsUnknownPrivacy: "Unbekannte Datenschutzlage",
-  clientDnsNotScored: "Nicht bewertet",
-  clientDnsHighPrivacy: "hoher Datenschutz",
-  clientDnsMediumPrivacy: "mittlerer Datenschutz",
-  clientDnsLowPrivacy: "niedriger Datenschutz",
-  clientDnsUnknownPrivacyLabel: "unbekannt",
-  clientDnsProviderPolicy: "Anbieter-Richtlinie",
-  clientDnsGuidanceIntro:
-    "DNS-Resolver können deine abgefragten Domains weiterhin sehen, sofern du kein verschlüsseltes DNS (DoH/DoT) mit einem datenschutzfreundlichen Anbieter nutzt.",
-  clientDnsGuidancePrefer:
-    "Bevorzuge Resolver mit transparenten Richtlinien zur Datenspeicherung und optionalem Malware-Schutz.",
-  clientDnsGuidanceNetworks: "Enterprise-/VPN-Netzwerke können lokale DNS-Einstellungen absichtlich überschreiben.",
-  clientDnsRescan: "DNS erneut scannen",
   asnTabLabel: "ASN-Abfrage",
   asnTitle: "ASN-Abfrage",
   asnSubtitle: "Details zur autonomen Systemnummer mit Routing-, Peering- und IX-Daten von RIPEstat und PeeringDB anzeigen.",
