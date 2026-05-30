@@ -26,8 +26,6 @@ import {
   Server,
   Network,
 } from "lucide-react";
-import Link from "next/link";
-
 interface IpData {
   ipv4: string | null;
   ipv6: string | null;
@@ -359,20 +357,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               {t.asNumber}
             </span>
           </div>
-          {(() => {
-            const asnMatch = data.as.match(/^(AS\d+)/i);
-            if (asnMatch) {
-              return (
-                <Link
-                  href={`/asn?asn=${encodeURIComponent(asnMatch[1])}`}
-                  className="truncate text-lg font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
-                >
-                  {data.as}
-                </Link>
-              );
-            }
-            return <p className="truncate text-lg font-semibold text-foreground">{data.as}</p>;
-          })()}
+          <p className="truncate text-lg font-semibold text-foreground">{data.as}</p>
           <p className="truncate text-xs text-muted-foreground">
             {data.asname || t.asFallbackDetail}
           </p>

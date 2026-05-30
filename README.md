@@ -10,7 +10,6 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Query WHOIS/RDAP data at `/whois`.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
-- Inspect ASN profiles with routing, peering, and IX data at `/asn`.
 
 ## Public-Site Safety Model
 
@@ -27,18 +26,6 @@ Blocked examples include:
 - `::1`, `fc00::/7`, and `fe80::/10`
 
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
-
-## ASN Lookup
-
-`/asn` combines data from multiple public sources:
-
-- **RIPEstat** for ASN identity, routing status, announced prefixes, RPKI validation, and neighbor classification (upstreams, peers, downstreams).
-- **PeeringDB** for peering policy, traffic levels, Internet Exchange presence, and facility presence.
-- **IPinfo** (optional) for enrichment when `IPINFO_TOKEN` is set.
-
-PeeringDB data is public and may be incomplete depending on whether the network maintains a PeeringDB profile.
-
-IPinfo ASN details may require an appropriate IPinfo plan. Set `IPINFO_TOKEN` to enable this source.
 
 ## Tech Stack
 
