@@ -5,6 +5,7 @@ type ToolTranslation = {
   dnsTabLabel: string;
   whoisTabLabel: string;
   cdnTabLabel: string;
+  asnTabLabel: string;
   pingTitle: string;
   pingSubtitle: string;
   dnsTitle: string;
@@ -13,6 +14,110 @@ type ToolTranslation = {
   whoisSubtitle: string;
   cdnTitle: string;
   cdnSubtitle: string;
+  asnTitle: string;
+  asnSubtitle: string;
+  asnPlaceholder: string;
+  asnLookupButton: string;
+  asnLookingUp: string;
+  asnInvalidInput: string;
+  asnInvalidRange: string;
+  asnNetworkError: string;
+  asnUpstreamError: string;
+  asnRateLimitError: string;
+  asnEmptyTitle: string;
+  asnEmptyDescription: string;
+  asnNotFoundTitle: string;
+  asnNotFoundDescription: string;
+  asnPartialData: string;
+  asnCompleteData: string;
+  asnIdentity: string;
+  asnPrefixes: string;
+  asnRouting: string;
+  asnPeeringDb: string;
+  asnIxPresence: string;
+  asnFacilities: string;
+  asnSources: string;
+  asnWarnings: string;
+  asnNoPrefixes: string;
+  asnNoRelations: string;
+  asnNoPeeringDb: string;
+  asnAutonomousSystem: string;
+  asnMetricIpv4Addresses: string;
+  asnMetricIpv4Prefixes: string;
+  asnMetricIpv6Prefixes: string;
+  asnMetricRoutingNeighbours: string;
+  asnMetricIxPresence: string;
+  asnMetricFacilities: string;
+  asnMetricIpinfoDetail: string;
+  asnMetricAnnouncedPrefixesDetail: string;
+  asnMetricPeeringDbDeclaredCountDetail: string;
+  asnMetricBgpRelationshipsDetail: string;
+  asnMetricPeeringDbProfileDetail: string;
+  asnReturnedRecords: string;
+  asnPrefixIpCount: string;
+  asnRelationPeers: string;
+  asnRelationUpstreams: string;
+  asnRelationDownstreams: string;
+  asnRelationPower: string;
+  asnRelationIpv4Peers: string;
+  asnRelationIpv6Peers: string;
+  asnSourceAvailable: string;
+  asnSourceUnavailable: string;
+  asnSourceNotConfigured: string;
+  asnSourceError: string;
+  asnLabelAsn: string;
+  asnLabelName: string;
+  asnLabelCountry: string;
+  asnLabelRegistry: string;
+  asnLabelAllocated: string;
+  asnLabelDomain: string;
+  asnLabelType: string;
+  asnLabelNetworkId: string;
+  asnLabelAlsoKnownAs: string;
+  asnLabelWebsite: string;
+  asnLabelLookingGlass: string;
+  asnLabelRouteServer: string;
+  asnLabelTraffic: string;
+  asnLabelPolicyGeneral: string;
+  asnLabelPolicyLocations: string;
+  asnLabelPolicyRatio: string;
+  asnLabelPolicyContracts: string;
+  asnLabelStatus: string;
+  asnLabelExchange: string;
+  asnLabelSpeed: string;
+  asnLabelIpv4: string;
+  asnLabelIpv6: string;
+  asnLabelRsPeer: string;
+  asnLabelFacility: string;
+  asnLabelCity: string;
+  asnLabelLocalAsn: string;
+  asnBooleanYes: string;
+  asnBooleanNo: string;
+  asnSpeedMbps: string;
+  asnNoIxLanRecords: string;
+  asnNoFacilityRecords: string;
+  asnWarningIpinfoUnavailable: string;
+  asnWarningIpinfoUnexpected: string;
+  asnWarningNoRipeStatData: string;
+  asnWarningNoPeeringDbProfile: string;
+  asnWarningProviderHttp: string;
+  asnWarningProviderTimedOut: string;
+  asnWarningProviderTooLarge: string;
+  asnWarningProviderInvalidJson: string;
+  asnWarningProviderUnavailable: string;
+  asnWarningTruncated: string;
+  asnWarningLabelIpinfoIpv4Prefixes: string;
+  asnWarningLabelIpinfoIpv6Prefixes: string;
+  asnWarningLabelIpinfoPeers: string;
+  asnWarningLabelIpinfoUpstreams: string;
+  asnWarningLabelIpinfoDownstreams: string;
+  asnWarningLabelPeeringDbIxLan: string;
+  asnWarningLabelPeeringDbFacilities: string;
+  asnWarningLabelRipeStatIpv4Prefixes: string;
+  asnWarningLabelRipeStatIpv6Prefixes: string;
+  asnWarningLabelRipeStatRoutingNeighbours: string;
+  asnWarningLabelRipeStatUpstreamNeighbours: string;
+  asnWarningLabelRipeStatDownstreamNeighbours: string;
   targetPlaceholder: string;
   lookupInProgress: string;
   dnsLookupButton: string;
@@ -85,6 +190,7 @@ const en: ToolTranslation = {
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
   cdnTabLabel: "CDN Checker",
+  asnTabLabel: "ASN Lookup",
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
@@ -93,6 +199,110 @@ const en: ToolTranslation = {
   whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
   cdnSubtitle: "Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).",
+  asnTitle: "ASN Information",
+  asnSubtitle: "Look up autonomous systems with IPinfo ASN details and public PeeringDB interconnection data.",
+  asnPlaceholder: "AS8881 or 8881",
+  asnLookupButton: "Lookup ASN",
+  asnLookingUp: "Looking up...",
+  asnInvalidInput: "Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.",
+  asnInvalidRange: "ASN must be between 1 and {max}.",
+  asnNetworkError: "Network error while contacting the ASN lookup.",
+  asnUpstreamError: "ASN data providers are currently unavailable.",
+  asnRateLimitError: "Too many ASN lookups. Please wait before trying again.",
+  asnEmptyTitle: "Enter an ASN to inspect a network profile",
+  asnEmptyDescription: "Use AS-prefixed or numeric input. Provider data may be partial depending on public records and the configured IPinfo plan.",
+  asnNotFoundTitle: "No ASN profile found",
+  asnNotFoundDescription: "The ASN is valid, but neither configured source returned a usable public profile.",
+  asnPartialData: "Partial data",
+  asnCompleteData: "Complete",
+  asnIdentity: "ASN identity",
+  asnPrefixes: "Announced prefixes",
+  asnRouting: "Routing relationships",
+  asnPeeringDb: "PeeringDB profile",
+  asnIxPresence: "IX presence",
+  asnFacilities: "Facility presence",
+  asnSources: "Source status",
+  asnWarnings: "Warnings",
+  asnNoPrefixes: "No prefixes returned by the configured sources.",
+  asnNoRelations: "No routing relationships returned by the configured sources.",
+  asnNoPeeringDb: "No public PeeringDB network profile is available for this ASN.",
+  asnAutonomousSystem: "Autonomous System",
+  asnMetricIpv4Addresses: "IPv4 addresses",
+  asnMetricIpv4Prefixes: "IPv4 prefixes",
+  asnMetricIpv6Prefixes: "IPv6 prefixes",
+  asnMetricRoutingNeighbours: "Routing neighbours",
+  asnMetricIxPresence: "IX presence",
+  asnMetricFacilities: "Facilities",
+  asnMetricIpinfoDetail: "IPinfo ASN data, when configured",
+  asnMetricAnnouncedPrefixesDetail: "Announced prefixes",
+  asnMetricPeeringDbDeclaredCountDetail: "PeeringDB declared count",
+  asnMetricBgpRelationshipsDetail: "IPinfo or RIPEstat BGP relationships",
+  asnMetricPeeringDbProfileDetail: "PeeringDB network profile",
+  asnReturnedRecords: "Showing {visible} of {total} returned records.",
+  asnPrefixIpCount: "IPs",
+  asnRelationPeers: "Peers",
+  asnRelationUpstreams: "Upstreams",
+  asnRelationDownstreams: "Downstreams",
+  asnRelationPower: "power",
+  asnRelationIpv4Peers: "v4",
+  asnRelationIpv6Peers: "v6",
+  asnSourceAvailable: "available",
+  asnSourceUnavailable: "unavailable",
+  asnSourceNotConfigured: "not configured",
+  asnSourceError: "error",
+  asnLabelAsn: "ASN",
+  asnLabelName: "Name",
+  asnLabelCountry: "Country",
+  asnLabelRegistry: "Registry",
+  asnLabelAllocated: "Allocated",
+  asnLabelDomain: "Domain",
+  asnLabelType: "Type",
+  asnLabelNetworkId: "Network ID",
+  asnLabelAlsoKnownAs: "Also known as",
+  asnLabelWebsite: "Website",
+  asnLabelLookingGlass: "Looking glass",
+  asnLabelRouteServer: "Route server",
+  asnLabelTraffic: "Traffic",
+  asnLabelPolicyGeneral: "Policy general",
+  asnLabelPolicyLocations: "Policy locations",
+  asnLabelPolicyRatio: "Policy ratio",
+  asnLabelPolicyContracts: "Policy contracts",
+  asnLabelStatus: "Status",
+  asnLabelExchange: "Exchange",
+  asnLabelSpeed: "Speed",
+  asnLabelIpv4: "IPv4",
+  asnLabelIpv6: "IPv6",
+  asnLabelRsPeer: "RS peer",
+  asnLabelFacility: "Facility",
+  asnLabelCity: "City",
+  asnLabelLocalAsn: "Local ASN",
+  asnBooleanYes: "yes",
+  asnBooleanNo: "no",
+  asnSpeedMbps: "Mbps",
+  asnNoIxLanRecords: "No IX LAN records returned.",
+  asnNoFacilityRecords: "No facility records returned.",
+  asnWarningIpinfoUnavailable: "IPinfo ASN data is unavailable for this ASN or token plan.",
+  asnWarningIpinfoUnexpected: "IPinfo returned an unexpected ASN payload.",
+  asnWarningNoRipeStatData: "No RIPEstat ASN data was found for this ASN.",
+  asnWarningNoPeeringDbProfile: "No public PeeringDB network profile was found for this ASN.",
+  asnWarningProviderHttp: "{provider} returned HTTP {status}.",
+  asnWarningProviderTimedOut: "{provider} request timed out.",
+  asnWarningProviderTooLarge: "{provider} response exceeded the size limit.",
+  asnWarningProviderInvalidJson: "{provider} returned invalid JSON.",
+  asnWarningProviderUnavailable: "{provider} data is currently unavailable.",
+  asnWarningTruncated: "{label} truncated to {limit} of {total} records.",
+  asnWarningLabelIpinfoIpv4Prefixes: "IPinfo IPv4 prefixes",
+  asnWarningLabelIpinfoIpv6Prefixes: "IPinfo IPv6 prefixes",
+  asnWarningLabelIpinfoPeers: "IPinfo peers",
+  asnWarningLabelIpinfoUpstreams: "IPinfo upstreams",
+  asnWarningLabelIpinfoDownstreams: "IPinfo downstreams",
+  asnWarningLabelPeeringDbIxLan: "PeeringDB IX LAN records",
+  asnWarningLabelPeeringDbFacilities: "PeeringDB facilities",
+  asnWarningLabelRipeStatIpv4Prefixes: "RIPEstat IPv4 prefixes",
+  asnWarningLabelRipeStatIpv6Prefixes: "RIPEstat IPv6 prefixes",
+  asnWarningLabelRipeStatRoutingNeighbours: "RIPEstat routing neighbours",
+  asnWarningLabelRipeStatUpstreamNeighbours: "RIPEstat upstream-side neighbours",
+  asnWarningLabelRipeStatDownstreamNeighbours: "RIPEstat downstream-side neighbours",
   targetPlaceholder: "example.com",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
@@ -165,6 +375,7 @@ const de: Partial<ToolTranslation> = {
   dnsTabLabel: "DNS-Abfrage",
   whoisTabLabel: "WHOIS-Abfrage",
   cdnTabLabel: "CDN-Prüfer",
+  asnTabLabel: "ASN-Abfrage",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
@@ -173,6 +384,110 @@ const de: Partial<ToolTranslation> = {
   whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
   cdnSubtitle: "Analysiere beliebige Domains auf CDN-Nutzung und wahrscheinlichen Anbieter (u. a. CloudFront, Google Cloud CDN, Azure CDN, Vercel).",
+  asnTitle: "ASN-Informationen",
+  asnSubtitle: "Autonome Systeme mit IPinfo-ASN-Daten und oeffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
+  asnPlaceholder: "AS8881 oder 8881",
+  asnLookupButton: "ASN abfragen",
+  asnLookingUp: "Abfrage laeuft...",
+  asnInvalidInput: "Nutze eine AS-Nummer mit oder ohne Praefix, zum Beispiel AS8881 oder 8881.",
+  asnInvalidRange: "ASN muss zwischen 1 und {max} liegen.",
+  asnNetworkError: "Netzwerkfehler bei der ASN-Abfrage.",
+  asnUpstreamError: "Die ASN-Datenquellen sind derzeit nicht verfuegbar.",
+  asnRateLimitError: "Zu viele ASN-Abfragen. Bitte warte kurz und versuche es dann erneut.",
+  asnEmptyTitle: "ASN eingeben, um ein Netzwerkprofil zu pruefen",
+  asnEmptyDescription: "AS-Praefix oder reine Zahl eingeben. Quelldaten koennen je nach oeffentlichen Eintraegen und IPinfo-Plan unvollstaendig sein.",
+  asnNotFoundTitle: "Kein ASN-Profil gefunden",
+  asnNotFoundDescription: "Die ASN ist gueltig, aber keine konfigurierte Quelle lieferte ein nutzbares oeffentliches Profil.",
+  asnPartialData: "Teildaten",
+  asnCompleteData: "Vollstaendig",
+  asnIdentity: "ASN-Identitaet",
+  asnPrefixes: "Angekuendigte Prefixe",
+  asnRouting: "Routing-Beziehungen",
+  asnPeeringDb: "PeeringDB-Profil",
+  asnIxPresence: "IX-Praesenz",
+  asnFacilities: "Standort-Praesenz",
+  asnSources: "Quellenstatus",
+  asnWarnings: "Warnungen",
+  asnNoPrefixes: "Keine Prefixe von den konfigurierten Quellen erhalten.",
+  asnNoRelations: "Keine Routing-Beziehungen von den konfigurierten Quellen erhalten.",
+  asnNoPeeringDb: "Fuer diese ASN ist kein oeffentliches PeeringDB-Netzwerkprofil verfuegbar.",
+  asnAutonomousSystem: "Autonomes System",
+  asnMetricIpv4Addresses: "IPv4-Adressen",
+  asnMetricIpv4Prefixes: "IPv4-Prefixe",
+  asnMetricIpv6Prefixes: "IPv6-Prefixe",
+  asnMetricRoutingNeighbours: "Routing-Nachbarn",
+  asnMetricIxPresence: "IX-Praesenz",
+  asnMetricFacilities: "Standorte",
+  asnMetricIpinfoDetail: "IPinfo-ASN-Daten, wenn konfiguriert",
+  asnMetricAnnouncedPrefixesDetail: "Angekuendigte Prefixe",
+  asnMetricPeeringDbDeclaredCountDetail: "Von PeeringDB gemeldete Anzahl",
+  asnMetricBgpRelationshipsDetail: "BGP-Beziehungen aus IPinfo oder RIPEstat",
+  asnMetricPeeringDbProfileDetail: "PeeringDB-Netzwerkprofil",
+  asnReturnedRecords: "{visible} von {total} Eintraegen werden angezeigt.",
+  asnPrefixIpCount: "IPs",
+  asnRelationPeers: "Peers",
+  asnRelationUpstreams: "Upstreams",
+  asnRelationDownstreams: "Downstreams",
+  asnRelationPower: "Gewicht",
+  asnRelationIpv4Peers: "v4",
+  asnRelationIpv6Peers: "v6",
+  asnSourceAvailable: "verfuegbar",
+  asnSourceUnavailable: "nicht verfuegbar",
+  asnSourceNotConfigured: "nicht konfiguriert",
+  asnSourceError: "Fehler",
+  asnLabelAsn: "ASN",
+  asnLabelName: "Name",
+  asnLabelCountry: "Land",
+  asnLabelRegistry: "Registry",
+  asnLabelAllocated: "Zugewiesen",
+  asnLabelDomain: "Domain",
+  asnLabelType: "Typ",
+  asnLabelNetworkId: "Netzwerk-ID",
+  asnLabelAlsoKnownAs: "Auch bekannt als",
+  asnLabelWebsite: "Website",
+  asnLabelLookingGlass: "Looking Glass",
+  asnLabelRouteServer: "Route-Server",
+  asnLabelTraffic: "Traffic",
+  asnLabelPolicyGeneral: "Peering-Policy",
+  asnLabelPolicyLocations: "Policy-Standorte",
+  asnLabelPolicyRatio: "Policy-Ratio",
+  asnLabelPolicyContracts: "Policy-Vertraege",
+  asnLabelStatus: "Status",
+  asnLabelExchange: "Exchange",
+  asnLabelSpeed: "Geschwindigkeit",
+  asnLabelIpv4: "IPv4",
+  asnLabelIpv6: "IPv6",
+  asnLabelRsPeer: "RS-Peer",
+  asnLabelFacility: "Standort",
+  asnLabelCity: "Stadt",
+  asnLabelLocalAsn: "Lokale ASN",
+  asnBooleanYes: "ja",
+  asnBooleanNo: "nein",
+  asnSpeedMbps: "Mbit/s",
+  asnNoIxLanRecords: "Keine IX-LAN-Eintraege erhalten.",
+  asnNoFacilityRecords: "Keine Standort-Eintraege erhalten.",
+  asnWarningIpinfoUnavailable: "IPinfo-ASN-Daten sind fuer diese ASN oder diesen Token-Plan nicht verfuegbar.",
+  asnWarningIpinfoUnexpected: "IPinfo hat eine unerwartete ASN-Antwort geliefert.",
+  asnWarningNoRipeStatData: "RIPEstat hat fuer diese ASN keine ASN-Daten gefunden.",
+  asnWarningNoPeeringDbProfile: "Fuer diese ASN wurde kein oeffentliches PeeringDB-Netzwerkprofil gefunden.",
+  asnWarningProviderHttp: "{provider} antwortete mit HTTP {status}.",
+  asnWarningProviderTimedOut: "{provider} hat nicht rechtzeitig geantwortet.",
+  asnWarningProviderTooLarge: "Die Antwort von {provider} ueberschritt das Groessenlimit.",
+  asnWarningProviderInvalidJson: "{provider} lieferte ungueltiges JSON.",
+  asnWarningProviderUnavailable: "{provider}-Daten sind derzeit nicht verfuegbar.",
+  asnWarningTruncated: "{label} wurden auf {limit} von {total} Eintraegen gekuerzt.",
+  asnWarningLabelIpinfoIpv4Prefixes: "IPinfo-IPv4-Prefixe",
+  asnWarningLabelIpinfoIpv6Prefixes: "IPinfo-IPv6-Prefixe",
+  asnWarningLabelIpinfoPeers: "IPinfo-Peers",
+  asnWarningLabelIpinfoUpstreams: "IPinfo-Upstreams",
+  asnWarningLabelIpinfoDownstreams: "IPinfo-Downstreams",
+  asnWarningLabelPeeringDbIxLan: "PeeringDB-IX-LAN-Eintraege",
+  asnWarningLabelPeeringDbFacilities: "PeeringDB-Standorte",
+  asnWarningLabelRipeStatIpv4Prefixes: "RIPEstat-IPv4-Prefixe",
+  asnWarningLabelRipeStatIpv6Prefixes: "RIPEstat-IPv6-Prefixe",
+  asnWarningLabelRipeStatRoutingNeighbours: "RIPEstat-Routing-Nachbarn",
+  asnWarningLabelRipeStatUpstreamNeighbours: "RIPEstat-Upstream-Nachbarn",
+  asnWarningLabelRipeStatDownstreamNeighbours: "RIPEstat-Downstream-Nachbarn",
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",

@@ -6,6 +6,7 @@ import {
   Radar,
   Search,
   ShieldCheck,
+  Waypoints,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -13,7 +14,7 @@ import type { Locale } from "@/lib/i18n";
 import { getTranslation } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
-type ToolKey = "home" | "check" | "ping" | "dns" | "whois" | "cdn";
+type ToolKey = "home" | "check" | "asn" | "ping" | "dns" | "whois" | "cdn";
 
 const primaryLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
   { key: "home", href: "/", icon: Globe },
@@ -21,6 +22,7 @@ const primaryLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
 ];
 
 const diagnosticLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
+  { key: "asn", href: "/asn", icon: Waypoints },
   { key: "ping", href: "/ping", icon: Radar },
   { key: "dns", href: "/dns", icon: Network },
   { key: "whois", href: "/whois", icon: Activity },
@@ -34,6 +36,7 @@ function labelFor(key: ToolKey, locale: Locale) {
   const labels: Record<ToolKey, string> = {
     home: t.homeTitle,
     check: t.checkTitle,
+    asn: toolT.asnTabLabel,
     ping: toolT.pingTabLabel,
     dns: toolT.dnsTabLabel,
     whois: toolT.whoisTabLabel,

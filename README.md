@@ -6,6 +6,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 
 - Show the visitor's public IPv4/IPv6 metadata.
 - Look up a public IP address or public domain at `/check`.
+- Look up ASN profiles at `/asn` and `/asn/AS8881`, combining optional IPinfo ASN data, public RIPEstat routing data, and public PeeringDB peering data.
 - Query DNS records at `/dns`.
 - Query WHOIS/RDAP data at `/whois`.
 - Detect common CDN and edge-provider signals at `/cdn`.
@@ -26,6 +27,8 @@ Blocked examples include:
 - `::1`, `fc00::/7`, and `fe80::/10`
 
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
+
+Set `IPINFO_TOKEN` to enable IPinfo ASN details on `/asn`. Without a token, ASN lookups still use public PeeringDB data when available.
 
 ## Tech Stack
 
@@ -63,9 +66,15 @@ This app is not purely static because the tools use server-side API routes. Depl
 ## External Providers
 
 - `ip-api.com` for IP metadata
+- `ipinfo.io` ASN API for optional ASN identity, prefix, RPKI, peer, upstream, and downstream data when `IPINFO_TOKEN` is configured
+- `stat.ripe.net` public API for free ASN holder, announced prefix, and RIS routing-neighbour data
+- `peeringdb.com` public API for ASN network profiles, IX presence, facilities, and peering policy data
 - `api64.ipify.org` for primary client-side IPv6 discovery
 - `checkip.amazonaws.com` as a client-side IP discovery fallback
 - `rdap.org` as WHOIS fallback
+
+PeeringDB data is public and user-maintained, so it may be incomplete when a network does not maintain a PeeringDB profile. IPinfo ASN details may require an appropriate IPinfo plan for the configured token.
+PeeringDB describes network peering policy and presence; BGP-style routing neighbours are sourced from RIPEstat RIS data and may be directional observations rather than contractual peer/upstream/customer records.
 
 ## License
 

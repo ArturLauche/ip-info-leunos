@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { siteConfig } from '@/lib/seo'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ['', '/check', '/ping', '/dns', '/whois', '/cdn']
+  const routes = ['', '/check', '/asn', '/ping', '/dns', '/whois', '/cdn']
 
   return routes.map((route) => ({
     url: `${siteConfig.url}${route}`,
