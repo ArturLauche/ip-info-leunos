@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { InfoCard } from "@/components/info-card";
 import { getTranslation, type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
+import { normalizeAsnInput } from "@/lib/asn";
 import {
   discoverClientIp,
   resolveDisplayIps,
@@ -25,6 +27,7 @@ import {
   Shield,
   Server,
   Network,
+  ExternalLink,
 } from "lucide-react";
 interface IpData {
   ipv4: string | null;
@@ -85,6 +88,18 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       )}
     </button>
   );
+}
+
+function getAsnHref(value: string) {
+  const match = value.match(/\bAS\s*([0-9]+)\b/i);
+  if (!match) return null;
+
+  try {
+    const normalized = normalizeAsnInput(`AS${match[1]}`);
+    return `/asn/${normalized.asn}`;
+  } catch {
+    return null;
+  }
 }
 
 export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
@@ -203,6 +218,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const displayIps = resolveDisplayIps(data, clientIpv4, clientIpv6);
   const displayIpv4 = displayIps.ipv4?.ip || null;
   const displayIpv6 = displayIps.ipv6?.ip || null;
+  const asnHref = getAsnHref(data.as);
   const connectionTypeLabel =
     data.connectionType === "Festnetz" ? t.connectionDsl : data.connectionType;
 
@@ -357,7 +373,17 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               {t.asNumber}
             </span>
           </div>
-          <p className="truncate text-lg font-semibold text-foreground">{data.as}</p>
+          {asnHref ? (
+            <Link
+              href={asnHref}
+              className="inline-flex max-w-full items-center gap-1 text-lg font-semibold text-foreground transition-colors hover:text-primary"
+            >
+              <span className="truncate">{data.as}</span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            </Link>
+          ) : (
+            <p className="truncate text-lg font-semibold text-foreground">{data.as}</p>
+          )}
           <p className="truncate text-xs text-muted-foreground">
             {data.asname || t.asFallbackDetail}
           </p>
