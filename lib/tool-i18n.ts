@@ -37,7 +37,14 @@ type ToolTranslation = {
   asnIxPresence: string;
   asnFacilities: string;
   asnSources: string;
+  asnSourceDiagnostics: string;
   asnWarnings: string;
+  asnDiagnosticDuration: string;
+  asnDiagnosticCache: string;
+  asnCacheMiss: string;
+  asnCacheFresh: string;
+  asnCacheStale: string;
+  asnCacheNotConfigured: string;
   asnNoPrefixes: string;
   asnNoRelations: string;
   asnNoPeeringDb: string;
@@ -105,6 +112,7 @@ type ToolTranslation = {
   asnWarningProviderTooLarge: string;
   asnWarningProviderInvalidJson: string;
   asnWarningProviderUnavailable: string;
+  asnWarningProviderStale: string;
   asnWarningTruncated: string;
   asnWarningLabelIpinfoIpv4Prefixes: string;
   asnWarningLabelIpinfoIpv6Prefixes: string;
@@ -222,7 +230,14 @@ const en: ToolTranslation = {
   asnIxPresence: "IX presence",
   asnFacilities: "Facility presence",
   asnSources: "Source status",
+  asnSourceDiagnostics: "Source diagnostics",
   asnWarnings: "Warnings",
+  asnDiagnosticDuration: "Duration",
+  asnDiagnosticCache: "Cache",
+  asnCacheMiss: "miss",
+  asnCacheFresh: "fresh",
+  asnCacheStale: "stale",
+  asnCacheNotConfigured: "not configured",
   asnNoPrefixes: "No prefixes returned by the configured sources.",
   asnNoRelations: "No routing relationships returned by the configured sources.",
   asnNoPeeringDb: "No public PeeringDB network profile is available for this ASN.",
@@ -290,6 +305,7 @@ const en: ToolTranslation = {
   asnWarningProviderTooLarge: "{provider} response exceeded the size limit.",
   asnWarningProviderInvalidJson: "{provider} returned invalid JSON.",
   asnWarningProviderUnavailable: "{provider} data is currently unavailable.",
+  asnWarningProviderStale: "{provider} data is currently unavailable; using stale cached data.",
   asnWarningTruncated: "{label} truncated to {limit} of {total} records.",
   asnWarningLabelIpinfoIpv4Prefixes: "IPinfo IPv4 prefixes",
   asnWarningLabelIpinfoIpv6Prefixes: "IPinfo IPv6 prefixes",
@@ -407,7 +423,14 @@ const de: Partial<ToolTranslation> = {
   asnIxPresence: "IX-Praesenz",
   asnFacilities: "Standort-Praesenz",
   asnSources: "Quellenstatus",
+  asnSourceDiagnostics: "Quellendiagnose",
   asnWarnings: "Warnungen",
+  asnDiagnosticDuration: "Dauer",
+  asnDiagnosticCache: "Cache",
+  asnCacheMiss: "nicht im Cache",
+  asnCacheFresh: "frisch",
+  asnCacheStale: "veraltet",
+  asnCacheNotConfigured: "nicht konfiguriert",
   asnNoPrefixes: "Keine Prefixe von den konfigurierten Quellen erhalten.",
   asnNoRelations: "Keine Routing-Beziehungen von den konfigurierten Quellen erhalten.",
   asnNoPeeringDb: "Fuer diese ASN ist kein oeffentliches PeeringDB-Netzwerkprofil verfuegbar.",
@@ -475,6 +498,7 @@ const de: Partial<ToolTranslation> = {
   asnWarningProviderTooLarge: "Die Antwort von {provider} ueberschritt das Groessenlimit.",
   asnWarningProviderInvalidJson: "{provider} lieferte ungueltiges JSON.",
   asnWarningProviderUnavailable: "{provider}-Daten sind derzeit nicht verfuegbar.",
+  asnWarningProviderStale: "{provider}-Daten sind derzeit nicht verfuegbar; es werden veraltete Cache-Daten verwendet.",
   asnWarningTruncated: "{label} wurden auf {limit} von {total} Eintraegen gekuerzt.",
   asnWarningLabelIpinfoIpv4Prefixes: "IPinfo-IPv4-Prefixe",
   asnWarningLabelIpinfoIpv6Prefixes: "IPinfo-IPv6-Prefixe",

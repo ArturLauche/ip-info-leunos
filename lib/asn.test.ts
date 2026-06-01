@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AsnValidationError,
+  mergeAsnProfile,
   normalizeAsnInput,
   normalizeIpinfoAsnPayload,
   normalizePeeringDbPayload,
@@ -156,6 +157,24 @@ describe("ASN provider normalization", () => {
     expect(JSON.stringify(normalized)).not.toContain("+49 30 000000");
   });
 
+  it("selects the exact PeeringDB ASN when multiple records are returned", () => {
+    const normalized = normalizePeeringDbPayload(
+      {
+        data: [
+          { id: 1, asn: 64500, name: "Wrong Network" },
+          { id: 2, asn: 64501, name: "Exact Network" },
+        ],
+      },
+      [],
+      64501,
+    );
+
+    expect(normalized).toMatchObject({
+      netId: 2,
+      name: "Exact Network",
+    });
+  });
+
   it("normalizes RIPEstat prefixes and routing neighbours", () => {
     const warnings: string[] = [];
     const normalized = normalizeRipeStatPayload(
@@ -204,5 +223,97 @@ describe("ASN provider normalization", () => {
     });
     expect(normalized?.downstreams[0].asn).toBe("AS200665");
     expect(normalized?.peers[0].asn).toBe("AS6939");
+  });
+
+  it("rejects empty IPinfo success payloads", () => {
+    expect(normalizeIpinfoAsnPayload({ asn: "AS64500" })).toBeNull();
+    expect(normalizeIpinfoAsnPayload({ error: { title: "not found" } })).toBeNull();
+  });
+
+  it("merges IPinfo and RIPEstat prefixes while preserving richer IPinfo metadata", () => {
+    const profile = mergeAsnProfile({
+      normalized: { asn: "AS64500", asnNumber: 64500 },
+      ipinfo: {
+        name: "IPinfo Network",
+        country: "DE",
+        registry: "ripe",
+        allocated: "",
+        domain: "",
+        type: "",
+        numIps: null,
+        prefixes4: [
+          {
+            netblock: "203.0.113.0/24",
+            id: "IPINFO-V4",
+            name: "IPinfo Prefix",
+            country: "DE",
+            size: "256",
+            status: "allocated",
+            domain: "example.net",
+            rpkiStatus: "valid",
+          },
+        ],
+        prefixes6: [],
+        prefixes4Total: 1,
+        prefixes6Total: 0,
+        peers: [],
+        upstreams: [],
+        downstreams: [],
+        peersTotal: 0,
+        upstreamsTotal: 0,
+        downstreamsTotal: 0,
+      },
+      ripestat: {
+        name: "RIPE Network",
+        prefixes4: [
+          {
+            netblock: "203.0.113.0/24",
+            id: "",
+            name: "",
+            country: "",
+            size: "",
+            status: "announced",
+            domain: "",
+            rpkiStatus: "",
+          },
+          {
+            netblock: "198.51.100.0/24",
+            id: "",
+            name: "",
+            country: "",
+            size: "",
+            status: "announced",
+            domain: "",
+            rpkiStatus: "",
+          },
+        ],
+        prefixes6: [],
+        prefixes4Total: 2,
+        prefixes6Total: 0,
+        peers: [],
+        upstreams: [],
+        downstreams: [],
+        peersTotal: 0,
+        upstreamsTotal: 0,
+        downstreamsTotal: 0,
+      },
+      peeringdb: null,
+      sources: { ipinfo: "available", peeringdb: "unavailable", ripestat: "available" },
+      warnings: ["duplicate", "duplicate"],
+    });
+
+    expect(profile.prefixes4).toHaveLength(2);
+    expect(profile.prefixes4[0]).toMatchObject({
+      netblock: "203.0.113.0/24",
+      name: "IPinfo Prefix",
+      status: "allocated",
+      rpkiStatus: "valid",
+    });
+    expect(profile.prefixes4[1]).toMatchObject({
+      netblock: "198.51.100.0/24",
+      status: "announced",
+    });
+    expect(profile.prefixes4Total).toBe(2);
+    expect(profile.warnings).toEqual(["duplicate"]);
   });
 });

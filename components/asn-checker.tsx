@@ -28,6 +28,7 @@ import {
   type AsnRelation,
   type PeeringDbFacility,
   type PeeringDbIxLan,
+  type SourceCacheStatus,
   type SourceStatus,
 } from "@/lib/asn";
 import { getToolTranslation } from "@/lib/tool-i18n";
@@ -58,6 +59,13 @@ function sourceBadgeClass(status: SourceStatus) {
   if (status === "not_configured") return "border-sky-500/40 bg-sky-500/10 text-sky-300";
   if (status === "unavailable") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
   return "border-red-500/40 bg-red-500/10 text-red-300";
+}
+
+function formatCacheStatus(status: SourceCacheStatus, t: ToolT) {
+  if (status === "fresh") return t.asnCacheFresh;
+  if (status === "stale") return t.asnCacheStale;
+  if (status === "not_configured") return t.asnCacheNotConfigured;
+  return t.asnCacheMiss;
 }
 
 function hasSourceInfoFlag() {
@@ -149,6 +157,12 @@ function formatWarning(warning: string, t: ToolT, locale: Locale) {
   }
   if (warning === "No public PeeringDB network profile was found for this ASN.") {
     return t.asnWarningNoPeeringDbProfile;
+  }
+  if (warning.match(/^(.+) data is currently unavailable; using stale cached data\.$/)) {
+    const staleMatch = warning.match(/^(.+) data is currently unavailable; using stale cached data\.$/);
+    return staleMatch
+      ? formatTemplate(t.asnWarningProviderStale, { provider: staleMatch[1] })
+      : warning;
   }
 
   const httpMatch = warning.match(/^(.+) returned HTTP ([0-9]+)\.$/);
@@ -454,14 +468,17 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       setError(null);
       setResult(null);
 
+      const shouldShowSourceInfo = hasSourceInfoFlag();
+      setShowSourceInfo(shouldShowSourceInfo);
+
       if (updateUrl) {
-        const shouldShowSourceInfo = hasSourceInfoFlag();
-        setShowSourceInfo(shouldShowSourceInfo);
         router.replace(`/asn/${normalized.asn}${shouldShowSourceInfo ? "?source-info=1" : ""}`, { scroll: false });
       }
 
       try {
-        const response = await fetch(`/api/asn/${encodeURIComponent(normalized.asn)}`);
+        const response = await fetch(
+          `/api/asn/${encodeURIComponent(normalized.asn)}${shouldShowSourceInfo ? "?source-info=1" : ""}`,
+        );
         const data = unwrapApiResponse<AsnProfile>(await response.json());
         setResult(data);
       } catch (lookupError) {
@@ -648,6 +665,25 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
                     </span>
                   ))}
                 </div>
+                {result.sourceDiagnostics && result.sourceDiagnostics.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {t.asnSourceDiagnostics}
+                    </p>
+                    {result.sourceDiagnostics.map((diagnostic) => (
+                      <div
+                        key={diagnostic.source}
+                        className="rounded-lg border border-border bg-secondary px-3 py-2 text-xs text-muted-foreground"
+                      >
+                        <p className="font-medium uppercase tracking-wider text-foreground">{diagnostic.source}</p>
+                        <p className="mt-1">
+                          {t.asnDiagnosticDuration}: {formatNumber(diagnostic.durationMs, locale)} ms -{" "}
+                          {t.asnDiagnosticCache}: {formatCacheStatus(diagnostic.cache, t)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

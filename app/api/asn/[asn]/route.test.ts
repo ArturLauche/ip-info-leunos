@@ -12,10 +12,39 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
-function invoke(asn = "AS8881") {
-  return GET(new Request(`http://localhost/api/asn/${asn}`), {
+function invoke(asn = "AS8881", query = "") {
+  return GET(new Request(`http://localhost/api/asn/${asn}${query}`), {
     params: Promise.resolve({ asn }),
   });
+}
+
+function ripeStatPayload(url: string) {
+  if (url.includes("stat.ripe.net/data/as-overview")) {
+    return { data: { holder: "RIPE Holder" } };
+  }
+
+  if (url.includes("stat.ripe.net/data/announced-prefixes")) {
+    return { data: { prefixes: [{ prefix: "198.51.100.0/24" }] } };
+  }
+
+  if (url.includes("stat.ripe.net/data/asn-neighbours")) {
+    return { data: { neighbours: [{ asn: 1299, type: "left", power: 30 }] } };
+  }
+
+  return null;
+}
+
+function peeringDbPayload(asn: number) {
+  return {
+    data: [
+      {
+        id: asn,
+        asn,
+        name: `Peering ${asn}`,
+        status: "ok",
+      },
+    ],
+  };
 }
 
 afterEach(() => {
@@ -24,6 +53,7 @@ afterEach(() => {
   } else {
     process.env.IPINFO_TOKEN = originalIpinfoToken;
   }
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -127,6 +157,7 @@ describe("ASN API route", () => {
     );
     expect(JSON.stringify(body)).not.toContain("secret-token");
     expect(JSON.stringify(body)).not.toContain("private@example.net");
+    expect(body.data.sourceDiagnostics).toBeUndefined();
   });
 
   it("skips IPinfo when no token is configured", async () => {
@@ -152,20 +183,20 @@ describe("ASN API route", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await invoke("8881");
+    const response = await invoke("8882");
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://www.peeringdb.com/api/net?asn=8881&depth=2",
+      "https://www.peeringdb.com/api/net?asn=8882&depth=2",
       expect.any(Object),
     );
     expect(body).toMatchObject({
       ok: true,
       data: {
         found: true,
-        asn: "AS8881",
+        asn: "AS8882",
         name: "RIPE Holder",
         upstreams: [{ asn: "AS1299" }],
         sources: {
@@ -200,7 +231,7 @@ describe("ASN API route", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await invoke();
+    const response = await invoke("AS8883");
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -217,6 +248,156 @@ describe("ASN API route", () => {
       },
     });
     expect(body.data.warnings).toContain("PeeringDB returned HTTP 502.");
+  });
+
+  it("returns partial data when a provider misses the aggregation deadline", async () => {
+    vi.useFakeTimers();
+    delete process.env.IPINFO_TOKEN;
+
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const href = String(url);
+      const ripePayload = ripeStatPayload(href);
+
+      if (ripePayload) {
+        return jsonResponse(ripePayload);
+      }
+
+      return new Promise<Response>(() => undefined);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const responsePromise = invoke("AS64510", "?source-info=1");
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(2_000);
+    const response = await responsePromise;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      data: {
+        found: true,
+        sources: {
+          ipinfo: "not_configured",
+          peeringdb: "error",
+          ripestat: "available",
+        },
+      },
+    });
+    expect(body.data.warnings).toContain("PeeringDB request timed out.");
+    expect(body.data.sourceDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "peeringdb", status: "error", cache: "miss" }),
+      ]),
+    );
+  });
+
+  it("returns upstream_error when all attempted providers fail", async () => {
+    delete process.env.IPINFO_TOKEN;
+    const fetchMock = vi.fn(async () => jsonResponse({ error: "down" }, 502));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await invoke("AS64511", "?source-info=1");
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body).toMatchObject({
+      ok: false,
+      error: {
+        code: "upstream_error",
+        details: {
+          sources: {
+            ipinfo: "not_configured",
+            peeringdb: "error",
+            ripestat: "error",
+          },
+        },
+      },
+    });
+    expect(body.error.details.sourceDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "peeringdb", status: "error" }),
+        expect.objectContaining({ source: "ripestat", status: "error" }),
+      ]),
+    );
+  });
+
+  it("uses fresh warm-instance cache for repeated provider lookups", async () => {
+    delete process.env.IPINFO_TOKEN;
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const href = String(url);
+      const ripePayload = ripeStatPayload(href);
+
+      if (ripePayload) {
+        return jsonResponse(ripePayload);
+      }
+
+      return jsonResponse(peeringDbPayload(64512));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstResponse = await invoke("AS64512", "?source-info=1");
+    const secondResponse = await invoke("AS64512", "?source-info=1");
+    const secondBody = await secondResponse.json();
+
+    expect(firstResponse.status).toBe(200);
+    expect(secondResponse.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(secondBody.data.sourceDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "peeringdb", cache: "fresh" }),
+        expect.objectContaining({ source: "ripestat", cache: "fresh" }),
+      ]),
+    );
+  });
+
+  it("uses stale cache during provider failures but not after the stale window", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    delete process.env.IPINFO_TOKEN;
+
+    let failProviders = false;
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      if (failProviders) {
+        return jsonResponse({ error: "down" }, 502);
+      }
+
+      const href = String(url);
+      const ripePayload = ripeStatPayload(href);
+
+      if (ripePayload) {
+        return jsonResponse(ripePayload);
+      }
+
+      return jsonResponse(peeringDbPayload(64513));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstResponse = await invoke("AS64513", "?source-info=1");
+    expect(firstResponse.status).toBe(200);
+
+    failProviders = true;
+    vi.setSystemTime(new Date("2026-01-01T00:01:01.000Z"));
+    const staleResponse = await invoke("AS64513", "?source-info=1");
+    const staleBody = await staleResponse.json();
+
+    expect(staleResponse.status).toBe(200);
+    expect(staleBody.data.warnings).toEqual(
+      expect.arrayContaining([
+        "PeeringDB data is currently unavailable; using stale cached data.",
+        "RIPEstat data is currently unavailable; using stale cached data.",
+      ]),
+    );
+    expect(staleBody.data.sourceDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "peeringdb", cache: "stale" }),
+        expect.objectContaining({ source: "ripestat", cache: "stale" }),
+      ]),
+    );
+
+    vi.setSystemTime(new Date("2026-01-01T00:05:01.000Z"));
+    const expiredResponse = await invoke("AS64513");
+    expect(expiredResponse.status).toBe(502);
   });
 
   it("rejects impossible ASNs", async () => {
