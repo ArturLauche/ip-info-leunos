@@ -47,6 +47,12 @@ interface AsnCheckerProps {
 
 type ToolT = ReturnType<typeof getToolTranslation>;
 
+const EXAMPLE_ASNS: Array<{ asn: string; label: string }> = [
+  { asn: "AS13335", label: "Cloudflare" },
+  { asn: "AS15169", label: "Google" },
+  { asn: "AS8881", label: "1&1 Versatel" },
+];
+
 function formatStatus(status: SourceStatus, t: ToolT) {
   if (status === "available") return t.asnSourceAvailable;
   if (status === "unavailable") return t.asnSourceUnavailable;
@@ -1238,10 +1244,32 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       />
 
       {!loading && !error && !result && (
-        <div className="rounded-xl border border-border/80 bg-card/70 p-6 text-center shadow-sm">
-          <Waypoints className="mx-auto h-8 w-8 text-primary animate-pulse" />
-          <p className="mt-3 text-lg font-semibold text-foreground">{t.asnEmptyTitle}</p>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">{t.asnEmptyDescription}</p>
+        <div className="flex flex-col items-center gap-5 rounded-2xl border border-border/70 bg-card/50 px-6 py-12 text-center shadow-sm">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+            <Waypoints className="h-7 w-7 text-primary" />
+          </div>
+          <div className="flex max-w-md flex-col gap-2">
+            <p className="text-balance text-lg font-semibold text-foreground">{t.asnEmptyTitle}</p>
+            <p className="text-pretty text-sm leading-relaxed text-muted-foreground">{t.asnEmptyDescription}</p>
+          </div>
+          <div className="flex flex-col items-center gap-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              {locale === "de" ? "Beispiele" : "Try an example"}
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {EXAMPLE_ASNS.map((example) => (
+                <button
+                  key={example.asn}
+                  type="button"
+                  onClick={() => runLookup(example.asn)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-primary"
+                >
+                  <span className="font-mono font-semibold">{example.asn}</span>
+                  <span className="text-muted-foreground">{example.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1250,12 +1278,14 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       {error && <ErrorPanel message={error} />}
 
       {result && !result.found && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 shadow-sm">
-          <p className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <AlertTriangle className="h-5 w-5 text-amber-300" />
-            {t.asnNotFoundTitle}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">{t.asnNotFoundDescription}</p>
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] px-6 py-10 text-center shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/25">
+            <AlertTriangle className="h-6 w-6 text-amber-400" />
+          </div>
+          <div className="flex max-w-md flex-col gap-2">
+            <p className="text-lg font-semibold text-foreground">{t.asnNotFoundTitle}</p>
+            <p className="text-pretty text-sm leading-relaxed text-muted-foreground">{t.asnNotFoundDescription}</p>
+          </div>
         </div>
       )}
 

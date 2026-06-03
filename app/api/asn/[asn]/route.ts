@@ -438,6 +438,8 @@ async function fetchProviderJson(url: string, headers: HeadersInit, signal?: Abo
   }
 }
 
+const sharedEncoder = new TextEncoder();
+
 async function readJsonWithLimit(response: Response, maxBytes: number): Promise<unknown> {
   const contentLength = response.headers.get("content-length");
   const parsedLength = contentLength ? Number(contentLength) : 0;
@@ -450,13 +452,16 @@ async function readJsonWithLimit(response: Response, maxBytes: number): Promise<
 
   if (!response.body) {
     text = await response.text();
-    if (new TextEncoder().encode(text).byteLength > maxBytes) {
+    if (sharedEncoder.encode(text).byteLength > maxBytes) {
       throw new ProviderFetchError("response_too_large", "Provider response exceeded the size limit.");
     }
   } else {
+    // Decode incrementally while enforcing the byte limit. This avoids buffering
+    // every chunk and copying them into a combined Uint8Array before a final decode.
     const reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
+    const decoder = new TextDecoder();
     let received = 0;
+    text = "";
 
     try {
       while (true) {
@@ -470,19 +475,13 @@ async function readJsonWithLimit(response: Response, maxBytes: number): Promise<
           throw new ProviderFetchError("response_too_large", "Provider response exceeded the size limit.");
         }
 
-        chunks.push(value);
+        text += decoder.decode(value, { stream: true });
       }
+
+      text += decoder.decode();
     } finally {
       reader.releaseLock();
     }
-
-    const bytes = new Uint8Array(received);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    text = new TextDecoder().decode(bytes);
   }
 
   try {
@@ -570,8 +569,16 @@ function hasSourceInfoFlag(request: Request) {
   return searchParams.has("source-info") || searchParams.has("sourceInfo");
 }
 
+let cachedTokenHash: { token: string; hash: string } | null = null;
+
 function hashToken(token: string) {
-  return createHash("sha256").update(token).digest("hex").slice(0, 16);
+  if (cachedTokenHash && cachedTokenHash.token === token) {
+    return cachedTokenHash.hash;
+  }
+
+  const hash = createHash("sha256").update(token).digest("hex").slice(0, 16);
+  cachedTokenHash = { token, hash };
+  return hash;
 }
 
 function dedupeWarnings(warnings: string[]) {
