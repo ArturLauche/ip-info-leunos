@@ -432,13 +432,13 @@ function RelationChip({
 
       {(relation.v4Peers || relation.v6Peers) && (
         <div className="mt-1 flex items-center gap-2">
-          {relation.v4Peers !== null && relation.v4Peers > 0 && (
+          {relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
               v4: {formatNumber(relation.v4Peers, locale)}
             </span>
           )}
-          {relation.v6Peers !== null && relation.v6Peers > 0 && (
+          {relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
               v6: {formatNumber(relation.v6Peers, locale)}
