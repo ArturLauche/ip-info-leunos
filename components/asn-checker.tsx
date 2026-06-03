@@ -10,10 +10,13 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
+  Activity,
   CircleCheck,
   ExternalLink,
+  Gauge,
   Globe,
   Hash,
+  Info,
   Network,
   Route,
   Server,
@@ -532,16 +535,66 @@ function RelationColumn({
 }
 
 function RoutingSection({ result, t, locale }: { result: AsnProfile; t: ToolT; locale: Locale }) {
+  const trafficVolume = result.peeringdb?.traffic?.trim();
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <Waypoints className="h-5 w-5 text-primary" />
-          {t.asnRouting}
-        </h3>
-        <p className="text-xs text-muted-foreground leading-normal">
-          Autonomous System interconnections, neighbours, and path weights. Higher weights signify more preferred routing paths.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Waypoints className="h-5 w-5 text-primary" />
+            {t.asnRouting}
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-prose">
+            {locale === "de"
+              ? "Verbindungen, Nachbarn und Pfadgewichte dieses Autonomen Systems."
+              : "Autonomous System interconnections, neighbours, and path weights."}
+          </p>
+        </div>
+
+        {trafficVolume && (
+          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.07] px-4 py-2.5 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
+              <Activity className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {t.asnTrafficVolume}
+              </span>
+              <span className="font-mono text-sm font-bold text-foreground">{trafficVolume}</span>
+              <span className="text-[10px] text-muted-foreground/70">{t.asnTrafficVolumeHint}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Weight metric legend — explains the scale directly above the peers list */}
+      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-secondary/15 p-4">
+        <div className="flex items-start gap-2.5">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-semibold text-foreground">{t.asnWeightLegendTitle}</p>
+            <p className="text-[11px] leading-relaxed text-muted-foreground max-w-prose">
+              {t.asnWeightLegendDescription}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pl-6 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <Zap className="h-3 w-3 text-primary" />
+            <span className="font-semibold text-foreground/90">{t.asnRelationPower}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-sky-400" />
+            <span className="font-mono font-semibold text-foreground/80">{t.asnRelationIpv4Peers}</span>
+            {t.asnWeightLegendV4}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-purple-400" />
+            <span className="font-mono font-semibold text-foreground/80">{t.asnRelationIpv6Peers}</span>
+            {t.asnWeightLegendV6}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -591,6 +644,7 @@ function IxPresenceSection({
   const visible = expanded ? ixlan : ixlan.slice(0, limit);
 
   const maxSpeed = useMemo(() => Math.max(...ixlan.map((x) => x.speed || 0), 1), [ixlan]);
+  const totalCapacity = useMemo(() => ixlan.reduce((sum, x) => sum + (x.speed || 0), 0), [ixlan]);
 
   const showAllText = locale === "de" ? "Alle Exchanges anzeigen" : "Show All Exchanges";
   const showLessText = locale === "de" ? "Weniger anzeigen" : "Show Less";
@@ -609,19 +663,35 @@ function IxPresenceSection({
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card/35 p-5 md:p-6 shadow-sm flex flex-col gap-4">
-      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+      <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Server className="h-5 w-5 text-primary" />
             {t.asnIxPresence}
+            <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-bold text-primary">
+              {total}
+            </span>
           </h3>
-          <p className="text-xs text-muted-foreground leading-normal">
-            Internet Exchanges (IX) where this Autonomous System is present, including interconnection bandwidth.
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-prose">
+            {locale === "de"
+              ? "Internet Exchanges (IX), an denen dieses Autonome System angebunden ist, inklusive Port-Geschwindigkeit pro Exchange."
+              : "Internet Exchanges (IX) where this Autonomous System is present, with the connected port speed at each exchange."}
           </p>
         </div>
-        <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary shrink-0 self-start md:self-center">
-          {total}
-        </span>
+        {totalCapacity > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.07] px-4 py-2.5 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
+              <Gauge className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {t.asnIxTotalCapacity}
+              </span>
+              <span className="font-mono text-sm font-bold text-foreground">{formatSpeed(totalCapacity, t)}</span>
+              <span className="text-[10px] text-muted-foreground/70">{t.asnIxCapacityHint}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Desktop view: Table */}

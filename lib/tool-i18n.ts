@@ -68,6 +68,14 @@ type ToolTranslation = {
   asnRelationPower: string;
   asnRelationIpv4Peers: string;
   asnRelationIpv6Peers: string;
+  asnWeightLegendTitle: string;
+  asnWeightLegendDescription: string;
+  asnWeightLegendV4: string;
+  asnWeightLegendV6: string;
+  asnTrafficVolume: string;
+  asnTrafficVolumeHint: string;
+  asnIxTotalCapacity: string;
+  asnIxCapacityHint: string;
   asnSourceAvailable: string;
   asnSourceUnavailable: string;
   asnSourceNotConfigured: string;
@@ -258,9 +266,18 @@ const en: ToolTranslation = {
   asnRelationPeers: "Peers",
   asnRelationUpstreams: "Upstreams",
   asnRelationDownstreams: "Downstreams",
-  asnRelationPower: "power",
+  asnRelationPower: "weight",
   asnRelationIpv4Peers: "v4",
   asnRelationIpv6Peers: "v6",
+  asnWeightLegendTitle: "How to read peer weight",
+  asnWeightLegendDescription:
+    "Weight is the number of RIPEstat RIS route collectors that observed this neighbour relationship — a visibility score, not bandwidth. It typically ranges from 1 to a few hundred; a higher weight means the path is seen by more collectors and is more widely propagated across the global routing table.",
+  asnWeightLegendV4: "Collector peers that saw the relationship over IPv4",
+  asnWeightLegendV6: "Collector peers that saw the relationship over IPv6",
+  asnTrafficVolume: "Traffic volume",
+  asnTrafficVolumeHint: "Self-reported estimate (PeeringDB)",
+  asnIxTotalCapacity: "Total connected capacity",
+  asnIxCapacityHint: "Aggregate port speed across all listed exchanges",
   asnSourceAvailable: "available",
   asnSourceUnavailable: "unavailable",
   asnSourceNotConfigured: "not configured",
@@ -454,6 +471,15 @@ const de: Partial<ToolTranslation> = {
   asnRelationPower: "Gewicht",
   asnRelationIpv4Peers: "v4",
   asnRelationIpv6Peers: "v6",
+  asnWeightLegendTitle: "So lesen Sie das Peer-Gewicht",
+  asnWeightLegendDescription:
+    "Das Gewicht ist die Anzahl der RIPEstat-RIS-Route-Collectoren, die diese Nachbarbeziehung beobachtet haben – ein Sichtbarkeitswert, keine Bandbreite. Es liegt typischerweise zwischen 1 und einigen Hundert; ein höheres Gewicht bedeutet, dass der Pfad von mehr Collectoren gesehen wird und in der globalen Routing-Tabelle weiter verbreitet ist.",
+  asnWeightLegendV4: "Collector-Peers, die die Beziehung über IPv4 gesehen haben",
+  asnWeightLegendV6: "Collector-Peers, die die Beziehung über IPv6 gesehen haben",
+  asnTrafficVolume: "Traffic-Volumen",
+  asnTrafficVolumeHint: "Selbst angegebene Schätzung (PeeringDB)",
+  asnIxTotalCapacity: "Gesamte angebundene Kapazität",
+  asnIxCapacityHint: "Summierte Port-Geschwindigkeit über alle aufgeführten Exchanges",
   asnSourceAvailable: "verfügbar",
   asnSourceUnavailable: "nicht verfügbar",
   asnSourceNotConfigured: "nicht konfiguriert",
