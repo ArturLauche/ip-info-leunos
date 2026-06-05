@@ -78,8 +78,9 @@ styles/globals.css      Ungenutzt — nicht bearbeiten/verwechseln
 | `/dns` | `DnsChecker` | `target` |
 | `/whois` | `WhoisChecker` | `target` |
 | `/cdn` | `CdnChecker` | `target` |
+| `/reputation` | `ReputationChecker` | `ip` |
 
-Navigation und `ToolKey`: `components/tool-page-shell.tsx` — nur `home | check | ping | dns | whois | cdn`.
+Navigation und `ToolKey`: `components/tool-page-shell.tsx` — `home | check | ping | dns | whois | cdn | reputation`.
 
 ### API
 
@@ -90,6 +91,7 @@ Navigation und `ToolKey`: `components/tool-page-shell.tsx` — nur `home | check
 | `/api/whois` | GET | 20/min | `nodejs` |
 | `/api/cdn` | GET | 20/min | Node |
 | `/api/ping` | POST (JSON) | 20/min | `nodejs` |
+| `/api/reputation` | GET | 20/min | `nodejs` |
 
 Jede Route beginnt mit `enforceRateLimit(request, routeKey, { limit, windowMs })` aus `lib/api/rate-limit.ts`.
 
@@ -223,6 +225,8 @@ Bei Sicherheitsänderungen: Tests in `target.test.ts` erweitern oder Route-Tests
 | Variable | Wirkung |
 |----------|---------|
 | `PUBLIC_ALLOWED_PING_PORTS` | Optional: erlaubte Ports für Ping (kommagetrennt) |
+| `ABUSEIPDB_API_KEY` | Optional: aktiviert AbuseIPDB Reputation auf `/api/reputation` |
+| `OTX_API_KEY` | Optional: aktiviert AlienVault OTX Reputation auf `/api/reputation` |
 | `NODE_ENV` | Production im Docker-Runner |
 | `PORT` | Default `3000` im Dockerfile |
 
@@ -248,6 +252,9 @@ Keine API-Keys im Repo. Keine `.env` committen.
 | checkip.amazonaws.com | Fallback Client-IP |
 | whois.iana.org:43 | WHOIS mit RDAP-Fallback (`rdap.org`) |
 | Node `dns` / `net` | DNS, TCP/UDP, DB-Probes |
+| `zen.spamhaus.org` | DNSBL für IP-Reputation |
+| `api.abuseipdb.com` | Abuse-Confidence-Score (optional) |
+| `otx.alienvault.com` | AlienVault Threat-Intelligence (optional) |
 
 Upstream-Ausfälle: graceful degradation (z. B. `getUnknownResult()` bei IP-API; CDN `reachable: false`).
 

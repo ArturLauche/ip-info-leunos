@@ -6,6 +6,7 @@ import {
   Radar,
   Search,
   ShieldCheck,
+  ShieldQuestion,
   Waypoints,
 } from "lucide-react";
 import Link from "next/link";
@@ -14,7 +15,7 @@ import type { Locale } from "@/lib/i18n";
 import { getTranslation } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
-type ToolKey = "home" | "check" | "asn" | "ping" | "dns" | "whois" | "cdn";
+type ToolKey = "home" | "check" | "asn" | "ping" | "dns" | "whois" | "cdn" | "reputation";
 
 const primaryLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
   { key: "home", href: "/", icon: Globe },
@@ -29,6 +30,10 @@ const diagnosticLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> =
   { key: "cdn", href: "/cdn", icon: ShieldCheck },
 ];
 
+const secondaryLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
+  { key: "reputation", href: "/reputation", icon: ShieldQuestion },
+];
+
 function labelFor(key: ToolKey, locale: Locale) {
   const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
@@ -41,6 +46,7 @@ function labelFor(key: ToolKey, locale: Locale) {
     dns: toolT.dnsTabLabel,
     whois: toolT.whoisTabLabel,
     cdn: toolT.cdnTabLabel,
+    reputation: toolT.reputationTabLabel,
   };
 
   return labels[key];
@@ -111,6 +117,20 @@ export function ToolPageShell({
           <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-2 md:border-l-0 md:border-t-0 md:pt-0">
             {diagnosticLinks.map((item) => (
               <NavLink key={item.key} item={item} active={active} locale={locale} compact />
+            ))}
+          </div>
+          {/* Secondary links */}
+          <div className="hidden h-6 w-px bg-border/60 md:block" aria-hidden />
+          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-2 md:border-l-0 md:border-t-0 md:pt-0">
+            {secondaryLinks.map((item) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`inline-flex items-center rounded-lg gap-1.5 px-2.5 h-7 text-[11px] font-medium transition-colors ${active === item.key ? "bg-primary/90 text-primary-foreground" : "text-muted-foreground/70 hover:bg-secondary/80 hover:text-foreground/80"}`}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {labelFor(item.key, locale)}
+              </Link>
             ))}
           </div>
         </nav>
