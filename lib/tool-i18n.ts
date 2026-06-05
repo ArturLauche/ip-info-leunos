@@ -191,38 +191,6 @@ type ToolTranslation = {
   cdnNoCname: string;
   cdnInterestingHeaders: string;
   cdnNoHeaders: string;
-  reputationTabLabel: string;
-  reputationTitle: string;
-  reputationSubtitle: string;
-  reputationPlaceholder: string;
-  reputationLookupButton: string;
-  reputationLookingUp: string;
-  reputationRiskLow: string;
-  reputationRiskMedium: string;
-  reputationRiskHigh: string;
-  reputationRiskUnknown: string;
-  reputationRiskLabel: string;
-  reputationPlaceholderText: string;
-  reputationNetworkError: string;
-  reputationSources: string;
-  reputationSourcesDisclaimer: string;
-  reputationDisclaimer: string;
-  reputationScoreLabel: string;
-  reputationCheckedAtLabel: string;
-  reputationProviderClean: string;
-  reputationProviderListed: string;
-  reputationProviderSuspicious: string;
-  reputationProviderUnknown: string;
-  reputationProviderNotConfigured: string;
-  reputationProviderError: string;
-  reputationResultTitle: string;
-  reputationScore: string;
-  reputationScoreOutOf: string;
-  reputationPartialResults: string;
-  reputationCleanDescription: string;
-  reputationListedDescription: string;
-  reputationSuspiciousDescription: string;
-  reputationUnknownDescription: string;
 };
 
 const en: ToolTranslation = {
@@ -416,38 +384,6 @@ const en: ToolTranslation = {
   cdnNoCname: "No CNAME records discovered.",
   cdnInterestingHeaders: "Interesting response headers",
   cdnNoHeaders: "No relevant headers found.",
-  reputationTabLabel: "Reputation",
-  reputationTitle: "IP Reputation",
-  reputationSubtitle: "A quick overview of IP reputation across public sources. Results are indicative. Abuse and SMTP blocklists are queried.",
-  reputationPlaceholder: "Enter a public IP (e.g., 1.1.1.1) or domain...",
-  reputationLookupButton: "Check Reputation",
-  reputationLookingUp: "Checking...",
-  reputationRiskLow: "Low risk",
-  reputationRiskMedium: "Medium risk",
-  reputationRiskHigh: "High risk",
-  reputationRiskUnknown: "Unknown",
-  reputationRiskLabel: "Risk: {risk}",
-  reputationPlaceholderText: "Enter an IP or domain",
-  reputationNetworkError: "Network error while contacting the reputation checker.",
-  reputationSources: "Sources",
-  reputationSourcesDisclaimer: "Data is provided by third parties and may be incomplete. No guarantees are made.",
-  reputationDisclaimer: "Reputation data is indicative and may be incomplete. Use at your own discretion.",
-  reputationScoreLabel: "Score",
-  reputationCheckedAtLabel: "Checked at",
-  reputationProviderClean: "Clean",
-  reputationProviderListed: "Listed",
-  reputationProviderSuspicious: "Suspicious",
-  reputationProviderUnknown: "Unknown",
-  reputationProviderNotConfigured: "Not configured",
-  reputationProviderError: "Error",
-  reputationResultTitle: "Reputation for",
-  reputationScore: "Score",
-  reputationScoreOutOf: "/100",
-  reputationPartialResults: "Some sources returned partial or no data.",
-  reputationCleanDescription: "No clear negative signals found.",
-  reputationListedDescription: "Listed in at least one reputation source.",
-  reputationSuspiciousDescription: "Some suspicious signals detected.",
-  reputationUnknownDescription: "No conclusive data available from configured sources.",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -638,38 +574,6 @@ const de: Partial<ToolTranslation> = {
   cdnNoCname: "Keine CNAME-Einträge gefunden.",
   cdnInterestingHeaders: "Auffällige Response-Header",
   cdnNoHeaders: "Keine relevanten Header gefunden.",
-  reputationTabLabel: "Reputation",
-  reputationTitle: "IP-Reputation",
-  reputationSubtitle: "Ein schneller Überblick über die Reputation einer IP anhand öffentlicher Quellen. Die Ergebnisse sind indikativ.",
-  reputationPlaceholder: "Öffentliche IP (z. B. 1.1.1.1) oder Domain eingeben...",
-  reputationLookupButton: "Reputation prüfen",
-  reputationLookingUp: "Prüfe...",
-  reputationRiskLow: "Niedriges Risiko",
-  reputationRiskMedium: "Mittleres Risiko",
-  reputationRiskHigh: "Hohes Risiko",
-  reputationRiskUnknown: "Unbekannt",
-  reputationRiskLabel: "Risiko: {risk}",
-  reputationPlaceholderText: "IP oder Domain eingeben",
-  reputationNetworkError: "Netzwerkfehler beim Reputations-Checker.",
-  reputationSources: "Quellen",
-  reputationSourcesDisclaimer: "Daten stammen von Drittanbietern und können unvollständig sein. Keine Garantien.",
-  reputationDisclaimer: "Reputationsdaten sind indikativ und können unvollständig sein. Nutzung auf eigene Verantwortung.",
-  reputationScoreLabel: "Score",
-  reputationCheckedAtLabel: "Prüfzeit",
-  reputationProviderClean: "Sauber",
-  reputationProviderListed: "Gelistet",
-  reputationProviderSuspicious: "Verdächtig",
-  reputationProviderUnknown: "Unbekannt",
-  reputationProviderNotConfigured: "Nicht konfiguriert",
-  reputationProviderError: "Fehler",
-  reputationResultTitle: "Reputation für",
-  reputationScore: "Score",
-  reputationScoreOutOf: "/100",
-  reputationPartialResults: "Einige Quellen lieferten teilweise oder keine Daten.",
-  reputationCleanDescription: "Keine eindeutigen negativen Signale gefunden.",
-  reputationListedDescription: "In mindestens einer Reputationsquelle gelistet.",
-  reputationSuspiciousDescription: "Einige verdächtige Signale erkannt.",
-  reputationUnknownDescription: "Keine eindeutigen Daten von den konfigurierten Quellen verfügbar.",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
