@@ -28,9 +28,6 @@ const diagnosticLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> =
   { key: "dns", href: "/dns", icon: Network },
   { key: "whois", href: "/whois", icon: Activity },
   { key: "cdn", href: "/cdn", icon: ShieldCheck },
-];
-
-const utilityLinks: Array<{ key: ToolKey; href: string; icon: LucideIcon }> = [
   { key: "reputation", href: "/reputation", icon: ShieldAlert },
 ];
 
@@ -118,26 +115,6 @@ export function ToolPageShell({
             {diagnosticLinks.map((item) => (
               <NavLink key={item.key} item={item} active={active} locale={locale} compact />
             ))}
-          </div>
-          <div className="hidden h-6 w-px bg-border/60 md:block" aria-hidden />
-          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border/60 pt-2 md:border-t-0 md:pt-0">
-            {utilityLinks.map((item) => {
-              const ItemIcon = item.icon;
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className={`inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium transition-colors ${
-                    active === item.key
-                      ? "bg-primary/90 text-primary-foreground"
-                      : "text-muted-foreground/70 hover:bg-secondary hover:text-foreground"
-                  }`}
-                >
-                  <ItemIcon className="h-3.5 w-3.5" />
-                  {labelFor(item.key, locale)}
-                </Link>
-              );
-            })}
           </div>
         </nav>
 
