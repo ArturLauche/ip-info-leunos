@@ -6,6 +6,7 @@ type ToolTranslation = {
   whoisTabLabel: string;
   cdnTabLabel: string;
   asnTabLabel: string;
+  reputationTabLabel: string;
   pingTitle: string;
   pingSubtitle: string;
   dnsTitle: string;
@@ -191,6 +192,42 @@ type ToolTranslation = {
   cdnNoCname: string;
   cdnInterestingHeaders: string;
   cdnNoHeaders: string;
+  reputationTitle: string;
+  reputationSubtitle: string;
+  reputationPlaceholder: string;
+  reputationCheckButton: string;
+  reputationChecking: string;
+  reputationNetworkError: string;
+  reputationRateLimitError: string;
+  reputationInvalidIp: string;
+  reputationBlockedIp: string;
+  reputationEmptyTitle: string;
+  reputationEmptyDescription: string;
+  reputationRiskLow: string;
+  reputationRiskMedium: string;
+  reputationRiskHigh: string;
+  reputationScoreLabel: string;
+  reputationThreatsLabel: string;
+  reputationNoThreats: string;
+  reputationThreatProxy: string;
+  reputationThreatTor: string;
+  reputationThreatHosting: string;
+  reputationThreatSpam: string;
+  reputationThreatBotnet: string;
+  reputationThreatAbuse: string;
+  reputationBlacklistsLabel: string;
+  reputationListedSummary: string;
+  reputationBlacklistListed: string;
+  reputationBlacklistClean: string;
+  reputationBlacklistUnchecked: string;
+  reputationAbuseLabel: string;
+  reputationAbuseReports: string;
+  reputationAbuseConfidence: string;
+  reputationAbuseNotConfigured: string;
+  reputationAbuseUnavailable: string;
+  reputationGeoLabel: string;
+  reputationNetworkLabel: string;
+  reputationDisclaimer: string;
 };
 
 const en: ToolTranslation = {
@@ -199,6 +236,7 @@ const en: ToolTranslation = {
   whoisTabLabel: "WHOIS Lookup",
   cdnTabLabel: "CDN Checker",
   asnTabLabel: "ASN Lookup",
+  reputationTabLabel: "IP Reputation",
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
@@ -384,6 +422,42 @@ const en: ToolTranslation = {
   cdnNoCname: "No CNAME records discovered.",
   cdnInterestingHeaders: "Interesting response headers",
   cdnNoHeaders: "No relevant headers found.",
+  reputationTitle: "IP Reputation Check",
+  reputationSubtitle: "Scan a public IP address against multiple reputation sources and get a concise risk summary.",
+  reputationPlaceholder: "8.8.8.8 or 2001:4860:4860::8888",
+  reputationCheckButton: "Check reputation",
+  reputationChecking: "Checking...",
+  reputationNetworkError: "Network error while contacting the reputation check.",
+  reputationRateLimitError: "Too many reputation checks. Please wait before trying again.",
+  reputationInvalidIp: "Please enter a valid public IP address (IPv4 or IPv6).",
+  reputationBlockedIp: "Private, reserved, and internal IP ranges cannot be checked.",
+  reputationEmptyTitle: "Enter an IP address to check its reputation",
+  reputationEmptyDescription: "The IP is checked against DNS blacklists, proxy/hosting heuristics, and abuse reports when an AbuseIPDB key is configured.",
+  reputationRiskLow: "Low risk",
+  reputationRiskMedium: "Medium risk",
+  reputationRiskHigh: "High risk",
+  reputationScoreLabel: "Risk score",
+  reputationThreatsLabel: "Detected threat categories",
+  reputationNoThreats: "No threat categories detected.",
+  reputationThreatProxy: "Proxy / VPN",
+  reputationThreatTor: "Tor exit node",
+  reputationThreatHosting: "Hosting / datacenter",
+  reputationThreatSpam: "Spam source",
+  reputationThreatBotnet: "Botnet / exploited",
+  reputationThreatAbuse: "Abuse reported",
+  reputationBlacklistsLabel: "Blacklists",
+  reputationListedSummary: "{listed} of {checked} listed",
+  reputationBlacklistListed: "listed",
+  reputationBlacklistClean: "clean",
+  reputationBlacklistUnchecked: "unchecked",
+  reputationAbuseLabel: "Abuse reports",
+  reputationAbuseReports: "{count} reports (90 days)",
+  reputationAbuseConfidence: "{score}% confidence",
+  reputationAbuseNotConfigured: "not configured",
+  reputationAbuseUnavailable: "unavailable",
+  reputationGeoLabel: "Geolocation",
+  reputationNetworkLabel: "ASN / Provider",
+  reputationDisclaimer: "Aggregated from public sources; results are indicative, not a definitive verdict.",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -392,6 +466,7 @@ const de: Partial<ToolTranslation> = {
   whoisTabLabel: "WHOIS-Abfrage",
   cdnTabLabel: "CDN-Prüfer",
   asnTabLabel: "ASN-Abfrage",
+  reputationTabLabel: "IP-Reputation",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
@@ -574,6 +649,42 @@ const de: Partial<ToolTranslation> = {
   cdnNoCname: "Keine CNAME-Einträge gefunden.",
   cdnInterestingHeaders: "Auffällige Response-Header",
   cdnNoHeaders: "Keine relevanten Header gefunden.",
+  reputationTitle: "IP-Reputationsprüfung",
+  reputationSubtitle: "Prüfe eine öffentliche IP-Adresse gegen mehrere Reputationsquellen und erhalte eine kompakte Risikoübersicht.",
+  reputationPlaceholder: "8.8.8.8 oder 2001:4860:4860::8888",
+  reputationCheckButton: "Reputation prüfen",
+  reputationChecking: "Prüfung läuft...",
+  reputationNetworkError: "Netzwerkfehler bei der Reputationsprüfung.",
+  reputationRateLimitError: "Zu viele Reputationsprüfungen. Bitte warte kurz und versuche es dann erneut.",
+  reputationInvalidIp: "Bitte eine gültige öffentliche IP-Adresse eingeben (IPv4 oder IPv6).",
+  reputationBlockedIp: "Private, reservierte und interne IP-Bereiche können nicht geprüft werden.",
+  reputationEmptyTitle: "IP-Adresse eingeben, um ihre Reputation zu prüfen",
+  reputationEmptyDescription: "Die IP wird gegen DNS-Blacklists, Proxy-/Hosting-Heuristiken und Abuse-Meldungen geprüft, sofern ein AbuseIPDB-Schlüssel konfiguriert ist.",
+  reputationRiskLow: "Geringes Risiko",
+  reputationRiskMedium: "Mittleres Risiko",
+  reputationRiskHigh: "Hohes Risiko",
+  reputationScoreLabel: "Risiko-Score",
+  reputationThreatsLabel: "Erkannte Bedrohungskategorien",
+  reputationNoThreats: "Keine Bedrohungskategorien erkannt.",
+  reputationThreatProxy: "Proxy / VPN",
+  reputationThreatTor: "Tor-Exit-Node",
+  reputationThreatHosting: "Hosting / Rechenzentrum",
+  reputationThreatSpam: "Spam-Quelle",
+  reputationThreatBotnet: "Botnetz / kompromittiert",
+  reputationThreatAbuse: "Abuse gemeldet",
+  reputationBlacklistsLabel: "Blacklists",
+  reputationListedSummary: "{listed} von {checked} gelistet",
+  reputationBlacklistListed: "gelistet",
+  reputationBlacklistClean: "sauber",
+  reputationBlacklistUnchecked: "nicht geprüft",
+  reputationAbuseLabel: "Abuse-Meldungen",
+  reputationAbuseReports: "{count} Meldungen (90 Tage)",
+  reputationAbuseConfidence: "{score} % Konfidenz",
+  reputationAbuseNotConfigured: "nicht konfiguriert",
+  reputationAbuseUnavailable: "nicht verfügbar",
+  reputationGeoLabel: "Geolokalisierung",
+  reputationNetworkLabel: "ASN / Provider",
+  reputationDisclaimer: "Aus öffentlichen Quellen aggregiert; Ergebnisse sind Hinweise, kein endgültiges Urteil.",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
