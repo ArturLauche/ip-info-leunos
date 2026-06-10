@@ -11,6 +11,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Query WHOIS/RDAP data at `/whois`.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
+- Check IP reputation against DNS blacklists, proxy/hosting heuristics, and optional AbuseIPDB reports at `/reputation`.
 
 ## Public-Site Safety Model
 
@@ -29,6 +30,8 @@ Blocked examples include:
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
 
 Set `IPINFO_TOKEN` to enable IPinfo ASN details on `/asn`. Without a token, ASN lookups still use public PeeringDB data when available.
+
+Set `ABUSEIPDB_API_KEY` to enable AbuseIPDB abuse reports on `/reputation`. Without the key, the reputation tool still uses DNS blacklists and ip-api.com data.
 
 ## Tech Stack
 
@@ -72,6 +75,8 @@ This app is not purely static because the tools use server-side API routes. Depl
 - `api64.ipify.org` for primary client-side IPv6 discovery
 - `checkip.amazonaws.com` as a client-side IP discovery fallback
 - `rdap.org` as WHOIS fallback
+- `zen.spamhaus.org`, `bl.spamcop.net`, and `b.barracudacentral.org` DNSBLs for IP reputation
+- `api.abuseipdb.com` for abuse confidence scores and report counts (optional key)
 
 PeeringDB data is public and user-maintained, so it may be incomplete when a network does not maintain a PeeringDB profile. IPinfo ASN details may require an appropriate IPinfo plan for the configured token.
 PeeringDB describes network peering policy and presence; BGP-style routing neighbours are sourced from RIPEstat RIS data and may be directional observations rather than contractual peer/upstream/customer records.

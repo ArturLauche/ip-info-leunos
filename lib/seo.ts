@@ -18,6 +18,8 @@ export const siteConfig = {
     "PeeringDB",
     "Ping Test",
     "Netzwerk Analyse",
+    "IP Reputation",
+    "Blacklist Check",
   ],
 };
 
