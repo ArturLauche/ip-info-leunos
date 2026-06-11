@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Waypoints } from "lucide-react";
-import { AsnChecker } from "@/components/asn-checker";
+import { AsnChecker } from "@/components/asn/asn-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { normalizeAsnInput } from "@/lib/asn";
 import { resolveLocale } from "@/lib/i18n";
