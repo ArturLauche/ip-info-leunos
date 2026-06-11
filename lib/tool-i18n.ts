@@ -1,6 +1,16 @@
+import { ApiClientError } from "@/lib/api/client";
 import { type Locale } from "@/lib/i18n";
 
 type ToolTranslation = {
+  errorRateLimited: string;
+  errorInvalidTarget: string;
+  errorTargetBlocked: string;
+  errorTimeout: string;
+  errorUpstream: string;
+  errorBadRequest: string;
+  errorTargetNetwork: string;
+  showAll: string;
+  showLess: string;
   pingTabLabel: string;
   dnsTabLabel: string;
   whoisTabLabel: string;
@@ -39,6 +49,16 @@ type ToolTranslation = {
   asnFacilities: string;
   asnSources: string;
   asnSourceDiagnostics: string;
+  asnDetailedDiagnostics: string;
+  asnUnnamed: string;
+  asnRoutingDescription: string;
+  asnIxDescription: string;
+  asnPrefixesDescription: string;
+  asnPeeringDbDescription: string;
+  asnFacilitiesDescription: string;
+  asnProfileIdentityHeading: string;
+  asnProfileInterconnectionHeading: string;
+  asnProfilePolicyHeading: string;
   asnWarnings: string;
   asnDiagnosticDuration: string;
   asnDiagnosticCache: string;
@@ -131,19 +151,31 @@ type ToolTranslation = {
   lookupInProgress: string;
   dnsLookupButton: string;
   dnsLookupError: string;
-  dnsNetworkError: string;
   dnsRecordsFor: string;
   resolvedAddresses: string;
   noAddressResult: string;
   recordDetails: string;
+  dnsRecordNotes: string;
+  dnsTableType: string;
+  dnsTableValue: string;
+  dnsShowRaw: string;
+  dnsHideRaw: string;
+  dnsNoRecords: string;
   whoisPlaceholder: string;
   whoisLookupButton: string;
   whoisLookupError: string;
-  whoisNetworkError: string;
   whoisFor: string;
   queriedServer: string;
   referralSource: string;
   noWhoisData: string;
+  whoisRegistrar: string;
+  whoisCreated: string;
+  whoisUpdated: string;
+  whoisExpires: string;
+  whoisStatusLabel: string;
+  whoisNameservers: string;
+  whoisShowRaw: string;
+  whoisHideRaw: string;
   pingPlan: string;
   pingTestMode: string;
   pingModeHelperTcp: string;
@@ -231,6 +263,15 @@ type ToolTranslation = {
 };
 
 const en: ToolTranslation = {
+  errorRateLimited: "Too many requests. Please wait a moment and try again.",
+  errorInvalidTarget: "Please provide a valid public domain, IP address, or URL.",
+  errorTargetBlocked: "Private, local, and internal targets cannot be checked on this public site.",
+  errorTimeout: "The check timed out. The target may be slow or unreachable.",
+  errorUpstream: "An upstream data provider is currently unavailable.",
+  errorBadRequest: "The request parameters are invalid.",
+  errorTargetNetwork: "The target could not be resolved or reached.",
+  showAll: "Show all",
+  showLess: "Show less",
   pingTabLabel: "Ping Tester",
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
@@ -240,7 +281,7 @@ const en: ToolTranslation = {
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
-  dnsSubtitle: "Query domain DNS records (A, AAAA, CNAME, MX, NS, TXT, SRV) from a single page.",
+  dnsSubtitle: "Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) for domains and reverse DNS for IP addresses.",
   whoisTitle: "WHOIS Lookup",
   whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
@@ -269,6 +310,19 @@ const en: ToolTranslation = {
   asnFacilities: "Facility presence",
   asnSources: "Source status",
   asnSourceDiagnostics: "Source diagnostics",
+  asnDetailedDiagnostics: "Detailed diagnostics",
+  asnUnnamed: "Unnamed AS",
+  asnRoutingDescription:
+    "Autonomous system interconnections, neighbours, and path weights. Higher weights indicate more frequently observed routing paths.",
+  asnIxDescription:
+    "Internet exchanges (IX) where this autonomous system is present, including interconnection bandwidth.",
+  asnPrefixesDescription: "IP netblocks announced by this autonomous system to the global routing table.",
+  asnPeeringDbDescription:
+    "Interconnection profile and routing policies declared in the public PeeringDB database.",
+  asnFacilitiesDescription: "Physical data centers and colocation facilities where this network is present.",
+  asnProfileIdentityHeading: "Identity & status",
+  asnProfileInterconnectionHeading: "Interconnection details",
+  asnProfilePolicyHeading: "Peering policy",
   asnWarnings: "Warnings",
   asnDiagnosticDuration: "Duration",
   asnDiagnosticCache: "Cache",
@@ -361,19 +415,31 @@ const en: ToolTranslation = {
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
   dnsLookupError: "DNS lookup failed.",
-  dnsNetworkError: "Network error while contacting /api/dns.",
   dnsRecordsFor: "DNS records for",
   resolvedAddresses: "Resolved addresses",
   noAddressResult: "No A/AAAA lookup result.",
   recordDetails: "Record details",
+  dnsRecordNotes: "Record lookup notes",
+  dnsTableType: "Type",
+  dnsTableValue: "Value",
+  dnsShowRaw: "Show raw JSON",
+  dnsHideRaw: "Hide raw JSON",
+  dnsNoRecords: "No records of the selected type were returned.",
   whoisPlaceholder: "example.com or 8.8.8.8",
   whoisLookupButton: "Lookup WHOIS",
   whoisLookupError: "WHOIS lookup failed.",
-  whoisNetworkError: "Network error while contacting /api/whois.",
   whoisFor: "WHOIS for",
   queriedServer: "Queried server",
   referralSource: "Referral source",
   noWhoisData: "No WHOIS data returned.",
+  whoisRegistrar: "Registrar",
+  whoisCreated: "Created",
+  whoisUpdated: "Updated",
+  whoisExpires: "Expires",
+  whoisStatusLabel: "Status",
+  whoisNameservers: "Nameservers",
+  whoisShowRaw: "Show raw output",
+  whoisHideRaw: "Hide raw output",
   pingPlan: "Current test plan",
   pingTestMode: "Test mode",
   pingModeHelperTcp: "Verifies whether the TCP port accepts a connection.",
@@ -467,10 +533,19 @@ const de: Partial<ToolTranslation> = {
   cdnTabLabel: "CDN-Prüfer",
   asnTabLabel: "ASN-Abfrage",
   reputationTabLabel: "IP-Reputation",
+  errorRateLimited: "Zu viele Anfragen. Bitte warte kurz und versuche es erneut.",
+  errorInvalidTarget: "Bitte gib eine gültige öffentliche Domain, IP-Adresse oder URL an.",
+  errorTargetBlocked: "Private, lokale und interne Ziele können auf dieser öffentlichen Seite nicht geprüft werden.",
+  errorTimeout: "Zeitüberschreitung bei der Prüfung. Das Ziel ist möglicherweise langsam oder nicht erreichbar.",
+  errorUpstream: "Ein vorgelagerter Datenanbieter ist derzeit nicht verfügbar.",
+  errorBadRequest: "Die Anfrageparameter sind ungültig.",
+  errorTargetNetwork: "Das Ziel konnte nicht aufgelöst oder erreicht werden.",
+  showAll: "Alle anzeigen",
+  showLess: "Weniger anzeigen",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
-  dnsSubtitle: "Domain-DNS-Einträge (A, AAAA, CNAME, MX, NS, TXT, SRV) auf einer Seite abfragen.",
+  dnsSubtitle: "DNS-Einträge (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) für Domains und Reverse-DNS für IP-Adressen abfragen.",
   whoisTitle: "WHOIS-Abfrage",
   whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
@@ -499,6 +574,19 @@ const de: Partial<ToolTranslation> = {
   asnFacilities: "Standort-Präsenz",
   asnSources: "Quellenstatus",
   asnSourceDiagnostics: "Quellendiagnose",
+  asnDetailedDiagnostics: "Detaillierte Diagnose",
+  asnUnnamed: "Unbenanntes AS",
+  asnRoutingDescription:
+    "Verbindungen, Nachbarn und Pfadgewichte des autonomen Systems. Höhere Gewichte stehen für häufiger beobachtete Routing-Pfade.",
+  asnIxDescription:
+    "Internet-Exchanges (IX), an denen dieses autonome System präsent ist, inklusive Anbindungsbandbreite.",
+  asnPrefixesDescription: "IP-Netzblöcke, die dieses autonome System in der globalen Routing-Tabelle ankündigt.",
+  asnPeeringDbDescription:
+    "Interconnection-Profil und Routing-Richtlinien aus der öffentlichen PeeringDB-Datenbank.",
+  asnFacilitiesDescription: "Physische Rechenzentren und Colocation-Standorte, an denen dieses Netzwerk präsent ist.",
+  asnProfileIdentityHeading: "Identität & Status",
+  asnProfileInterconnectionHeading: "Interconnection-Details",
+  asnProfilePolicyHeading: "Peering-Richtlinie",
   asnWarnings: "Warnungen",
   asnDiagnosticDuration: "Dauer",
   asnDiagnosticCache: "Cache",
@@ -590,18 +678,30 @@ const de: Partial<ToolTranslation> = {
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",
-  dnsNetworkError: "Netzwerkfehler bei /api/dns.",
   dnsRecordsFor: "DNS-Einträge für",
   resolvedAddresses: "Aufgelöste Adressen",
   noAddressResult: "Kein A/AAAA-Ergebnis.",
   recordDetails: "Eintragsdetails",
+  dnsRecordNotes: "Hinweise zur Record-Abfrage",
+  dnsTableType: "Typ",
+  dnsTableValue: "Wert",
+  dnsShowRaw: "Rohes JSON anzeigen",
+  dnsHideRaw: "Rohes JSON ausblenden",
+  dnsNoRecords: "Keine Einträge des gewählten Typs erhalten.",
   whoisLookupButton: "WHOIS abfragen",
   whoisLookupError: "WHOIS-Abfrage fehlgeschlagen.",
-  whoisNetworkError: "Netzwerkfehler bei /api/whois.",
   whoisFor: "WHOIS für",
   queriedServer: "Abgefragter Server",
   referralSource: "Weiterleitungsquelle",
   noWhoisData: "Keine WHOIS-Daten zurückgegeben.",
+  whoisRegistrar: "Registrar",
+  whoisCreated: "Erstellt",
+  whoisUpdated: "Aktualisiert",
+  whoisExpires: "Läuft ab",
+  whoisStatusLabel: "Status",
+  whoisNameservers: "Nameserver",
+  whoisShowRaw: "Rohausgabe anzeigen",
+  whoisHideRaw: "Rohausgabe ausblenden",
   pingPlan: "Aktueller Testplan",
   pingTestMode: "Testmodus",
   pingModeHelperTcp: "Prüft, ob der TCP-Port eine Verbindung akzeptiert.",
@@ -701,3 +801,33 @@ const toolTranslations: Record<Locale, ToolTranslation> = {
 export function getToolTranslation(locale: Locale): ToolTranslation {
   return toolTranslations[locale] ?? en;
 }
+
+/**
+ * Maps a structured API error to a translated message via its error code.
+ * Falls back to the tool-specific message for client-side network failures
+ * and unknown codes.
+ */
+export function getApiErrorMessage(error: unknown, t: ToolTranslation, fallback: string): string {
+  if (!(error instanceof ApiClientError)) return fallback;
+
+  switch (error.code) {
+    case "rate_limited":
+      return t.errorRateLimited;
+    case "invalid_target":
+      return t.errorInvalidTarget;
+    case "target_blocked":
+      return t.errorTargetBlocked;
+    case "timeout":
+      return t.errorTimeout;
+    case "upstream_error":
+      return t.errorUpstream;
+    case "bad_request":
+      return t.errorBadRequest;
+    case "network_error":
+      return t.errorTargetNetwork;
+    default:
+      return fallback;
+  }
+}
+
+export type { ToolTranslation };

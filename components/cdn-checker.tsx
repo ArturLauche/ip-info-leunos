@@ -1,13 +1,12 @@
 "use client";
 
 import { type Locale } from "@/lib/i18n";
-import { unwrapApiResponse } from "@/lib/api/client";
-import { getToolTranslation } from "@/lib/tool-i18n";
+import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { useToolLookup } from "@/hooks/use-tool-lookup";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   CircleCheck,
   Shield,
@@ -51,40 +50,14 @@ interface CdnCheckerProps {
 }
 
 export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<CdnResult | null>(null);
   const t = getToolTranslation(locale);
 
-  const runCheck = useCallback(async (target: string, updateUrl = true) => {
-    const trimmed = target.trim();
-    if (!trimmed) return;
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-
-    if (updateUrl) {
-      router.replace(`/cdn?target=${encodeURIComponent(trimmed)}`, { scroll: false });
-    }
-
-    try {
-      const response = await fetch(`/api/cdn?target=${encodeURIComponent(trimmed)}`);
-      const data = unwrapApiResponse<CdnResult>(await response.json());
-      setResult(data);
-    } catch (checkError) {
-      setError((checkError as Error).message || t.cdnNetworkError);
-    } finally {
-      setLoading(false);
-    }
-  }, [router, t.cdnNetworkError]);
-
-  useEffect(() => {
-    if (initialTarget.trim()) {
-      runCheck(initialTarget, false);
-    }
-  }, [initialTarget, runCheck]);
+  const { loading, error, result, run } = useToolLookup<CdnResult>({
+    buildApiUrl: (target) => `/api/cdn?target=${encodeURIComponent(target)}`,
+    buildHref: (target) => `/cdn?target=${encodeURIComponent(target)}`,
+    mapError: (checkError) => getApiErrorMessage(checkError, t, t.cdnNetworkError),
+    initialQuery: initialTarget,
+  });
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -108,7 +81,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
         submitLabel={t.cdnAnalyzeButton}
         loadingLabel={t.cdnAnalyzing}
         loading={loading}
-        onSubmit={runCheck}
+        onSubmit={run}
       />
 
       {loading && (

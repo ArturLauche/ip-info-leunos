@@ -3,11 +3,10 @@
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { unwrapApiResponse } from "@/lib/api/client";
+import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { useMemo, useState } from "react";
 
 interface DnsAddress {
   address: string;
@@ -33,42 +32,16 @@ interface DnsCheckerProps {
 }
 
 export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<DnsResult | null>(null);
   const [selectedType, setSelectedType] = useState("ALL");
   const t = getToolTranslation(locale);
 
-  const runLookup = useCallback(async (target: string, updateUrl = true) => {
-    const trimmed = target.trim();
-    if (!trimmed) return;
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setSelectedType("ALL");
-
-    if (updateUrl) {
-      router.replace(`/dns?target=${encodeURIComponent(trimmed)}`, { scroll: false });
-    }
-
-    try {
-      const response = await fetch(`/api/dns?target=${encodeURIComponent(trimmed)}`);
-      const data = unwrapApiResponse<DnsResult>(await response.json());
-      setResult(data);
-    } catch (lookupError) {
-      setError((lookupError as Error).message || t.dnsLookupError);
-    } finally {
-      setLoading(false);
-    }
-  }, [router, t.dnsLookupError]);
-
-  useEffect(() => {
-    if (initialTarget.trim()) {
-      runLookup(initialTarget, false);
-    }
-  }, [initialTarget, runLookup]);
+  const { loading, error, result, run } = useToolLookup<DnsResult>({
+    buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
+    buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
+    mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.dnsLookupError),
+    initialQuery: initialTarget,
+    onStart: () => setSelectedType("ALL"),
+  });
 
   const recordTypes = useMemo(() => {
     if (!result) return [];
@@ -89,7 +62,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
-        onSubmit={runLookup}
+        onSubmit={run}
       />
 
       {error && <ErrorPanel message={error} />}
@@ -139,7 +112,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
           {result.recordErrors && result.recordErrors.length > 0 && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-              <p className="font-medium text-amber-100">Record lookup notes</p>
+              <p className="font-medium text-amber-100">{t.dnsRecordNotes}</p>
               <ul className="mt-2 space-y-1">
                 {result.recordErrors.map((entry) => (
                   <li key={`${entry.type}-${entry.error}`}>

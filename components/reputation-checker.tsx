@@ -1,13 +1,13 @@
 "use client";
 
 import { type Locale } from "@/lib/i18n";
-import { unwrapApiResponse } from "@/lib/api/client";
-import { getToolTranslation } from "@/lib/tool-i18n";
+import { ApiClientError } from "@/lib/api/client";
+import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { useToolLookup } from "@/hooks/use-tool-lookup";
+import { formatTemplate, getCountryFlag } from "@/lib/format";
 import type { ReputationSummary, RiskLevel, ThreatCategory } from "@/lib/reputation";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   Flag,
@@ -19,7 +19,7 @@ import {
   Waypoints,
 } from "lucide-react";
 
-type ToolT = ReturnType<typeof getToolTranslation>;
+type ToolT = ToolTranslation;
 
 interface ReputationCheckerProps {
   locale: Locale;
@@ -56,37 +56,14 @@ function categoryLabel(category: ThreatCategory, t: ToolT) {
   return labels[category];
 }
 
-function formatTemplate(template: string, values: Record<string, string | number>) {
-  return Object.entries(values).reduce(
-    (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)),
-    template,
-  );
-}
-
-function getCountryFlag(countryCode: string): string {
-  if (!countryCode || countryCode.length !== 2) return "";
-  const codePoints = countryCode
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-  try {
-    return String.fromCodePoint(...codePoints);
-  } catch {
-    return "";
-  }
-}
-
 function errorMessage(error: unknown, t: ToolT) {
-  const message = error instanceof Error ? error.message : "";
-
-  if (message === "The request parameters are invalid.") return t.reputationInvalidIp;
-  if (message === "Please provide a valid IP address.") return t.reputationInvalidIp;
-  if (message.includes("blocked")) return t.reputationBlockedIp;
-  if (message === "Too many requests. Please wait before trying again.") {
-    return t.reputationRateLimitError;
+  if (error instanceof ApiClientError) {
+    if (error.code === "bad_request" || error.code === "invalid_target") return t.reputationInvalidIp;
+    if (error.code === "target_blocked") return t.reputationBlockedIp;
+    if (error.code === "rate_limited") return t.reputationRateLimitError;
   }
 
-  return t.reputationNetworkError;
+  return getApiErrorMessage(error, t, t.reputationNetworkError);
 }
 
 function StatCard({
@@ -113,43 +90,14 @@ function StatCard({
 }
 
 export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ReputationSummary | null>(null);
   const t = getToolTranslation(locale);
 
-  const runCheck = useCallback(
-    async (ip: string, updateUrl = true) => {
-      const trimmed = ip.trim();
-      if (!trimmed) return;
-
-      setLoading(true);
-      setError(null);
-      setResult(null);
-
-      if (updateUrl) {
-        router.replace(`/reputation?ip=${encodeURIComponent(trimmed)}`, { scroll: false });
-      }
-
-      try {
-        const response = await fetch(`/api/reputation?ip=${encodeURIComponent(trimmed)}`);
-        const data = unwrapApiResponse<ReputationSummary>(await response.json());
-        setResult(data);
-      } catch (checkError) {
-        setError(errorMessage(checkError, t));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [router, t],
-  );
-
-  useEffect(() => {
-    if (initialIp.trim()) {
-      runCheck(initialIp, false);
-    }
-  }, [initialIp, runCheck]);
+  const { loading, error, result, run } = useToolLookup<ReputationSummary>({
+    buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
+    buildHref: (ip) => `/reputation?ip=${encodeURIComponent(ip)}`,
+    mapError: (checkError) => errorMessage(checkError, t),
+    initialQuery: initialIp,
+  });
 
   const abuseSummary = (summary: ReputationSummary) => {
     if (summary.abuse.status === "not_configured") return t.reputationAbuseNotConfigured;
@@ -165,7 +113,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}
         loading={loading}
-        onSubmit={(value) => runCheck(value)}
+        onSubmit={run}
       />
 
       {!loading && !error && !result && (
