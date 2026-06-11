@@ -2,6 +2,7 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { extractReferralServer, summarizeRdap, summarizeWhois } from "@/lib/whois";
 import {
   assertPublicIpAddress,
   assertPublicTarget,
@@ -18,15 +19,6 @@ const MAX_WHOIS_RESPONSE_BYTES = 256_000;
 const whoisQuerySchema = z.object({
   target: z.string().trim().min(1).max(253),
 });
-
-type WhoisSummary = {
-  registrar?: string;
-  created?: string;
-  expires?: string;
-  updated?: string;
-  status: string[];
-  nameservers: string[];
-};
 
 function isIp(target: string) {
   return net.isIP(target) !== 0;
@@ -81,88 +73,6 @@ async function queryWhois(server: string, query: string): Promise<string> {
 
     socket.once("close", () => finish());
   });
-}
-
-function extractReferralServer(response: string) {
-  const lines = response.split(/\r?\n/);
-  for (const line of lines) {
-    const [rawKey, ...rawValue] = line.split(":");
-    if (!rawKey || rawValue.length === 0) continue;
-
-    const key = rawKey.trim().toLowerCase();
-    const value = rawValue.join(":").trim();
-
-    if (["refer", "whois", "whois server", "referralserver"].includes(key) && value) {
-      return value.replace(/^whois:\/\//i, "").trim();
-    }
-  }
-
-  return null;
-}
-
-function firstValue(raw: string, labels: string[]) {
-  const lines = raw.split(/\r?\n/);
-
-  for (const label of labels) {
-    const match = lines.find((line) => line.toLowerCase().startsWith(`${label.toLowerCase()}:`));
-    if (match) return match.split(":").slice(1).join(":").trim();
-  }
-
-  return undefined;
-}
-
-function allValues(raw: string, labels: string[]) {
-  const values = new Set<string>();
-
-  for (const line of raw.split(/\r?\n/)) {
-    for (const label of labels) {
-      if (line.toLowerCase().startsWith(`${label.toLowerCase()}:`)) {
-        const value = line.split(":").slice(1).join(":").trim();
-        if (value) values.add(value);
-      }
-    }
-  }
-
-  return [...values];
-}
-
-function summarizeWhois(raw: string): WhoisSummary {
-  return {
-    registrar: firstValue(raw, ["Registrar", "Sponsoring Registrar", "registrarName"]),
-    created: firstValue(raw, ["Creation Date", "Created", "created"]),
-    expires: firstValue(raw, ["Registry Expiry Date", "Expiration Date", "expires"]),
-    updated: firstValue(raw, ["Updated Date", "Last Updated", "updated"]),
-    status: allValues(raw, ["Domain Status", "Status"]),
-    nameservers: allValues(raw, ["Name Server", "Nameserver", "nserver"]),
-  };
-}
-
-function summarizeRdap(data: unknown): WhoisSummary {
-  const record = typeof data === "object" && data ? (data as Record<string, unknown>) : {};
-  const events = Array.isArray(record.events) ? record.events : [];
-  const nameservers = Array.isArray(record.nameservers) ? record.nameservers : [];
-  const status = Array.isArray(record.status) ? record.status : [];
-
-  const eventDate = (actions: string[]) => {
-    for (const event of events) {
-      const entry = event as Record<string, unknown>;
-      if (typeof entry.eventAction === "string" && actions.includes(entry.eventAction)) {
-        return typeof entry.eventDate === "string" ? entry.eventDate : undefined;
-      }
-    }
-
-    return undefined;
-  };
-
-  return {
-    created: eventDate(["registration"]),
-    expires: eventDate(["expiration"]),
-    updated: eventDate(["last changed", "last update of RDAP database"]),
-    status: status.filter((item): item is string => typeof item === "string"),
-    nameservers: nameservers
-      .map((item) => (typeof item === "object" && item ? (item as Record<string, unknown>).ldhName : null))
-      .filter((item): item is string => typeof item === "string"),
-  };
 }
 
 async function lookupViaRdap(target: string) {

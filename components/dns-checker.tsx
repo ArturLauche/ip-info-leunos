@@ -3,20 +3,15 @@
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { unwrapApiResponse } from "@/lib/api/client";
+import { useToolLookup } from "@/hooks/use-tool-lookup";
+import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
 import { type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { useMemo, useState } from "react";
 
 interface DnsAddress {
   address: string;
   family: number;
-}
-
-interface DnsRecord {
-  type: string;
-  value: unknown;
 }
 
 interface DnsResult {
@@ -33,42 +28,20 @@ interface DnsCheckerProps {
 }
 
 export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<DnsResult | null>(null);
   const [selectedType, setSelectedType] = useState("ALL");
+  const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const runLookup = useCallback(async (target: string, updateUrl = true) => {
-    const trimmed = target.trim();
-    if (!trimmed) return;
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setSelectedType("ALL");
-
-    if (updateUrl) {
-      router.replace(`/dns?target=${encodeURIComponent(trimmed)}`, { scroll: false });
-    }
-
-    try {
-      const response = await fetch(`/api/dns?target=${encodeURIComponent(trimmed)}`);
-      const data = unwrapApiResponse<DnsResult>(await response.json());
-      setResult(data);
-    } catch (lookupError) {
-      setError((lookupError as Error).message || t.dnsLookupError);
-    } finally {
-      setLoading(false);
-    }
-  }, [router, t.dnsLookupError]);
-
-  useEffect(() => {
-    if (initialTarget.trim()) {
-      runLookup(initialTarget, false);
-    }
-  }, [initialTarget, runLookup]);
+  const { loading, error, result, run } = useToolLookup<DnsResult>({
+    buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
+    buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
+    mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.dnsLookupError),
+    initialQuery: initialTarget,
+    onStart: () => {
+      setSelectedType("ALL");
+      setShowRaw(false);
+    },
+  });
 
   const recordTypes = useMemo(() => {
     if (!result) return [];
@@ -89,7 +62,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
-        onSubmit={runLookup}
+        onSubmit={run}
       />
 
       {error && <ErrorPanel message={error} />}
@@ -132,14 +105,55 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
           <div>
             <p className="text-sm font-medium text-foreground">{t.recordDetails}</p>
-            <div className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
+            {visibleRecords.length > 0 ? (
+              <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-secondary/40">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="w-20 px-3 py-2.5 font-semibold">{t.dnsTableType}</th>
+                      <th className="px-3 py-2.5 font-semibold">{t.dnsTableValue}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {visibleRecords.map((record, index) => (
+                      <tr key={`${record.type}-${index}`} className="transition-colors hover:bg-secondary/40">
+                        <td className="px-3 py-2.5 align-top">
+                          <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">
+                            {record.type}
+                          </span>
+                        </td>
+                        <td className="break-all px-3 py-2.5 font-mono text-xs text-foreground">
+                          {formatDnsRecordValue(record)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">{t.dnsNoRecords}</p>
+            )}
+          </div>
+
+          {visibleRecords.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowRaw((value) => !value)}
+              className="h-10 rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+            >
+              {showRaw ? t.dnsHideRaw : t.dnsShowRaw}
+            </button>
+          )}
+
+          {showRaw && (
+            <div className="max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
               <pre>{JSON.stringify(visibleRecords, null, 2)}</pre>
             </div>
-          </div>
+          )}
 
           {result.recordErrors && result.recordErrors.length > 0 && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-              <p className="font-medium text-amber-100">Record lookup notes</p>
+              <p className="font-medium text-amber-100">{t.dnsRecordNotes}</p>
               <ul className="mt-2 space-y-1">
                 {result.recordErrors.map((entry) => (
                   <li key={`${entry.type}-${entry.error}`}>

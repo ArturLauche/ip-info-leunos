@@ -4,10 +4,10 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 
 ## Features
 
-- Show the visitor's public IPv4/IPv6 metadata.
+- Show the visitor's public IPv4/IPv6 metadata, detected connection type, and reverse DNS.
 - Look up a public IP address or public domain at `/check`.
 - Look up ASN profiles at `/asn` and `/asn/AS8881`, combining optional IPinfo ASN data, public RIPEstat routing data, and public PeeringDB peering data.
-- Query DNS records at `/dns`.
+- Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) at `/dns`, including reverse (PTR) lookups for IP addresses.
 - Query WHOIS/RDAP data at `/whois`.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
@@ -60,7 +60,7 @@ pnpm test
 pnpm build
 ```
 
-The build no longer ignores TypeScript errors.
+The build does not ignore TypeScript errors, and fonts are self-hosted via the `geist` package, so production builds work without network access.
 
 ## Deployment
 
@@ -83,4 +83,4 @@ PeeringDB describes network peering policy and presence; BGP-style routing neigh
 
 ## License
 
-No explicit license file is included. Add a `LICENSE` before public redistribution.
+MIT — see `LICENSE.txt`.

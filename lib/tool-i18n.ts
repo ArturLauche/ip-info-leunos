@@ -1,6 +1,16 @@
+import { ApiClientError } from "@/lib/api/client";
 import { type Locale } from "@/lib/i18n";
 
 type ToolTranslation = {
+  errorRateLimited: string;
+  errorInvalidTarget: string;
+  errorTargetBlocked: string;
+  errorTimeout: string;
+  errorUpstream: string;
+  errorBadRequest: string;
+  errorTargetNetwork: string;
+  showAll: string;
+  showLess: string;
   pingTabLabel: string;
   dnsTabLabel: string;
   whoisTabLabel: string;
@@ -31,14 +41,22 @@ type ToolTranslation = {
   asnNotFoundDescription: string;
   asnPartialData: string;
   asnCompleteData: string;
-  asnIdentity: string;
   asnPrefixes: string;
   asnRouting: string;
   asnPeeringDb: string;
   asnIxPresence: string;
   asnFacilities: string;
-  asnSources: string;
   asnSourceDiagnostics: string;
+  asnDetailedDiagnostics: string;
+  asnUnnamed: string;
+  asnRoutingDescription: string;
+  asnIxDescription: string;
+  asnPrefixesDescription: string;
+  asnPeeringDbDescription: string;
+  asnFacilitiesDescription: string;
+  asnProfileIdentityHeading: string;
+  asnProfileInterconnectionHeading: string;
+  asnProfilePolicyHeading: string;
   asnWarnings: string;
   asnDiagnosticDuration: string;
   asnDiagnosticCache: string;
@@ -48,38 +66,25 @@ type ToolTranslation = {
   asnCacheNotConfigured: string;
   asnNoPrefixes: string;
   asnNoRelations: string;
-  asnNoPeeringDb: string;
-  asnAutonomousSystem: string;
   asnMetricIpv4Addresses: string;
-  asnMetricIpv4Prefixes: string;
-  asnMetricIpv6Prefixes: string;
   asnMetricRoutingNeighbours: string;
   asnMetricIxPresence: string;
-  asnMetricFacilities: string;
   asnMetricIpinfoDetail: string;
   asnMetricAnnouncedPrefixesDetail: string;
-  asnMetricPeeringDbDeclaredCountDetail: string;
   asnMetricBgpRelationshipsDetail: string;
   asnMetricPeeringDbProfileDetail: string;
-  asnReturnedRecords: string;
   asnPrefixIpCount: string;
   asnRelationPeers: string;
   asnRelationUpstreams: string;
   asnRelationDownstreams: string;
   asnRelationPower: string;
-  asnRelationIpv4Peers: string;
-  asnRelationIpv6Peers: string;
   asnSourceAvailable: string;
   asnSourceUnavailable: string;
   asnSourceNotConfigured: string;
   asnSourceError: string;
-  asnLabelAsn: string;
   asnLabelName: string;
   asnLabelCountry: string;
-  asnLabelRegistry: string;
   asnLabelAllocated: string;
-  asnLabelDomain: string;
-  asnLabelType: string;
   asnLabelNetworkId: string;
   asnLabelAlsoKnownAs: string;
   asnLabelWebsite: string;
@@ -131,19 +136,31 @@ type ToolTranslation = {
   lookupInProgress: string;
   dnsLookupButton: string;
   dnsLookupError: string;
-  dnsNetworkError: string;
   dnsRecordsFor: string;
   resolvedAddresses: string;
   noAddressResult: string;
   recordDetails: string;
+  dnsRecordNotes: string;
+  dnsTableType: string;
+  dnsTableValue: string;
+  dnsShowRaw: string;
+  dnsHideRaw: string;
+  dnsNoRecords: string;
   whoisPlaceholder: string;
   whoisLookupButton: string;
   whoisLookupError: string;
-  whoisNetworkError: string;
   whoisFor: string;
   queriedServer: string;
   referralSource: string;
   noWhoisData: string;
+  whoisRegistrar: string;
+  whoisCreated: string;
+  whoisUpdated: string;
+  whoisExpires: string;
+  whoisStatusLabel: string;
+  whoisNameservers: string;
+  whoisShowRaw: string;
+  whoisHideRaw: string;
   pingPlan: string;
   pingTestMode: string;
   pingModeHelperTcp: string;
@@ -161,7 +178,6 @@ type ToolTranslation = {
   pingDatabaseOptional: string;
   pingRunButton: string;
   pingRunning: string;
-  pingCheckFailed: string;
   pingNetworkError: string;
   pingModeLabel: string;
   pingLatencyLabel: string;
@@ -174,7 +190,6 @@ type ToolTranslation = {
   pingCurrentPlanDbProtocol: string;
   cdnAnalyzeButton: string;
   cdnAnalyzing: string;
-  cdnAnalyzeError: string;
   cdnNetworkError: string;
   cdnSummaryUnreachable: string;
   cdnSummaryNoMatch: string;
@@ -207,7 +222,6 @@ type ToolTranslation = {
   reputationRiskMedium: string;
   reputationRiskHigh: string;
   reputationScoreLabel: string;
-  reputationThreatsLabel: string;
   reputationNoThreats: string;
   reputationThreatProxy: string;
   reputationThreatTor: string;
@@ -231,6 +245,15 @@ type ToolTranslation = {
 };
 
 const en: ToolTranslation = {
+  errorRateLimited: "Too many requests. Please wait a moment and try again.",
+  errorInvalidTarget: "Please provide a valid public domain, IP address, or URL.",
+  errorTargetBlocked: "Private, local, and internal targets cannot be checked on this public site.",
+  errorTimeout: "The check timed out. The target may be slow or unreachable.",
+  errorUpstream: "An upstream data provider is currently unavailable.",
+  errorBadRequest: "The request parameters are invalid.",
+  errorTargetNetwork: "The target could not be resolved or reached.",
+  showAll: "Show all",
+  showLess: "Show less",
   pingTabLabel: "Ping Tester",
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
@@ -240,7 +263,7 @@ const en: ToolTranslation = {
   pingTitle: "Ping & Port Tester",
   pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
-  dnsSubtitle: "Query domain DNS records (A, AAAA, CNAME, MX, NS, TXT, SRV) from a single page.",
+  dnsSubtitle: "Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) for domains and reverse DNS for IP addresses.",
   whoisTitle: "WHOIS Lookup",
   whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
@@ -261,14 +284,25 @@ const en: ToolTranslation = {
   asnNotFoundDescription: "The ASN is valid, but neither configured source returned a usable public profile.",
   asnPartialData: "Partial data",
   asnCompleteData: "Complete",
-  asnIdentity: "ASN identity",
   asnPrefixes: "Announced prefixes",
   asnRouting: "Routing relationships",
   asnPeeringDb: "PeeringDB profile",
   asnIxPresence: "IX presence",
   asnFacilities: "Facility presence",
-  asnSources: "Source status",
   asnSourceDiagnostics: "Source diagnostics",
+  asnDetailedDiagnostics: "Detailed diagnostics",
+  asnUnnamed: "Unnamed AS",
+  asnRoutingDescription:
+    "Autonomous system interconnections, neighbours, and path weights. Higher weights indicate more frequently observed routing paths.",
+  asnIxDescription:
+    "Internet exchanges (IX) where this autonomous system is present, including interconnection bandwidth.",
+  asnPrefixesDescription: "IP netblocks announced by this autonomous system to the global routing table.",
+  asnPeeringDbDescription:
+    "Interconnection profile and routing policies declared in the public PeeringDB database.",
+  asnFacilitiesDescription: "Physical data centers and colocation facilities where this network is present.",
+  asnProfileIdentityHeading: "Identity & status",
+  asnProfileInterconnectionHeading: "Interconnection details",
+  asnProfilePolicyHeading: "Peering policy",
   asnWarnings: "Warnings",
   asnDiagnosticDuration: "Duration",
   asnDiagnosticCache: "Cache",
@@ -278,38 +312,25 @@ const en: ToolTranslation = {
   asnCacheNotConfigured: "not configured",
   asnNoPrefixes: "No prefixes returned by the configured sources.",
   asnNoRelations: "No routing relationships returned by the configured sources.",
-  asnNoPeeringDb: "No public PeeringDB network profile is available for this ASN.",
-  asnAutonomousSystem: "Autonomous System",
   asnMetricIpv4Addresses: "IPv4 addresses",
-  asnMetricIpv4Prefixes: "IPv4 prefixes",
-  asnMetricIpv6Prefixes: "IPv6 prefixes",
   asnMetricRoutingNeighbours: "Routing neighbours",
   asnMetricIxPresence: "IX presence",
-  asnMetricFacilities: "Facilities",
   asnMetricIpinfoDetail: "IPinfo ASN data, when configured",
   asnMetricAnnouncedPrefixesDetail: "Announced prefixes",
-  asnMetricPeeringDbDeclaredCountDetail: "PeeringDB declared count",
   asnMetricBgpRelationshipsDetail: "IPinfo or RIPEstat BGP relationships",
   asnMetricPeeringDbProfileDetail: "PeeringDB network profile",
-  asnReturnedRecords: "Showing {visible} of {total} returned records.",
   asnPrefixIpCount: "IPs",
   asnRelationPeers: "Peers",
   asnRelationUpstreams: "Upstreams",
   asnRelationDownstreams: "Downstreams",
   asnRelationPower: "power",
-  asnRelationIpv4Peers: "v4",
-  asnRelationIpv6Peers: "v6",
   asnSourceAvailable: "available",
   asnSourceUnavailable: "unavailable",
   asnSourceNotConfigured: "not configured",
   asnSourceError: "error",
-  asnLabelAsn: "ASN",
   asnLabelName: "Name",
   asnLabelCountry: "Country",
-  asnLabelRegistry: "Registry",
   asnLabelAllocated: "Allocated",
-  asnLabelDomain: "Domain",
-  asnLabelType: "Type",
   asnLabelNetworkId: "Network ID",
   asnLabelAlsoKnownAs: "Also known as",
   asnLabelWebsite: "Website",
@@ -361,19 +382,31 @@ const en: ToolTranslation = {
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
   dnsLookupError: "DNS lookup failed.",
-  dnsNetworkError: "Network error while contacting /api/dns.",
   dnsRecordsFor: "DNS records for",
   resolvedAddresses: "Resolved addresses",
   noAddressResult: "No A/AAAA lookup result.",
   recordDetails: "Record details",
+  dnsRecordNotes: "Record lookup notes",
+  dnsTableType: "Type",
+  dnsTableValue: "Value",
+  dnsShowRaw: "Show raw JSON",
+  dnsHideRaw: "Hide raw JSON",
+  dnsNoRecords: "No records of the selected type were returned.",
   whoisPlaceholder: "example.com or 8.8.8.8",
   whoisLookupButton: "Lookup WHOIS",
   whoisLookupError: "WHOIS lookup failed.",
-  whoisNetworkError: "Network error while contacting /api/whois.",
   whoisFor: "WHOIS for",
   queriedServer: "Queried server",
   referralSource: "Referral source",
   noWhoisData: "No WHOIS data returned.",
+  whoisRegistrar: "Registrar",
+  whoisCreated: "Created",
+  whoisUpdated: "Updated",
+  whoisExpires: "Expires",
+  whoisStatusLabel: "Status",
+  whoisNameservers: "Nameservers",
+  whoisShowRaw: "Show raw output",
+  whoisHideRaw: "Hide raw output",
   pingPlan: "Current test plan",
   pingTestMode: "Test mode",
   pingModeHelperTcp: "Verifies whether the TCP port accepts a connection.",
@@ -391,7 +424,6 @@ const en: ToolTranslation = {
   pingDatabaseOptional: "Database (optional)",
   pingRunButton: "Run ping test",
   pingRunning: "Running check...",
-  pingCheckFailed: "Ping check failed.",
   pingNetworkError: "Network error while contacting /api/ping.",
   pingModeLabel: "Mode",
   pingLatencyLabel: "Latency",
@@ -404,7 +436,6 @@ const en: ToolTranslation = {
   pingCurrentPlanDbProtocol: "protocol check against",
   cdnAnalyzeButton: "Check CDN",
   cdnAnalyzing: "Analyzing...",
-  cdnAnalyzeError: "Could not analyze this target.",
   cdnNetworkError: "Network error while contacting the CDN checker.",
   cdnSummaryUnreachable: "Target unreachable",
   cdnSummaryNoMatch: "No confident CDN match",
@@ -437,7 +468,6 @@ const en: ToolTranslation = {
   reputationRiskMedium: "Medium risk",
   reputationRiskHigh: "High risk",
   reputationScoreLabel: "Risk score",
-  reputationThreatsLabel: "Detected threat categories",
   reputationNoThreats: "No threat categories detected.",
   reputationThreatProxy: "Proxy / VPN",
   reputationThreatTor: "Tor exit node",
@@ -467,10 +497,19 @@ const de: Partial<ToolTranslation> = {
   cdnTabLabel: "CDN-Prüfer",
   asnTabLabel: "ASN-Abfrage",
   reputationTabLabel: "IP-Reputation",
+  errorRateLimited: "Zu viele Anfragen. Bitte warte kurz und versuche es erneut.",
+  errorInvalidTarget: "Bitte gib eine gültige öffentliche Domain, IP-Adresse oder URL an.",
+  errorTargetBlocked: "Private, lokale und interne Ziele können auf dieser öffentlichen Seite nicht geprüft werden.",
+  errorTimeout: "Zeitüberschreitung bei der Prüfung. Das Ziel ist möglicherweise langsam oder nicht erreichbar.",
+  errorUpstream: "Ein vorgelagerter Datenanbieter ist derzeit nicht verfügbar.",
+  errorBadRequest: "Die Anfrageparameter sind ungültig.",
+  errorTargetNetwork: "Das Ziel konnte nicht aufgelöst oder erreicht werden.",
+  showAll: "Alle anzeigen",
+  showLess: "Weniger anzeigen",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
-  dnsSubtitle: "Domain-DNS-Einträge (A, AAAA, CNAME, MX, NS, TXT, SRV) auf einer Seite abfragen.",
+  dnsSubtitle: "DNS-Einträge (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) für Domains und Reverse-DNS für IP-Adressen abfragen.",
   whoisTitle: "WHOIS-Abfrage",
   whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
@@ -491,14 +530,25 @@ const de: Partial<ToolTranslation> = {
   asnNotFoundDescription: "Die ASN ist gültig, aber keine konfigurierte Quelle lieferte ein nutzbares öffentliches Profil.",
   asnPartialData: "Teildaten",
   asnCompleteData: "Vollständig",
-  asnIdentity: "ASN-Identität",
   asnPrefixes: "Angekündigte Prefixe",
   asnRouting: "Routing-Beziehungen",
   asnPeeringDb: "PeeringDB-Profil",
   asnIxPresence: "IX-Präsenz",
   asnFacilities: "Standort-Präsenz",
-  asnSources: "Quellenstatus",
   asnSourceDiagnostics: "Quellendiagnose",
+  asnDetailedDiagnostics: "Detaillierte Diagnose",
+  asnUnnamed: "Unbenanntes AS",
+  asnRoutingDescription:
+    "Verbindungen, Nachbarn und Pfadgewichte des autonomen Systems. Höhere Gewichte stehen für häufiger beobachtete Routing-Pfade.",
+  asnIxDescription:
+    "Internet-Exchanges (IX), an denen dieses autonome System präsent ist, inklusive Anbindungsbandbreite.",
+  asnPrefixesDescription: "IP-Netzblöcke, die dieses autonome System in der globalen Routing-Tabelle ankündigt.",
+  asnPeeringDbDescription:
+    "Interconnection-Profil und Routing-Richtlinien aus der öffentlichen PeeringDB-Datenbank.",
+  asnFacilitiesDescription: "Physische Rechenzentren und Colocation-Standorte, an denen dieses Netzwerk präsent ist.",
+  asnProfileIdentityHeading: "Identität & Status",
+  asnProfileInterconnectionHeading: "Interconnection-Details",
+  asnProfilePolicyHeading: "Peering-Richtlinie",
   asnWarnings: "Warnungen",
   asnDiagnosticDuration: "Dauer",
   asnDiagnosticCache: "Cache",
@@ -508,38 +558,25 @@ const de: Partial<ToolTranslation> = {
   asnCacheNotConfigured: "nicht konfiguriert",
   asnNoPrefixes: "Keine Prefixe von den konfigurierten Quellen erhalten.",
   asnNoRelations: "Keine Routing-Beziehungen von den konfigurierten Quellen erhalten.",
-  asnNoPeeringDb: "Für diese ASN ist kein öffentliches PeeringDB-Netzwerkprofil verfügbar.",
-  asnAutonomousSystem: "Autonomes System",
   asnMetricIpv4Addresses: "IPv4-Adressen",
-  asnMetricIpv4Prefixes: "IPv4-Prefixe",
-  asnMetricIpv6Prefixes: "IPv6-Prefixe",
   asnMetricRoutingNeighbours: "Routing-Nachbarn",
   asnMetricIxPresence: "IX-Präsenz",
-  asnMetricFacilities: "Standorte",
   asnMetricIpinfoDetail: "IPinfo-ASN-Daten, wenn konfiguriert",
   asnMetricAnnouncedPrefixesDetail: "Angekündigte Prefixe",
-  asnMetricPeeringDbDeclaredCountDetail: "Von PeeringDB gemeldete Anzahl",
   asnMetricBgpRelationshipsDetail: "BGP-Beziehungen aus IPinfo oder RIPEstat",
   asnMetricPeeringDbProfileDetail: "PeeringDB-Netzwerkprofil",
-  asnReturnedRecords: "{visible} von {total} Einträgen werden angezeigt.",
   asnPrefixIpCount: "IPs",
   asnRelationPeers: "Peers",
   asnRelationUpstreams: "Upstreams",
   asnRelationDownstreams: "Downstreams",
   asnRelationPower: "Gewicht",
-  asnRelationIpv4Peers: "v4",
-  asnRelationIpv6Peers: "v6",
   asnSourceAvailable: "verfügbar",
   asnSourceUnavailable: "nicht verfügbar",
   asnSourceNotConfigured: "nicht konfiguriert",
   asnSourceError: "Fehler",
-  asnLabelAsn: "ASN",
   asnLabelName: "Name",
   asnLabelCountry: "Land",
-  asnLabelRegistry: "Registry",
   asnLabelAllocated: "Zugewiesen",
-  asnLabelDomain: "Domain",
-  asnLabelType: "Typ",
   asnLabelNetworkId: "Netzwerk-ID",
   asnLabelAlsoKnownAs: "Auch bekannt als",
   asnLabelWebsite: "Website",
@@ -590,18 +627,30 @@ const de: Partial<ToolTranslation> = {
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",
-  dnsNetworkError: "Netzwerkfehler bei /api/dns.",
   dnsRecordsFor: "DNS-Einträge für",
   resolvedAddresses: "Aufgelöste Adressen",
   noAddressResult: "Kein A/AAAA-Ergebnis.",
   recordDetails: "Eintragsdetails",
+  dnsRecordNotes: "Hinweise zur Record-Abfrage",
+  dnsTableType: "Typ",
+  dnsTableValue: "Wert",
+  dnsShowRaw: "Rohes JSON anzeigen",
+  dnsHideRaw: "Rohes JSON ausblenden",
+  dnsNoRecords: "Keine Einträge des gewählten Typs erhalten.",
   whoisLookupButton: "WHOIS abfragen",
   whoisLookupError: "WHOIS-Abfrage fehlgeschlagen.",
-  whoisNetworkError: "Netzwerkfehler bei /api/whois.",
   whoisFor: "WHOIS für",
   queriedServer: "Abgefragter Server",
   referralSource: "Weiterleitungsquelle",
   noWhoisData: "Keine WHOIS-Daten zurückgegeben.",
+  whoisRegistrar: "Registrar",
+  whoisCreated: "Erstellt",
+  whoisUpdated: "Aktualisiert",
+  whoisExpires: "Läuft ab",
+  whoisStatusLabel: "Status",
+  whoisNameservers: "Nameserver",
+  whoisShowRaw: "Rohausgabe anzeigen",
+  whoisHideRaw: "Rohausgabe ausblenden",
   pingPlan: "Aktueller Testplan",
   pingTestMode: "Testmodus",
   pingModeHelperTcp: "Prüft, ob der TCP-Port eine Verbindung akzeptiert.",
@@ -619,7 +668,6 @@ const de: Partial<ToolTranslation> = {
   pingDatabaseOptional: "Datenbank (optional)",
   pingRunButton: "Ping-Test starten",
   pingRunning: "Prüfung läuft...",
-  pingCheckFailed: "Ping-Prüfung fehlgeschlagen.",
   pingNetworkError: "Netzwerkfehler bei /api/ping.",
   pingModeLabel: "Modus",
   pingLatencyLabel: "Latenz",
@@ -632,7 +680,6 @@ const de: Partial<ToolTranslation> = {
   pingCurrentPlanDbProtocol: "Protokoll-Prüfung gegen",
   cdnAnalyzeButton: "CDN prüfen",
   cdnAnalyzing: "Analyse läuft...",
-  cdnAnalyzeError: "Dieses Ziel konnte nicht analysiert werden.",
   cdnNetworkError: "Netzwerkfehler beim CDN-Prüfer.",
   cdnSummaryUnreachable: "Ziel nicht erreichbar",
   cdnSummaryNoMatch: "Kein eindeutiger CDN-Treffer",
@@ -664,7 +711,6 @@ const de: Partial<ToolTranslation> = {
   reputationRiskMedium: "Mittleres Risiko",
   reputationRiskHigh: "Hohes Risiko",
   reputationScoreLabel: "Risiko-Score",
-  reputationThreatsLabel: "Erkannte Bedrohungskategorien",
   reputationNoThreats: "Keine Bedrohungskategorien erkannt.",
   reputationThreatProxy: "Proxy / VPN",
   reputationThreatTor: "Tor-Exit-Node",
@@ -701,3 +747,33 @@ const toolTranslations: Record<Locale, ToolTranslation> = {
 export function getToolTranslation(locale: Locale): ToolTranslation {
   return toolTranslations[locale] ?? en;
 }
+
+/**
+ * Maps a structured API error to a translated message via its error code.
+ * Falls back to the tool-specific message for client-side network failures
+ * and unknown codes.
+ */
+export function getApiErrorMessage(error: unknown, t: ToolTranslation, fallback: string): string {
+  if (!(error instanceof ApiClientError)) return fallback;
+
+  switch (error.code) {
+    case "rate_limited":
+      return t.errorRateLimited;
+    case "invalid_target":
+      return t.errorInvalidTarget;
+    case "target_blocked":
+      return t.errorTargetBlocked;
+    case "timeout":
+      return t.errorTimeout;
+    case "upstream_error":
+      return t.errorUpstream;
+    case "bad_request":
+      return t.errorBadRequest;
+    case "network_error":
+      return t.errorTargetNetwork;
+    default:
+      return fallback;
+  }
+}
+
+export type { ToolTranslation };

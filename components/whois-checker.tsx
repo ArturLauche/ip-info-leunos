@@ -3,11 +3,10 @@
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { unwrapApiResponse } from "@/lib/api/client";
+import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { useState } from "react";
 
 interface WhoisSummary {
   registrar?: string;
@@ -44,42 +43,16 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
 }
 
 export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<WhoisResult | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const runLookup = useCallback(async (target: string, updateUrl = true) => {
-    const trimmed = target.trim();
-    if (!trimmed) return;
-
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setShowRaw(false);
-
-    if (updateUrl) {
-      router.replace(`/whois?target=${encodeURIComponent(trimmed)}`, { scroll: false });
-    }
-
-    try {
-      const response = await fetch(`/api/whois?target=${encodeURIComponent(trimmed)}`);
-      const data = unwrapApiResponse<WhoisResult>(await response.json());
-      setResult(data);
-    } catch (lookupError) {
-      setError((lookupError as Error).message || t.whoisLookupError);
-    } finally {
-      setLoading(false);
-    }
-  }, [router, t.whoisLookupError]);
-
-  useEffect(() => {
-    if (initialTarget.trim()) {
-      runLookup(initialTarget, false);
-    }
-  }, [initialTarget, runLookup]);
+  const { loading, error, result, run } = useToolLookup<WhoisResult>({
+    buildApiUrl: (target) => `/api/whois?target=${encodeURIComponent(target)}`,
+    buildHref: (target) => `/whois?target=${encodeURIComponent(target)}`,
+    mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.whoisLookupError),
+    initialQuery: initialTarget,
+    onStart: () => setShowRaw(false),
+  });
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -89,7 +62,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
-        onSubmit={runLookup}
+        onSubmit={run}
       />
 
       {error && <ErrorPanel message={error} />}
@@ -111,10 +84,10 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
 
             {result.summary && (
               <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm">
-                <SummaryRow label="Registrar" value={result.summary.registrar} />
-                <SummaryRow label="Created" value={result.summary.created} />
-                <SummaryRow label="Updated" value={result.summary.updated} />
-                <SummaryRow label="Expires" value={result.summary.expires} />
+                <SummaryRow label={t.whoisRegistrar} value={result.summary.registrar} />
+                <SummaryRow label={t.whoisCreated} value={result.summary.created} />
+                <SummaryRow label={t.whoisUpdated} value={result.summary.updated} />
+                <SummaryRow label={t.whoisExpires} value={result.summary.expires} />
               </div>
             )}
           </div>
@@ -122,7 +95,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
           {result.summary && (result.summary.status.length > 0 || result.summary.nameservers.length > 0) && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                <p className="text-sm font-medium text-foreground">Status</p>
+                <p className="text-sm font-medium text-foreground">{t.whoisStatusLabel}</p>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {result.summary.status.length > 0 ? (
                     result.summary.status.map((status) => <li key={status}>{status}</li>)
@@ -132,7 +105,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
                 </ul>
               </div>
               <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                <p className="text-sm font-medium text-foreground">Nameservers</p>
+                <p className="text-sm font-medium text-foreground">{t.whoisNameservers}</p>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {result.summary.nameservers.length > 0 ? (
                     result.summary.nameservers.map((nameserver) => (
@@ -153,7 +126,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
             onClick={() => setShowRaw((value) => !value)}
             className="h-10 rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
           >
-            {showRaw ? "Hide raw output" : "Show raw output"}
+            {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
           </button>
 
           {showRaw && (
