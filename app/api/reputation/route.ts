@@ -2,6 +2,7 @@ import dns from "node:dns/promises";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { lookupIpApi } from "@/lib/providers/ip-api";
 import {
   assertPublicIpAddress,
   isIPv4Address,
@@ -80,58 +81,27 @@ type IpApiResult = {
   mobile: boolean;
 } | null;
 
-const ipApiSchema = z
-  .object({
-    status: z.enum(["success", "fail"]),
-    country: z.string().optional(),
-    countryCode: z.string().optional(),
-    regionName: z.string().optional(),
-    city: z.string().optional(),
-    isp: z.string().optional(),
-    org: z.string().optional(),
-    as: z.string().optional(),
-    asname: z.string().optional(),
-    proxy: z.boolean().optional(),
-    hosting: z.boolean().optional(),
-    mobile: z.boolean().optional(),
-  })
-  .passthrough();
+async function lookupIpMetadata(ip: string): Promise<IpApiResult> {
+  const data = await lookupIpApi(ip, { timeoutMs: SOURCE_TIMEOUT_MS });
+  if (!data) return null;
 
-async function lookupIpApi(ip: string): Promise<IpApiResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SOURCE_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(
-      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,country,countryCode,regionName,city,isp,org,as,asname,proxy,hosting,mobile`,
-      { cache: "no-store", signal: controller.signal },
-    );
-    const parsed = ipApiSchema.safeParse(await response.json());
-    if (!parsed.success || parsed.data.status === "fail") return null;
-
-    const data = parsed.data;
-    return {
-      geo: {
-        country: data.country || "",
-        countryCode: data.countryCode || "",
-        region: data.regionName || "",
-        city: data.city || "",
-      },
-      network: {
-        as: data.as || "",
-        asname: data.asname || "",
-        isp: data.isp || "",
-        org: data.org || "",
-      },
-      proxy: Boolean(data.proxy),
-      hosting: Boolean(data.hosting),
-      mobile: Boolean(data.mobile),
-    };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  return {
+    geo: {
+      country: data.country || "",
+      countryCode: data.countryCode || "",
+      region: data.regionName || "",
+      city: data.city || "",
+    },
+    network: {
+      as: data.as || "",
+      asname: data.asname || "",
+      isp: data.isp || "",
+      org: data.org || "",
+    },
+    proxy: Boolean(data.proxy),
+    hosting: Boolean(data.hosting),
+    mobile: Boolean(data.mobile),
+  };
 }
 
 const abuseIpDbSchema = z
@@ -232,7 +202,7 @@ export async function GET(request: Request) {
 
   const [blacklists, ipApi, abuse] = await Promise.all([
     Promise.all(REPUTATION_BLACKLISTS.map((definition) => queryBlacklist(ip, family, definition))),
-    lookupIpApi(ip),
+    lookupIpMetadata(ip),
     lookupAbuseIpDb(ip),
   ]);
 

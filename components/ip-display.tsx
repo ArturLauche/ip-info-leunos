@@ -12,6 +12,7 @@ import {
   type ClientIpDiscoveryResult,
   type LocalIpCheck,
 } from "@/lib/client-ip-discovery";
+import type { ConnectionType } from "@/lib/connection-type";
 import {
   Globe,
   MapPin,
@@ -25,10 +26,12 @@ import {
   Cable,
   Smartphone,
   Shield,
+  ShieldAlert,
   Server,
   Network,
   ExternalLink,
 } from "lucide-react";
+
 interface IpData {
   ipv4: string | null;
   ipv6: string | null;
@@ -53,7 +56,7 @@ interface IpData {
   proxyConfidence?: "none" | "low" | "medium" | "high";
   proxyReasons?: string[];
   hosting: boolean;
-  connectionType: string;
+  connectionType: ConnectionType;
   ipSources?: {
     ipv4?: string;
     ipv6?: string;
@@ -219,8 +222,9 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const displayIpv4 = displayIps.ipv4?.ip || null;
   const displayIpv6 = displayIps.ipv6?.ip || null;
   const asnHref = getAsnHref(data.as);
-  const connectionTypeLabel =
-    data.connectionType === "Festnetz" ? t.connectionDsl : data.connectionType;
+  const connectionTypeLabel = t.connectionTypes[data.connectionType] ?? t.unknown;
+  const reputationIp = displayIpv4 || displayIpv6;
+  const orUnknown = (value: string) => value || t.unknown;
 
   return (
     <div className="flex w-full flex-col items-center gap-10">
@@ -271,10 +275,20 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           </div>
         )}
 
-        {data.city !== t.unknown && (
+        {data.city && (
           <p className="text-center text-base text-muted-foreground">
             {data.city}, {data.regionName}, {data.country}
           </p>
+        )}
+
+        {reputationIp && (
+          <Link
+            href={`/reputation?ip=${encodeURIComponent(reputationIp)}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            {t.checkReputation}
+          </Link>
         )}
       </div>
 
@@ -350,20 +364,21 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
         <InfoCard
           icon={MapPin}
           label={t.location}
-          value={
-            data.city !== t.unknown ? `${data.city}, ${data.regionName}` : t.unknown
-          }
+          value={data.city ? `${data.city}, ${data.regionName}` : t.unknown}
           detail={data.country}
         />
-        <InfoCard icon={Globe} label={t.country} value={data.country} detail={data.countryCode} />
-        <InfoCard icon={Clock} label={t.timezone} value={data.timezone} detail={t.timezoneDetail} />
-        <InfoCard icon={Wifi} label={t.isp} value={data.isp} detail={t.ispDetail} />
+        <InfoCard icon={Globe} label={t.country} value={orUnknown(data.country)} detail={data.countryCode} />
+        <InfoCard icon={Clock} label={t.timezone} value={orUnknown(data.timezone)} detail={t.timezoneDetail} />
+        <InfoCard icon={Wifi} label={t.isp} value={orUnknown(data.isp)} detail={t.ispDetail} />
         <InfoCard
           icon={Building2}
           label={t.organization}
-          value={data.org}
+          value={orUnknown(data.org)}
           detail={t.organizationDetail}
         />
+        {data.reverse && (
+          <InfoCard icon={Network} label={t.reverseDns} value={data.reverse} detail={t.reverseDnsDetail} />
+        )}
         <div className="group flex flex-col gap-2.5 rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/15">
@@ -382,7 +397,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             </Link>
           ) : (
-            <p className="truncate text-lg font-semibold text-foreground">{data.as}</p>
+            <p className="truncate text-lg font-semibold text-foreground">{orUnknown(data.as)}</p>
           )}
           <p className="truncate text-xs text-muted-foreground">
             {data.asname || t.asFallbackDetail}
@@ -394,11 +409,11 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           value={`${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`}
           detail={t.coordinatesDetail}
         />
-        <InfoCard icon={MapPin} label={t.region} value={data.regionName} detail={data.region} />
+        <InfoCard icon={MapPin} label={t.region} value={orUnknown(data.regionName)} detail={data.region} />
         <InfoCard
           icon={Hash}
           label={t.postalCode}
-          value={data.zip || "N/V"}
+          value={orUnknown(data.zip)}
           detail={t.postalCodeDetail}
         />
       </div>
