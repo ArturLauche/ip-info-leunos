@@ -4,6 +4,7 @@ import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
+import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { useMemo, useState } from "react";
@@ -11,11 +12,6 @@ import { useMemo, useState } from "react";
 interface DnsAddress {
   address: string;
   family: number;
-}
-
-interface DnsRecord {
-  type: string;
-  value: unknown;
 }
 
 interface DnsResult {
@@ -33,6 +29,7 @@ interface DnsCheckerProps {
 
 export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
   const [selectedType, setSelectedType] = useState("ALL");
+  const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
   const { loading, error, result, run } = useToolLookup<DnsResult>({
@@ -40,7 +37,10 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
     buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
     mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.dnsLookupError),
     initialQuery: initialTarget,
-    onStart: () => setSelectedType("ALL"),
+    onStart: () => {
+      setSelectedType("ALL");
+      setShowRaw(false);
+    },
   });
 
   const recordTypes = useMemo(() => {
@@ -105,10 +105,51 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
           <div>
             <p className="text-sm font-medium text-foreground">{t.recordDetails}</p>
-            <div className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
+            {visibleRecords.length > 0 ? (
+              <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-secondary/40">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="w-20 px-3 py-2.5 font-semibold">{t.dnsTableType}</th>
+                      <th className="px-3 py-2.5 font-semibold">{t.dnsTableValue}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {visibleRecords.map((record, index) => (
+                      <tr key={`${record.type}-${index}`} className="transition-colors hover:bg-secondary/40">
+                        <td className="px-3 py-2.5 align-top">
+                          <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">
+                            {record.type}
+                          </span>
+                        </td>
+                        <td className="break-all px-3 py-2.5 font-mono text-xs text-foreground">
+                          {formatDnsRecordValue(record)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">{t.dnsNoRecords}</p>
+            )}
+          </div>
+
+          {visibleRecords.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowRaw((value) => !value)}
+              className="h-10 rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+            >
+              {showRaw ? t.dnsHideRaw : t.dnsShowRaw}
+            </button>
+          )}
+
+          {showRaw && (
+            <div className="max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
               <pre>{JSON.stringify(visibleRecords, null, 2)}</pre>
             </div>
-          </div>
+          )}
 
           {result.recordErrors && result.recordErrors.length > 0 && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
