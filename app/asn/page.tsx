@@ -10,7 +10,7 @@ import { getToolTranslation } from "@/lib/tool-i18n";
 export const metadata: Metadata = createPageMetadata({
   title: "ASN Lookup - Autonomes System analysieren",
   description:
-    "ASN-Profile mit IPinfo-ASN-Daten, Prefixen, Routing-Beziehungen und oeffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
+    "ASN-Profile mit IPinfo-ASN-Daten, Prefixen, Routing-Beziehungen und öffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
   path: "/asn",
   keywords: ["ASN Lookup", "AS Nummer", "PeeringDB", "BGP"],
 });

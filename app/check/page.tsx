@@ -39,7 +39,7 @@ export default async function CheckPage({ searchParams }: CheckPageProps) {
           <p>
             {t.footerDataBy}{" "}
             <a
-              href="http://ip-api.com"
+              href="https://ip-api.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary transition-colors hover:text-primary/80"
