@@ -54,7 +54,7 @@ function RelationChip({
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full bg-secondary">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-info transition-all duration-500"
+              className="h-full rounded-full bg-foreground/80 transition-all duration-500"
               style={{ width: `${powerPct}%` }}
             />
           </div>
@@ -65,13 +65,13 @@ function RelationChip({
         <div className="flex items-center gap-2">
           {relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-info" />
+              <span className="size-1.5 rounded-full bg-foreground/70" />
               v4: {formatNumber(relation.v4Peers, locale)}
             </span>
           )}
           {relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-chart-5" />
+              <span className="size-1.5 rounded-full bg-foreground/35" />
               v6: {formatNumber(relation.v6Peers, locale)}
             </span>
           )}

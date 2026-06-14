@@ -33,19 +33,6 @@ export function hasSourceInfoFlag() {
   return searchParams.has("source-info") || searchParams.has("sourceInfo") || window.location.hash === "#source-info";
 }
 
-export function getTypeBadgeClass(type: string) {
-  const normalized = type.toLowerCase().trim();
-  if (normalized === "isp")
-    return "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300";
-  if (normalized === "hosting")
-    return "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-300";
-  if (normalized === "education")
-    return "border-warning/30 bg-warning/10 text-warning";
-  if (normalized === "business")
-    return "border-success/30 bg-success/10 text-success";
-  return "border-border bg-secondary text-muted-foreground";
-}
-
 export function formatSpeed(speed: number | null | undefined, t: ToolTranslation) {
   if (!speed) return "-";
   if (speed >= 1_000_000) {

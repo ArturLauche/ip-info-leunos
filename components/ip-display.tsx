@@ -272,7 +272,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <Badge
-                  variant={displayIpv4 ? "info" : "secondary"}
+                  variant={displayIpv4 ? "outline" : "secondary"}
                   className="font-mono"
                 >
                   IPv4
@@ -297,7 +297,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
 
               <div className="flex items-center gap-3">
                 <Badge
-                  variant={displayIpv6 ? "info" : "secondary"}
+                  variant={displayIpv6 ? "outline" : "secondary"}
                   className="font-mono"
                 >
                   IPv6
@@ -350,7 +350,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             {flags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {flags.map((flag) => (
-                  <Badge key={flag} variant="warning">
+                  <Badge key={flag} variant="secondary">
                     {flag}
                   </Badge>
                 ))}

@@ -8,7 +8,7 @@ export function BrandMark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[0.65rem] border border-primary/25 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent text-primary shadow-sm",
+        "relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-[0.65rem] bg-foreground text-background shadow-sm",
         className,
       )}
       aria-hidden

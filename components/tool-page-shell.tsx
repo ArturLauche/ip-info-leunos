@@ -46,7 +46,7 @@ export function ToolPageShell({
               </span>
               <div className="min-w-0 flex-1">
                 {sectionLabel && (
-                  <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {sectionLabel}
                   </p>
                 )}

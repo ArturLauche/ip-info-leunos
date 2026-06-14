@@ -22,7 +22,7 @@ function SpeedBar({ pct }: { pct: number }) {
   return (
     <div className="h-1 w-full max-w-28 overflow-hidden rounded-full bg-secondary">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-primary to-success"
+        className="h-full rounded-full bg-foreground/80"
         style={{ width: `${pct}%` }}
       />
     </div>

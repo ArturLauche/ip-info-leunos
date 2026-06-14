@@ -6,11 +6,9 @@ import { getCountryFlag } from "@/lib/format";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { getTypeBadgeClass } from "./helpers";
 
 export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
   const flag = getCountryFlag(result.country);
-  const typeClass = getTypeBadgeClass(result.type);
   const isPartial =
     result.sources.ipinfo !== "available" ||
     result.sources.peeringdb !== "available" ||
@@ -31,7 +29,7 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
               </Badge>
             )}
             {result.type && (
-              <Badge variant="outline" className={typeClass}>
+              <Badge variant="secondary" className="capitalize">
                 {result.type}
               </Badge>
             )}
