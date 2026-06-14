@@ -4,6 +4,9 @@ import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -37,11 +40,31 @@ interface CdnResult {
   headers: HeaderPair[];
 }
 
-function confidenceBadge(confidence: CdnResult["confidence"]) {
-  if (confidence === "high") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/40";
-  if (confidence === "medium") return "bg-amber-500/15 text-amber-300 border-amber-500/40";
-  if (confidence === "low") return "bg-sky-500/15 text-sky-300 border-sky-500/40";
-  return "bg-secondary text-muted-foreground border-border";
+function confidenceVariant(
+  confidence: CdnResult["confidence"],
+): "success" | "warning" | "info" | "secondary" {
+  if (confidence === "high") return "success";
+  if (confidence === "medium") return "warning";
+  if (confidence === "low") return "info";
+  return "secondary";
+}
+
+interface DetailCardProps {
+  icon: typeof Globe;
+  label: string;
+  value: string;
+}
+
+function DetailCard({ icon: Icon, label, value }: DetailCardProps) {
+  return (
+    <Card className="gap-2 py-4">
+      <div className="flex items-center gap-2 px-5 text-muted-foreground">
+        <Icon className="size-4 text-primary" />
+        <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
+      </div>
+      <p className="px-5 text-sm font-semibold break-all text-foreground">{value}</p>
+    </Card>
+  );
 }
 
 interface CdnCheckerProps {
@@ -61,20 +84,13 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
 
   const summary = useMemo(() => {
     if (!result) return null;
-
-    if (!result.reachable) {
-      return t.cdnSummaryUnreachable;
-    }
-
-    if (!result.usesCdn) {
-      return t.cdnSummaryNoMatch;
-    }
-
+    if (!result.reachable) return t.cdnSummaryUnreachable;
+    if (!result.usesCdn) return t.cdnSummaryNoMatch;
     return result.detectedCdn || t.cdnSummaryDetected;
   }, [result, t]);
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
         initialValue={initialTarget}
         placeholder={t.targetPlaceholder}
@@ -87,7 +103,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
       {loading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-24 animate-pulse rounded-xl bg-secondary" />
+            <Skeleton key={index} className="h-24 rounded-xl" />
           ))}
         </div>
       )}
@@ -96,122 +112,115 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
 
       {result && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-            <div className="flex flex-wrap items-center gap-3">
+          <Card className="gap-3 py-5">
+            <div className="flex flex-wrap items-center gap-3 px-5">
               {result.usesCdn ? (
-                <CircleCheck className="h-5 w-5 text-emerald-400" />
+                <CircleCheck className="size-5 text-success" />
               ) : (
-                <Shield className="h-5 w-5 text-muted-foreground" />
+                <Shield className="size-5 text-muted-foreground" />
               )}
               <p className="text-lg font-semibold text-foreground">{summary}</p>
-              <span
-                className={`rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-wider ${confidenceBadge(result.confidence)}`}
+              <Badge
+                variant={confidenceVariant(result.confidence)}
+                className="uppercase"
               >
                 {result.confidence || t.cdnConfidenceNa}
-              </span>
+              </Badge>
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">{result.reason}</p>
-          </div>
+            <p className="px-5 text-sm text-muted-foreground">{result.reason}</p>
+          </Card>
 
           {!result.usesCdn && result.resolvedIps.length > 0 && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
-              <p className="text-sm font-medium text-foreground">{t.cdnNoProviderMatch}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+            <Card className="gap-2 border-primary/30 bg-primary/5 py-5">
+              <p className="px-5 text-sm font-medium text-foreground">
+                {t.cdnNoProviderMatch}
+              </p>
+              <p className="px-5 text-sm text-muted-foreground">
                 {t.cdnInspectIpsHint}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 px-5 pt-1">
                 {result.resolvedIps.map((ip) => (
                   <Link
                     key={ip}
                     href={`/check?ip=${encodeURIComponent(ip)}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-mono text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                    className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:border-primary/40 hover:text-primary"
                   >
                     {ip}
-                    <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="size-3" />
                   </Link>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-foreground">
-                <Globe className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">{t.cdnTargetLabel}</p>
-              </div>
-              <p className="mt-2 break-all font-mono text-sm text-muted-foreground">{result.target}</p>
-            </div>
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-foreground">
-                <Activity className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">{t.cdnHttpStatusLabel}</p>
-              </div>
-              <p className="mt-2 text-lg font-semibold text-foreground">{result.status || t.cdnConfidenceNa}</p>
-            </div>
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-foreground">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">{t.cdnProviderLabel}</p>
-              </div>
-              <p className="mt-2 text-sm font-semibold text-foreground">{result.detectedCdn || t.cdnUnknown}</p>
-            </div>
+            <DetailCard icon={Globe} label={t.cdnTargetLabel} value={result.target} />
+            <DetailCard
+              icon={Activity}
+              label={t.cdnHttpStatusLabel}
+              value={result.status ? String(result.status) : t.cdnConfidenceNa}
+            />
+            <DetailCard
+              icon={Sparkles}
+              label={t.cdnProviderLabel}
+              value={result.detectedCdn || t.cdnUnknown}
+            />
           </div>
 
-          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Binary className="h-4 w-4 text-primary" />
+          <Card className="gap-3 py-5">
+            <p className="flex items-center gap-2 px-5 text-sm font-medium text-foreground">
+              <Binary className="size-4 text-primary" />
               {t.cdnMatchedSignals}
             </p>
             {result.matchedSignals.length > 0 ? (
-              <ul className="mt-2 flex flex-wrap gap-2 text-xs">
+              <div className="flex flex-wrap gap-1.5 px-5">
                 {result.matchedSignals.map((signal) => (
-                  <li
-                    key={signal}
-                    className="rounded-full border border-border bg-secondary px-3 py-1 font-mono text-muted-foreground"
-                  >
+                  <Badge key={signal} variant="secondary" className="font-mono">
                     {signal}
-                  </li>
+                  </Badge>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className="mt-2 text-sm text-muted-foreground">{t.cdnNoSignals}</p>
+              <p className="px-5 text-sm text-muted-foreground">{t.cdnNoSignals}</p>
             )}
-          </div>
+          </Card>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Waypoints className="h-4 w-4 text-primary" />
+            <Card className="gap-3 py-5">
+              <p className="flex items-center gap-2 px-5 text-sm font-medium text-foreground">
+                <Waypoints className="size-4 text-primary" />
                 {t.cdnCnameChain}
               </p>
               {result.cnameChain.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <ul className="space-y-1 px-5 text-sm text-muted-foreground">
                   {result.cnameChain.map((entry) => (
-                    <li key={entry} className="font-mono">
+                    <li key={entry} className="font-mono break-all">
                       {entry}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-sm text-muted-foreground">{t.cdnNoCname}</p>
+                <p className="px-5 text-sm text-muted-foreground">{t.cdnNoCname}</p>
               )}
-            </div>
+            </Card>
 
-            <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-              <p className="text-sm font-medium text-foreground">{t.cdnInterestingHeaders}</p>
+            <Card className="gap-3 py-5">
+              <p className="px-5 text-sm font-medium text-foreground">
+                {t.cdnInterestingHeaders}
+              </p>
               {result.headers.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <ul className="space-y-1 px-5 text-sm text-muted-foreground">
                   {result.headers.map((header) => (
-                    <li key={header.key}>
-                      <span className="font-mono text-foreground">{header.key}</span>: {header.value}
+                    <li key={header.key} className="break-all">
+                      <span className="font-mono text-foreground">{header.key}</span>:{" "}
+                      {header.value}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 text-sm text-muted-foreground">{t.cdnNoHeaders}</p>
+                <p className="px-5 text-sm text-muted-foreground">{t.cdnNoHeaders}</p>
               )}
-            </div>
+            </Card>
           </div>
         </div>
       )}

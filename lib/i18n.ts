@@ -79,6 +79,7 @@ export type Translation = {
   backToOwnIp: string;
   footerDataBy: string;
   copyIpLabel: string;
+  copiedToClipboard: string;
   ipInfoError: string;
   queriedIpAddress: string;
   yourIpAddresses: string;
@@ -128,6 +129,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "Zurück zur eigenen IP",
     footerDataBy: "Daten bereitgestellt von",
     copyIpLabel: "IP-Adresse kopieren",
+    copiedToClipboard: "In die Zwischenablage kopiert",
     ipInfoError: "IP-Informationen konnten nicht abgerufen werden.",
     queriedIpAddress: "Abgefragte IP-Adresse",
     yourIpAddresses: "Deine IP-Adressen",
@@ -190,6 +192,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "Back to your own IP",
     footerDataBy: "Data provided by",
     copyIpLabel: "Copy IP address",
+    copiedToClipboard: "Copied to clipboard",
     ipInfoError: "Could not retrieve IP information.",
     queriedIpAddress: "Queried IP address",
     yourIpAddresses: "Your IP addresses",
@@ -252,6 +255,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "Volver a tu propia IP",
     footerDataBy: "Datos proporcionados por",
     copyIpLabel: "Copiar dirección IP",
+    copiedToClipboard: "Copiado al portapapeles",
     ipInfoError: "No se pudo obtener la información de IP.",
     queriedIpAddress: "Dirección IP consultada",
     yourIpAddresses: "Tus direcciones IP",
@@ -314,6 +318,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "Retour à votre IP",
     footerDataBy: "Données fournies par",
     copyIpLabel: "Copier l'adresse IP",
+    copiedToClipboard: "Copié dans le presse-papiers",
     ipInfoError: "Impossible de récupérer les informations IP.",
     queriedIpAddress: "Adresse IP recherchée",
     yourIpAddresses: "Vos adresses IP",
@@ -376,6 +381,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "Voltar para seu IP",
     footerDataBy: "Dados fornecidos por",
     copyIpLabel: "Copiar endereço IP",
+    copiedToClipboard: "Copiado para a área de transferência",
     ipInfoError: "Não foi possível obter as informações de IP.",
     queriedIpAddress: "Endereço IP consultado",
     yourIpAddresses: "Seus endereços IP",
@@ -438,6 +444,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "自分のIPに戻る",
     footerDataBy: "データ提供",
     copyIpLabel: "IPアドレスをコピー",
+    copiedToClipboard: "クリップボードにコピーしました",
     ipInfoError: "IP情報を取得できませんでした。",
     queriedIpAddress: "検索したIPアドレス",
     yourIpAddresses: "あなたのIPアドレス",
@@ -500,6 +507,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "Назад к своему IP",
     footerDataBy: "Данные предоставлены",
     copyIpLabel: "Скопировать IP-адрес",
+    copiedToClipboard: "Скопировано в буфер обмена",
     ipInfoError: "Не удалось получить информацию об IP.",
     queriedIpAddress: "Запрошенный IP-адрес",
     yourIpAddresses: "Ваши IP-адреса",
@@ -562,6 +570,7 @@ export const translations: Record<Locale, Translation> = {
     backToOwnIp: "返回我的 IP",
     footerDataBy: "数据来源",
     copyIpLabel: "复制 IP 地址",
+    copiedToClipboard: "已复制到剪贴板",
     ipInfoError: "无法获取 IP 信息。",
     queriedIpAddress: "查询的 IP 地址",
     yourIpAddresses: "你的 IP 地址",

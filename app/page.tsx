@@ -26,25 +26,8 @@ export default async function Home() {
       icon={Globe}
       title={t.homeTitle}
       subtitle={t.homeSubtitle}
-      footer={
-        <footer className="text-xs text-muted-foreground">
-          <p>
-            {t.footerDataBy}{" "}
-            <a
-              href="https://ip-api.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary transition-colors hover:text-primary/80"
-            >
-              ip-api.com
-            </a>
-          </p>
-        </footer>
-      }
     >
-      <div className="flex w-full flex-col items-center gap-8">
-        <IpDisplay locale={locale} />
-      </div>
+      <IpDisplay locale={locale} />
     </ToolPageShell>
   );
 }

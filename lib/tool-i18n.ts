@@ -11,6 +11,16 @@ type ToolTranslation = {
   errorTargetNetwork: string;
   showAll: string;
   showLess: string;
+  navOverview: string;
+  navDiagnostics: string;
+  navMyIp: string;
+  brandTagline: string;
+  themeToggle: string;
+  themeLight: string;
+  themeDark: string;
+  themeSystem: string;
+  navMenu: string;
+  copyValue: string;
   pingTabLabel: string;
   dnsTabLabel: string;
   whoisTabLabel: string;
@@ -254,6 +264,16 @@ const en: ToolTranslation = {
   errorTargetNetwork: "The target could not be resolved or reached.",
   showAll: "Show all",
   showLess: "Show less",
+  navOverview: "Overview",
+  navDiagnostics: "Diagnostics",
+  navMyIp: "My IP",
+  brandTagline: "Network & IP toolkit",
+  themeToggle: "Toggle theme",
+  themeLight: "Light",
+  themeDark: "Dark",
+  themeSystem: "System",
+  navMenu: "Menu",
+  copyValue: "Copy",
   pingTabLabel: "Ping Tester",
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
@@ -506,6 +526,16 @@ const de: Partial<ToolTranslation> = {
   errorTargetNetwork: "Das Ziel konnte nicht aufgelöst oder erreicht werden.",
   showAll: "Alle anzeigen",
   showLess: "Weniger anzeigen",
+  navOverview: "Übersicht",
+  navDiagnostics: "Diagnose",
+  navMyIp: "Meine IP",
+  brandTagline: "Netzwerk- & IP-Toolkit",
+  themeToggle: "Theme wechseln",
+  themeLight: "Hell",
+  themeDark: "Dunkel",
+  themeSystem: "System",
+  navMenu: "Menü",
+  copyValue: "Kopieren",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",

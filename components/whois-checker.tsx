@@ -3,6 +3,8 @@
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
@@ -35,10 +37,14 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
 
   return (
-    <p>
-      <span className="text-muted-foreground">{label}: </span>
-      <span className="font-mono text-foreground">{value}</span>
-    </p>
+    <div className="flex flex-col gap-0.5 border-b py-2 last:border-b-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+      <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="font-mono text-sm break-all text-foreground sm:text-right">
+        {value}
+      </dd>
+    </div>
   );
 }
 
@@ -69,70 +75,86 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
 
       {result && (
         <ResultPanel title={`${t.whoisFor} ${result.target}`}>
-          <div className="grid gap-4 text-sm md:grid-cols-2">
-            <div className="rounded-lg border border-border bg-secondary/40 p-3 text-muted-foreground">
-              <p>
-                {t.queriedServer}: <span className="font-mono text-foreground">{result.server}</span>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+              <p className="text-muted-foreground">
+                {t.queriedServer}:{" "}
+                <span className="font-mono text-foreground">{result.server}</span>
               </p>
               {result.refer && (
-                <p>
-                  {t.referralSource}: <span className="font-mono text-foreground">{result.refer}</span>
+                <p className="mt-1 text-muted-foreground">
+                  {t.referralSource}:{" "}
+                  <span className="font-mono text-foreground">{result.refer}</span>
                 </p>
               )}
-              {result.note && <p className="mt-2">{result.note}</p>}
+              {result.note && (
+                <p className="mt-2 text-xs text-muted-foreground">{result.note}</p>
+              )}
             </div>
 
             {result.summary && (
-              <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm">
+              <dl className="rounded-lg border bg-muted/30 p-4">
                 <SummaryRow label={t.whoisRegistrar} value={result.summary.registrar} />
                 <SummaryRow label={t.whoisCreated} value={result.summary.created} />
                 <SummaryRow label={t.whoisUpdated} value={result.summary.updated} />
                 <SummaryRow label={t.whoisExpires} value={result.summary.expires} />
-              </div>
+              </dl>
             )}
           </div>
 
-          {result.summary && (result.summary.status.length > 0 || result.summary.nameservers.length > 0) && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                <p className="text-sm font-medium text-foreground">{t.whoisStatusLabel}</p>
-                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  {result.summary.status.length > 0 ? (
-                    result.summary.status.map((status) => <li key={status}>{status}</li>)
-                  ) : (
-                    <li>-</li>
-                  )}
-                </ul>
+          {result.summary &&
+            (result.summary.status.length > 0 ||
+              result.summary.nameservers.length > 0) && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t.whoisStatusLabel}
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {result.summary.status.length > 0 ? (
+                      result.summary.status.map((status) => (
+                        <Badge key={status} variant="secondary" className="font-normal">
+                          {status}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t.whoisNameservers}
+                  </p>
+                  <ul className="mt-2.5 space-y-1 text-sm text-muted-foreground">
+                    {result.summary.nameservers.length > 0 ? (
+                      result.summary.nameservers.map((nameserver) => (
+                        <li key={nameserver} className="font-mono text-foreground">
+                          {nameserver}
+                        </li>
+                      ))
+                    ) : (
+                      <li>-</li>
+                    )}
+                  </ul>
+                </div>
               </div>
-              <div className="rounded-lg border border-border bg-secondary/40 p-3">
-                <p className="text-sm font-medium text-foreground">{t.whoisNameservers}</p>
-                <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  {result.summary.nameservers.length > 0 ? (
-                    result.summary.nameservers.map((nameserver) => (
-                      <li key={nameserver} className="font-mono">
-                        {nameserver}
-                      </li>
-                    ))
-                  ) : (
-                    <li>-</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          )}
+            )}
 
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
             onClick={() => setShowRaw((value) => !value)}
-            className="h-10 rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
           >
             {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
-          </button>
+          </Button>
 
           {showRaw && (
-            <div className="max-h-[32rem] overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
-              <pre className="whitespace-pre-wrap break-words">{result.raw || t.noWhoisData}</pre>
-            </div>
+            <pre className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground">
+              {result.raw || t.noWhoisData}
+            </pre>
           )}
         </ResultPanel>
       )}

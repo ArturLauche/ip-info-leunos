@@ -1,7 +1,10 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface ToolSearchFormProps {
   initialValue?: string;
@@ -34,24 +37,35 @@ export function ToolSearchForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3 sm:flex-row">
+    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-2.5 sm:flex-row">
       <div className="relative flex-1">
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
+        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
-          className="h-12 w-full rounded-lg border border-border bg-secondary/70 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          className="h-11 pl-10 text-sm"
         />
       </div>
-      <button
+      <Button
         type="submit"
+        size="lg"
         disabled={loading}
-        className="h-12 rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+        className="h-11 shrink-0 sm:min-w-36"
       >
-        {loading ? loadingLabel || submitLabel : submitLabel}
-      </button>
+        {loading ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            {loadingLabel || submitLabel}
+          </>
+        ) : (
+          submitLabel
+        )}
+      </Button>
     </form>
   );
 }
