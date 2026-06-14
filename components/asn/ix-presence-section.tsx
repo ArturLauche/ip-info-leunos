@@ -5,8 +5,29 @@ import { CircleCheck, Server, Waypoints } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
 import { valueOrDash } from "@/lib/format";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatSpeed } from "./helpers";
 import { ShowMoreButton } from "./show-more-button";
+
+function SpeedBar({ pct }: { pct: number }) {
+  return (
+    <div className="h-1 w-full max-w-28 overflow-hidden rounded-full bg-secondary">
+      <div
+        className="h-full rounded-full bg-gradient-to-r from-primary to-success"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
 
 export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
   const ixlan = useMemo(() => result.peeringdb?.ixlan || [], [result.peeringdb]);
@@ -20,118 +41,111 @@ export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTr
 
   if (!ixlan.length) {
     return (
-      <div className="rounded-2xl border border-border/80 bg-card/35 p-6 shadow-sm">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
-          <Waypoints className="h-5 w-5 text-primary" />
+      <Card className="gap-3 py-5">
+        <h3 className="flex items-center gap-2 px-5 text-lg font-bold text-foreground">
+          <Waypoints className="size-5 text-primary" />
           {t.asnIxPresence}
         </h3>
-        <p className="mt-3 text-sm text-muted-foreground">{t.asnNoIxLanRecords}</p>
-      </div>
+        <p className="px-5 text-sm text-muted-foreground">{t.asnNoIxLanRecords}</p>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card/35 p-5 shadow-sm md:p-6">
-      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+    <Card className="gap-4 py-5">
+      <div className="flex items-start justify-between gap-3 border-b px-5 pb-3">
         <div className="flex flex-col gap-1">
           <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <Server className="h-5 w-5 text-primary" />
+            <Server className="size-5 text-primary" />
             {t.asnIxPresence}
           </h3>
           <p className="text-xs leading-normal text-muted-foreground">{t.asnIxDescription}</p>
         </div>
-        <span className="shrink-0 self-start rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary md:self-center">
+        <Badge variant="secondary" className="shrink-0 tabular-nums">
           {total}
-        </span>
+        </Badge>
       </div>
 
-      {/* Desktop view: Table */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-border/60 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <th className="pb-3 pr-4 font-bold">{t.asnLabelExchange}</th>
-              <th className="pb-3 pr-4 font-bold">{t.asnLabelSpeed}</th>
-              <th className="pb-3 pr-4 font-bold">{t.asnLabelIpv4}</th>
-              <th className="pb-3 pr-4 font-bold">{t.asnLabelIpv6}</th>
-              <th className="pb-3 text-center font-bold">{t.asnLabelRsPeer}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/40 text-muted-foreground">
+      {/* Desktop: table */}
+      <div className="hidden px-2 md:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>{t.asnLabelExchange}</TableHead>
+              <TableHead>{t.asnLabelSpeed}</TableHead>
+              <TableHead>{t.asnLabelIpv4}</TableHead>
+              <TableHead>{t.asnLabelIpv6}</TableHead>
+              <TableHead className="text-center">{t.asnLabelRsPeer}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {visible.map((entry, idx) => {
               const speedPct = maxSpeed > 0 ? Math.min(100, Math.max(2, ((entry.speed || 0) / maxSpeed) * 100)) : 0;
               return (
-                <tr key={`${entry.id}-${idx}`} className="group transition-colors hover:bg-secondary/15">
-                  <td className="max-w-xs truncate py-3 pr-4 font-medium text-foreground" title={entry.name}>
+                <TableRow key={`${entry.id}-${idx}`}>
+                  <TableCell
+                    className="max-w-xs truncate font-medium text-foreground"
+                    title={entry.name}
+                  >
                     {entry.name}
-                  </td>
-                  <td className="py-3 pr-4">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex min-w-[120px] flex-col gap-1.5">
                       <span className="font-mono text-xs font-semibold text-foreground/90">
                         {formatSpeed(entry.speed, t)}
                       </span>
-                      {entry.speed && (
-                        <div className="h-1 w-28 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400 transition-all"
-                            style={{ width: `${speedPct}%` }}
-                          />
-                        </div>
-                      )}
+                      {entry.speed ? <SpeedBar pct={speedPct} /> : null}
                     </div>
-                  </td>
-                  <td className="break-all py-3 pr-4 font-mono text-xs">{valueOrDash(entry.ipaddr4)}</td>
-                  <td className="break-all py-3 pr-4 font-mono text-xs">{valueOrDash(entry.ipaddr6)}</td>
-                  <td className="py-3 text-center">
+                  </TableCell>
+                  <TableCell className="font-mono text-xs break-all text-muted-foreground">
+                    {valueOrDash(entry.ipaddr4)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs break-all text-muted-foreground">
+                    {valueOrDash(entry.ipaddr6)}
+                  </TableCell>
+                  <TableCell className="text-center">
                     {entry.isRsPeer === true ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                        <CircleCheck className="h-3 w-3" />
+                      <Badge variant="success">
+                        <CircleCheck className="size-3" />
                         {t.asnBooleanYes}
-                      </span>
+                      </Badge>
                     ) : entry.isRsPeer === false ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {t.asnBooleanNo}
-                      </span>
+                      <Badge variant="secondary">{t.asnBooleanNo}</Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Mobile view: Stacked Cards */}
-      <div className="flex flex-col gap-3 md:hidden">
+      {/* Mobile: stacked cards */}
+      <div className="flex flex-col gap-3 px-5 md:hidden">
         {visible.map((entry, idx) => {
           const speedPct = maxSpeed > 0 ? Math.min(100, Math.max(2, ((entry.speed || 0) / maxSpeed) * 100)) : 0;
           return (
-            <div key={`${entry.id}-${idx}`} className="flex flex-col gap-3 rounded-xl border border-border/80 bg-secondary/20 p-4">
-              <div className="flex items-start justify-between gap-2 border-b border-border/40 pb-2">
-                <span className="max-w-[75%] break-words text-sm font-semibold text-foreground">{entry.name}</span>
+            <div key={`${entry.id}-${idx}`} className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4">
+              <div className="flex items-start justify-between gap-2 border-b pb-2">
+                <span className="max-w-[75%] text-sm font-semibold break-words text-foreground">
+                  {entry.name}
+                </span>
                 {entry.isRsPeer === true && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-300">
+                  <Badge variant="success" className="text-[0.65rem]">
                     {t.asnLabelRsPeer}
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelSpeed}
                   </span>
                   <div className="mt-1 flex flex-col gap-1">
                     <span className="font-mono font-bold text-foreground">{formatSpeed(entry.speed, t)}</span>
-                    {entry.speed && (
-                      <div className="h-1 w-full overflow-hidden rounded-full bg-secondary">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400"
-                          style={{ width: `${speedPct}%` }}
-                        />
-                      </div>
-                    )}
+                    {entry.speed ? <SpeedBar pct={speedPct} /> : null}
                   </div>
                 </div>
                 <div>
@@ -142,17 +156,17 @@ export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTr
                     {entry.isRsPeer === true ? t.asnBooleanYes : entry.isRsPeer === false ? t.asnBooleanNo : "-"}
                   </span>
                 </div>
-                <div className="col-span-2 mt-1">
+                <div className="col-span-2">
                   <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelIpv4}
                   </span>
-                  <span className="break-all font-mono text-xs text-foreground">{valueOrDash(entry.ipaddr4)}</span>
+                  <span className="font-mono text-xs break-all text-foreground">{valueOrDash(entry.ipaddr4)}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelIpv6}
                   </span>
-                  <span className="break-all font-mono text-xs text-foreground">{valueOrDash(entry.ipaddr6)}</span>
+                  <span className="font-mono text-xs break-all text-foreground">{valueOrDash(entry.ipaddr6)}</span>
                 </div>
               </div>
             </div>
@@ -161,8 +175,10 @@ export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTr
       </div>
 
       {ixlan.length > limit && (
-        <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={ixlan.length} t={t} />
+        <div className="px-5">
+          <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={ixlan.length} t={t} />
+        </div>
       )}
-    </div>
+    </Card>
   );
 }

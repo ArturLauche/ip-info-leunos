@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 
 interface ShowMoreButtonProps {
@@ -12,21 +13,24 @@ interface ShowMoreButtonProps {
 
 export function ShowMoreButton({ expanded, onToggle, count, t }: ShowMoreButtonProps) {
   return (
-    <button
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
       onClick={onToggle}
-      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/50 py-2.5 text-xs font-semibold text-foreground transition-all hover:bg-secondary hover:text-primary"
+      className="w-full text-muted-foreground hover:text-primary"
     >
       {expanded ? (
         <>
-          <ChevronUp className="h-3.5 w-3.5" />
+          <ChevronUp className="size-3.5" />
           {t.showLess}
         </>
       ) : (
         <>
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="size-3.5" />
           {t.showAll} ({count})
         </>
       )}
-    </button>
+    </Button>
   );
 }

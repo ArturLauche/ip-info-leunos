@@ -28,7 +28,8 @@ Paketmanager: **pnpm**. Import-Alias: `@/*` → Projektroot (`tsconfig.json`).
 | Server-seitige API-Routes mit Zod, Rate-Limits, Timeouts | Statischer Export (`next export`) |
 | Öffentliche IPs/Domains/URLs als Ziele | Scans gegen private/interne Netze |
 | Eigenständiges ASN-Tool (`/asn`, `/asn/AS8881`) + AS-Feld im IP-Lookup | — |
-| Dark-first UI mit handgeschriebenem Tailwind in Feature-Komponenten | UI-Komponenten-Bibliotheken (shadcn/Radix wurden entfernt) |
+| shadcn/ui-Design-System (Radix-Primitive in `components/ui/`) + Sidebar-Shell | Ad-hoc-Styling, das die Design-Tokens umgeht |
+| Light/Dark-Themes über `next-themes` (Default `dark`) | Hartkodierte Hex-Farben statt semantischer Tokens |
 | Locale über `Accept-Language` (Server) | Locale-Prefix-Routen (`/de/...`) |
 
 Vor netzwerkbezogenen Änderungen: **`README.md` (Safety Model)** und **`lib/network/target.ts`** lesen.
@@ -40,7 +41,10 @@ Vor netzwerkbezogenen Änderungen: **`README.md` (Safety Model)** und **`lib/net
 ```
 app/                    Seiten (Server Components) + API-Routes
 components/             Feature-UI: Checker, Shells, Panels
+  ui/                   shadcn/ui-Primitive (Button, Card, Table, Dialog, ...)
+  shell/               App-Shell: Sidebar, Mobile-Nav, Nav-Config, Brand-Mark
   asn/                  ASN-Checker, in Sektions-Komponenten aufgeteilt
+  theme-provider.tsx    next-themes-Wrapper; mode-toggle.tsx Theme-Umschalter
 hooks/
   use-tool-lookup.ts    Gemeinsame Checker-State-Machine (Loading/Error/
                         Result, URL-Sync, Stale-Response-Guard)
@@ -52,9 +56,11 @@ lib/
   dns-records.ts        DNS-Record-Werte lesbar formatieren
   whois.ts              WHOIS-Parsing, Referral-Normalisierung
   format.ts             getCountryFlag, formatTemplate, formatNumber, valueOrDash
+  utils.ts              cn() (clsx + tailwind-merge) für shadcn-Komponenten
   i18n.ts, tool-i18n.ts, seo.ts, asn.ts, reputation.ts, client-ip-discovery.ts
 public/                 Icons, Verifikation
-app/globals.css         Theme (Tailwind 4, OKLCH, dark-first)
+app/globals.css         Design-Tokens (Tailwind 4, OKLCH, Light `:root` + `.dark`)
+components.json         shadcn-Konfiguration (New York, Tokens, Aliases)
 ```
 
 **Seitenmuster** (alle Tool-Seiten außer `/`):
@@ -88,7 +94,7 @@ app/globals.css         Theme (Tailwind 4, OKLCH, dark-first)
 | `/cdn` | `CdnChecker` | `target` |
 | `/reputation` | `ReputationChecker` | `ip` |
 
-Navigation und `ToolKey`: `components/tool-page-shell.tsx` — `home | check | asn | ping | dns | whois | cdn | reputation`.
+Navigation und `ToolKey`: `components/shell/nav-config.ts` — `home | check | asn | ping | dns | whois | cdn | reputation` (gerendert von `ToolPageShell` über Sidebar/Mobile-Nav).
 
 ### API
 
@@ -168,8 +174,8 @@ Client: `unwrapApiResponse<T>()` wirft bei `ok: false` einen **`ApiClientError`*
 1. **Sicherheit:** Route nutzt `assertPublicTarget` / `assertPublicUrl` / `fetchPublicUrl` — nie rohes `fetch()` oder `socket.connect()` auf User-Input.
 2. **API:** `enforceRateLimit` + zod-Schema + `apiOk`/`apiError`; bei Node-Sockets: `export const runtime = "nodejs"`.
 3. **Seite:** `app/<tool>/page.tsx` mit Metadata + `ToolPageShell`.
-4. **Checker:** `components/<tool>-checker.tsx` (`"use client"`) auf Basis von `useToolLookup`; Styling wie bestehende Checker (eigene Tailwind-Klassen).
-5. **Navigation:** `ToolKey` und Links in `tool-page-shell.tsx` erweitern.
+4. **Checker:** `components/<tool>-checker.tsx` (`"use client"`) auf Basis von `useToolLookup`; mit shadcn-Komponenten aus `components/ui/` (Card, Button, Badge, Table, ...) und gemeinsamen Panels (`ResultPanel`, `ErrorPanel`, `ToolSearchForm`) bauen.
+5. **Navigation:** `ToolKey` und Links in `components/shell/nav-config.ts` erweitern.
 6. **i18n:** Strings in `lib/tool-i18n.ts` (Englisch-Basis; `de` als Merge; andere Locales → Englisch-Fallback). Fehler über die generischen `error*`-Keys mappen.
 7. **SEO:** `createPageMetadata` + Eintrag in `app/sitemap.ts`.
 8. **Tests:** Vitest für Logik/Sicherheit (`*.test.ts` neben Modul oder unter `app/api/...`).
@@ -204,13 +210,14 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 
 ## Frontend & Styling
 
-- **CSS:** `app/globals.css` (Tailwind 4, `@import 'tailwindcss'` + `tw-animate-css`, OKLCH, `.app-shell`, `.surface-panel`)
-- **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-npm-Paket (kein Google-Fonts-Fetch beim Build)
-- **Icons:** Lucide React
-- **Semantik:** `text-foreground`, `bg-card`, `border-border`, `text-primary`, Erfolg oft `emerald-*`
-- App ist fest dark-themed; es gibt keinen ThemeProvider und keine UI-Komponenten-Bibliothek — alle Feature-Komponenten stylen sich selbst.
-- Wiederverwendbar: `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `InfoCard`, `components/asn/show-more-button.tsx`
-- **`Frontend-Skill.md`:** Externes Design-Skill (kreatives UI) — nicht mit Projekt-Konventionen verwechseln; Tool-UI bleibt beim etablierten utilitarischen Look.
+- **Design-System:** shadcn/ui (New York) auf Radix-Primitiven in `components/ui/`; Konfiguration in `components.json`. Klassen immer über `cn()` aus `lib/utils.ts` zusammenführen.
+- **Tokens:** `app/globals.css` (Tailwind 4, OKLCH). Light unter `:root`, Dark unter `.dark`, gemappt im `@theme inline`-Block. Semantik: `background/foreground`, `card`, `muted`, `secondary`, `primary`, `border`, `ring`, Status `success/warning/info/destructive` und `sidebar-*`. Für Status **keine** rohen Hex-/Palettenfarben — Tokens nutzen (bewusst kategoriale Farben wie ASN-Typen als `*-600 dark:*-300`-Paare).
+- **Theming:** `next-themes` (`attribute="class"`, Default `dark`) via `ThemeProvider` in `app/layout.tsx`; Umschalter `components/mode-toggle.tsx`. `<html>` trägt `suppressHydrationWarning`. `app/manifest.ts`/`viewport.themeColor` spiegeln die Token-Hintergründe.
+- **Shell:** `ToolPageShell` rendert Desktop-Sidebar (`components/shell/app-sidebar.tsx`) + Mobile-Sheet (`mobile-nav.tsx`); Navigation/Labels aus `components/shell/nav-config.ts`.
+- **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-Paket (kein Google-Fonts-Fetch beim Build).
+- **Icons:** Lucide React. **Toasts:** `sonner` (`<Toaster>` im Layout).
+- **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `InfoCard`, `components/asn/show-more-button.tsx`.
+- **`Frontend-Skill.md`:** externes kreatives Design-Skill — nicht mit Projekt-Konventionen verwechseln; die Tool-UI folgt dem shadcn-Design-System.
 
 ---
 
@@ -286,7 +293,7 @@ Upstream-Ausfälle: graceful degradation (z. B. leere Felder bei IP-API; CDN `re
 |---------|----------------|
 | Neue API-Route | `app/api/dns/route.ts` oder `app/api/ping/route.ts`, `lib/network/target.ts`, `lib/api/response.ts` |
 | SSRF / neue Zieltypen | `lib/network/target.ts`, `lib/network/target.test.ts` |
-| Neues Tool in Navigation | `components/tool-page-shell.tsx`, `app/sitemap.ts` |
+| Neues Tool in Navigation | `components/shell/nav-config.ts`, `app/sitemap.ts` |
 | Neuer Checker | `hooks/use-tool-lookup.ts`, `components/dns-checker.tsx` als Vorlage |
 | IP-Anzeige erweitern | `components/ip-display.tsx`, `app/api/ip/route.ts`, `lib/connection-type.ts` |
 | ASN-UI ändern | `components/asn/` (Sektions-Komponenten) |
@@ -308,7 +315,7 @@ Upstream-Ausfälle: graceful degradation (z. B. leere Felder bei IP-API; CDN `re
 8. DB-Auth außer Redis in Ping-Probes.
 9. TypeScript-Fehler ignorieren oder Build-Checks umgehen.
 10. Große Response-Bodies von User-Zielen ohne bestehende Limits.
-11. UI-Komponenten-Bibliotheken (shadcn etc.) einführen ohne abgestimmte Entscheidung — der frühere ungenutzte Scaffold wurde bewusst entfernt.
+11. Status-/Akzentfarben hartkodieren (rohe Hex- oder Tailwind-Palettenwerte) statt der semantischen Tokens — bricht den Light-Mode; Tokens (`success`, `warning`, `info`, `destructive`, ...) verwenden.
 12. `next/font/google` verwenden (bricht Offline-Builds) — Fonts kommen aus dem `geist`-Paket.
 
 ---

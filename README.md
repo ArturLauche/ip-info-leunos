@@ -38,7 +38,8 @@ Set `ABUSEIPDB_API_KEY` to enable AbuseIPDB abuse reports on `/reputation`. With
 - Next.js 16 App Router
 - React 19
 - TypeScript
-- Tailwind CSS 4
+- Tailwind CSS 4 with a token-based design system (light/dark via `next-themes`)
+- shadcn/ui components on Radix primitives, Lucide icons, `sonner` toasts
 - zod for request validation
 - Vitest for focused unit tests
 
