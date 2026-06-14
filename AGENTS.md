@@ -331,4 +331,5 @@ Upstream-Ausfälle: graceful degradation (z. B. leere Felder bei IP-API; CDN `re
 ## Verwandte Dokumentation
 
 - `README.md` — Features, Safety Model, Tech Stack
+- `design-principles.md` — Design-System: Tokens, Farb-/Theming-Regeln, Komponenten- und State-Muster
 - `Frontend-Skill.md` — optionales kreatives UI-Skill (nicht Projektstandard für Tools)
