@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Search } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { IpDisplay } from "@/components/ip-display";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { getTranslation, type Locale } from "@/lib/i18n";
@@ -26,7 +28,15 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
         onSubmit={(value) => setSubmittedIp(value)}
       />
 
-      {submittedIp && <IpDisplay targetIp={submittedIp} locale={locale} />}
+      {submittedIp ? (
+        <IpDisplay targetIp={submittedIp} locale={locale} />
+      ) : (
+        <EmptyState
+          icon={Search}
+          title={t.checkEmptyTitle ?? t.checkTitle}
+          description={t.checkEmptyDescription ?? t.checkSubtitle}
+        />
+      )}
     </div>
   );
 }

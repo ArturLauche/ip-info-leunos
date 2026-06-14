@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { Activity } from "lucide-react";
 import { useState } from "react";
 
 interface WhoisSummary {
@@ -70,6 +72,14 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         loading={loading}
         onSubmit={run}
       />
+
+      {!loading && !error && !result && (
+        <EmptyState
+          icon={Activity}
+          title={t.whoisEmptyTitle}
+          description={t.whoisEmptyDescription}
+        />
+      )}
 
       {error && <ErrorPanel message={error} />}
 

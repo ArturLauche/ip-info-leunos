@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
@@ -19,7 +20,7 @@ import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
-import { TriangleAlert } from "lucide-react";
+import { Network, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface DnsAddress {
@@ -77,6 +78,14 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         loading={loading}
         onSubmit={run}
       />
+
+      {!loading && !error && !result && (
+        <EmptyState
+          icon={Network}
+          title={t.dnsEmptyTitle}
+          description={t.dnsEmptyDescription}
+        />
+      )}
 
       {error && <ErrorPanel message={error} />}
 

@@ -47,6 +47,12 @@ type ToolTranslation = {
   asnRateLimitError: string;
   asnEmptyTitle: string;
   asnEmptyDescription: string;
+  dnsEmptyTitle: string;
+  dnsEmptyDescription: string;
+  whoisEmptyTitle: string;
+  whoisEmptyDescription: string;
+  cdnEmptyTitle: string;
+  cdnEmptyDescription: string;
   asnNotFoundTitle: string;
   asnNotFoundDescription: string;
   asnPartialData: string;
@@ -300,6 +306,12 @@ const en: ToolTranslation = {
   asnRateLimitError: "Too many ASN lookups. Please wait before trying again.",
   asnEmptyTitle: "Enter an ASN to inspect a network profile",
   asnEmptyDescription: "Use AS-prefixed or numeric input. Provider data may be partial depending on public records and the configured IPinfo plan.",
+  dnsEmptyTitle: "Enter a domain to resolve its DNS records",
+  dnsEmptyDescription: "Look up A, AAAA, MX, TXT, NS, SOA, SRV and CAA records, or run a reverse lookup on an IP address.",
+  whoisEmptyTitle: "Enter a domain or IP to query WHOIS",
+  whoisEmptyDescription: "Retrieve registrar, registration dates, status and nameservers from the responsible WHOIS server.",
+  cdnEmptyTitle: "Enter a domain to detect its CDN",
+  cdnEmptyDescription: "Inspect DNS, CNAME chains and response headers to identify the CDN or edge provider sitting in front of a site.",
   asnNotFoundTitle: "No ASN profile found",
   asnNotFoundDescription: "The ASN is valid, but neither configured source returned a usable public profile.",
   asnPartialData: "Partial data",
@@ -556,6 +568,12 @@ const de: Partial<ToolTranslation> = {
   asnRateLimitError: "Zu viele ASN-Abfragen. Bitte warte kurz und versuche es dann erneut.",
   asnEmptyTitle: "ASN eingeben, um ein Netzwerkprofil zu prüfen",
   asnEmptyDescription: "AS-Präfix oder reine Zahl eingeben. Quelldaten können je nach öffentlichen Einträgen und IPinfo-Plan unvollständig sein.",
+  dnsEmptyTitle: "Domain eingeben, um DNS-Records abzufragen",
+  dnsEmptyDescription: "Frage A-, AAAA-, MX-, TXT-, NS-, SOA-, SRV- und CAA-Records ab oder löse eine IP-Adresse per Reverse-Lookup auf.",
+  whoisEmptyTitle: "Domain oder IP eingeben, um WHOIS abzufragen",
+  whoisEmptyDescription: "Ruft Registrar, Registrierungsdaten, Status und Nameserver vom zuständigen WHOIS-Server ab.",
+  cdnEmptyTitle: "Domain eingeben, um das CDN zu erkennen",
+  cdnEmptyDescription: "Analysiert DNS, CNAME-Ketten und Response-Header, um das CDN bzw. den Edge-Anbieter vor einer Seite zu identifizieren.",
   asnNotFoundTitle: "Kein ASN-Profil gefunden",
   asnNotFoundDescription: "Die ASN ist gültig, aber keine konfigurierte Quelle lieferte ein nutzbares öffentliches Profil.",
   asnPartialData: "Teildaten",

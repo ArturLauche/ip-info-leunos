@@ -3,6 +3,7 @@
 import { type Locale } from "@/lib/i18n";
 import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
+import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -133,17 +134,11 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       />
 
       {!loading && !error && !result && (
-        <Card className="bg-grid items-center gap-3 p-10 text-center">
-          <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
-            <ShieldAlert className="size-6" />
-          </span>
-          <p className="text-lg font-semibold text-foreground">
-            {t.reputationEmptyTitle}
-          </p>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            {t.reputationEmptyDescription}
-          </p>
-        </Card>
+        <EmptyState
+          icon={ShieldAlert}
+          title={t.reputationEmptyTitle}
+          description={t.reputationEmptyDescription}
+        />
       )}
 
       {loading && (
