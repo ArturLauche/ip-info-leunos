@@ -3,10 +3,23 @@
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface DnsAddress {
@@ -69,99 +82,114 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
       {result && (
         <ResultPanel title={`${t.dnsRecordsFor} ${result.target}`}>
-          <div>
-            <p className="text-sm font-medium text-foreground">{t.resolvedAddresses}</p>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t.resolvedAddresses}
+            </p>
+            <ul className="mt-2.5 flex flex-wrap gap-2">
               {result.addresses.length > 0 ? (
                 result.addresses.map((address) => (
-                  <li key={`${address.address}-${address.family}`} className="font-mono">
-                    {address.address} (IPv{address.family})
+                  <li
+                    key={`${address.address}-${address.family}`}
+                    className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground"
+                  >
+                    {address.address}
+                    <Badge variant="secondary" className="font-mono text-[0.65rem]">
+                      IPv{address.family}
+                    </Badge>
                   </li>
                 ))
               ) : (
-                <li>{result.lookupError || t.noAddressResult}</li>
+                <li className="text-sm text-muted-foreground">
+                  {result.lookupError || t.noAddressResult}
+                </li>
               )}
             </ul>
           </div>
 
           {recordTypes.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <ToggleGroup
+              type="single"
+              value={selectedType}
+              onValueChange={(value) => value && setSelectedType(value)}
+              variant="outline"
+              size="sm"
+              className="flex-wrap"
+            >
               {["ALL", ...recordTypes].map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setSelectedType(type)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                    selectedType === type
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border bg-secondary/60 text-muted-foreground hover:border-primary/40"
-                  }`}
-                >
+                <ToggleGroupItem key={type} value={type} className="font-mono">
                   {type}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
           )}
 
           <div>
-            <p className="text-sm font-medium text-foreground">{t.recordDetails}</p>
+            <p className="mb-2 text-sm font-medium text-foreground">
+              {t.recordDetails}
+            </p>
             {visibleRecords.length > 0 ? (
-              <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-secondary/40">
-                <table className="w-full border-collapse text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-border/60 text-[11px] uppercase tracking-wider text-muted-foreground">
-                      <th className="w-20 px-3 py-2.5 font-semibold">{t.dnsTableType}</th>
-                      <th className="px-3 py-2.5 font-semibold">{t.dnsTableValue}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
+              <div className="overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="w-24">{t.dnsTableType}</TableHead>
+                      <TableHead>{t.dnsTableValue}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {visibleRecords.map((record, index) => (
-                      <tr key={`${record.type}-${index}`} className="transition-colors hover:bg-secondary/40">
-                        <td className="px-3 py-2.5 align-top">
-                          <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">
+                      <TableRow key={`${record.type}-${index}`}>
+                        <TableCell className="align-top">
+                          <Badge variant="outline" className="font-mono">
                             {record.type}
-                          </span>
-                        </td>
-                        <td className="break-all px-3 py-2.5 font-mono text-xs text-foreground">
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs break-all whitespace-normal text-foreground">
                           {formatDnsRecordValue(record)}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
-              <p className="mt-2 text-sm text-muted-foreground">{t.dnsNoRecords}</p>
+              <p className="text-sm text-muted-foreground">{t.dnsNoRecords}</p>
             )}
           </div>
 
           {visibleRecords.length > 0 && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
               onClick={() => setShowRaw((value) => !value)}
-              className="h-10 rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
             >
               {showRaw ? t.dnsHideRaw : t.dnsShowRaw}
-            </button>
+            </Button>
           )}
 
           {showRaw && (
-            <div className="max-h-96 overflow-auto rounded-lg border border-border bg-secondary/40 p-3 font-mono text-xs text-foreground">
-              <pre>{JSON.stringify(visibleRecords, null, 2)}</pre>
-            </div>
+            <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground">
+              {JSON.stringify(visibleRecords, null, 2)}
+            </pre>
           )}
 
           {result.recordErrors && result.recordErrors.length > 0 && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-              <p className="font-medium text-amber-100">{t.dnsRecordNotes}</p>
-              <ul className="mt-2 space-y-1">
-                {result.recordErrors.map((entry) => (
-                  <li key={`${entry.type}-${entry.error}`}>
-                    <span className="font-mono">{entry.type}</span>: {entry.error}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Alert variant="warning">
+              <TriangleAlert />
+              <AlertTitle>{t.dnsRecordNotes}</AlertTitle>
+              <AlertDescription>
+                <ul className="space-y-1">
+                  {result.recordErrors.map((entry) => (
+                    <li key={`${entry.type}-${entry.error}`}>
+                      <span className="font-mono">{entry.type}</span>: {entry.error}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
         </ResultPanel>
       )}

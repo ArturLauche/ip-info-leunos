@@ -7,6 +7,8 @@ import type { AsnProfile, AsnRelation } from "@/lib/asn";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { ShowMoreButton } from "./show-more-button";
 
 function RelationChip({
@@ -23,34 +25,36 @@ function RelationChip({
   const powerPct = maxPower > 0 ? Math.min(100, Math.max(5, ((relation.power || 0) / maxPower) * 100)) : 0;
 
   return (
-    <div className="group flex flex-col gap-2 rounded-xl border border-border/80 bg-card/25 p-3.5 transition-all hover:scale-[1.01] hover:border-primary/40 hover:bg-card/45">
+    <div className="group flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 transition-colors hover:border-primary/40 hover:bg-muted/40">
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/asn/${relation.asn}`}
           className="inline-flex items-center gap-1 font-mono text-sm font-semibold text-foreground transition-colors hover:text-primary"
         >
           {relation.asn}
-          <ArrowUpRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+          <ArrowUpRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
         </Link>
         {relation.source && (
-          <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/60">
+          <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70">
             {relation.source}
           </span>
         )}
       </div>
 
       {relation.power !== null && relation.power !== undefined && (
-        <div className="mt-1 flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between text-[10px]">
             <span className="flex items-center gap-1 font-medium text-muted-foreground">
-              <Zap className="h-3 w-3 text-primary" />
+              <Zap className="size-3 text-primary" />
               {t.asnRelationPower}
             </span>
-            <span className="font-mono font-bold text-foreground/90">{formatNumber(relation.power, locale)}</span>
+            <span className="font-mono font-bold text-foreground/90">
+              {formatNumber(relation.power, locale)}
+            </span>
           </div>
           <div className="h-1 w-full overflow-hidden rounded-full bg-secondary">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+              className="h-full rounded-full bg-foreground/80 transition-all duration-500"
               style={{ width: `${powerPct}%` }}
             />
           </div>
@@ -58,16 +62,16 @@ function RelationChip({
       )}
 
       {(relation.v4Peers || relation.v6Peers) && (
-        <div className="mt-1 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              <span className="size-1.5 rounded-full bg-foreground/70" />
               v4: {formatNumber(relation.v4Peers, locale)}
             </span>
           )}
           {relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0 && (
             <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+              <span className="size-1.5 rounded-full bg-foreground/35" />
               v6: {formatNumber(relation.v6Peers, locale)}
             </span>
           )}
@@ -98,42 +102,44 @@ function RelationColumn({
   const maxPower = useMemo(() => Math.max(...relations.map((r) => r.power || 0), 0), [relations]);
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card/20 p-5">
-      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+    <Card className="gap-4 py-5">
+      <div className="flex items-center justify-between border-b px-5 pb-3">
         <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Route className="h-4 w-4 text-primary" />
+          <Route className="size-4 text-primary" />
           {title}
         </p>
-        <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
+        <Badge variant="secondary" className="tabular-nums">
           {total}
-        </span>
+        </Badge>
       </div>
 
       {visible.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 px-5">
           {visible.map((relation) => (
             <RelationChip key={relation.asn} relation={relation} maxPower={maxPower} locale={locale} t={t} />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-6 text-center">
+        <div className="px-5 py-6 text-center">
           <p className="text-xs text-muted-foreground">{emptyText}</p>
         </div>
       )}
 
       {relations.length > limit && (
-        <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={relations.length} t={t} />
+        <div className="px-5">
+          <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={relations.length} t={t} />
+        </div>
       )}
-    </div>
+    </Card>
   );
 }
 
 export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
         <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
-          <Waypoints className="h-5 w-5 text-primary" />
+          <Waypoints className="size-5 text-primary" />
           {t.asnRouting}
         </h3>
         <p className="text-xs leading-normal text-muted-foreground">{t.asnRoutingDescription}</p>

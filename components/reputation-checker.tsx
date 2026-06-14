@@ -5,6 +5,18 @@ import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { formatTemplate, getCountryFlag } from "@/lib/format";
 import type { ReputationSummary, RiskLevel, ThreatCategory } from "@/lib/reputation";
@@ -26,10 +38,10 @@ interface ReputationCheckerProps {
   initialIp?: string;
 }
 
-function riskBadgeClass(level: RiskLevel) {
-  if (level === "high") return "border-red-500/40 bg-red-500/10 text-red-300";
-  if (level === "medium") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
-  return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+function riskVariant(level: RiskLevel): "destructive" | "warning" | "success" {
+  if (level === "high") return "destructive";
+  if (level === "medium") return "warning";
+  return "success";
 }
 
 function riskLabel(level: RiskLevel, t: ToolT) {
@@ -39,9 +51,9 @@ function riskLabel(level: RiskLevel, t: ToolT) {
 }
 
 function RiskIcon({ level }: { level: RiskLevel }) {
-  if (level === "high") return <ShieldAlert className="h-6 w-6 text-red-400" />;
-  if (level === "medium") return <Shield className="h-6 w-6 text-amber-400" />;
-  return <ShieldCheck className="h-6 w-6 text-emerald-400" />;
+  if (level === "high") return <ShieldAlert className="size-6 text-destructive" />;
+  if (level === "medium") return <Shield className="size-6 text-warning" />;
+  return <ShieldCheck className="size-6 text-success" />;
 }
 
 function categoryLabel(category: ThreatCategory, t: ToolT) {
@@ -78,14 +90,18 @@ function StatCard({
   secondary?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/80 bg-card/70 p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-foreground">
-        <Icon className="h-4 w-4 text-primary" />
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+    <Card className="gap-2 py-4">
+      <div className="flex items-center gap-2 px-4 text-muted-foreground">
+        <Icon className="size-4 text-primary" />
+        <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
       </div>
-      <p className="mt-2 break-words text-sm font-semibold text-foreground">{primary}</p>
-      {secondary && <p className="mt-1 break-words text-xs text-muted-foreground">{secondary}</p>}
-    </div>
+      <div className="px-4">
+        <p className="text-sm font-semibold break-words text-foreground">{primary}</p>
+        {secondary && (
+          <p className="mt-0.5 text-xs break-words text-muted-foreground">{secondary}</p>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -106,7 +122,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
   };
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
         initialValue={initialIp}
         placeholder={t.reputationPlaceholder}
@@ -117,21 +133,25 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       />
 
       {!loading && !error && !result && (
-        <div className="rounded-xl border border-border/80 bg-card/70 p-6 text-center shadow-sm">
-          <ShieldAlert className="mx-auto h-8 w-8 text-primary" />
-          <p className="mt-3 text-lg font-semibold text-foreground">{t.reputationEmptyTitle}</p>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
+        <Card className="bg-grid items-center gap-3 p-10 text-center">
+          <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+            <ShieldAlert className="size-6" />
+          </span>
+          <p className="text-lg font-semibold text-foreground">
+            {t.reputationEmptyTitle}
+          </p>
+          <p className="max-w-xl text-sm text-muted-foreground">
             {t.reputationEmptyDescription}
           </p>
-        </div>
+        </Card>
       )}
 
       {loading && (
-        <div className="flex flex-col gap-4 animate-pulse">
-          <div className="h-24 rounded-xl bg-secondary" />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-24 rounded-xl" />
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-24 rounded-xl bg-secondary" />
+              <Skeleton key={index} className="h-24 rounded-xl" />
             ))}
           </div>
         </div>
@@ -140,37 +160,34 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="rounded-xl border border-border/80 bg-card/70 p-5 shadow-sm">
-            <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-4 duration-300 animate-in fade-in slide-in-from-bottom-2">
+          <Card className="gap-3 py-5">
+            <div className="flex flex-wrap items-center gap-3 px-5">
               <RiskIcon level={result.level} />
-              <p className="font-mono text-lg font-semibold text-foreground">{result.ip}</p>
-              <span
-                className={`rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-wider ${riskBadgeClass(result.level)}`}
-              >
+              <p className="font-mono text-lg font-semibold break-all text-foreground">
+                {result.ip}
+              </p>
+              <Badge variant={riskVariant(result.level)} className="uppercase">
                 {riskLabel(result.level, t)}
-              </span>
-              <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              </Badge>
+              <Badge variant="secondary">
                 {t.reputationScoreLabel}: {result.score}/100
-              </span>
+              </Badge>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 px-5">
               {result.categories.length > 0 ? (
                 result.categories.map((category) => (
-                  <span
-                    key={category}
-                    className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-300"
-                  >
+                  <Badge key={category} variant="warning">
                     {categoryLabel(category, t)}
-                  </span>
+                  </Badge>
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">{t.reputationNoThreats}</p>
               )}
             </div>
-          </div>
+          </Card>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={ListX}
               label={t.reputationBlacklistsLabel}
@@ -209,36 +226,48 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
             />
           </div>
 
-          <div className="rounded-xl border border-border/80 bg-card/70 p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <Card className="gap-0 overflow-hidden py-0">
+            <p className="border-b bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.reputationBlacklistsLabel}
             </p>
-            <ul className="mt-2 divide-y divide-border/40">
-              {result.blacklists.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between gap-2 py-2">
-                  <span className="text-sm text-foreground">{entry.name}</span>
-                  {entry.listed ? (
-                    <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-300">
-                      {t.reputationBlacklistListed}
-                    </span>
-                  ) : entry.checked ? (
-                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-300">
-                      {t.reputationBlacklistClean}
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-border bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {t.reputationBlacklistUnchecked}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+            <Table>
+              <TableHeader className="sr-only">
+                <TableRow>
+                  <TableHead>{t.reputationBlacklistsLabel}</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {result.blacklists.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell className="text-sm text-foreground">
+                      {entry.name}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {entry.listed ? (
+                        <Badge variant="destructive">
+                          {t.reputationBlacklistListed}
+                        </Badge>
+                      ) : entry.checked ? (
+                        <Badge variant="success">
+                          {t.reputationBlacklistClean}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          {t.reputationBlacklistUnchecked}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
 
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <p className="text-xs">{t.reputationDisclaimer}</p>
-          </div>
+          <Alert variant="info">
+            <AlertTriangle />
+            <AlertDescription>{t.reputationDisclaimer}</AlertDescription>
+          </Alert>
         </div>
       )}
     </div>

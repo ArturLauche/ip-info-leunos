@@ -34,21 +34,6 @@ export default async function CheckPage({ searchParams }: CheckPageProps) {
       icon={Search}
       title={t.checkTitle}
       subtitle={t.checkSubtitle}
-      footer={
-        <footer className="text-xs text-muted-foreground">
-          <p>
-            {t.footerDataBy}{" "}
-            <a
-              href="https://ip-api.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary transition-colors hover:text-primary/80"
-            >
-              ip-api.com
-            </a>
-          </p>
-        </footer>
-      }
     >
       <IpLookup locale={locale} initialQuery={initialQuery} />
     </ToolPageShell>

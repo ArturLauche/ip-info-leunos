@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput, type AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
@@ -76,7 +78,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   }, []);
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
         initialValue={initialAsn}
         placeholder={t.asnPlaceholder}
@@ -87,11 +89,13 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       />
 
       {!loading && !error && !result && (
-        <div className="rounded-xl border border-border/80 bg-card/70 p-6 text-center shadow-sm">
-          <Waypoints className="mx-auto h-8 w-8 text-primary" />
-          <p className="mt-3 text-lg font-semibold text-foreground">{t.asnEmptyTitle}</p>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">{t.asnEmptyDescription}</p>
-        </div>
+        <Card className="bg-grid items-center gap-3 p-10 text-center">
+          <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+            <Waypoints className="size-6" />
+          </span>
+          <p className="text-lg font-semibold text-foreground">{t.asnEmptyTitle}</p>
+          <p className="max-w-xl text-sm text-muted-foreground">{t.asnEmptyDescription}</p>
+        </Card>
       )}
 
       {loading && <LoadingSkeleton />}
@@ -99,13 +103,11 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       {error && <ErrorPanel message={error} />}
 
       {result && !result.found && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 shadow-sm">
-          <p className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <AlertTriangle className="h-5 w-5 text-amber-300" />
-            {t.asnNotFoundTitle}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">{t.asnNotFoundDescription}</p>
-        </div>
+        <Alert variant="warning">
+          <AlertTriangle />
+          <AlertTitle>{t.asnNotFoundTitle}</AlertTitle>
+          <AlertDescription>{t.asnNotFoundDescription}</AlertDescription>
+        </Alert>
       )}
 
       {result && result.found && (
@@ -113,17 +115,17 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
           <HeroHeader result={result} t={t} />
 
           {showSourceInfo && result.warnings.length > 0 && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 shadow-sm">
-              <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
-                {t.asnWarnings}
-              </p>
-              <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                {result.warnings.map((warning) => (
-                  <li key={warning}>{formatWarning(warning, t, locale)}</li>
-                ))}
-              </ul>
-            </div>
+            <Alert variant="warning">
+              <AlertTriangle />
+              <AlertTitle>{t.asnWarnings}</AlertTitle>
+              <AlertDescription>
+                <ul className="space-y-1">
+                  {result.warnings.map((warning) => (
+                    <li key={warning}>{formatWarning(warning, t, locale)}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
 
           <QuickStats result={result} t={t} locale={locale} />
