@@ -216,7 +216,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 - **Shell:** `ToolPageShell` rendert Desktop-Sidebar (`components/shell/app-sidebar.tsx`) + Mobile-Sheet (`mobile-nav.tsx`); Navigation/Labels aus `components/shell/nav-config.ts`.
 - **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-Paket (kein Google-Fonts-Fetch beim Build).
 - **Icons:** Lucide React. **Toasts:** `sonner` (`<Toaster>` im Layout).
-- **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `InfoCard`, `components/asn/show-more-button.tsx`.
+- **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `EmptyState`, `components/asn/show-more-button.tsx`.
 - **`Frontend-Skill.md`:** externes kreatives Design-Skill — nicht mit Projekt-Konventionen verwechseln; die Tool-UI folgt dem shadcn-Design-System.
 
 ---

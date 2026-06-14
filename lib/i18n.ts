@@ -92,6 +92,7 @@ export type Translation = {
   active: string;
   inactive: string;
   location: string;
+  city: string;
   country: string;
   timezone: string;
   timezoneDetail: string;
@@ -116,6 +117,9 @@ export type Translation = {
   reverseDns: string;
   reverseDnsDetail: string;
   checkReputation: string;
+  networkSection: string;
+  checkEmptyTitle?: string;
+  checkEmptyDescription?: string;
   connectionTypes: Record<ConnectionType, string>;
 };
 
@@ -142,6 +146,7 @@ export const translations: Record<Locale, Translation> = {
     active: "Aktiv",
     inactive: "Inaktiv",
     location: "Standort",
+    city: "Stadt",
     country: "Land",
     timezone: "Zeitzone",
     timezoneDetail: "IANA Zeitzone",
@@ -166,6 +171,10 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "Reverse DNS",
     reverseDnsDetail: "PTR-Hostname",
     checkReputation: "IP-Reputation prüfen",
+    networkSection: "Netzwerk",
+    checkEmptyTitle: "Beliebige IP-Adresse oder Domain nachschlagen",
+    checkEmptyDescription:
+      "Gib eine IPv4, IPv6 oder Domain ein, um Standort, Netzwerk, ASN, Reverse DNS und Verbindungsdetails zu sehen.",
     connectionTypes: {
       datacenter: "Rechenzentrum / Hosting",
       tor: "Tor-Exit-Node",
@@ -205,6 +214,7 @@ export const translations: Record<Locale, Translation> = {
     active: "Active",
     inactive: "Inactive",
     location: "Location",
+    city: "City",
     country: "Country",
     timezone: "Timezone",
     timezoneDetail: "IANA timezone",
@@ -229,6 +239,10 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "Reverse DNS",
     reverseDnsDetail: "PTR hostname",
     checkReputation: "Check IP reputation",
+    networkSection: "Network",
+    checkEmptyTitle: "Look up any IP address or domain",
+    checkEmptyDescription:
+      "Enter an IPv4, IPv6 or domain to see its location, network, ASN, reverse DNS and connection details.",
     connectionTypes: {
       datacenter: "Datacenter / Hosting",
       tor: "Tor exit node",
@@ -268,6 +282,7 @@ export const translations: Record<Locale, Translation> = {
     active: "Activo",
     inactive: "Inactivo",
     location: "Ubicación",
+    city: "Ciudad",
     country: "País",
     timezone: "Zona horaria",
     timezoneDetail: "Zona horaria IANA",
@@ -292,6 +307,7 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "DNS inverso",
     reverseDnsDetail: "Nombre de host PTR",
     checkReputation: "Comprobar reputación de la IP",
+    networkSection: "Red",
     connectionTypes: {
       datacenter: "Centro de datos / Hosting",
       tor: "Nodo de salida Tor",
@@ -331,6 +347,7 @@ export const translations: Record<Locale, Translation> = {
     active: "Actif",
     inactive: "Inactif",
     location: "Localisation",
+    city: "Ville",
     country: "Pays",
     timezone: "Fuseau horaire",
     timezoneDetail: "Fuseau horaire IANA",
@@ -355,6 +372,7 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "DNS inversé",
     reverseDnsDetail: "Nom d'hôte PTR",
     checkReputation: "Vérifier la réputation de l'IP",
+    networkSection: "Réseau",
     connectionTypes: {
       datacenter: "Centre de données / Hébergement",
       tor: "Nœud de sortie Tor",
@@ -394,6 +412,7 @@ export const translations: Record<Locale, Translation> = {
     active: "Ativo",
     inactive: "Inativo",
     location: "Localização",
+    city: "Cidade",
     country: "País",
     timezone: "Fuso horário",
     timezoneDetail: "Fuso horário IANA",
@@ -418,6 +437,7 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "DNS reverso",
     reverseDnsDetail: "Hostname PTR",
     checkReputation: "Verificar reputação do IP",
+    networkSection: "Rede",
     connectionTypes: {
       datacenter: "Data center / Hospedagem",
       tor: "Nó de saída Tor",
@@ -457,6 +477,7 @@ export const translations: Record<Locale, Translation> = {
     active: "有効",
     inactive: "無効",
     location: "場所",
+    city: "都市",
     country: "国",
     timezone: "タイムゾーン",
     timezoneDetail: "IANAタイムゾーン",
@@ -481,6 +502,7 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "逆引きDNS",
     reverseDnsDetail: "PTRホスト名",
     checkReputation: "IPレピュテーションを確認",
+    networkSection: "ネットワーク",
     connectionTypes: {
       datacenter: "データセンター / ホスティング",
       tor: "Tor出口ノード",
@@ -520,6 +542,7 @@ export const translations: Record<Locale, Translation> = {
     active: "Активно",
     inactive: "Неактивно",
     location: "Местоположение",
+    city: "Город",
     country: "Страна",
     timezone: "Часовой пояс",
     timezoneDetail: "Часовой пояс IANA",
@@ -544,6 +567,7 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "Обратный DNS",
     reverseDnsDetail: "Имя узла PTR",
     checkReputation: "Проверить репутацию IP",
+    networkSection: "Сеть",
     connectionTypes: {
       datacenter: "Дата-центр / Хостинг",
       tor: "Выходной узел Tor",
@@ -583,6 +607,7 @@ export const translations: Record<Locale, Translation> = {
     active: "启用",
     inactive: "停用",
     location: "位置",
+    city: "城市",
     country: "国家",
     timezone: "时区",
     timezoneDetail: "IANA 时区",
@@ -607,6 +632,7 @@ export const translations: Record<Locale, Translation> = {
     reverseDns: "反向 DNS",
     reverseDnsDetail: "PTR 主机名",
     checkReputation: "检查 IP 信誉",
+    networkSection: "网络",
     connectionTypes: {
       datacenter: "数据中心 / 托管",
       tor: "Tor 出口节点",

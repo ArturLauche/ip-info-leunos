@@ -145,7 +145,7 @@ Rules:
   `ToggleGroup` instead of bespoke controls. Inputs are full-width within their
   grid cell.
 - Shared building blocks: `ToolSearchForm`, `ResultPanel`, `ErrorPanel`,
-  `InfoCard`, and `components/asn/show-more-button.tsx`.
+  `EmptyState`, and `components/asn/show-more-button.tsx`.
 
 ---
 

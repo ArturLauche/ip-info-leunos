@@ -2,6 +2,7 @@
 
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { useMemo } from "react";
 import {
   CircleCheck,
   Shield,
+  ShieldCheck,
   Sparkles,
   Globe,
   Activity,
@@ -99,6 +101,14 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
         loading={loading}
         onSubmit={run}
       />
+
+      {!loading && !error && !result && (
+        <EmptyState
+          icon={ShieldCheck}
+          title={t.cdnEmptyTitle}
+          description={t.cdnEmptyDescription}
+        />
+      )}
 
       {loading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

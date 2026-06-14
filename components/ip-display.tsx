@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { InfoCard } from "@/components/info-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTranslation, type Locale } from "@/lib/i18n";
+import { getCountryFlag } from "@/lib/format";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { normalizeAsnInput } from "@/lib/asn";
 import {
@@ -19,13 +20,7 @@ import {
 } from "@/lib/client-ip-discovery";
 import type { ConnectionType } from "@/lib/connection-type";
 import {
-  Globe,
   MapPin,
-  Building2,
-  Clock,
-  Wifi,
-  Hash,
-  Map,
   Copy,
   Check,
   Cable,
@@ -113,6 +108,41 @@ function CopyButton({
   );
 }
 
+/** Titled container for a group of label/value rows (Location, Network). */
+function DetailCard({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="flex items-center gap-2.5 border-b bg-muted/30 px-5 py-3.5">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </span>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+      </div>
+      <dl className="px-5">{children}</dl>
+    </Card>
+  );
+}
+
+/** One label/value row inside a DetailCard, hairline-separated. */
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
+      <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-right text-sm font-medium break-words text-foreground">
+        {children}
+      </dd>
+    </div>
+  );
+}
+
 function getAsnHref(value: string) {
   const match = value.match(/\bAS\s*([0-9]+)\b/i);
   if (!match) return null;
@@ -196,6 +226,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     return (
       <div className="flex w-full flex-col gap-6">
         <Card className="gap-0 overflow-hidden p-0">
+          <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/20 to-info/40" />
           <div className="grid lg:grid-cols-[1.5fr_1fr]">
             <div className="flex flex-col gap-4 p-6 lg:p-7">
               <Skeleton className="h-3.5 w-32" />
@@ -210,9 +241,21 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             </div>
           </div>
         </Card>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, card) => (
+            <Card key={card} className="gap-0 overflow-hidden py-0">
+              <div className="border-b bg-muted/30 px-5 py-3.5">
+                <Skeleton className="h-5 w-28" />
+              </div>
+              <div className="flex flex-col gap-3 p-5">
+                {Array.from({ length: 5 }).map((_, row) => (
+                  <div key={row} className="flex justify-between gap-4">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ))}
+              </div>
+            </Card>
           ))}
         </div>
       </div>
@@ -258,10 +301,15 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const connectionTypeLabel = t.connectionTypes[data.connectionType] ?? t.unknown;
   const reputationIp = displayIpv4 || displayIpv6;
   const orUnknown = (value: string) => value || t.unknown;
+  const countryFlag = getCountryFlag(data.countryCode);
+  const hasCoordinates = data.lat !== 0 || data.lon !== 0;
+  const locationSummary = [data.city, data.country].filter(Boolean).join(", ");
 
   return (
     <div className="flex w-full flex-col gap-6">
+      {/* Hero: addresses + connection summary */}
       <Card className="gap-0 overflow-hidden p-0">
+        <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/20 to-info/40" />
         <div className="grid lg:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
           <div className="flex flex-col gap-5 p-6 lg:p-7">
@@ -323,12 +371,13 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               </div>
             </div>
 
-            {data.city && (
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            {locationSummary && (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 shrink-0 text-muted-foreground/70" />
-                {[data.city, data.regionName, data.country]
-                  .filter(Boolean)
-                  .join(", ")}
+                {countryFlag && (
+                  <span className="text-base leading-none">{countryFlag}</span>
+                )}
+                <span className="min-w-0 truncate">{locationSummary}</span>
               </p>
             )}
           </div>
@@ -358,12 +407,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             )}
 
             {reputationIp && (
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="w-fit"
-              >
+              <Button asChild variant="outline" size="sm" className="w-fit">
                 <Link href={`/reputation?ip=${encodeURIComponent(reputationIp)}`}>
                   <ShieldAlert className="size-4" />
                   {t.checkReputation}
@@ -374,91 +418,56 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <InfoCard
-          icon={MapPin}
-          label={t.location}
-          value={data.city ? `${data.city}, ${data.regionName}` : t.unknown}
-          detail={data.country}
-        />
-        <InfoCard
-          icon={Globe}
-          label={t.country}
-          value={orUnknown(data.country)}
-          detail={data.countryCode}
-        />
-        <InfoCard
-          icon={Clock}
-          label={t.timezone}
-          value={orUnknown(data.timezone)}
-          detail={t.timezoneDetail}
-        />
-        <InfoCard
-          icon={Wifi}
-          label={t.isp}
-          value={orUnknown(data.isp)}
-          detail={t.ispDetail}
-        />
-        <InfoCard
-          icon={Building2}
-          label={t.organization}
-          value={orUnknown(data.org)}
-          detail={t.organizationDetail}
-        />
-        {data.reverse && (
-          <InfoCard
-            icon={Network}
-            label={t.reverseDns}
-            value={data.reverse}
-            detail={t.reverseDnsDetail}
-          />
-        )}
-        <Card className="gap-0 py-0 transition-colors hover:border-primary/40">
-          <div className="flex flex-col gap-2.5 p-4">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Hash className="size-4" />
+      {/* Grouped details */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DetailCard icon={MapPin} title={t.location}>
+          <DetailRow label={t.city}>{orUnknown(data.city)}</DetailRow>
+          <DetailRow label={t.region}>{orUnknown(data.regionName)}</DetailRow>
+          <DetailRow label={t.country}>
+            <span className="inline-flex items-center gap-1.5">
+              {countryFlag && (
+                <span className="text-base leading-none">{countryFlag}</span>
+              )}
+              {orUnknown(data.country)}
+            </span>
+          </DetailRow>
+          {data.zip && (
+            <DetailRow label={t.postalCode}>
+              <span className="font-mono">{data.zip}</span>
+            </DetailRow>
+          )}
+          {hasCoordinates && (
+            <DetailRow label={t.coordinates}>
+              <span className="font-mono">
+                {data.lat.toFixed(4)}, {data.lon.toFixed(4)}
               </span>
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {t.asNumber}
-              </span>
-            </div>
+            </DetailRow>
+          )}
+          <DetailRow label={t.timezone}>{orUnknown(data.timezone)}</DetailRow>
+        </DetailCard>
+
+        <DetailCard icon={Network} title={t.networkSection}>
+          <DetailRow label={t.isp}>{orUnknown(data.isp)}</DetailRow>
+          <DetailRow label={t.organization}>{orUnknown(data.org)}</DetailRow>
+          <DetailRow label={t.asNumber}>
             {asnHref ? (
               <Link
                 href={asnHref}
-                className="inline-flex max-w-full items-center gap-1 text-base font-semibold text-foreground transition-colors hover:text-primary"
+                className="inline-flex items-center gap-1 font-mono text-foreground transition-colors hover:text-primary"
               >
-                <span className="truncate">{data.as}</span>
+                <span className="break-all">{data.as}</span>
                 <ExternalLink className="size-3.5 shrink-0" />
               </Link>
             ) : (
-              <p className="truncate text-base font-semibold text-foreground">
-                {orUnknown(data.as)}
-              </p>
+              <span className="font-mono">{orUnknown(data.as)}</span>
             )}
-            <p className="truncate text-xs text-muted-foreground">
-              {data.asname || t.asFallbackDetail}
-            </p>
-          </div>
-        </Card>
-        <InfoCard
-          icon={Map}
-          label={t.coordinates}
-          value={`${data.lat.toFixed(4)}, ${data.lon.toFixed(4)}`}
-          detail={t.coordinatesDetail}
-        />
-        <InfoCard
-          icon={MapPin}
-          label={t.region}
-          value={orUnknown(data.regionName)}
-          detail={data.region}
-        />
-        <InfoCard
-          icon={Hash}
-          label={t.postalCode}
-          value={orUnknown(data.zip)}
-          detail={t.postalCodeDetail}
-        />
+          </DetailRow>
+          {data.reverse && (
+            <DetailRow label={t.reverseDns}>
+              <span className="font-mono break-all">{data.reverse}</span>
+            </DetailRow>
+          )}
+        </DetailCard>
       </div>
     </div>
   );

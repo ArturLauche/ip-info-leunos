@@ -5,7 +5,7 @@ import { AlertTriangle, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput, type AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
@@ -89,13 +89,11 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       />
 
       {!loading && !error && !result && (
-        <Card className="bg-grid items-center gap-3 p-10 text-center">
-          <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
-            <Waypoints className="size-6" />
-          </span>
-          <p className="text-lg font-semibold text-foreground">{t.asnEmptyTitle}</p>
-          <p className="max-w-xl text-sm text-muted-foreground">{t.asnEmptyDescription}</p>
-        </Card>
+        <EmptyState
+          icon={Waypoints}
+          title={t.asnEmptyTitle}
+          description={t.asnEmptyDescription}
+        />
       )}
 
       {loading && <LoadingSkeleton />}
