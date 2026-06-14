@@ -28,7 +28,7 @@ Paketmanager: **pnpm**. Import-Alias: `@/*` → Projektroot (`tsconfig.json`).
 | Server-seitige API-Routes mit Zod, Rate-Limits, Timeouts | Statischer Export (`next export`) |
 | Öffentliche IPs/Domains/URLs als Ziele | Scans gegen private/interne Netze |
 | Eigenständiges ASN-Tool (`/asn`, `/asn/AS8881`) + AS-Feld im IP-Lookup | — |
-| shadcn/ui-Design-System (Radix-Primitive in `components/ui/`) + Sidebar-Shell | Ad-hoc-Styling, das die Design-Tokens umgeht |
+| shadcn/ui-Design-System (Radix-Primitive in `components/ui/`) + Top-Nav-Shell | Ad-hoc-Styling, das die Design-Tokens umgeht |
 | Light/Dark-Themes über `next-themes` (Default `dark`) | Hartkodierte Hex-Farben statt semantischer Tokens |
 | Locale über `Accept-Language` (Server) | Locale-Prefix-Routen (`/de/...`) |
 
@@ -42,7 +42,8 @@ Vor netzwerkbezogenen Änderungen: **`README.md` (Safety Model)** und **`lib/net
 app/                    Seiten (Server Components) + API-Routes
 components/             Feature-UI: Checker, Shells, Panels
   ui/                   shadcn/ui-Primitive (Button, Card, Table, Dialog, ...)
-  shell/               App-Shell: Sidebar, Mobile-Nav, Nav-Config, Brand-Mark
+  shell/               App-Shell: Site-Header, Tool-Rail, Command-Menu,
+                        Site-Footer, Nav-Config, Brand-Mark
   asn/                  ASN-Checker, in Sektions-Komponenten aufgeteilt
   theme-provider.tsx    next-themes-Wrapper; mode-toggle.tsx Theme-Umschalter
 hooks/
@@ -94,7 +95,7 @@ components.json         shadcn-Konfiguration (New York, Tokens, Aliases)
 | `/cdn` | `CdnChecker` | `target` |
 | `/reputation` | `ReputationChecker` | `ip` |
 
-Navigation und `ToolKey`: `components/shell/nav-config.ts` — `home | check | asn | ping | dns | whois | cdn | reputation` (gerendert von `ToolPageShell` über Sidebar/Mobile-Nav).
+Navigation und `ToolKey`: `components/shell/nav-config.ts` — `home | check | asn | ping | dns | whois | cdn | reputation` (gerendert von `ToolPageShell` über die Top-Nav: `SiteHeader` + horizontale `ToolRail`, plus `CommandMenu`/⌘K).
 
 ### API
 
@@ -213,7 +214,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 - **Design-System:** shadcn/ui (New York) auf Radix-Primitiven in `components/ui/`; Konfiguration in `components.json`. Klassen immer über `cn()` aus `lib/utils.ts` zusammenführen.
 - **Tokens:** `app/globals.css` (Tailwind 4, OKLCH). Light unter `:root`, Dark unter `.dark`, gemappt im `@theme inline`-Block. Semantik: `background/foreground`, `card`, `muted`, `secondary`, `primary`, `border`, `ring`, Status `success/warning/info/destructive` und `sidebar-*`. Für Status **keine** rohen Hex-/Palettenfarben — Tokens nutzen (bewusst kategoriale Farben wie ASN-Typen als `*-600 dark:*-300`-Paare).
 - **Theming:** `next-themes` (`attribute="class"`, Default `dark`) via `ThemeProvider` in `app/layout.tsx`; Umschalter `components/mode-toggle.tsx`. `<html>` trägt `suppressHydrationWarning`. `app/manifest.ts`/`viewport.themeColor` spiegeln die Token-Hintergründe.
-- **Shell:** `ToolPageShell` rendert Desktop-Sidebar (`components/shell/app-sidebar.tsx`) + Mobile-Sheet (`mobile-nav.tsx`); Navigation/Labels aus `components/shell/nav-config.ts`.
+- **Shell:** `ToolPageShell` rendert eine Top-Nav: sticky `SiteHeader` (Brand, `CommandMenu`/⌘K-Suche, Theme-Toggle) + horizontale `ToolRail` für alle Breakpoints, dazu `SiteFooter`. Kein Sidebar/Mobile-Sheet mehr. Smart-Routing der Suche in `lib/search-routing.ts`; Navigation/Labels aus `components/shell/nav-config.ts`.
 - **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-Paket (kein Google-Fonts-Fetch beim Build).
 - **Icons:** Lucide React. **Toasts:** `sonner` (`<Toaster>` im Layout).
 - **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `EmptyState`, `components/asn/show-more-button.tsx`.

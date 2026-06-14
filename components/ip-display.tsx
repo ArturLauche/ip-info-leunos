@@ -226,7 +226,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     return (
       <div className="flex w-full flex-col gap-6">
         <Card className="gap-0 overflow-hidden p-0">
-          <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/20 to-info/40" />
+          <div className="h-1 bg-gradient-to-r from-foreground/30 via-foreground/10 to-transparent" />
           <div className="grid lg:grid-cols-[1.5fr_1fr]">
             <div className="flex flex-col gap-4 p-6 lg:p-7">
               <Skeleton className="h-3.5 w-32" />
@@ -383,7 +383,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           </div>
 
           {/* Connection summary */}
-          <div className="flex flex-col justify-center gap-4 border-t bg-muted/30 p-6 lg:border-t-0 lg:border-l lg:p-7">
+          <div className="bg-grid flex flex-col justify-center gap-4 border-t bg-muted/30 p-6 lg:border-t-0 lg:border-l lg:p-7">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.detectedConnectionType}
             </p>

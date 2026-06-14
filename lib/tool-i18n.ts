@@ -20,6 +20,10 @@ type ToolTranslation = {
   themeDark: string;
   themeSystem: string;
   navMenu: string;
+  searchPlaceholderGlobal: string;
+  searchActionLookup: string;
+  searchGoTo: string;
+  searchNoResults: string;
   copyValue: string;
   pingTabLabel: string;
   dnsTabLabel: string;
@@ -279,6 +283,10 @@ const en: ToolTranslation = {
   themeDark: "Dark",
   themeSystem: "System",
   navMenu: "Menu",
+  searchPlaceholderGlobal: "Search a target or tool…",
+  searchActionLookup: "Look up IP, domain or host",
+  searchGoTo: "Look up",
+  searchNoResults: "No matching tools.",
   copyValue: "Copy",
   pingTabLabel: "Ping Tester",
   dnsTabLabel: "DNS Lookup",
@@ -547,6 +555,10 @@ const de: Partial<ToolTranslation> = {
   themeDark: "Dunkel",
   themeSystem: "System",
   navMenu: "Menü",
+  searchPlaceholderGlobal: "Ziel oder Tool suchen…",
+  searchActionLookup: "IP, Domain oder Host nachschlagen",
+  searchGoTo: "Nachschlagen",
+  searchNoResults: "Keine passenden Tools.",
   copyValue: "Kopieren",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",

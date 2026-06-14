@@ -96,3 +96,21 @@ export function getGroupTitle(id: NavGroup["id"], locale: Locale): string {
   const toolT = getToolTranslation(locale);
   return id === "overview" ? toolT.navOverview : toolT.navDiagnostics;
 }
+
+export interface ResolvedNavItem extends NavItem {
+  label: string;
+  description: string;
+  group: NavGroup["id"];
+}
+
+/** Flattens the nav config into fully-resolved items for search/command surfaces. */
+export function getNavItems(locale: Locale): ResolvedNavItem[] {
+  return navGroups.flatMap((group) =>
+    group.items.map((item) => ({
+      ...item,
+      label: getNavLabel(item.key, locale),
+      description: getNavDescription(item.key, locale),
+      group: group.id,
+    })),
+  );
+}

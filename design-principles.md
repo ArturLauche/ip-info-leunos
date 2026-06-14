@@ -151,15 +151,29 @@ Rules:
 
 ## 6. Navigation & shell
 
-- `ToolPageShell` provides the frame for every tool page: a fixed **sidebar** on
-  desktop and a sticky top bar with a slide-out **Sheet** on mobile.
+- `ToolPageShell` provides the frame for every tool page: a **sticky top
+  header** (`components/shell/site-header.tsx`) over a centred, full-width
+  content column, closed by a `SiteFooter`. There is no sidebar — data tables
+  get the full `max-w-6xl` width on every breakpoint.
+- The header carries the brand, the global **command menu** (`CommandMenu`,
+  ⌘K), and the theme toggle. Directly beneath it, the **tool rail**
+  (`ToolRail`) is one horizontally-scrollable row of tools that behaves
+  identically on mobile and desktop — no hamburger, no slide-out sheet. The
+  active tool always stays in view (auto-centred) and off-screen tools are
+  hinted with edge fades.
+- The **command menu** is the primary search affordance: one input routes to
+  every tool. A typed target (IP, domain, ASN) becomes a "Look up" action via
+  `lib/search-routing.ts`; otherwise it filters and jumps to a tool. It opens
+  with ⌘K/Ctrl+K or the header search button and supports arrow-key + Enter
+  selection.
 - Navigation is data-driven from `components/shell/nav-config.ts`, grouped into
-  **Overview** and **Diagnostics**. Add a tool by extending the config — never
-  hardcode links in pages.
-- The active item is marked with a neutral fill, a high-contrast icon, and a
-  short accent indicator bar (`aria-current="page"`).
+  **Overview** and **Diagnostics** (a thin divider separates the groups in the
+  rail). Add a tool by extending the config — never hardcode links in pages.
+- The active rail item uses the inverted-neutral fill (`bg-primary
+  text-primary-foreground`, `aria-current="page"`); inactive items are quiet
+  ghost pills.
 - A page header pattern (eyebrow → title → subtitle, with a leading icon tile)
-  appears at the top of every tool for consistent orientation.
+  opens every tool's content column for consistent orientation.
 
 ---
 

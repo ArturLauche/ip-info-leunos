@@ -214,4 +214,13 @@
       linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
     background-size: 36px 36px;
   }
+
+  /* Hide the scrollbar on horizontally scrollable navigation (tool rail). */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
