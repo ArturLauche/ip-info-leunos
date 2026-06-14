@@ -15,10 +15,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   return (
     <div
       key={pathname}
-      className={cn(
-        "animate-in fade-in slide-in-from-bottom-2 duration-300",
-        className,
-      )}
+      className={cn("tool-page-transition", className)}
     >
       {children}
     </div>
