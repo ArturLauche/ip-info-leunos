@@ -55,7 +55,7 @@ lib/
   connection-type.ts    Verbindungstyp-Codes + Proxy-Heuristik (pur, getestet)
   dns-records.ts        DNS-Record-Werte lesbar formatieren
   whois.ts              WHOIS-Parsing, Referral-Normalisierung
-  format.ts             getCountryFlag, formatTemplate, formatNumber, valueOrDash
+  format.ts             formatTemplate, formatNumber, valueOrDash
   utils.ts              cn() (clsx + tailwind-merge) für shadcn-Komponenten
   i18n.ts, tool-i18n.ts, seo.ts, asn.ts, reputation.ts, client-ip-discovery.ts
 public/                 Icons, Verifikation
@@ -216,7 +216,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 - **Shell:** `ToolPageShell` rendert Desktop-Sidebar (`components/shell/app-sidebar.tsx`) + Mobile-Sheet (`mobile-nav.tsx`); Navigation/Labels aus `components/shell/nav-config.ts`.
 - **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-Paket (kein Google-Fonts-Fetch beim Build).
 - **Icons:** Lucide React. **Toasts:** `sonner` (`<Toaster>` im Layout).
-- **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `EmptyState`, `components/asn/show-more-button.tsx`.
+- **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `EmptyState`, `components/country-flag.tsx` (Länderflaggen als SVG-Bild statt Emoji — rendert plattformübergreifend), `components/asn/show-more-button.tsx`.
 - **Command-Palette (⌘K / Strg+K, auch `/`):** Spotlight-artige Suche/Destination-Bar. `components/shell/command-menu.tsx` (Provider + Kontext + Trigger, in `ToolPageShell` montiert), `components/shell/command-palette.tsx` (Dialog-UI auf dem Radix-Dialog-Primitiv); Query-Klassifizierung + Deep-Link-Aktionen rein und getestet in `lib/command.ts`. Tippt der Nutzer eine IP/Domain/ASN, schlägt die Palette Deep-Links in die passenden Tools vor (gleiche Query-Parameter wie unter „Routen").
 - **`Frontend-Skill.md`:** externes kreatives Design-Skill — nicht mit Projekt-Konventionen verwechseln; die Tool-UI folgt dem shadcn-Design-System.
 

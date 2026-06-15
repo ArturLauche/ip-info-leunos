@@ -58,7 +58,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-72 gap-0 p-0 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:duration-[180ms] data-[state=open]:duration-[220ms] motion-reduce:duration-0"
+            className="w-72 gap-0 p-0 ease-[var(--ease-smooth)] data-[state=closed]:duration-[260ms] data-[state=open]:duration-[340ms] motion-reduce:duration-0"
           >
             <SheetHeader className="h-16 justify-center border-b border-sidebar-border px-5">
               <SheetTitle className="flex items-center gap-3">

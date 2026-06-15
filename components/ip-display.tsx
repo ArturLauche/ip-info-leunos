@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTranslation, type Locale } from "@/lib/i18n";
-import { getCountryFlag } from "@/lib/format";
+import { CountryFlag } from "@/components/country-flag";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { normalizeAsnInput } from "@/lib/asn";
 import {
@@ -307,12 +307,11 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const connectionTypeLabel = t.connectionTypes[data.connectionType] ?? t.unknown;
   const reputationIp = displayIpv4 || displayIpv6;
   const orUnknown = (value: string) => value || t.unknown;
-  const countryFlag = getCountryFlag(data.countryCode);
   const hasCoordinates = data.lat !== 0 || data.lon !== 0;
   const locationSummary = [data.city, data.country].filter(Boolean).join(", ");
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="tool-reveal flex w-full flex-col gap-6">
       {/* Hero: addresses + connection summary */}
       <Card className="gap-0 overflow-hidden p-0">
         <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/20 to-info/40" />
@@ -349,16 +348,16 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <Badge
                   variant={displayIpv6 ? "outline" : "secondary"}
-                  className="font-mono"
+                  className="mt-0.5 font-mono"
                 >
                   IPv6
                 </Badge>
                 {displayIpv6 ? (
                   <>
-                    <span className="min-w-0 truncate font-mono text-sm font-semibold tracking-tight text-foreground sm:text-lg">
+                    <span className="min-w-0 flex-1 font-mono text-sm font-semibold tracking-tight break-all text-foreground sm:text-lg">
                       {displayIpv6}
                     </span>
                     <CopyButton
@@ -380,9 +379,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             {locationSummary && (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 shrink-0 text-muted-foreground/70" />
-                {countryFlag && (
-                  <span className="text-base leading-none">{countryFlag}</span>
-                )}
+                <CountryFlag countryCode={data.countryCode} />
                 <span className="min-w-0 truncate">{locationSummary}</span>
               </p>
             )}
@@ -431,9 +428,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           <DetailRow label={t.region}>{orUnknown(data.regionName)}</DetailRow>
           <DetailRow label={t.country}>
             <span className="inline-flex items-center gap-1.5">
-              {countryFlag && (
-                <span className="text-base leading-none">{countryFlag}</span>
-              )}
+              <CountryFlag countryCode={data.countryCode} />
               {orUnknown(data.country)}
             </span>
           </DetailRow>

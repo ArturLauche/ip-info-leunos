@@ -121,7 +121,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <div className="flex flex-col gap-4">
+        <div className="tool-reveal flex flex-col gap-4">
           <Card className="gap-3 py-5">
             <div className="flex flex-wrap items-center gap-3 px-5">
               {result.usesCdn ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { type ReactNode } from "react";
 import { type Locale } from "@/lib/i18n";
 import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
@@ -19,7 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
-import { formatTemplate, getCountryFlag } from "@/lib/format";
+import { formatTemplate } from "@/lib/format";
+import { CountryFlag } from "@/components/country-flag";
 import type { ReputationSummary, RiskLevel, ThreatCategory } from "@/lib/reputation";
 import {
   AlertTriangle,
@@ -87,7 +89,7 @@ function StatCard({
 }: {
   icon: typeof Shield;
   label: string;
-  primary: string;
+  primary: ReactNode;
   secondary?: string;
 }) {
   return (
@@ -155,7 +157,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <div className="flex flex-col gap-4 duration-300 animate-in fade-in slide-in-from-bottom-2">
+        <div className="tool-reveal flex flex-col gap-4">
           <Card className="gap-3 py-5">
             <div className="flex flex-wrap items-center gap-3 px-5">
               <RiskIcon level={result.level} />
@@ -207,9 +209,18 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
               icon={MapPin}
               label={t.reputationGeoLabel}
               primary={
-                result.geo
-                  ? `${getCountryFlag(result.geo.countryCode)} ${[result.geo.city, result.geo.country].filter(Boolean).join(", ")}`.trim() || "-"
-                  : "-"
+                result.geo ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <CountryFlag countryCode={result.geo.countryCode} />
+                    <span className="min-w-0">
+                      {[result.geo.city, result.geo.country]
+                        .filter(Boolean)
+                        .join(", ") || "-"}
+                    </span>
+                  </span>
+                ) : (
+                  "-"
+                )
               }
               secondary={result.geo?.region || undefined}
             />

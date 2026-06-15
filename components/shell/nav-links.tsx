@@ -75,7 +75,7 @@ export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
                     onClick={(event) => handleNavigate(event, item.key)}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "group relative z-10 flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring/60",
+                      "group relative z-10 flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
                       isSelected
                         ? "text-sidebar-accent-foreground"
                         : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",

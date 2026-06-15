@@ -1,9 +1,23 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Auskunft favicon">
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="#0A0A0A"/>
-  <rect x="2" y="2" width="60" height="60" rx="16" stroke="#2E2E2E" stroke-width="2"/>
-  <circle cx="32" cy="32" r="15" stroke="#FAFAFA" stroke-width="3"/>
-  <path d="M17 32H47" stroke="#FAFAFA" stroke-width="3" stroke-linecap="round"/>
-  <path d="M32 17V47" stroke="#FAFAFA" stroke-width="3" stroke-linecap="round"/>
-  <path d="M24 19.5C26.9 23 29 27.3 29 32C29 36.7 26.9 41 24 44.5" stroke="#FAFAFA" stroke-width="3" stroke-linecap="round"/>
-  <path d="M40 19.5C37.1 23 35 27.3 35 32C35 36.7 37.1 41 40 44.5" stroke="#FAFAFA" stroke-width="3" stroke-linecap="round"/>
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Auskunft">
+  <style>
+    .tile { fill: #0A0A0A; }
+    .bd { stroke: #2E2E2E; }
+    .ink { stroke: #FAFAFA; }
+    .dot { fill: #FAFAFA; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #FAFAFA; }
+      .bd { stroke: #E5E5E5; }
+      .ink { stroke: #0A0A0A; }
+      .dot { fill: #0A0A0A; }
+    }
+  </style>
+  <rect class="tile" x="2" y="2" width="60" height="60" rx="15"/>
+  <rect class="bd" x="2.75" y="2.75" width="58.5" height="58.5" rx="14.25" fill="none" stroke-width="1.5"/>
+  <g class="ink" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="32" cy="32" r="19"/>
+    <path d="M13 32H51"/>
+    <path d="M32 13A10 19 0 0 1 32 51"/>
+    <path d="M32 13A10 19 0 0 0 32 51"/>
+  </g>
+  <circle class="dot" cx="32" cy="32" r="5"/>
 </svg>

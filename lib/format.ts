@@ -1,21 +1,5 @@
 import type { Locale } from "@/lib/i18n";
 
-/** Converts a two-letter ISO country code into its flag emoji. */
-export function getCountryFlag(countryCode: string): string {
-  if (!/^[a-zA-Z]{2}$/.test(countryCode)) return "";
-
-  const codePoints = countryCode
-    .toUpperCase()
-    .split("")
-    .map((char) => 127397 + char.charCodeAt(0));
-
-  try {
-    return String.fromCodePoint(...codePoints);
-  } catch {
-    return "";
-  }
-}
-
 /** Replaces `{key}` placeholders in a translation template. */
 export function formatTemplate(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce(
