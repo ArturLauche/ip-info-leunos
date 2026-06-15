@@ -23,10 +23,7 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
           <div className="flex flex-wrap items-center gap-2">
             {result.country && (
               <Badge variant="secondary">
-                <CountryFlag
-                  countryCode={result.country}
-                  countryName={result.country}
-                />
+                <CountryFlag countryCode={result.country} />
                 {result.country}
               </Badge>
             )}

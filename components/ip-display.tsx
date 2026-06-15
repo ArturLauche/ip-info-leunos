@@ -379,10 +379,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             {locationSummary && (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 shrink-0 text-muted-foreground/70" />
-                <CountryFlag
-                  countryCode={data.countryCode}
-                  countryName={data.country}
-                />
+                <CountryFlag countryCode={data.countryCode} />
                 <span className="min-w-0 truncate">{locationSummary}</span>
               </p>
             )}
@@ -431,10 +428,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           <DetailRow label={t.region}>{orUnknown(data.regionName)}</DetailRow>
           <DetailRow label={t.country}>
             <span className="inline-flex items-center gap-1.5">
-              <CountryFlag
-                countryCode={data.countryCode}
-                countryName={data.country}
-              />
+              <CountryFlag countryCode={data.countryCode} />
               {orUnknown(data.country)}
             </span>
           </DetailRow>

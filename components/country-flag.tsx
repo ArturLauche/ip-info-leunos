@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils";
 interface CountryFlagProps {
   /** ISO 3166-1 alpha-2 country code (e.g. "DE"). Case-insensitive. */
   countryCode: string | null | undefined;
-  /** Human-readable country name, used for the accessible label. */
-  countryName?: string;
   className?: string;
 }
 
@@ -18,14 +16,14 @@ interface CountryFlagProps {
  * — the browser shows the bare letters instead — so emoji can't be relied on to
  * display "everywhere". An image guarantees the flag appears on every platform.
  *
- * If the code is invalid or the image fails to load it renders nothing; the
- * adjacent country name/code still carries the meaning.
+ * The image is served same-origin via /api/flag/[code] (which proxies the
+ * upstream) so no visitor data leaks to a third party and it works under a
+ * strict CSP. It is purely decorative: every call site renders the country name
+ * or code right next to it, so the image carries no extra meaning and uses an
+ * empty alt to stay out of the accessibility tree. If the code is invalid or
+ * the image fails to load it renders nothing.
  */
-export function CountryFlag({
-  countryCode,
-  countryName,
-  className,
-}: CountryFlagProps) {
+export function CountryFlag({ countryCode, className }: CountryFlagProps) {
   const code = countryCode?.trim().toLowerCase();
   const isValid = !!code && /^[a-z]{2}$/.test(code);
   const [failed, setFailed] = useState(false);
@@ -37,15 +35,11 @@ export function CountryFlag({
 
   if (!isValid || failed) return null;
 
-  const label = countryName
-    ? `${countryName} flag`
-    : `${code!.toUpperCase()} flag`;
-
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- tiny external flag thumbnail; next/image adds nothing here (images run unoptimized) and we need the onError fallback.
+    // eslint-disable-next-line @next/next/no-img-element -- tiny same-origin flag thumbnail; next/image adds nothing here (images run unoptimized) and we need the onError fallback.
     <img
-      src={`https://flagcdn.com/${code}.svg`}
-      alt={label}
+      src={`/api/flag/${code}`}
+      alt=""
       width={20}
       height={15}
       loading="lazy"

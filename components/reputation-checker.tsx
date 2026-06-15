@@ -211,10 +211,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
               primary={
                 result.geo ? (
                   <span className="inline-flex items-center gap-1.5">
-                    <CountryFlag
-                      countryCode={result.geo.countryCode}
-                      countryName={result.geo.country}
-                    />
+                    <CountryFlag countryCode={result.geo.countryCode} />
                     <span className="min-w-0">
                       {[result.geo.city, result.geo.country]
                         .filter(Boolean)
