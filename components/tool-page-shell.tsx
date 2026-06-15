@@ -81,7 +81,7 @@ export function ToolPageShell({
             <footer className="border-t border-border/60">
               <div className="mx-auto flex w-full max-w-6xl items-center justify-end px-4 py-4 sm:px-6 lg:px-8">
                 <Link
-                  href="/datenschutz"
+                  href="/privacy-policy"
                   className="rounded-md text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
                 >
                   {privacyLabel}

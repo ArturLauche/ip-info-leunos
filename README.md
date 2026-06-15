@@ -34,11 +34,11 @@ Set `IPINFO_TOKEN` to enable IPinfo ASN details on `/asn`. Without a token, ASN 
 
 Set `ABUSEIPDB_API_KEY` to enable AbuseIPDB abuse reports on `/reputation`. Without the key, the reputation tool still uses DNS blacklists and ip-api.com data.
 
-Set `PRIVACY_CONTACT_EMAIL` to the controller's contact address shown on the privacy page (`/datenschutz`). No address is hardcoded in the repository; when the variable is unset the page renders a neutral "not configured" note instead of an email.
+Set `PRIVACY_CONTACT_EMAIL` to the controller's contact address shown on the privacy page (`/privacy-policy`). No address is hardcoded in the repository; when the variable is unset the page renders a neutral "not configured" note instead of an email.
 
 ## Datenschutz / GDPR
 
-The app ships a bilingual (German/English) privacy policy at `/datenschutz`, linked from the footer on every page. It documents the processing of IP addresses, the in-memory rate limiting, the external services that requests are forwarded to (including third-country transfers), the functional theme storage, and data-subject rights under the GDPR. The app sets no tracking cookies, runs no analytics, and stores no persistent request logs of its own.
+The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, linked from the footer on every page. It documents the processing of IP addresses, the in-memory rate limiting, the external services that requests are forwarded to (including third-country transfers), the functional theme storage, and data-subject rights under the GDPR. The app sets no tracking cookies, runs no analytics, and stores no persistent request logs of its own.
 
 ## Tech Stack
 

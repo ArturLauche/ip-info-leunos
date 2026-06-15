@@ -13,7 +13,7 @@ export const metadata: Metadata = createPageMetadata({
   title: "Datenschutzerklärung",
   description:
     "Datenschutzerklärung: Umgang mit IP-Adressen, eingebundene Dienste und deine Rechte nach DSGVO.",
-  path: "/datenschutz",
+  path: "/privacy-policy",
   keywords: ["Datenschutz", "DSGVO", "Privacy Policy"],
 });
 
