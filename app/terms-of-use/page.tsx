@@ -42,7 +42,7 @@ function renderParagraph(text: string, tokens: ParagraphTokens) {
             {email}
           </a>
         ) : (
-          <span className="text-muted-foreground">{emailFallback}</span>
+          <span className="italic text-muted-foreground/80">{emailFallback}</span>
         ))}
     </span>
   ));
