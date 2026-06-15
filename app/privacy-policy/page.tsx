@@ -7,6 +7,7 @@ import { createPageMetadata } from "@/lib/seo";
 import {
   getPrivacyContactEmail,
   getPrivacyContent,
+  getPrivacyControllerName,
 } from "@/lib/privacy";
 
 export const metadata: Metadata = createPageMetadata({
@@ -17,10 +18,21 @@ export const metadata: Metadata = createPageMetadata({
   keywords: ["Datenschutz", "DSGVO", "Privacy Policy"],
 });
 
-/** Splits paragraph text on the {email} token and renders the address as a mailto link. */
-function renderParagraph(text: string, email: string | null, fallback: string) {
-  const parts = text.split("{email}");
-  if (parts.length === 1) return text;
+interface ParagraphTokens {
+  email: string | null;
+  emailFallback: string;
+}
+
+/**
+ * Substitutes the plain-text {controller} token, then splits on {email} and
+ * renders the contact address as a mailto link (or a muted fallback when unset).
+ */
+function renderParagraph(text: string, controller: string, tokens: ParagraphTokens) {
+  const resolved = text.replace("{controller}", controller);
+  const parts = resolved.split("{email}");
+  if (parts.length === 1) return resolved;
+
+  const { email, emailFallback } = tokens;
 
   return parts.map((part, index) => (
     <span key={index}>
@@ -34,7 +46,7 @@ function renderParagraph(text: string, email: string | null, fallback: string) {
             {email}
           </a>
         ) : (
-          <span className="text-muted-foreground">{fallback}</span>
+          <span className="text-muted-foreground">{emailFallback}</span>
         ))}
     </span>
   ));
@@ -45,6 +57,7 @@ export default async function DatenschutzPage() {
   const locale = resolveLocale(headersList.get("accept-language"));
   const content = getPrivacyContent(locale);
   const email = getPrivacyContactEmail();
+  const controller = getPrivacyControllerName() ?? content.controllerNotConfigured;
 
   return (
     <ToolPageShell
@@ -69,7 +82,10 @@ export default async function DatenschutzPage() {
                   key={index}
                   className="text-sm leading-relaxed text-muted-foreground"
                 >
-                  {renderParagraph(paragraph, email, content.contactNotConfigured)}
+                  {renderParagraph(paragraph, controller, {
+                    email,
+                    emailFallback: content.contactNotConfigured,
+                  })}
                 </p>
               ))}
               {section.bullets && (
