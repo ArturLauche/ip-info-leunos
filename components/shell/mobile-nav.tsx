@@ -23,7 +23,7 @@ import type { ToolKey } from "./nav-config";
 
 interface MobileNavProps {
   locale: Locale;
-  active: ToolKey;
+  active?: ToolKey;
 }
 
 /** Sticky top bar with a slide-out navigation sheet for small screens. */

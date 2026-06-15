@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
+import { getPrivacyContent } from "@/lib/privacy";
 import { AppSidebar } from "@/components/shell/app-sidebar";
 import { CommandMenuProvider } from "@/components/shell/command-menu";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -13,7 +15,7 @@ import { PageTransition } from "@/components/page-transition";
 
 interface ToolPageShellProps {
   locale: Locale;
-  active: ToolKey;
+  active?: ToolKey;
   icon: LucideIcon;
   title: string;
   subtitle: string;
@@ -32,6 +34,7 @@ export function ToolPageShell({
     entry.items.some((item) => item.key === active),
   );
   const sectionLabel = group ? getGroupTitle(group.id, locale) : "";
+  const privacyLabel = getPrivacyContent(locale).navLabel;
 
   return (
     <CommandMenuProvider locale={locale}>
@@ -74,6 +77,17 @@ export function ToolPageShell({
             >
               {children}
             </main>
+
+            <footer className="border-t border-border/60">
+              <div className="mx-auto flex w-full max-w-6xl items-center justify-end px-4 py-4 sm:px-6 lg:px-8">
+                <Link
+                  href="/datenschutz"
+                  className="rounded-md text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                  {privacyLabel}
+                </Link>
+              </div>
+            </footer>
           </PageTransition>
         </div>
       </div>

@@ -10,7 +10,7 @@ import type { ToolKey } from "./nav-config";
 
 interface AppSidebarProps {
   locale: Locale;
-  active: ToolKey;
+  active?: ToolKey;
 }
 
 /** Fixed desktop sidebar: brand, grouped navigation, data source + theme. */
