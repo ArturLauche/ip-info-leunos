@@ -21,6 +21,14 @@ type ToolTranslation = {
   themeSystem: string;
   navMenu: string;
   copyValue: string;
+  commandTriggerLabel: string;
+  commandPlaceholder: string;
+  commandGroupActions: string;
+  commandGroupPages: string;
+  commandEmpty: string;
+  commandHintNavigate: string;
+  commandHintSelect: string;
+  commandHintClose: string;
   pingTabLabel: string;
   dnsTabLabel: string;
   whoisTabLabel: string;
@@ -280,6 +288,14 @@ const en: ToolTranslation = {
   themeSystem: "System",
   navMenu: "Menu",
   copyValue: "Copy",
+  commandTriggerLabel: "Search…",
+  commandPlaceholder: "Search tools, or enter an IP, domain or ASN…",
+  commandGroupActions: "Actions",
+  commandGroupPages: "Go to",
+  commandEmpty: "No matching tools or actions.",
+  commandHintNavigate: "Navigate",
+  commandHintSelect: "Open",
+  commandHintClose: "Close",
   pingTabLabel: "Ping Tester",
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
@@ -548,6 +564,14 @@ const de: Partial<ToolTranslation> = {
   themeSystem: "System",
   navMenu: "Menü",
   copyValue: "Kopieren",
+  commandTriggerLabel: "Suchen…",
+  commandPlaceholder: "Tools suchen oder IP, Domain oder ASN eingeben…",
+  commandGroupActions: "Aktionen",
+  commandGroupPages: "Wechseln zu",
+  commandEmpty: "Keine passenden Tools oder Aktionen.",
+  commandHintNavigate: "Navigieren",
+  commandHintSelect: "Öffnen",
+  commandHintClose: "Schließen",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",

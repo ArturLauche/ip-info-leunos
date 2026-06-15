@@ -12,6 +12,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
 - Check IP reputation against DNS blacklists, proxy/hosting heuristics, and optional AbuseIPDB reports at `/reputation`.
+- Jump between tools or deep-link a typed IP, domain, or ASN into the right tool from a Spotlight-style command palette (⌘K / Ctrl+K, or `/`).
 
 ## Public-Site Safety Model
 

@@ -217,6 +217,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 - **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-Paket (kein Google-Fonts-Fetch beim Build).
 - **Icons:** Lucide React. **Toasts:** `sonner` (`<Toaster>` im Layout).
 - **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `EmptyState`, `components/asn/show-more-button.tsx`.
+- **Command-Palette (⌘K / Strg+K, auch `/`):** Spotlight-artige Suche/Destination-Bar. `components/shell/command-menu.tsx` (Provider + Kontext + Trigger, in `ToolPageShell` montiert), `components/shell/command-palette.tsx` (Dialog-UI auf dem Radix-Dialog-Primitiv); Query-Klassifizierung + Deep-Link-Aktionen rein und getestet in `lib/command.ts`. Tippt der Nutzer eine IP/Domain/ASN, schlägt die Palette Deep-Links in die passenden Tools vor (gleiche Query-Parameter wie unter „Routen").
 - **`Frontend-Skill.md`:** externes kreatives Design-Skill — nicht mit Projekt-Konventionen verwechseln; die Tool-UI folgt dem shadcn-Design-System.
 
 ---
@@ -237,6 +238,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 | Reputation | `lib/reputation.test.ts` |
 | Client-IP | `lib/client-ip-discovery.test.ts` |
 | DB-Probes | `lib/network/database-probes.test.ts` |
+| Command-Palette (Query-Klassifizierung/Deep-Links) | `lib/command.test.ts` |
 | Routes | `app/api/ping/route.test.ts`, `app/api/cdn/route.test.ts` |
 
 **Nicht vorhanden:** Komponenten-E2E, jsdom, Integrationstests für `/api/ip`, `/api/dns`, `/api/whois`.
