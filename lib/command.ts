@@ -49,6 +49,9 @@ function isIpv6(value: string): boolean {
   if (/[^0-9a-f:.]/i.test(address)) return false;
   if (/:::/.test(address)) return false;
   if ((address.match(/::/g) ?? []).length > 1) return false;
+  // A lone leading/trailing colon (not part of "::") is invalid.
+  if (address.startsWith(":") && !address.startsWith("::")) return false;
+  if (address.endsWith(":") && !address.endsWith("::")) return false;
 
   const hasCompression = address.includes("::");
   let groups = address.split(":");
@@ -90,18 +93,33 @@ function extractHostFromUrl(raw: string): HostExtraction | null {
   }
 }
 
+/** Extracts an IP host from a bare `host:port` authority that carries no scheme. */
+function extractIpAuthority(raw: string): string | null {
+  if (!raw.includes(":")) return null;
+  try {
+    const url = new URL(`http://${raw}`);
+    if (url.username || url.password) return null;
+    let host = url.hostname;
+    if (host.startsWith("[") && host.endsWith("]")) host = host.slice(1, -1);
+    return isIpv4(host) || isIpv6(host) ? host : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Punycode-encodes an IDN via the URL parser and matches the domain pattern. */
 function normalizeDomain(candidate: string): string | null {
-  let host = candidate.toLowerCase();
   try {
     const url = new URL(`http://${candidate}`);
     if (url.username || url.password) return null;
-    host = url.hostname; // ASCII / punycode form for IDNs
+    let host = url.hostname; // ASCII / punycode form for IDNs
     if (host.startsWith("[")) return null; // bracketed IPv6 is handled elsewhere
+    if (host.endsWith(".")) host = host.slice(0, -1); // drop a trailing FQDN dot
+    return DOMAIN_PATTERN.test(host) ? host : null;
   } catch {
-    // Keep the lowercased candidate and let the pattern reject it.
+    // Unparseable host (e.g. invalid punycode A-label): not a usable domain.
+    return null;
   }
-  return DOMAIN_PATTERN.test(host) ? host : null;
 }
 
 /**
@@ -121,6 +139,15 @@ export function classifyQuery(raw: string): QueryClassification {
       return { kind: "text", value: trimmed };
     }
     candidate = extracted.host;
+  }
+
+  // Drop a single trailing dot from fully-qualified names (example.com.).
+  if (candidate.endsWith(".")) candidate = candidate.slice(0, -1);
+
+  // Bare host:port authorities whose host is an IP (8.8.8.8:53, [::1]:443).
+  if (!isIpv4(candidate) && !isIpv6(candidate)) {
+    const authority = extractIpAuthority(candidate);
+    if (authority) candidate = authority;
   }
 
   if (isIpv4(candidate)) return { kind: "ipv4", value: candidate };
@@ -160,6 +187,7 @@ export function buildActionTargets(
         { tool: "reputation", href: `/reputation?ip=${encoded}` },
         { tool: "dns", href: `/dns?target=${encoded}` },
         { tool: "whois", href: `/whois?target=${encoded}` },
+        { tool: "ping", href: `/ping?target=${encoded}` },
       ];
     case "domain":
       return [

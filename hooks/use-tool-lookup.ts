@@ -77,6 +77,14 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   useEffect(() => {
     if (initialQuery.trim()) {
       run(initialQuery, false);
+    } else {
+      // The deep-linked query was removed (e.g. the command palette navigating
+      // to the bare tool route): invalidate any in-flight lookup and clear the
+      // previously shown result/error so nothing stale lingers.
+      requestSeq.current += 1;
+      setLoading(false);
+      setError(null);
+      setResult(null);
     }
   }, [initialQuery, run]);
 

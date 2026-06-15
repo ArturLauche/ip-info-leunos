@@ -182,17 +182,14 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
       <DialogPortal>
         {/* Plain dim scrim (no blur) so the bar's glass has the page to refract
             through, while the background itself stays un-frosted. */}
-        <DialogOverlay className="bg-black/40 backdrop-blur-none" />
+        <DialogOverlay className="bg-black/30 backdrop-blur-none" />
         <DialogPrimitive.Content
           className={cn(
             "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden sm:max-w-xl",
             "max-h-[76vh] rounded-[1.75rem] duration-200",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            // iOS-26-inspired liquid glass: genuinely translucent fill, heavy
-            // backdrop blur + saturation, a soft inner rim, a frosted top sheen
-            // gradient and a thin specular highlight line.
-            "border border-border/60 bg-popover/50 bg-gradient-to-b from-white/10 to-transparent shadow-2xl ring-1 ring-inset ring-white/15 backdrop-blur-3xl backdrop-saturate-200",
-            "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']",
+            // iOS-26 liquid glass surface (see .liquid-glass in globals.css).
+            "liquid-glass",
           )}
         >
         <DialogTitle className="sr-only">{t.commandTriggerLabel}</DialogTitle>

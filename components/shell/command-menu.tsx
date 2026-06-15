@@ -124,8 +124,9 @@ export function CommandTrigger({
       type="button"
       onClick={() => setOpen(true)}
       className={cn(
-        // Liquid-glass pill: fully rounded, translucent frosted fill, blur.
-        "group flex h-9 w-full items-center gap-2 rounded-full border border-border/60 bg-background/40 px-3.5 text-sm text-muted-foreground shadow-xs outline-none backdrop-blur-md backdrop-saturate-150 transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 supports-[backdrop-filter]:bg-background/30 dark:bg-input/30",
+        // Liquid-glass pill: fully rounded, translucent frosted fill, blur,
+        // saturation/brightness lift and a subtle specular top highlight.
+        "group flex h-9 w-full items-center gap-2 rounded-full border border-border/60 bg-background/40 px-3.5 text-sm text-muted-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] outline-none backdrop-blur-md backdrop-saturate-150 backdrop-brightness-105 transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 supports-[backdrop-filter]:bg-background/25 dark:bg-input/30",
         className,
       )}
     >

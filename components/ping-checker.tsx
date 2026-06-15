@@ -17,7 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   CircleCheck,
@@ -101,15 +101,22 @@ export function PingChecker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
+  const requestSeq = useRef(0);
   const t = getToolTranslation(locale);
 
   // Sync the URL-backed fields when they change on the same route (e.g. the
   // command palette navigating /ping → /ping?target=…); the component stays
-  // mounted, so prop changes would otherwise be ignored.
+  // mounted, so prop changes would otherwise be ignored. Also invalidate any
+  // in-flight request and clear stale output so an old result can't linger or
+  // land after the target changed.
   useEffect(() => {
     setTarget(initialTarget);
     setPort(initialPort);
     setMode(initialMode);
+    requestSeq.current += 1;
+    setLoading(false);
+    setError(null);
+    setResult(null);
   }, [initialTarget, initialPort, initialMode]);
 
   const modeLabels: Record<PingMode, string> = {
@@ -163,6 +170,7 @@ export function PingChecker({
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -192,11 +200,13 @@ export function PingChecker({
       });
 
       const data = unwrapApiResponse<PingResult>(await response.json());
-      setResult(data);
+      if (seq === requestSeq.current) setResult(data);
     } catch (checkError) {
-      setError((checkError as Error).message || t.pingNetworkError);
+      if (seq === requestSeq.current) {
+        setError((checkError as Error).message || t.pingNetworkError);
+      }
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   };
 

@@ -29,6 +29,20 @@ describe("classifyQuery", () => {
     expect(classifyQuery("a:b:c").kind).not.toBe("ipv6");
     expect(classifyQuery("12345::1").kind).not.toBe("ipv6"); // group too long
     expect(classifyQuery("1::2::3").kind).not.toBe("ipv6"); // double compression
+    expect(classifyQuery("1:2:3:4:5:6:7:8:").kind).not.toBe("ipv6"); // trailing colon
+    expect(classifyQuery(":1:2:3:4:5:6:7:8").kind).not.toBe("ipv6"); // leading colon
+  });
+
+  it("parses bare IP:port authorities", () => {
+    expect(classifyQuery("8.8.8.8:53")).toEqual({ kind: "ipv4", value: "8.8.8.8" });
+    expect(classifyQuery("[2001:4860:4860::8888]:443")).toEqual({
+      kind: "ipv6",
+      value: "2001:4860:4860::8888",
+    });
+  });
+
+  it("drops a trailing dot from fully-qualified domains", () => {
+    expect(classifyQuery("example.com.")).toEqual({ kind: "domain", value: "example.com" });
   });
 
   it("detects AS-prefixed, spaced, and bare ASNs", () => {
@@ -87,9 +101,11 @@ describe("buildActionTargets", () => {
       "reputation",
       "dns",
       "whois",
+      "ping",
     ]);
     expect(targets[0].href).toBe("/check?q=8.8.8.8");
     expect(targets[1].href).toBe("/reputation?ip=8.8.8.8");
+    expect(targets[4].href).toBe("/ping?target=8.8.8.8");
   });
 
   it("suggests domain-oriented tools for a domain", () => {
