@@ -112,7 +112,7 @@ export function CommandTrigger({
         size="icon-sm"
         aria-label={t.commandTriggerLabel}
         onClick={() => setOpen(true)}
-        className={className}
+        className={cn("rounded-full", className)}
       >
         <Search className="size-5" />
       </Button>
@@ -124,13 +124,14 @@ export function CommandTrigger({
       type="button"
       onClick={() => setOpen(true)}
       className={cn(
-        "group flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background/60 px-3 text-sm text-muted-foreground shadow-xs outline-none transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30",
+        // Liquid-glass pill: fully rounded, translucent frosted fill, blur.
+        "group flex h-9 w-full items-center gap-2 rounded-full border border-border/60 bg-background/40 px-3.5 text-sm text-muted-foreground shadow-xs outline-none backdrop-blur-md backdrop-saturate-150 transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 supports-[backdrop-filter]:bg-background/30 dark:bg-input/30",
         className,
       )}
     >
       <Search className="size-4 shrink-0" aria-hidden />
       <span className="flex-1 truncate text-left">{t.commandTriggerLabel}</span>
-      <kbd className="pointer-events-none hidden items-center rounded border border-border bg-muted px-1.5 font-sans text-[0.7rem] font-medium text-muted-foreground sm:inline-flex">
+      <kbd className="pointer-events-none hidden items-center rounded-full border border-border bg-muted/60 px-2 font-sans text-[0.7rem] font-medium text-muted-foreground sm:inline-flex">
         {isMac ? "⌘K" : "Ctrl K"}
       </kbd>
     </button>

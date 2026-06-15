@@ -145,7 +145,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
         onClick={() => select(item)}
         onMouseMove={() => setActiveIndex(index)}
         className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left outline-none transition-colors",
+          "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors",
           isActive
             ? "bg-accent text-accent-foreground"
             : "text-foreground hover:bg-accent/60",
@@ -179,14 +179,20 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="top-[12vh] max-h-[76vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl"
+        className={cn(
+          "top-[12vh] max-h-[76vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl",
+          // iOS-26-inspired liquid-glass surface: large radius, translucent
+          // frosted fill, soft rim highlight and a thin specular top sheen.
+          "rounded-[1.75rem] border-border/50 bg-popover/80 shadow-2xl ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-popover/65",
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:content-['']",
+        )}
       >
         <DialogTitle className="sr-only">{t.commandTriggerLabel}</DialogTitle>
         <DialogDescription className="sr-only">
           {t.commandPlaceholder}
         </DialogDescription>
 
-        <div className="flex items-center gap-3 border-b border-border px-4">
+        <div className="flex items-center gap-3 border-b border-border/50 px-4">
           <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             ref={inputRef}
@@ -242,7 +248,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
           )}
         </div>
 
-        <div className="flex items-center gap-4 border-t border-border px-4 py-2.5 text-[0.7rem] text-muted-foreground">
+        <div className="flex items-center gap-4 border-t border-border/50 px-4 py-2.5 text-[0.7rem] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Kbd>↑</Kbd>
             <Kbd>↓</Kbd>
