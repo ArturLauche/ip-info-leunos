@@ -17,6 +17,7 @@ import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { siteConfig } from "@/lib/seo";
 import { BrandMark } from "./brand-mark";
+import { CommandTrigger } from "./command-menu";
 import { NavLinks } from "./nav-links";
 import type { ToolKey } from "./nav-config";
 
@@ -47,6 +48,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
       </Link>
 
       <div className="flex items-center gap-1">
+        <CommandTrigger locale={locale} variant="icon" />
         <ModeToggle labels={themeLabels} />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>

@@ -169,20 +169,26 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     setError(false);
     setData(null);
 
+    const controller = new AbortController();
     const url = targetIp
       ? `/api/ip?ip=${encodeURIComponent(targetIp)}`
       : "/api/ip";
 
-    fetch(url)
+    fetch(url, { signal: controller.signal })
       .then((res) => res.json())
       .then((json) => {
         setData(unwrapApiResponse<IpData>(json));
         setLoading(false);
       })
       .catch(() => {
+        // Ignore the abort triggered when targetIp changes mid-flight so a
+        // stale response can never overwrite a newer lookup.
+        if (controller.signal.aborted) return;
         setError(true);
         setLoading(false);
       });
+
+    return () => controller.abort();
   }, [targetIp]);
 
   useEffect(() => {
