@@ -3,24 +3,32 @@ import { describe, expect, it } from "vitest";
 import { buildActionTargets, classifyQuery, matchesQuery } from "./command";
 
 describe("classifyQuery", () => {
-  it("detects IPv4 addresses", () => {
+  it("detects canonical IPv4 addresses", () => {
     expect(classifyQuery("8.8.8.8")).toEqual({ kind: "ipv4", value: "8.8.8.8" });
   });
 
-  it("does not treat an out-of-range IPv4 as an address", () => {
+  it("rejects out-of-range and non-canonical IPv4", () => {
     expect(classifyQuery("999.1.1.1").kind).not.toBe("ipv4");
+    // Leading-zero octets are rejected by net.isIP() in the API routes.
+    expect(classifyQuery("001.002.003.004").kind).not.toBe("ipv4");
   });
 
-  it("detects IPv6 addresses and lower-cases them", () => {
+  it("detects valid IPv6 addresses and lower-cases them", () => {
     expect(classifyQuery("2001:4860:4860::8888")).toEqual({
       kind: "ipv6",
       value: "2001:4860:4860::8888",
     });
     expect(classifyQuery("FE80::1")).toEqual({ kind: "ipv6", value: "fe80::1" });
+    expect(classifyQuery("2001:db8:0:0:0:0:0:1").kind).toBe("ipv6");
+    expect(classifyQuery("::ffff:192.168.1.1").kind).toBe("ipv6");
   });
 
-  it("does not treat a clock time as IPv6", () => {
+  it("rejects malformed IPv6 and clock times", () => {
     expect(classifyQuery("12:30:45").kind).not.toBe("ipv6");
+    expect(classifyQuery("1:2:3:4").kind).not.toBe("ipv6");
+    expect(classifyQuery("a:b:c").kind).not.toBe("ipv6");
+    expect(classifyQuery("12345::1").kind).not.toBe("ipv6"); // group too long
+    expect(classifyQuery("1::2::3").kind).not.toBe("ipv6"); // double compression
   });
 
   it("detects AS-prefixed, spaced, and bare ASNs", () => {
@@ -38,6 +46,28 @@ describe("classifyQuery", () => {
       kind: "domain",
       value: "example.com",
     });
+  });
+
+  it("strips IPv6 brackets from URL hosts", () => {
+    expect(classifyQuery("https://[2001:4860:4860::8888]/path")).toEqual({
+      kind: "ipv6",
+      value: "2001:4860:4860::8888",
+    });
+  });
+
+  it("rejects URLs that embed credentials", () => {
+    expect(classifyQuery("https://user:secret@example.com/private").kind).toBe("text");
+  });
+
+  it("normalizes internationalized domains to punycode", () => {
+    const result = classifyQuery("bücher.de");
+    expect(result.kind).toBe("domain");
+    expect(result.value).toMatch(/^xn--/);
+    expect(result.value.endsWith(".de")).toBe(true);
+  });
+
+  it("accepts punycode TLDs", () => {
+    expect(classifyQuery("example.xn--p1ai").kind).toBe("domain");
   });
 
   it("falls back to free text for unrecognized input", () => {
@@ -79,8 +109,9 @@ describe("buildActionTargets", () => {
     ]);
   });
 
-  it("returns no actions for free text", () => {
+  it("returns no actions for free text or credential URLs", () => {
     expect(buildActionTargets(classifyQuery("hello world"))).toEqual([]);
+    expect(buildActionTargets(classifyQuery("https://user:pw@example.com"))).toEqual([]);
   });
 
   it("url-encodes the deep-linked value", () => {

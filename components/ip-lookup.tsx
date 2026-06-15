@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { IpDisplay } from "@/components/ip-display";
@@ -18,6 +18,13 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
     sanitizedInitial || null,
   );
   const t = getTranslation(locale);
+
+  // Re-run when the deep-linked query changes on the same route (e.g. the
+  // command palette navigating /check → /check?q=…), which keeps the existing
+  // component mounted and would otherwise ignore the new prop.
+  useEffect(() => {
+    setSubmittedIp(sanitizedInitial || null);
+  }, [sanitizedInitial]);
 
   return (
     <div className="flex w-full flex-col gap-6">

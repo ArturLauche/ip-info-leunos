@@ -17,7 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   CircleCheck,
@@ -102,6 +102,15 @@ export function PingChecker({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
   const t = getToolTranslation(locale);
+
+  // Sync the URL-backed fields when they change on the same route (e.g. the
+  // command palette navigating /ping → /ping?target=…); the component stays
+  // mounted, so prop changes would otherwise be ignored.
+  useEffect(() => {
+    setTarget(initialTarget);
+    setPort(initialPort);
+    setMode(initialMode);
+  }, [initialTarget, initialPort, initialMode]);
 
   const modeLabels: Record<PingMode, string> = {
     tcp: "TCP",

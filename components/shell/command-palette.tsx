@@ -5,10 +5,12 @@ import { CornerDownLeft, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
+  DialogOverlay,
+  DialogPortal,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { buildActionTargets, classifyQuery, matchesQuery } from "@/lib/command";
@@ -177,16 +179,20 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className={cn(
-          "top-[12vh] max-h-[76vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl",
-          // iOS-26-inspired liquid-glass surface: large radius, translucent
-          // frosted fill, soft rim highlight and a thin specular top sheen.
-          "rounded-[1.75rem] border-border/50 bg-popover/80 shadow-2xl ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-popover/65",
-          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:content-['']",
-        )}
-      >
+      <DialogPortal>
+        {/* Lighter, blurred scrim so the page frosts behind the glass. */}
+        <DialogOverlay className="bg-background/40 backdrop-blur-xl" />
+        <DialogPrimitive.Content
+          className={cn(
+            "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden sm:max-w-xl",
+            "max-h-[76vh] rounded-[1.75rem] duration-200",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            // iOS-26-inspired liquid glass: heavy backdrop blur + saturation, a
+            // translucent fill, a soft inner rim and a thin specular top sheen.
+            "border border-border/60 bg-popover/80 shadow-2xl ring-1 ring-inset ring-white/15 backdrop-blur-2xl backdrop-saturate-200 supports-[backdrop-filter]:bg-popover/55",
+            "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:content-['']",
+          )}
+        >
         <DialogTitle className="sr-only">{t.commandTriggerLabel}</DialogTitle>
         <DialogDescription className="sr-only">
           {t.commandPlaceholder}
@@ -263,7 +269,8 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             {t.commandHintClose}
           </span>
         </div>
-      </DialogContent>
+        </DialogPrimitive.Content>
+      </DialogPortal>
     </Dialog>
   );
 }
