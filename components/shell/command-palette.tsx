@@ -180,8 +180,8 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        {/* Lighter, blurred scrim so the page frosts behind the glass. */}
-        <DialogOverlay className="bg-background/40 backdrop-blur-xl" />
+        {/* Plain dim scrim — the glass lives on the bar, not the background. */}
+        <DialogOverlay className="bg-black/55 backdrop-blur-none" />
         <DialogPrimitive.Content
           className={cn(
             "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden sm:max-w-xl",
