@@ -109,7 +109,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       )}
 
       {result && result.found && (
-        <div className="flex flex-col gap-6 duration-300 animate-in fade-in slide-in-from-bottom-2">
+        <div className="tool-reveal flex flex-col gap-6">
           <HeroHeader result={result} t={t} />
 
           {showSourceInfo && result.warnings.length > 0 && (

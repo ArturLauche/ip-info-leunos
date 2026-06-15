@@ -10,7 +10,7 @@ interface ResultPanelProps {
 
 export function ResultPanel({ title, children }: ResultPanelProps) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
+    <Card className="tool-reveal gap-0 overflow-hidden py-0">
       <div className="flex items-center gap-2 border-b bg-muted/30 px-5 py-3.5">
         <CircleCheck className="size-4 shrink-0 text-success" />
         <p className="text-sm font-semibold text-foreground">{title}</p>

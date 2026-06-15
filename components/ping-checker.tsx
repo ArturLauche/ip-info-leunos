@@ -369,7 +369,7 @@ export function PingChecker({
       )}
 
       {result && (
-        <Card className="gap-4 py-5">
+        <Card className="tool-reveal gap-4 py-5">
           <p className="flex items-center gap-2 px-5 text-lg font-semibold text-foreground">
             {result.ok ? (
               <CircleCheck className="size-5 text-success" />

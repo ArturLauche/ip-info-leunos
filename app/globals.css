@@ -14,6 +14,14 @@
 :root {
   --radius: 0.65rem;
 
+  /*
+   * Motion easing tokens. Tuned to feel calm and smooth rather than snappy:
+   * `smooth` decelerates and accelerates gently (for elements that move or
+   * morph between states), `out-soft` is a soft decelerate for enter/reveal.
+   */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
 
@@ -256,34 +264,60 @@
 
   .tool-nav-highlight {
     transition:
-      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 120ms ease-out;
+      transform 340ms var(--ease-smooth),
+      opacity 220ms var(--ease-smooth);
     will-change: transform;
   }
 
   .tool-nav-icon {
     transition:
-      color 150ms ease-out,
-      scale 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      color 240ms var(--ease-smooth),
+      scale 340ms var(--ease-smooth);
   }
 
   .tool-nav-label {
-    transition: translate 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: translate 340ms var(--ease-smooth);
   }
 
+  /*
+   * Page-change transition: the new route's header and panel ease in with a
+   * gentle fade and lift, lightly staggered so the page settles smoothly
+   * instead of popping into place.
+   */
   .tool-page-transition > [data-transition-stage] {
-    animation: tool-page-enter 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: tool-page-enter 440ms var(--ease-out-soft) both;
   }
 
   .tool-page-transition > [data-transition-stage='panel'] {
-    animation-delay: 30ms;
+    animation-delay: 90ms;
+  }
+
+  /*
+   * Shared reveal for asynchronously loaded results (IP lookups, DNS, WHOIS,
+   * ASN, reputation, …). One curve everywhere so data always appears the same
+   * calm way.
+   */
+  .tool-reveal {
+    animation: tool-reveal 460ms var(--ease-out-soft) both;
   }
 }
 
 @keyframes tool-page-enter {
   from {
     opacity: 0;
-    transform: translateY(0.375rem);
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tool-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
   }
 
   to {
@@ -307,7 +341,8 @@
     translate: none;
   }
 
-  .tool-page-transition > [data-transition-stage] {
+  .tool-page-transition > [data-transition-stage],
+  .tool-reveal {
     animation: none;
   }
 }

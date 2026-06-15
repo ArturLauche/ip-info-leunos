@@ -100,10 +100,10 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
                 result.addresses.map((address) => (
                   <li
                     key={`${address.address}-${address.family}`}
-                    className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground"
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground"
                   >
-                    {address.address}
-                    <Badge variant="secondary" className="font-mono text-[0.65rem]">
+                    <span className="min-w-0 break-all">{address.address}</span>
+                    <Badge variant="secondary" className="shrink-0 font-mono text-[0.65rem]">
                       IPv{address.family}
                     </Badge>
                   </li>

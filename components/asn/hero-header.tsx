@@ -2,13 +2,12 @@
 
 import { AlertTriangle, CircleCheck, Globe } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
-import { getCountryFlag } from "@/lib/format";
+import { CountryFlag } from "@/components/country-flag";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
 export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
-  const flag = getCountryFlag(result.country);
   const isPartial =
     result.sources.ipinfo !== "available" ||
     result.sources.peeringdb !== "available" ||
@@ -24,7 +23,10 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
           <div className="flex flex-wrap items-center gap-2">
             {result.country && (
               <Badge variant="secondary">
-                {flag && <span className="text-sm leading-none">{flag}</span>}
+                <CountryFlag
+                  countryCode={result.country}
+                  countryName={result.country}
+                />
                 {result.country}
               </Badge>
             )}
