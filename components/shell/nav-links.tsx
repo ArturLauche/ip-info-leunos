@@ -13,7 +13,7 @@ import {
 
 interface NavLinksProps {
   locale: Locale;
-  active: ToolKey;
+  active?: ToolKey;
   onNavigate?: () => void;
 }
 
