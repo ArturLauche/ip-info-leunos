@@ -1,23 +1,20 @@
 import { headers } from "next/headers";
 import type { Metadata } from "next";
-import { ShieldCheck } from "lucide-react";
+import { ScrollText } from "lucide-react";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { resolveLocale } from "@/lib/i18n";
 import { createPageMetadata } from "@/lib/seo";
-import {
-  getPrivacyContactEmail,
-  getPrivacyContent,
-  getPrivacyControllerName,
-} from "@/lib/privacy";
+import { getPrivacyContactEmail } from "@/lib/privacy";
+import { getTermsContent } from "@/lib/terms";
 import { splitEmail, type EmailParts } from "@/lib/email";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Datenschutzerklärung",
+  title: "Nutzungsbedingungen",
   description:
-    "Datenschutzerklärung: Umgang mit IP-Adressen, eingebundene Dienste und deine Rechte nach DSGVO.",
-  path: "/privacy-policy",
-  keywords: ["Datenschutz", "DSGVO", "Privacy Policy"],
+    "Nutzungsbedingungen: Bedingungen für die Nutzung der IP-, Domain- und Netzwerk-Werkzeuge dieser Seite.",
+  path: "/terms-of-use",
+  keywords: ["Nutzungsbedingungen", "Terms of Use", "AGB"],
 });
 
 interface ParagraphTokens {
@@ -26,14 +23,13 @@ interface ParagraphTokens {
 }
 
 /**
- * Substitutes the plain-text {controller} token, then splits on {email} and
- * renders the contact address via a client component that assembles it in the
- * browser (keeping it out of the HTML), or a muted fallback when unset.
+ * Splits on {email} and renders the contact address via a client component that
+ * assembles it in the browser (keeping it out of the HTML), or a muted fallback
+ * when no contact address is configured.
  */
-function renderParagraph(text: string, controller: string, tokens: ParagraphTokens) {
-  const resolved = text.replace("{controller}", controller);
-  const parts = resolved.split("{email}");
-  if (parts.length === 1) return resolved;
+function renderParagraph(text: string, tokens: ParagraphTokens) {
+  const parts = text.split("{email}");
+  if (parts.length === 1) return text;
 
   const { emailParts, emailFallback } = tokens;
 
@@ -54,17 +50,16 @@ function renderParagraph(text: string, controller: string, tokens: ParagraphToke
   ));
 }
 
-export default async function DatenschutzPage() {
+export default async function TermsOfUsePage() {
   const headersList = await headers();
   const locale = resolveLocale(headersList.get("accept-language"));
-  const content = getPrivacyContent(locale);
+  const content = getTermsContent(locale);
   const emailParts = splitEmail(getPrivacyContactEmail() ?? "");
-  const controller = getPrivacyControllerName() ?? content.controllerNotConfigured;
 
   return (
     <ToolPageShell
       locale={locale}
-      icon={ShieldCheck}
+      icon={ScrollText}
       title={content.title}
       subtitle={content.subtitle}
     >
@@ -84,7 +79,7 @@ export default async function DatenschutzPage() {
                   key={index}
                   className="text-sm leading-relaxed text-muted-foreground"
                 >
-                  {renderParagraph(paragraph, controller, {
+                  {renderParagraph(paragraph, {
                     emailParts,
                     emailFallback: content.contactNotConfigured,
                   })}

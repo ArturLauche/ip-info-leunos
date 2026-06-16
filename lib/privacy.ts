@@ -50,7 +50,7 @@ const de: PrivacyContent = {
     "Wie diese Seite mit personenbezogenen Daten – insbesondere IP-Adressen – umgeht.",
   lastUpdatedLabel: "Stand",
   lastUpdated: LAST_UPDATED,
-  contactNotConfigured: "(Kontakt-E-Mail nicht hinterlegt)",
+  contactNotConfigured: "Kontaktadresse auf Anfrage",
   controllerNotConfigured: "der Betreiber dieser Seite (Identität auf Anfrage)",
   sections: [
     {
@@ -108,21 +108,49 @@ const de: PrivacyContent = {
       ],
     },
     {
-      heading: "7. Speicherdauer",
+      heading: "7. Cookies",
+      paragraphs: [
+        "Diese Seite setzt keine Einwilligungs-, Tracking- oder Werbe-Cookies und keine vergleichbaren Techniken zum geräteübergreifenden Wiedererkennen ein. Es findet lediglich die unter „Lokale Speicherung (Theme)“ beschriebene, technisch notwendige Speicherung Ihrer Designeinstellung im lokalen Speicher Ihres Browsers statt.",
+        "Da keine zustimmungspflichtigen Cookies oder Tracker verwendet werden, ist ein Cookie-Banner für diese Seite nicht erforderlich.",
+      ],
+    },
+    {
+      heading: "8. Datensicherheit",
+      paragraphs: [
+        "Der Abruf der Seite erfolgt verschlüsselt über HTTPS (TLS), um die Übertragung gegen unbefugte Kenntnisnahme und Manipulation zu schützen. Darüber hinaus werden im Rahmen der Möglichkeiten dieses Hobbyprojekts angemessene technische und organisatorische Maßnahmen getroffen, um die verarbeiteten Daten gegen Verlust, Missbrauch und unbefugten Zugriff zu sichern.",
+        "Ein vollständiger Schutz bei der Übertragung über das Internet kann nach dem Stand der Technik jedoch nicht garantiert werden.",
+      ],
+    },
+    {
+      heading: "9. Kontaktaufnahme",
+      paragraphs: [
+        "Wenn Sie uns über die angegebene Kontaktadresse ansprechen, verarbeiten wir die von Ihnen mitgeteilten Angaben (etwa Ihre E-Mail-Adresse und den Inhalt der Nachricht) ausschließlich zur Bearbeitung Ihres Anliegens. Rechtsgrundlage ist unser berechtigtes Interesse an der Beantwortung von Anfragen gemäß Art. 6 Abs. 1 lit. f DSGVO.",
+        "Die Angaben werden gelöscht, sobald sie zur Bearbeitung nicht mehr erforderlich sind und keine gesetzlichen Aufbewahrungspflichten entgegenstehen.",
+      ],
+    },
+    {
+      heading: "10. Speicherdauer",
       paragraphs: [
         "Die Anwendung speichert Anfragedaten nicht dauerhaft. Rate-Limiting-Zähler verlieren nach Ablauf des Zeitfensters (etwa 60 Sekunden) ihre Gültigkeit; die tatsächliche Entfernung des zugehörigen Eintrags aus dem Arbeitsspeicher erfolgt bei einem späteren Aufräumvorgang im Zuge weiterer Anfragen. Bleibt weiterer Verkehr aus, kann ein bereits abgelaufener Eintrag bis zum nächsten Aufräumvorgang oder bis zum Neustart des Prozesses im Speicher verbleiben. Eine dauerhafte oder personenbezogen auswertbare Speicherung findet nicht statt.",
         "An externe Dienste übermittelte Daten unterliegen den jeweiligen Datenschutzbestimmungen dieser Anbieter.",
       ],
     },
     {
-      heading: "8. Ihre Rechte",
+      heading: "11. Keine automatisierte Entscheidungsfindung",
       paragraphs: [
-        "Sie haben im Rahmen der gesetzlichen Voraussetzungen das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie das Recht, einer Verarbeitung auf Grundlage berechtigter Interessen zu widersprechen.",
-        "Zudem haben Sie das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Für Anliegen erreichen Sie uns unter: {email}",
+        "Es findet keine ausschließlich automatisierte Entscheidungsfindung einschließlich Profiling im Sinne des Art. 22 DSGVO statt. Die von den Tools angezeigten Einschätzungen – etwa zu Verbindungstyp oder Proxy-/Hosting-Nutzung – dienen allein Ihrer unmittelbaren Information und entfalten keine rechtliche Wirkung Ihnen gegenüber.",
       ],
     },
     {
-      heading: "9. Änderungen dieser Erklärung",
+      heading: "12. Ihre Rechte",
+      paragraphs: [
+        "Sie haben im Rahmen der gesetzlichen Voraussetzungen das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie das Recht, einer Verarbeitung auf Grundlage berechtigter Interessen zu widersprechen.",
+        "Da Verarbeitungen auf Grundlage berechtigter Interessen erfolgen, haben Sie zudem das Recht, aus Gründen, die sich aus Ihrer besonderen Situation ergeben, jederzeit gegen diese Verarbeitung Widerspruch einzulegen (Art. 21 DSGVO).",
+        "Darüber hinaus haben Sie das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Für Anliegen erreichen Sie uns unter: {email}",
+      ],
+    },
+    {
+      heading: "13. Änderungen dieser Erklärung",
       paragraphs: [
         "Diese Datenschutzerklärung wird bei Bedarf angepasst, etwa wenn sich Funktionen oder eingebundene Dienste ändern. Es gilt jeweils die hier veröffentlichte Fassung.",
       ],
@@ -137,7 +165,7 @@ const en: PrivacyContent = {
     "How this site handles personal data — in particular IP addresses.",
   lastUpdatedLabel: "Last updated",
   lastUpdated: LAST_UPDATED,
-  contactNotConfigured: "(contact email not configured)",
+  contactNotConfigured: "contact address on request",
   controllerNotConfigured: "the operator of this site (identity available on request)",
   sections: [
     {
@@ -195,21 +223,49 @@ const en: PrivacyContent = {
       ],
     },
     {
-      heading: "7. Retention",
+      heading: "7. Cookies",
+      paragraphs: [
+        "This site sets no consent, tracking or advertising cookies, and uses no comparable techniques to recognize you across devices. Only the technically necessary storage of your theme preference described under “Local storage (theme)” takes place, in your browser's local storage.",
+        "Because no consent-requiring cookies or trackers are used, a cookie banner is not required for this site.",
+      ],
+    },
+    {
+      heading: "8. Data security",
+      paragraphs: [
+        "The site is served over encrypted HTTPS (TLS) to protect the transmission against unauthorized access and tampering. Beyond that, appropriate technical and organizational measures are taken — within the means of this hobby project — to protect the processed data against loss, misuse and unauthorized access.",
+        "Complete protection during transmission over the internet cannot, however, be guaranteed according to the current state of the art.",
+      ],
+    },
+    {
+      heading: "9. Contacting us",
+      paragraphs: [
+        "If you contact us at the address provided, we process the information you share (such as your email address and the content of your message) solely to handle your request. The legal basis is our legitimate interest in responding to enquiries under Art. 6(1)(f) GDPR.",
+        "The information is deleted once it is no longer required to handle the request and no statutory retention obligations apply.",
+      ],
+    },
+    {
+      heading: "10. Retention",
       paragraphs: [
         "The application does not store request data permanently. Rate-limiting counters expire after the time window (roughly 60 seconds); the associated entry is physically removed from memory during a later cleanup triggered by subsequent requests. If no further traffic arrives, an already-expired entry may remain in memory until the next cleanup or until the process restarts. No permanent or personally evaluable storage takes place.",
         "Data sent to external services is subject to the respective privacy policies of those providers.",
       ],
     },
     {
-      heading: "8. Your rights",
+      heading: "11. No automated decision-making",
+      paragraphs: [
+        "There is no solely automated decision-making, including profiling, within the meaning of Art. 22 GDPR. The assessments shown by the tools — for example regarding connection type or proxy/hosting use — serve only to inform you directly and have no legal effect concerning you.",
+      ],
+    },
+    {
+      heading: "12. Your rights",
       paragraphs: [
         "Subject to the legal requirements, you have the right of access, rectification, erasure, restriction of processing, data portability, and the right to object to processing based on legitimate interests.",
+        "Because processing is carried out on the basis of legitimate interests, you also have the right to object at any time, on grounds relating to your particular situation, to that processing (Art. 21 GDPR).",
         "You also have the right to lodge a complaint with a data protection supervisory authority. For any request, you can reach us at: {email}",
       ],
     },
     {
-      heading: "9. Changes to this policy",
+      heading: "13. Changes to this policy",
       paragraphs: [
         "This privacy policy is updated when necessary, for example when features or embedded services change. The version published here applies in each case.",
       ],

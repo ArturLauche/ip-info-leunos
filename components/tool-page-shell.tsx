@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import { getPrivacyContent } from "@/lib/privacy";
+import { getTermsContent } from "@/lib/terms";
 import { AppSidebar } from "@/components/shell/app-sidebar";
 import { CommandMenuProvider } from "@/components/shell/command-menu";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -35,6 +36,7 @@ export function ToolPageShell({
   );
   const sectionLabel = group ? getGroupTitle(group.id, locale) : "";
   const privacyLabel = getPrivacyContent(locale).navLabel;
+  const termsLabel = getTermsContent(locale).navLabel;
 
   return (
     <CommandMenuProvider locale={locale}>
@@ -79,12 +81,18 @@ export function ToolPageShell({
             </main>
 
             <footer className="border-t border-border/60">
-              <div className="mx-auto flex w-full max-w-6xl items-center justify-end px-4 py-4 sm:px-6 lg:px-8">
+              <div className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-4 py-4 sm:px-6 lg:px-8">
                 <Link
                   href="/privacy-policy"
                   className="rounded-md text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
                 >
                   {privacyLabel}
+                </Link>
+                <Link
+                  href="/terms-of-use"
+                  className="rounded-md text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                  {termsLabel}
                 </Link>
               </div>
             </footer>
