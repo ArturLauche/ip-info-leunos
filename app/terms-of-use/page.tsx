@@ -6,6 +6,8 @@ import { resolveLocale } from "@/lib/i18n";
 import { createPageMetadata } from "@/lib/seo";
 import { getPrivacyContactEmail } from "@/lib/privacy";
 import { getTermsContent } from "@/lib/terms";
+import { splitEmail, type EmailParts } from "@/lib/email";
+import { ObfuscatedEmail } from "@/components/obfuscated-email";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Nutzungsbedingungen",
@@ -16,31 +18,31 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface ParagraphTokens {
-  email: string | null;
+  emailParts: EmailParts | null;
   emailFallback: string;
 }
 
 /**
- * Splits on {email} and renders the contact address as a mailto link (or a
- * muted fallback when no contact address is configured).
+ * Splits on {email} and renders the contact address via a client component that
+ * assembles it in the browser (keeping it out of the HTML), or a muted fallback
+ * when no contact address is configured.
  */
 function renderParagraph(text: string, tokens: ParagraphTokens) {
   const parts = text.split("{email}");
   if (parts.length === 1) return text;
 
-  const { email, emailFallback } = tokens;
+  const { emailParts, emailFallback } = tokens;
 
   return parts.map((part, index) => (
     <span key={index}>
       {part}
       {index < parts.length - 1 &&
-        (email ? (
-          <a
-            href={`mailto:${email}`}
+        (emailParts ? (
+          <ObfuscatedEmail
+            user={emailParts.user}
+            domain={emailParts.domain}
             className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
-          >
-            {email}
-          </a>
+          />
         ) : (
           <span className="italic text-muted-foreground/80">{emailFallback}</span>
         ))}
@@ -52,7 +54,7 @@ export default async function TermsOfUsePage() {
   const headersList = await headers();
   const locale = resolveLocale(headersList.get("accept-language"));
   const content = getTermsContent(locale);
-  const email = getPrivacyContactEmail();
+  const emailParts = splitEmail(getPrivacyContactEmail() ?? "");
 
   return (
     <ToolPageShell
@@ -78,7 +80,7 @@ export default async function TermsOfUsePage() {
                   className="text-sm leading-relaxed text-muted-foreground"
                 >
                   {renderParagraph(paragraph, {
-                    email,
+                    emailParts,
                     emailFallback: content.contactNotConfigured,
                   })}
                 </p>

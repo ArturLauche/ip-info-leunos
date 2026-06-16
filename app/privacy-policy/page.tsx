@@ -9,6 +9,8 @@ import {
   getPrivacyContent,
   getPrivacyControllerName,
 } from "@/lib/privacy";
+import { splitEmail, type EmailParts } from "@/lib/email";
+import { ObfuscatedEmail } from "@/components/obfuscated-email";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Datenschutzerklärung",
@@ -19,32 +21,32 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface ParagraphTokens {
-  email: string | null;
+  emailParts: EmailParts | null;
   emailFallback: string;
 }
 
 /**
  * Substitutes the plain-text {controller} token, then splits on {email} and
- * renders the contact address as a mailto link (or a muted fallback when unset).
+ * renders the contact address via a client component that assembles it in the
+ * browser (keeping it out of the HTML), or a muted fallback when unset.
  */
 function renderParagraph(text: string, controller: string, tokens: ParagraphTokens) {
   const resolved = text.replace("{controller}", controller);
   const parts = resolved.split("{email}");
   if (parts.length === 1) return resolved;
 
-  const { email, emailFallback } = tokens;
+  const { emailParts, emailFallback } = tokens;
 
   return parts.map((part, index) => (
     <span key={index}>
       {part}
       {index < parts.length - 1 &&
-        (email ? (
-          <a
-            href={`mailto:${email}`}
+        (emailParts ? (
+          <ObfuscatedEmail
+            user={emailParts.user}
+            domain={emailParts.domain}
             className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
-          >
-            {email}
-          </a>
+          />
         ) : (
           <span className="italic text-muted-foreground/80">{emailFallback}</span>
         ))}
@@ -56,7 +58,7 @@ export default async function DatenschutzPage() {
   const headersList = await headers();
   const locale = resolveLocale(headersList.get("accept-language"));
   const content = getPrivacyContent(locale);
-  const email = getPrivacyContactEmail();
+  const emailParts = splitEmail(getPrivacyContactEmail() ?? "");
   const controller = getPrivacyControllerName() ?? content.controllerNotConfigured;
 
   return (
@@ -83,7 +85,7 @@ export default async function DatenschutzPage() {
                   className="text-sm leading-relaxed text-muted-foreground"
                 >
                   {renderParagraph(paragraph, controller, {
-                    email,
+                    emailParts,
                     emailFallback: content.contactNotConfigured,
                   })}
                 </p>
