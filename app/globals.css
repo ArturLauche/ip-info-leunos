@@ -265,19 +265,19 @@
 
   .tool-nav-highlight {
     transition:
-      transform 400ms var(--ease-fluid),
-      opacity 280ms var(--ease-smooth);
+      transform 450ms var(--ease-fluid),
+      opacity 320ms var(--ease-fluid);
     will-change: transform;
   }
 
   .tool-nav-icon {
     transition:
       color 280ms var(--ease-smooth),
-      scale 400ms var(--ease-fluid);
+      scale 450ms var(--ease-fluid);
   }
 
   .tool-nav-label {
-    transition: translate 400ms var(--ease-fluid);
+    transition: translate 450ms var(--ease-fluid);
   }
 
   /*
@@ -295,12 +295,21 @@
 
   /*
    * Shared reveal for asynchronously loaded results (IP lookups, DNS, WHOIS,
-   * ASN, reputation, …). One curve everywhere so data always appears the same
-   * calm way.
+   * ASN, reputation, …). Rather than fading the whole block in at once, the
+   * direct children lift in with a short, capped stagger so a result settles
+   * section by section — one easing curve everywhere, calm by design. The
+   * container remounts on every lookup, so the stagger replays each time.
    */
-  .tool-reveal {
-    animation: tool-reveal 460ms var(--ease-out-soft) both;
+  .tool-reveal > * {
+    animation: tool-reveal 420ms var(--ease-out-soft) both;
   }
+
+  .tool-reveal > *:nth-child(1) { animation-delay: 0ms; }
+  .tool-reveal > *:nth-child(2) { animation-delay: 60ms; }
+  .tool-reveal > *:nth-child(3) { animation-delay: 120ms; }
+  .tool-reveal > *:nth-child(4) { animation-delay: 180ms; }
+  .tool-reveal > *:nth-child(5) { animation-delay: 240ms; }
+  .tool-reveal > *:nth-child(n + 6) { animation-delay: 280ms; }
 }
 
 @keyframes tool-page-enter {
@@ -343,7 +352,8 @@
   }
 
   .tool-page-transition > [data-transition-stage],
-  .tool-reveal {
+  .tool-reveal,
+  .tool-reveal > * {
     animation: none;
   }
 }
