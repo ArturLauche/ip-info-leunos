@@ -21,6 +21,7 @@
    */
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -264,19 +265,19 @@
 
   .tool-nav-highlight {
     transition:
-      transform 340ms var(--ease-smooth),
-      opacity 220ms var(--ease-smooth);
+      transform 400ms var(--ease-fluid),
+      opacity 280ms var(--ease-smooth);
     will-change: transform;
   }
 
   .tool-nav-icon {
     transition:
-      color 240ms var(--ease-smooth),
-      scale 340ms var(--ease-smooth);
+      color 280ms var(--ease-smooth),
+      scale 400ms var(--ease-fluid);
   }
 
   .tool-nav-label {
-    transition: translate 340ms var(--ease-smooth);
+    transition: translate 400ms var(--ease-fluid);
   }
 
   /*

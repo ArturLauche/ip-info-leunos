@@ -58,7 +58,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-72 gap-0 p-0 ease-[var(--ease-smooth)] data-[state=closed]:duration-[260ms] data-[state=open]:duration-[340ms] motion-reduce:duration-0"
+            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[300ms] motion-reduce:duration-0"
           >
             <SheetHeader className="h-16 justify-center border-b border-sidebar-border px-5">
               <SheetTitle className="flex items-center gap-3">
@@ -75,7 +75,6 @@ export function MobileNav({ locale, active }: MobileNavProps) {
             </SheetHeader>
             <div className="overflow-y-auto px-3 py-5">
               <NavLinks
-                key={active}
                 locale={locale}
                 active={active}
                 onNavigate={() => setOpen(false)}

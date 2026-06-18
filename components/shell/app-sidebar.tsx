@@ -42,7 +42,7 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <NavLinks key={active} locale={locale} active={active} />
+        <NavLinks locale={locale} active={active} />
       </div>
 
       <div className="border-t border-sidebar-border p-3">
