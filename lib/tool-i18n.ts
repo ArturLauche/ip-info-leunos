@@ -212,6 +212,12 @@ type ToolTranslation = {
   pingCurrentPlanEb: string;
   pingCurrentPlanDbAuth: string;
   pingCurrentPlanDbProtocol: string;
+  pingEmptyTitle: string;
+  pingEmptyDescription: string;
+  pingStatusSuccess: string;
+  pingStatusFailed: string;
+  pingShowDetails: string;
+  pingHideDetails: string;
   cdnAnalyzeButton: string;
   cdnAnalyzing: string;
   cdnNetworkError: string;
@@ -482,6 +488,12 @@ const en: ToolTranslation = {
   pingCurrentPlanEb: "EB check against",
   pingCurrentPlanDbAuth: "authenticated check against",
   pingCurrentPlanDbProtocol: "protocol check against",
+  pingEmptyTitle: "No test run yet",
+  pingEmptyDescription: "Pick a test mode, enter a host and port, then run the check to measure reachability and latency.",
+  pingStatusSuccess: "Target reachable",
+  pingStatusFailed: "Check failed",
+  pingShowDetails: "Show technical details",
+  pingHideDetails: "Hide technical details",
   cdnAnalyzeButton: "Check CDN",
   cdnAnalyzing: "Analyzing...",
   cdnNetworkError: "Network error while contacting the CDN checker.",
@@ -750,6 +762,12 @@ const de: Partial<ToolTranslation> = {
   pingCurrentPlanEb: "EB-Prüfung gegen",
   pingCurrentPlanDbAuth: "Authentifizierte Prüfung gegen",
   pingCurrentPlanDbProtocol: "Protokoll-Prüfung gegen",
+  pingEmptyTitle: "Noch kein Test ausgeführt",
+  pingEmptyDescription: "Testmodus wählen, Host und Port eingeben und die Prüfung starten, um Erreichbarkeit und Latenz zu messen.",
+  pingStatusSuccess: "Ziel erreichbar",
+  pingStatusFailed: "Prüfung fehlgeschlagen",
+  pingShowDetails: "Technische Details anzeigen",
+  pingHideDetails: "Technische Details ausblenden",
   cdnAnalyzeButton: "CDN prüfen",
   cdnAnalyzing: "Analyse läuft...",
   cdnNetworkError: "Netzwerkfehler beim CDN-Prüfer.",

@@ -3,6 +3,9 @@
 import { type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { EmptyState } from "@/components/empty-state";
+import { ErrorPanel } from "@/components/error-panel";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,14 +22,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   CircleCheck,
-  Gauge,
-  Info,
   Loader2,
   LockKeyhole,
+  Radar,
   ServerCrash,
-  ShieldCheck,
   Timer,
 } from "lucide-react";
 
@@ -52,13 +52,19 @@ const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
   generic: 0,
 };
 
-const DB_DEFAULT_PORT_SET = new Set(Object.values(DB_DEFAULT_PORTS).filter((value) => value > 0));
-
 const MODE_DEFAULT_PORTS: Record<Exclude<PingMode, "database">, number> = {
   tcp: 80,
   udp: 53,
   eb: 443,
 };
+
+// Any port that a mode/database preset could have filled in automatically.
+// If the current port is one of these, we assume the user has not customised
+// it and it is safe to swap when the mode or database type changes.
+const AUTO_FILLED_PORTS = new Set<number>([
+  ...Object.values(MODE_DEFAULT_PORTS),
+  ...Object.values(DB_DEFAULT_PORTS).filter((value) => value > 0),
+]);
 
 const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "postgres", label: "PostgreSQL" },
@@ -101,7 +107,12 @@ export function PingChecker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const requestSeq = useRef(0);
+  // Values we last pushed into the URL ourselves via router.replace on submit.
+  // Lets the sync effect distinguish our own URL update (which must not cancel
+  // the in-flight request) from external navigation (command palette, links).
+  const selfSubmitted = useRef<{ target: string; port: string; mode: PingMode } | null>(null);
   const t = getToolTranslation(locale);
 
   // Sync the URL-backed fields when they change on the same route (e.g. the
@@ -110,6 +121,18 @@ export function PingChecker({
   // in-flight request and clear stale output so an old result can't linger or
   // land after the target changed.
   useEffect(() => {
+    const self = selfSubmitted.current;
+    if (
+      self &&
+      self.target === initialTarget &&
+      self.port === initialPort &&
+      self.mode === initialMode
+    ) {
+      // This prop change is the echo of our own submit — keep the request alive.
+      selfSubmitted.current = null;
+      return;
+    }
+
     setTarget(initialTarget);
     setPort(initialPort);
     setMode(initialMode);
@@ -139,20 +162,22 @@ export function PingChecker({
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
 
+    const portIsAutoFilled = AUTO_FILLED_PORTS.has(Number(port)) || port.trim() === "";
+
     if (nextMode === "database") {
-      setPort(String(DB_DEFAULT_PORTS[databaseType]));
+      if (portIsAutoFilled) setPort(String(DB_DEFAULT_PORTS[databaseType]));
       return;
     }
 
     setUseAuth(false);
-    if (DB_DEFAULT_PORT_SET.has(Number(port))) {
+    if (portIsAutoFilled) {
       setPort(String(MODE_DEFAULT_PORTS[nextMode]));
     }
   };
 
   const onDatabaseTypeChange = (nextType: DatabaseType) => {
     setDatabaseType(nextType);
-    if (mode === "database") {
+    if (mode === "database" && (AUTO_FILLED_PORTS.has(Number(port)) || port.trim() === "")) {
       const nextPort = DB_DEFAULT_PORTS[nextType];
       if (nextPort) setPort(String(nextPort));
     }
@@ -174,7 +199,9 @@ export function PingChecker({
     setLoading(true);
     setError(null);
     setResult(null);
+    setShowDetails(false);
 
+    selfSubmitted.current = { target, port, mode };
     router.replace(
       `/ping?mode=${encodeURIComponent(mode)}&target=${encodeURIComponent(target)}&port=${encodeURIComponent(port)}`,
       { scroll: false },
@@ -212,90 +239,85 @@ export function PingChecker({
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="flex items-start gap-2.5 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-        <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-        <p className="text-muted-foreground">
-          <span className="font-medium text-foreground">{t.pingPlan}:</span>{" "}
-          {effectiveSummary}
-        </p>
-      </div>
-
-      <form onSubmit={onSubmit} className="flex flex-col gap-5">
-        <Card className="gap-5 py-5">
-          <div className="flex flex-col gap-2.5 px-5">
-            <Label>{t.pingTestMode}</Label>
-            <Tabs value={mode} onValueChange={(value) => onModeChange(value as PingMode)}>
-              <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
-                {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => (
-                  <TabsTrigger key={value} value={value} className="py-1.5">
-                    {modeLabels[value]}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            <p className="text-xs text-muted-foreground">{modeHelpers[mode]}</p>
-          </div>
-
-          {mode === "database" && (
-            <div className="flex flex-col gap-2 px-5">
-              <Label htmlFor="ping-db-type">{t.pingDatabaseType}</Label>
-              <Select
-                value={databaseType}
-                onValueChange={(value) => onDatabaseTypeChange(value as DatabaseType)}
-              >
-                <SelectTrigger id="ping-db-type" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DATABASE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <span className="font-medium">{option.label}</span>
-                      <span className="text-muted-foreground">
-                        {getDatabaseOptionDetail(option.value, locale)}
-                      </span>
-                    </SelectItem>
+      <form onSubmit={onSubmit}>
+        <Card className="gap-0 overflow-hidden py-0">
+          <div className="flex flex-col gap-5 p-5">
+            <div className="flex flex-col gap-2.5">
+              <Label>{t.pingTestMode}</Label>
+              <Tabs value={mode} onValueChange={(value) => onModeChange(value as PingMode)}>
+                <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+                  {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => (
+                    <TabsTrigger key={value} value={value} className="py-1.5">
+                      {modeLabels[value]}
+                    </TabsTrigger>
                   ))}
-                </SelectContent>
-              </Select>
+                </TabsList>
+              </Tabs>
+              <p className="text-xs text-muted-foreground">{modeHelpers[mode]}</p>
             </div>
-          )}
 
-          <div className="grid gap-4 px-5 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ping-target">{t.pingTargetHost}</Label>
-              <Input
-                id="ping-target"
-                value={target}
-                onChange={(event) => setTarget(event.target.value)}
-                placeholder="example.com"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ping-port">{t.pingPort}</Label>
-              <Input
-                id="ping-port"
-                value={port}
-                onChange={(event) => setPort(event.target.value)}
-                placeholder="443"
-                inputMode="numeric"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ping-timeout">{t.pingTimeout}</Label>
-              <Input
-                id="ping-timeout"
-                value={timeoutMs}
-                onChange={(event) => setTimeoutMs(event.target.value)}
-                placeholder="3000"
-                inputMode="numeric"
-              />
-            </div>
-          </div>
+            {mode === "database" && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ping-db-type">{t.pingDatabaseType}</Label>
+                <Select
+                  value={databaseType}
+                  onValueChange={(value) => onDatabaseTypeChange(value as DatabaseType)}
+                >
+                  <SelectTrigger id="ping-db-type" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DATABASE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="font-medium">{option.label}</span>
+                        <span className="text-muted-foreground">
+                          {getDatabaseOptionDetail(option.value, locale)}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-          {mode === "database" && (
-            <div className="px-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ping-target">{t.pingTargetHost}</Label>
+                <Input
+                  id="ping-target"
+                  value={target}
+                  onChange={(event) => setTarget(event.target.value)}
+                  placeholder="example.com"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="font-mono"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ping-port">{t.pingPort}</Label>
+                <Input
+                  id="ping-port"
+                  value={port}
+                  onChange={(event) => setPort(event.target.value)}
+                  placeholder="443"
+                  inputMode="numeric"
+                  className="font-mono"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ping-timeout">{t.pingTimeout}</Label>
+                <Input
+                  id="ping-timeout"
+                  value={timeoutMs}
+                  onChange={(event) => setTimeoutMs(event.target.value)}
+                  placeholder="3000"
+                  inputMode="numeric"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+
+            {mode === "database" && (
               <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3">
                 <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
                   <LockKeyhole
@@ -307,109 +329,145 @@ export function PingChecker({
                 </span>
                 <Switch checked={useAuth} onCheckedChange={setUseAuth} />
               </label>
-            </div>
-          )}
-
-          {mode === "database" && useAuth && (
-            <div className="grid gap-4 px-5 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ping-username">{t.pingUsername}</Label>
-                <Input
-                  id="ping-username"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ping-password">{t.pingPassword}</Label>
-                <Input
-                  id="ping-password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="flex flex-col gap-2 sm:col-span-2">
-                <Label htmlFor="ping-database">{t.pingDatabaseOptional}</Label>
-                <Input
-                  id="ping-database"
-                  value={database}
-                  onChange={(event) => setDatabase(event.target.value)}
-                  placeholder="postgres / admin / master"
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Button
-          type="submit"
-          size="lg"
-          disabled={loading}
-          className="w-full sm:w-auto sm:self-start sm:min-w-48"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              {t.pingRunning}
-            </>
-          ) : (
-            t.pingRunButton
-          )}
-        </Button>
-      </form>
-
-      {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {result && (
-        <Card className="tool-reveal gap-4 py-5">
-          <p className="flex items-center gap-2 px-5 text-lg font-semibold text-foreground">
-            {result.ok ? (
-              <CircleCheck className="size-5 text-success" />
-            ) : (
-              <ServerCrash className="size-5 text-destructive" />
             )}
-            {result.message}
-          </p>
 
-          <div className="grid grid-cols-1 gap-3 px-5 text-sm text-muted-foreground sm:grid-cols-3">
-            <p className="flex items-center gap-2">
-              <Activity className="size-4 text-primary" />
-              {t.pingModeLabel}:{" "}
-              <span className="font-mono text-foreground">{result.mode}</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <Timer className="size-4 text-primary" />
-              {t.pingLatencyLabel}:{" "}
-              <span className="font-mono text-foreground">{result.latencyMs}ms</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <Gauge className="size-4 text-primary" />
-              {t.pingTargetLabel}:{" "}
-              <span className="font-mono break-all text-foreground">
-                {result.target}:{result.port}
-              </span>
-            </p>
+            {mode === "database" && useAuth && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ping-username">{t.pingUsername}</Label>
+                  <Input
+                    id="ping-username"
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ping-password">{t.pingPassword}</Label>
+                  <Input
+                    id="ping-password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <Label htmlFor="ping-database">{t.pingDatabaseOptional}</Label>
+                  <Input
+                    id="ping-database"
+                    value={database}
+                    onChange={(event) => setDatabase(event.target.value)}
+                    placeholder="postgres / admin / master"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {result.details && (
-            <div className="px-5">
-              <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                <ShieldCheck className="size-4 text-primary" />
-                {t.pingDetailsLabel}
-              </p>
-              <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
-                {JSON.stringify(result.details, null, 2)}
-              </pre>
+          <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="min-w-0 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{t.pingPlan}:</span>{" "}
+              <span className="break-all">{effectiveSummary}</span>
+            </p>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full shrink-0 sm:w-auto sm:min-w-44"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  {t.pingRunning}
+                </>
+              ) : (
+                t.pingRunButton
+              )}
+            </Button>
+          </div>
+        </Card>
+      </form>
+
+      {!loading && !error && !result && (
+        <EmptyState
+          icon={Radar}
+          title={t.pingEmptyTitle}
+          description={t.pingEmptyDescription}
+        />
+      )}
+
+      {error && <ErrorPanel message={error} />}
+
+      {result && (
+        <Card className="tool-reveal gap-0 overflow-hidden py-0">
+          <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-5 py-3.5">
+            {result.ok ? (
+              <CircleCheck className="size-4 shrink-0 text-success" />
+            ) : (
+              <ServerCrash className="size-4 shrink-0 text-destructive" />
+            )}
+            <p className="text-sm font-semibold text-foreground">
+              {result.ok ? t.pingStatusSuccess : t.pingStatusFailed}
+            </p>
+            <Badge
+              variant={result.ok ? "success" : "destructive"}
+              className="ml-auto font-mono tabular-nums"
+            >
+              <Timer className="size-3" aria-hidden="true" />
+              {result.latencyMs} ms
+            </Badge>
+          </div>
+
+          <div className="flex flex-col gap-4 p-5">
+            <p className="text-sm leading-relaxed text-foreground">{result.message}</p>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.pingModeLabel}
+                </p>
+                <p className="mt-1 font-mono text-sm text-foreground uppercase">
+                  {result.mode === "database" ? t.pingModeDatabase : result.mode}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.pingLatencyLabel}
+                </p>
+                <p className="mt-1 font-mono text-sm text-foreground tabular-nums">
+                  {result.latencyMs} ms
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.pingTargetLabel}
+                </p>
+                <p className="mt-1 font-mono text-sm break-all text-foreground">
+                  {result.target}:{result.port}
+                </p>
+              </div>
             </div>
-          )}
+
+            {result.details && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  onClick={() => setShowDetails((value) => !value)}
+                >
+                  {showDetails ? t.pingHideDetails : t.pingShowDetails}
+                </Button>
+                {showDetails && (
+                  <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground">
+                    {JSON.stringify(result.details, null, 2)}
+                  </pre>
+                )}
+              </>
+            )}
+          </div>
         </Card>
       )}
     </div>
