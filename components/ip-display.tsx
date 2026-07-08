@@ -18,14 +18,7 @@ import {
   type ClientIpDiscoveryResult,
   type LocalIpCheck,
 } from "@/lib/client-ip-discovery";
-import {
-  mergeProxyHintAssessments,
-  summarizeProxyHintSignals,
-  type ConnectionType,
-  type ProxyHintAssessment,
-  type ProxyHintConfidence,
-  type ProxyHintSignal,
-} from "@/lib/connection-type";
+import type { ConnectionType } from "@/lib/connection-type";
 import {
   MapPin,
   Copy,
@@ -64,7 +57,6 @@ interface IpData {
   proxyReasons?: string[];
   hosting: boolean;
   connectionType: ConnectionType;
-  proxyHints?: ProxyHintAssessment;
   ipSources?: {
     ipv4?: string;
     ipv6?: string;
@@ -75,30 +67,6 @@ interface IpData {
 interface IpDisplayProps {
   targetIp?: string;
   locale: Locale;
-}
-
-interface BrowserNetworkInformation {
-  type?: string;
-  effectiveType?: string;
-  downlink?: number;
-  rtt?: number;
-  saveData?: boolean;
-}
-
-interface DeviceHints {
-  userAgent: string;
-  platform: string;
-  language: string;
-  languages: string[];
-  hardwareConcurrency?: number;
-  deviceMemory?: number;
-  maxTouchPoints: number;
-  webdriver: boolean;
-  timezone: string;
-  screenWidth?: number;
-  screenHeight?: number;
-  colorDepth?: number;
-  connection?: BrowserNetworkInformation;
 }
 
 function CopyButton({
@@ -187,185 +155,8 @@ function getAsnHref(value: string) {
   }
 }
 
-const COUNTRY_LANGUAGE_PREFIXES: Record<string, string[]> = {
-  AT: ["de"],
-  AU: ["en"],
-  BE: ["nl", "fr", "de"],
-  BR: ["pt"],
-  CA: ["en", "fr"],
-  CH: ["de", "fr", "it", "rm"],
-  CN: ["zh"],
-  DE: ["de"],
-  ES: ["es"],
-  FR: ["fr"],
-  GB: ["en"],
-  IT: ["it"],
-  JP: ["ja"],
-  NL: ["nl"],
-  PT: ["pt"],
-  RU: ["ru"],
-  US: ["en", "es"],
-};
-
-function collectDeviceHints(): DeviceHints {
-  const nav = navigator as Navigator & {
-    connection?: BrowserNetworkInformation;
-    deviceMemory?: number;
-    webdriver?: boolean;
-  };
-
-  return {
-    userAgent: nav.userAgent || "",
-    platform: nav.platform || "",
-    language: nav.language || "",
-    languages: Array.from(nav.languages || []),
-    hardwareConcurrency: nav.hardwareConcurrency || undefined,
-    deviceMemory: nav.deviceMemory,
-    maxTouchPoints: nav.maxTouchPoints || 0,
-    webdriver: Boolean(nav.webdriver),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
-    screenWidth: typeof screen === "undefined" ? undefined : screen.width,
-    screenHeight: typeof screen === "undefined" ? undefined : screen.height,
-    colorDepth: typeof screen === "undefined" ? undefined : screen.colorDepth,
-    connection: nav.connection
-      ? {
-          type: nav.connection.type,
-          effectiveType: nav.connection.effectiveType,
-          downlink: nav.connection.downlink,
-          rtt: nav.connection.rtt,
-          saveData: nav.connection.saveData,
-        }
-      : undefined,
-  };
-}
-
-function getPrimaryLanguagePrefix(language: string) {
-  return language.toLowerCase().split("-", 1)[0];
-}
-
-function hasLanguageCountryMismatch(countryCode: string, languages: string[]) {
-  const expectedPrefixes = COUNTRY_LANGUAGE_PREFIXES[countryCode.toUpperCase()];
-  if (!expectedPrefixes || languages.length === 0) return false;
-
-  return !languages.some((language) =>
-    expectedPrefixes.includes(getPrimaryLanguagePrefix(language)),
-  );
-}
-
-function looksLikeDesktopPlatform(hints: DeviceHints) {
-  return (
-    /win|mac|linux|x11/i.test(hints.platform) &&
-    hints.maxTouchPoints === 0 &&
-    (hints.screenWidth ?? 0) >= 1024
-  );
-}
-
-function getLocalMetadataProxyHint(data: IpData): ProxyHintSignal | null {
-  const combined = `${data.isp} ${data.org} ${data.as} ${data.asname} ${data.reverse}`.toLowerCase();
-  const gatewayTerms = [
-    "secure web gateway",
-    "zscaler",
-    "netskope",
-    "bluecoat",
-    "squid",
-    "forcepoint",
-    "fortinet",
-    "paloalto",
-    "palo alto",
-    "umbrella",
-    "webfilter",
-    "content filter",
-    "firewall",
-    "gateway",
-    "proxy",
-    "socks",
-  ];
-
-  if (!gatewayTerms.some((term) => combined.includes(term))) return null;
-
-  return {
-    points: 25,
-    reason: "local-metadata-gateway-signature",
-    label: "gateway signature",
-    category: combined.includes("socks") ? "local-proxy" : "security-gateway",
-  };
-}
-
-function assessLocalProxyHints(data: IpData, hints: DeviceHints): ProxyHintAssessment {
-  const signals: ProxyHintSignal[] = [];
-  const metadataSignal = getLocalMetadataProxyHint(data);
-  const browserLanguages = hints.languages.length > 0 ? hints.languages : [hints.language].filter(Boolean);
-
-  if (metadataSignal) signals.push(metadataSignal);
-
-  if (data.timezone && hints.timezone && data.timezone !== hints.timezone) {
-    signals.push({
-      points: 10,
-      reason: "timezone-mismatch",
-      label: "timezone mismatch",
-      category: "generic-proxy",
-    });
-  }
-
-  if (data.countryCode && hasLanguageCountryMismatch(data.countryCode, browserLanguages)) {
-    signals.push({
-      points: 5,
-      reason: "language-country-mismatch",
-      label: "language mismatch",
-      category: "generic-proxy",
-    });
-  }
-
-  const browserNetworkType = hints.connection?.type?.toLowerCase();
-  const fixedOrBusinessIp =
-    !data.mobile &&
-    (data.hosting ||
-      data.connectionType === "business" ||
-      data.connectionType === "datacenter" ||
-      data.connectionType === "fixed" ||
-      data.connectionType === "fiber" ||
-      data.connectionType === "cable" ||
-      data.connectionType === "dsl");
-
-  if (browserNetworkType === "cellular" && fixedOrBusinessIp) {
-    signals.push({
-      points: 10,
-      reason: "browser-network-ip-type-mismatch",
-      label: "device network mismatch",
-      category: "generic-proxy",
-    });
-  }
-
-  if (data.mobile && looksLikeDesktopPlatform(hints) && browserNetworkType !== "cellular") {
-    signals.push({
-      points: 10,
-      reason: "mobile-ip-desktop-device-mismatch",
-      label: "device type mismatch",
-      category: "generic-proxy",
-    });
-  }
-
-  if (hints.webdriver || /headless|phantom|selenium|playwright/i.test(hints.userAgent)) {
-    signals.push({
-      points: 10,
-      reason: "automation-browser-signal",
-      label: "automation signal",
-      category: "generic-proxy",
-    });
-  }
-
-  return summarizeProxyHintSignals(signals, { detectAnySignalAsLow: true });
-}
-
-function getProxyHintBadgeVariant(confidence: ProxyHintConfidence) {
-  if (confidence === "high") return "destructive";
-  if (confidence === "medium") return "warning";
-  return "info";
-}
-
 export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
-  const [localProxyHints, setLocalProxyHints] = useState<ProxyHintAssessment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(null);
@@ -377,7 +168,6 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     setLoading(true);
     setError(false);
     setData(null);
-    setLocalProxyHints(null);
 
     const controller = new AbortController();
     const url = targetIp
@@ -436,15 +226,6 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     return () => {
       active = false;
     };
-  }, [data, error, loading, targetIp]);
-
-  useEffect(() => {
-    if (targetIp || loading || error || !data) {
-      setLocalProxyHints(null);
-      return;
-    }
-
-    setLocalProxyHints(assessLocalProxyHints(data, collectDeviceHints()));
   }, [data, error, loading, targetIp]);
 
   if (loading) {
@@ -528,13 +309,6 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const orUnknown = (value: string) => value || t.unknown;
   const hasCoordinates = data.lat !== 0 || data.lon !== 0;
   const locationSummary = [data.city, data.country].filter(Boolean).join(", ");
-  const displayedProxyHints = mergeProxyHintAssessments([
-    data.proxyHints,
-    localProxyHints,
-  ]);
-  const visibleProxyHintLabels = displayedProxyHints.labels.slice(0, 4);
-  const hiddenProxyHintLabelCount =
-    displayedProxyHints.labels.length - visibleProxyHintLabels.length;
 
   return (
     <div className="tool-reveal flex w-full flex-col gap-6">
@@ -632,37 +406,6 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                     {flag}
                   </Badge>
                 ))}
-              </div>
-            )}
-
-            {displayedProxyHints.detected && (
-              <div className="rounded-md border border-border/70 bg-background/70 p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t.additionalProxyHint}
-                  </p>
-                  <Badge variant={getProxyHintBadgeVariant(displayedProxyHints.confidence)}>
-                    {t.proxyHintConfidence}:{" "}
-                    {t.proxyHintConfidenceLabels[displayedProxyHints.confidence]}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-sm font-medium text-foreground">
-                  {t.possibleLocalProxy}
-                </p>
-                {visibleProxyHintLabels.length > 0 && (
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {t.proxyHintReasons}:
-                    </span>{" "}
-                    {visibleProxyHintLabels.join(", ")}
-                    {hiddenProxyHintLabelCount > 0
-                      ? ` +${hiddenProxyHintLabelCount}`
-                      : ""}
-                  </p>
-                )}
-                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                  {t.proxyHintDisclaimer}
-                </p>
               </div>
             )}
 

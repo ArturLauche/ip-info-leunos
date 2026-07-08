@@ -3,19 +3,8 @@ import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { resolveLocale } from "@/lib/i18n";
-import {
-  assessProxyRisk,
-  createEmptyProxyHintAssessment,
-  detectConnectionType,
-  getNetworkProxyHintSignals,
-  summarizeProxyHintSignals,
-  type ProxyHintSignal,
-} from "@/lib/connection-type";
+import { assessProxyRisk, detectConnectionType } from "@/lib/connection-type";
 import { lookupIpApi, type IpApiData } from "@/lib/providers/ip-api";
-import {
-  assessRequestProxyHints,
-  getRequestProxyHintSignals,
-} from "@/lib/request-proxy-hints";
 import {
   assertPublicIpAddress,
   assertPublicTarget,
@@ -94,7 +83,6 @@ function getUnknownResult() {
     proxyReasons: [] as string[],
     hosting: false,
     connectionType: "unknown",
-    proxyHints: createEmptyProxyHintAssessment(),
   };
 }
 
@@ -104,10 +92,6 @@ function toResponsePayload(
   ipv4: string | null,
   ipv6: string | null,
   localIpChecks: LocalIpCheck[] = [],
-  options: {
-    includeProxyHints?: boolean;
-    extraProxyHintSignals?: ProxyHintSignal[];
-  } = {},
 ) {
   const proxyAssessment = assessProxyRisk({
     isp: source.isp || "",
@@ -122,19 +106,6 @@ function toResponsePayload(
   const resolvedQuery = source.query || ip;
   const responseIpv4 = isIPv4Address(resolvedQuery) ? resolvedQuery : ipv4;
   const responseIpv6 = isIPv6Address(resolvedQuery) ? resolvedQuery : ipv6;
-  const proxyHints =
-    options.includeProxyHints === false
-      ? createEmptyProxyHintAssessment()
-      : summarizeProxyHintSignals([
-          ...getNetworkProxyHintSignals({
-            isp: source.isp || "",
-            org: source.org || "",
-            as: source.as || "",
-            asname: source.asname || "",
-            reverse: source.reverse || "",
-          }),
-          ...(options.extraProxyHintSignals ?? []),
-        ]);
 
   return {
     ipv4: responseIpv4,
@@ -182,7 +153,6 @@ function toResponsePayload(
       hosting: Boolean(source.hosting),
       proxyType: proxyAssessment.proxyType,
     }),
-    proxyHints,
   };
 }
 
@@ -234,24 +204,13 @@ export async function GET(request: Request) {
       });
     }
 
-    return apiOk(
-      toResponsePayload(
-        data,
-        ip,
-        isIPv4Address(ip) ? ip : null,
-        isIPv6Address(ip) ? ip : null,
-        [],
-        { includeProxyHints: false },
-      ),
-    );
+    return apiOk(toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null));
   }
 
   // Auto-detect from request headers
   const headersList = await headers();
   const forwardedFor = headersList.get("x-forwarded-for");
   const realIp = headersList.get("x-real-ip");
-  const requestProxyHintSignals = getRequestProxyHintSignals(headersList);
-  const requestProxyHints = assessRequestProxyHints(headersList);
 
   const { ipv4, ipv6, localIpChecks } = extractIps(forwardedFor, realIp);
 
@@ -283,13 +242,8 @@ export async function GET(request: Request) {
       },
       localIpChecks,
       ...getUnknownResult(),
-      proxyHints: requestProxyHints,
     });
   }
 
-  return apiOk(
-    toResponsePayload(data, primaryIp, ipv4, ipv6, localIpChecks, {
-      extraProxyHintSignals: requestProxyHintSignals,
-    }),
-  );
+  return apiOk(toResponsePayload(data, primaryIp, ipv4, ipv6, localIpChecks));
 }

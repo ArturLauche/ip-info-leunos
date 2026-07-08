@@ -1,4 +1,4 @@
-import type { ConnectionType, ProxyHintConfidence } from "@/lib/connection-type";
+import type { ConnectionType } from "@/lib/connection-type";
 
 export const SUPPORTED_LOCALES = [
   "de",
@@ -85,12 +85,6 @@ export type Translation = {
   yourIpAddresses: string;
   notAvailable: string;
   detectedConnectionType: string;
-  additionalProxyHint: string;
-  possibleLocalProxy: string;
-  proxyHintConfidence: string;
-  proxyHintReasons: string;
-  proxyHintDisclaimer: string;
-  proxyHintConfidenceLabels: Record<ProxyHintConfidence, string>;
   ipv4Status: string;
   ipv6Status: string;
   available: string;
@@ -145,17 +139,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "Deine IP-Adressen",
     notAvailable: "Nicht verfügbar",
     detectedConnectionType: "Erkannter Verbindungstyp",
-    additionalProxyHint: "Zusätzlicher Proxy-Hinweis",
-    possibleLocalProxy: "Möglicher Unternehmens-, Schul- oder lokaler Proxy erkannt",
-    proxyHintConfidence: "Hinweisstärke",
-    proxyHintReasons: "Hinweise",
-    proxyHintDisclaimer:
-      "Diese Hinweise ergänzen die IP-Analyse. Lokale SOCKS-Einstellungen können im Browser normalerweise nicht direkt ausgelesen werden.",
-    proxyHintConfidenceLabels: {
-      low: "niedrig",
-      medium: "mittel",
-      high: "hoch",
-    },
     ipv4Status: "IPv4 Status",
     ipv6Status: "IPv6 Status",
     available: "Verfügbar",
@@ -224,17 +207,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "Your IP addresses",
     notAvailable: "Not available",
     detectedConnectionType: "Detected connection type",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "IPv4 status",
     ipv6Status: "IPv6 status",
     available: "Available",
@@ -303,17 +275,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "Tus direcciones IP",
     notAvailable: "No disponible",
     detectedConnectionType: "Tipo de conexión detectado",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "Estado IPv4",
     ipv6Status: "Estado IPv6",
     available: "Disponible",
@@ -379,17 +340,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "Vos adresses IP",
     notAvailable: "Non disponible",
     detectedConnectionType: "Type de connexion détecté",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "Statut IPv4",
     ipv6Status: "Statut IPv6",
     available: "Disponible",
@@ -455,17 +405,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "Seus endereços IP",
     notAvailable: "Não disponível",
     detectedConnectionType: "Tipo de conexão detectado",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "Status IPv4",
     ipv6Status: "Status IPv6",
     available: "Disponível",
@@ -531,17 +470,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "あなたのIPアドレス",
     notAvailable: "利用不可",
     detectedConnectionType: "検出された接続タイプ",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "IPv4ステータス",
     ipv6Status: "IPv6ステータス",
     available: "利用可能",
@@ -607,17 +535,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "Ваши IP-адреса",
     notAvailable: "Недоступно",
     detectedConnectionType: "Определённый тип подключения",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "Статус IPv4",
     ipv6Status: "Статус IPv6",
     available: "Доступно",
@@ -683,17 +600,6 @@ export const translations: Record<Locale, Translation> = {
     yourIpAddresses: "你的 IP 地址",
     notAvailable: "不可用",
     detectedConnectionType: "检测到的连接类型",
-    additionalProxyHint: "Additional proxy hint",
-    possibleLocalProxy: "Possible enterprise, school, or local proxy detected",
-    proxyHintConfidence: "Signal strength",
-    proxyHintReasons: "Signals",
-    proxyHintDisclaimer:
-      "These hints supplement the IP analysis. Local SOCKS settings usually cannot be read directly by a website.",
-    proxyHintConfidenceLabels: {
-      low: "low",
-      medium: "medium",
-      high: "high",
-    },
     ipv4Status: "IPv4 状态",
     ipv6Status: "IPv6 状态",
     available: "可用",
