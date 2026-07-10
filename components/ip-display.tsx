@@ -8,17 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getTranslation, type Locale } from "@/lib/i18n";
+import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
 import { CountryFlag } from "@/components/country-flag";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { normalizeAsnInput } from "@/lib/asn";
+import { formatTemplate } from "@/lib/format";
 import {
   discoverClientIp,
   resolveDisplayIps,
   type ClientIpDiscoveryResult,
   type LocalIpCheck,
 } from "@/lib/client-ip-discovery";
-import type { ConnectionType } from "@/lib/connection-type";
+import {
+  assessLocalProxyHints,
+  isProxyHintProduct,
+  mergeProxyHintAssessments,
+  PROXY_HINT_PRODUCT_NAMES,
+  type BrowserDeviceHints,
+  type ConnectionType,
+  type ProxyHintAssessment,
+  type ProxyHintConfidence,
+  type ProxyHintFixedLabel,
+  type ProxyHintLabel,
+} from "@/lib/connection-type";
 import {
   MapPin,
   Copy,
@@ -62,6 +74,7 @@ interface IpData {
     ipv6?: string;
   };
   localIpChecks?: LocalIpCheck[];
+  proxyHints?: ProxyHintAssessment;
 }
 
 interface IpDisplayProps {
@@ -155,6 +168,42 @@ function getAsnHref(value: string) {
   }
 }
 
+const PROXY_HINT_BADGE_VARIANTS: Record<
+  ProxyHintConfidence,
+  "secondary" | "info" | "warning"
+> = {
+  none: "secondary",
+  low: "secondary",
+  medium: "info",
+  high: "warning",
+};
+
+function getProxyHintLabelPriority(label: ProxyHintLabel) {
+  if (label.startsWith("product-header:")) return 100;
+  if (["via-header", "proxy-header", "cache-header"].includes(label)) return 90;
+  if (label.startsWith("product-signature:")) return 80;
+  if (["gateway-signature", "socks-signature", "proxy-signature"].includes(label)) return 70;
+  if (label === "forwarded-chain") return 60;
+  if (["school-network", "enterprise-network"].includes(label)) return 50;
+  return 40;
+}
+
+function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
+  const [kind, productId] = label.split(":", 2);
+  if (
+    (kind === "product-header" || kind === "product-signature") &&
+    productId &&
+    isProxyHintProduct(productId)
+  ) {
+    return formatTemplate(
+      kind === "product-header" ? t.proxyHintProductHeader : t.proxyHintProductSignature,
+      { product: PROXY_HINT_PRODUCT_NAMES[productId] },
+    );
+  }
+
+  return t.proxyHintSignals[label as ProxyHintFixedLabel] || t.proxyHintSignals["proxy-signature"];
+}
+
 export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -162,6 +211,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(null);
   const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(null);
   const [ipv6Loading, setIpv6Loading] = useState(false);
+  const [localProxyHints, setLocalProxyHints] = useState<ProxyHintAssessment | null>(null);
   const t = getTranslation(locale);
 
   useEffect(() => {
@@ -226,6 +276,46 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     return () => {
       active = false;
     };
+  }, [data, error, loading, targetIp]);
+
+  useEffect(() => {
+    setLocalProxyHints(null);
+    if (targetIp || loading || error || !data) return;
+
+    const now = new Date();
+    const navigatorWithNetworkInfo = navigator as Navigator & {
+      deviceMemory?: number;
+      connection?: BrowserDeviceHints["connection"];
+    };
+    const connection = navigatorWithNetworkInfo.connection;
+    const deviceHints: BrowserDeviceHints = {
+      userAgent: navigator.userAgent || "",
+      platform: navigator.platform || "",
+      language: navigator.language || "",
+      languages: [...(navigator.languages || [])],
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      deviceMemory: navigatorWithNetworkInfo.deviceMemory,
+      maxTouchPoints: navigator.maxTouchPoints,
+      webdriver: navigator.webdriver,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+      timezoneOffsetMinutes: -now.getTimezoneOffset(),
+      screen: {
+        width: screen.width,
+        height: screen.height,
+        colorDepth: screen.colorDepth,
+      },
+      connection: connection
+        ? {
+            type: connection.type,
+            effectiveType: connection.effectiveType,
+            downlink: connection.downlink,
+            rtt: connection.rtt,
+            saveData: connection.saveData,
+          }
+        : undefined,
+    };
+
+    setLocalProxyHints(assessLocalProxyHints(data, deviceHints, now));
   }, [data, error, loading, targetIp]);
 
   if (loading) {
@@ -306,6 +396,15 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const asnHref = getAsnHref(data.as);
   const connectionTypeLabel = t.connectionTypes[data.connectionType] ?? t.unknown;
   const reputationIp = displayIpv4 || displayIpv6;
+  const displayedProxyHints = targetIp
+    ? null
+    : mergeProxyHintAssessments(data.proxyHints, localProxyHints);
+  const displayedProxyHintLabels = displayedProxyHints?.detected
+    ? [...displayedProxyHints.labels]
+        .sort((left, right) => getProxyHintLabelPriority(right) - getProxyHintLabelPriority(left))
+        .slice(0, 3)
+        .map((label) => formatProxyHintLabel(label, t))
+    : [];
   const orUnknown = (value: string) => value || t.unknown;
   const hasCoordinates = data.lat !== 0 || data.lon !== 0;
   const locationSummary = [data.city, data.country].filter(Boolean).join(", ");
@@ -406,6 +505,34 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                     {flag}
                   </Badge>
                 ))}
+              </div>
+            )}
+
+            {displayedProxyHints?.detected && (
+              <div className="rounded-lg border border-border/70 bg-background/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-warning/10 text-warning">
+                    <ShieldAlert className="size-3.5" />
+                  </span>
+                  <p className="text-xs font-semibold text-foreground">
+                    {t.additionalProxyHint}
+                  </p>
+                  <Badge variant={PROXY_HINT_BADGE_VARIANTS[displayedProxyHints.confidence]}>
+                    {t.proxyHintConfidence}: {t.proxyHintConfidenceLevels[displayedProxyHints.confidence]}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {t.possibleLocalProxy}
+                </p>
+                {displayedProxyHintLabels.length > 0 && (
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground/80">{t.proxyHintReasons}:</span>{" "}
+                    {displayedProxyHintLabels.join(", ")}
+                  </p>
+                )}
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground/80">
+                  {t.proxyHintDisclaimer}
+                </p>
               </div>
             )}
 

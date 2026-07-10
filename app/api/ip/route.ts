@@ -1,9 +1,15 @@
-import { headers } from "next/headers";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { resolveLocale } from "@/lib/i18n";
-import { assessProxyRisk, detectConnectionType } from "@/lib/connection-type";
+import {
+  assessNetworkProxyHints,
+  assessProxyRisk,
+  detectConnectionType,
+  mergeProxyHintAssessments,
+  type ProxyHintAssessment,
+} from "@/lib/connection-type";
+import { assessRequestProxyHints, normalizeForwardedIp } from "@/lib/request-proxy-hints";
 import { lookupIpApi, type IpApiData } from "@/lib/providers/ip-api";
 import {
   assertPublicIpAddress,
@@ -13,38 +19,55 @@ import {
   TargetValidationError,
 } from "@/lib/network/target";
 
+export const runtime = "nodejs";
+
 const ipQuerySchema = z.object({
   ip: z.string().trim().min(1).max(253).optional(),
 });
 
 type LocalIpCheck = { ip: string; source: string; version: 4 | 6 };
 
-function extractIps(forwardedFor: string | null, realIp: string | null) {
+function extractIps(headersList: Headers) {
   let ipv4: string | null = null;
   let ipv6: string | null = null;
 
   const candidates: Array<{ ip: string; source: string }> = [];
 
-  if (forwardedFor) {
-    forwardedFor.split(",").forEach((part, index) => {
-      const trimmed = part.trim();
-      if (trimmed) {
-        candidates.push({ ip: trimmed, source: `x-forwarded-for[${index}]` });
-      }
-    });
-  }
-  if (realIp) {
-    const trimmed = realIp.trim();
-    if (trimmed) candidates.push({ ip: trimmed, source: "x-real-ip" });
-  }
+  const appendHeaderCandidates = (headerName: string) => {
+    const value = headersList.get(headerName);
+    if (!value) return;
 
+    value.split(",").forEach((part, index) => {
+      const ip = normalizeForwardedIp(part);
+      if (!ip) return;
+      candidates.push({
+        ip,
+        source: value.includes(",") ? `${headerName}[${index}]` : headerName,
+      });
+    });
+  };
+
+  appendHeaderCandidates("x-vercel-forwarded-for");
+  appendHeaderCandidates("x-forwarded-for");
+  appendHeaderCandidates("x-real-ip");
+
+  const seenIps = new Set<string>();
   const localIpChecks: LocalIpCheck[] = candidates.flatMap((candidate) => {
     const version: 4 | 6 | null = isIPv4Address(candidate.ip)
       ? 4
       : isIPv6Address(candidate.ip)
         ? 6
         : null;
-    return version ? [{ ...candidate, version }] : [];
+    if (!version || seenIps.has(candidate.ip)) return [];
+
+    try {
+      assertPublicIpAddress(candidate.ip);
+    } catch {
+      return [];
+    }
+
+    seenIps.add(candidate.ip);
+    return [{ ...candidate, version }];
   });
 
   for (const candidate of localIpChecks) {
@@ -92,6 +115,7 @@ function toResponsePayload(
   ipv4: string | null,
   ipv6: string | null,
   localIpChecks: LocalIpCheck[] = [],
+  requestProxyHints?: ProxyHintAssessment,
 ) {
   const proxyAssessment = assessProxyRisk({
     isp: source.isp || "",
@@ -106,6 +130,18 @@ function toResponsePayload(
   const resolvedQuery = source.query || ip;
   const responseIpv4 = isIPv4Address(resolvedQuery) ? resolvedQuery : ipv4;
   const responseIpv6 = isIPv6Address(resolvedQuery) ? resolvedQuery : ipv6;
+  const proxyHints = requestProxyHints
+    ? mergeProxyHintAssessments(
+        requestProxyHints,
+        assessNetworkProxyHints({
+          isp: source.isp || "",
+          org: source.org || "",
+          as: source.as || "",
+          asname: source.asname || "",
+          reverse: source.reverse || "",
+        }),
+      )
+    : undefined;
 
   return {
     ipv4: responseIpv4,
@@ -153,6 +189,7 @@ function toResponsePayload(
       hosting: Boolean(source.hosting),
       proxyType: proxyAssessment.proxyType,
     }),
+    ...(proxyHints ? { proxyHints } : {}),
   };
 }
 
@@ -207,12 +244,10 @@ export async function GET(request: Request) {
     return apiOk(toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null));
   }
 
-  // Auto-detect from request headers
-  const headersList = await headers();
-  const forwardedFor = headersList.get("x-forwarded-for");
-  const realIp = headersList.get("x-real-ip");
-
-  const { ipv4, ipv6, localIpChecks } = extractIps(forwardedFor, realIp);
+  // Auto-detect from request headers. Vercel's forwarding headers are normal
+  // client identity inputs; only additional or inconsistent signals affect hints.
+  const requestProxyHints = assessRequestProxyHints(request.headers);
+  const { ipv4, ipv6, localIpChecks } = extractIps(request.headers);
 
   // Use whichever IP we found (prefer IPv4 for geolocation, it tends to be more accurate)
   const primaryIp = ipv4 || ipv6 || "";
@@ -242,8 +277,11 @@ export async function GET(request: Request) {
       },
       localIpChecks,
       ...getUnknownResult(),
+      proxyHints: requestProxyHints,
     });
   }
 
-  return apiOk(toResponsePayload(data, primaryIp, ipv4, ipv6, localIpChecks));
+  return apiOk(
+    toResponsePayload(data, primaryIp, ipv4, ipv6, localIpChecks, requestProxyHints),
+  );
 }
