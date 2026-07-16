@@ -21,15 +21,15 @@ export async function generateMetadata({ params }: AsnDeepLinkPageProps): Promis
     const normalized = normalizeAsnInput(asn);
     return createPageMetadata({
       title: `${normalized.asn} - ASN-Informationen`,
-      description: `ASN-Profil für ${normalized.asn} mit IPinfo-ASN-Daten, angekündigten Prefixen, Routing-Beziehungen und öffentlichen PeeringDB-Interconnection-Daten.`,
+      description: `Analysiere verfügbare Daten zu ${normalized.asn}: Identität, angekündigte IP-Prefixe, RIPEstat-Routing-Beobachtungen und öffentliche PeeringDB-Profile.`,
       path: `/asn/${normalized.asn}`,
       keywords: [normalized.asn, "ASN Lookup", "PeeringDB", "BGP"],
     });
   } catch {
     return createPageMetadata({
-      title: "ASN Lookup - Autonomes System analysieren",
+      title: "ASN Lookup für Routing- und Peeringdaten",
       description:
-        "ASN-Profile mit IPinfo-ASN-Daten, Prefixen, Routing-Beziehungen und öffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
+        "Analysiere verfügbare ASN-Profile, angekündigte IP-Prefixe, RIPEstat-Routing-Beobachtungen und öffentliche PeeringDB-Interconnection-Daten.",
       path: "/asn",
       keywords: ["ASN Lookup", "AS Nummer", "PeeringDB", "BGP"],
     });

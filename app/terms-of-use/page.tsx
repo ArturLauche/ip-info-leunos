@@ -8,6 +8,8 @@ import { getPrivacyContactEmail } from "@/lib/privacy";
 import { getTermsContent } from "@/lib/terms";
 import { splitEmail, type EmailParts } from "@/lib/email";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
+import { StructuredData } from "@/components/structured-data";
+import { siteConfig } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Nutzungsbedingungen",
@@ -63,6 +65,21 @@ export default async function TermsOfUsePage() {
       title={content.title}
       subtitle={content.subtitle}
     >
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "@id": `${siteConfig.url}/terms-of-use#article`,
+          headline: content.title,
+          description: content.subtitle,
+          dateModified: content.lastUpdated,
+          inLanguage: locale === "de" ? "de-DE" : locale,
+          mainEntityOfPage: `${siteConfig.url}/terms-of-use`,
+          author: { "@id": `${siteConfig.url}/#organization` },
+          publisher: { "@id": `${siteConfig.url}/#organization` },
+          isPartOf: { "@id": `${siteConfig.url}/#website` },
+        }}
+      />
       <article className="mx-auto w-full max-w-3xl">
         <p className="text-xs text-muted-foreground">
           {content.lastUpdatedLabel}: {content.lastUpdated}

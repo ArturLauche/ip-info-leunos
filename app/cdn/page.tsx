@@ -8,8 +8,8 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "CDN Check & CDN Erkennung",
-  description: "Erkenne eingesetzte Content Delivery Networks und Edge-Anbieter für Domains und Endpunkte.",
+  title: "CDN Check für Domains und Edge-Anbieter",
+  description: "Analysiere öffentliche Domains anhand begrenzter DNS-, HTTP-Header- und Netzwerksignale auf Hinweise zu bekannten CDN- und Edge-Anbietern.",
   path: "/cdn",
   keywords: ['CDN Check', 'Cloudflare erkennen', 'Edge Netzwerk'],
 });

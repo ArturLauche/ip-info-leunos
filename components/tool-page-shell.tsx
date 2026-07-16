@@ -13,6 +13,7 @@ import {
   type ToolKey,
 } from "@/components/shell/nav-config";
 import { PageTransition } from "@/components/page-transition";
+import { ToolStructuredData } from "@/components/tool-structured-data";
 
 interface ToolPageShellProps {
   locale: Locale;
@@ -40,6 +41,14 @@ export function ToolPageShell({
 
   return (
     <CommandMenuProvider locale={locale}>
+      {active && (
+        <ToolStructuredData
+          tool={active}
+          locale={locale}
+          name={title}
+          description={subtitle}
+        />
+      )}
       <div className="relative flex min-h-screen w-full">
         <AppSidebar locale={locale} active={active} />
 
@@ -54,7 +63,7 @@ export function ToolPageShell({
               <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
                 <div className="flex items-start gap-3.5 sm:gap-4">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-12">
-                    <Icon className="size-5 sm:size-6" />
+                    <Icon aria-hidden="true" className="size-5 sm:size-6" />
                   </span>
                   <div className="min-w-0 flex-1">
                     {sectionLabel && (

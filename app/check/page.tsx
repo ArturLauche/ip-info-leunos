@@ -7,8 +7,8 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "IP Check - IP oder Domain analysieren",
-  description: "Prüfe jede öffentliche IP-Adresse oder Domain inklusive Standort, ASN, Provider, Reverse DNS und Netzwerkdaten.",
+  title: "IP Check für öffentliche IPs und Domains",
+  description: "Analysiere öffentliche IPv4-/IPv6-Adressen oder Domains mit verfügbaren Angaben zu Provider, ASN, Reverse DNS und ungefährer Geolokalisierung.",
   path: "/check",
   keywords: ['IP prüfen', 'Domain prüfen', 'IP Check'],
 });

@@ -8,8 +8,8 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Ping & Port Test",
-  description: "Teste Erreichbarkeit und Latenz für Hosts, Ports und Dienste mit dem integrierten Ping- und Netzwerk-Checker.",
+  title: "Ping- und Port-Test für öffentliche Hosts",
+  description: "Prüfe öffentliche Hosts, Ports, Endpoints und ausgewählte Dienste mit begrenzten serverseitigen TCP-, UDP- und Protokolltests auf Erreichbarkeit.",
   path: "/ping",
   keywords: ['Ping Test', 'Port Check', 'Latenz'],
 });

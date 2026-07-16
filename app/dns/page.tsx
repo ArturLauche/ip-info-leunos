@@ -8,8 +8,8 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "DNS Lookup & DNS Records prüfen",
-  description: "Führe DNS-Lookups für A, AAAA, MX, TXT, NS und weitere Records durch und analysiere DNS-Konfigurationen.",
+  title: "DNS Lookup für A, AAAA, MX, TXT und mehr",
+  description: "Prüfe öffentliche DNS-Daten für A, AAAA, CNAME, MX, NS, TXT, SOA, SRV und CAA sowie PTR-Reverse-DNS für IP-Adressen.",
   path: "/dns",
   keywords: ['DNS Lookup', 'DNS Records', 'MX Check'],
 });

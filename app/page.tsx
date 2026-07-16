@@ -7,9 +7,9 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "IP Auskunft - Meine öffentliche IP anzeigen",
+  title: "Meine öffentliche IP-Adresse anzeigen",
   description:
-    "Ermittle in Sekunden deine öffentliche IPv4/IPv6-Adresse inklusive Standort, Provider, ASN und Verbindungstyp.",
+    "Zeige deine öffentliche IPv4- und IPv6-Adresse mit verfügbaren Angaben zu Provider, ASN, Reverse DNS, Verbindungstyp und ungefährem Standort.",
   path: "/",
   keywords: ["öffentliche IP", "IPv4", "IPv6", "IP Standort"],
 });

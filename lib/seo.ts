@@ -4,7 +4,7 @@ export const siteConfig = {
   name: "IP Auskunft",
   shortName: "IP Auskunft",
   description:
-    "Kostenlose IP- und Netzwerk-Tools: öffentliche IP anzeigen, IP-/Domain-Checks, DNS-Lookups, Whois, CDN-Erkennung und Erreichbarkeitstests.",
+    "Kostenlose Netzwerk-Tools für öffentliche IP-Adressen, ASN, DNS, Whois, CDN-Erkennung, Erreichbarkeit und IP-Reputation.",
   url: "https://ip-info.leunos.com",
   locale: "de_DE",
   keywords: [
@@ -42,8 +42,29 @@ export function createPageMetadata({
     title,
     description,
     keywords: [...siteConfig.keywords, ...keywords],
+    applicationName: siteConfig.name,
+    authors: [{ name: siteConfig.name, url: siteConfig.url }],
+    creator: siteConfig.name,
+    publisher: siteConfig.name,
+    category: "technology",
+    formatDetection: {
+      telephone: false,
+      email: false,
+      address: false,
+    },
     alternates: {
       canonical,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
     openGraph: {
       type: "website",

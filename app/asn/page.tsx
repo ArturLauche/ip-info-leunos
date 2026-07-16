@@ -8,9 +8,9 @@ import { createPageMetadata } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "ASN Lookup - Autonomes System analysieren",
+  title: "ASN Lookup für Routing- und Peeringdaten",
   description:
-    "ASN-Profile mit IPinfo-ASN-Daten, Prefixen, Routing-Beziehungen und öffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
+    "Analysiere verfügbare ASN-Profile, angekündigte IP-Prefixe, RIPEstat-Routing-Beobachtungen und öffentliche PeeringDB-Interconnection-Daten.",
   path: "/asn",
   keywords: ["ASN Lookup", "AS Nummer", "PeeringDB", "BGP"],
 });

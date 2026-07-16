@@ -8,8 +8,8 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Whois Lookup für Domains und IPs",
-  description: "Rufe Whois-Daten für Domains und IP-Adressräume ab, inklusive Registrar-, Inhaber- und Ablauf-Informationen.",
+  title: "Whois Lookup für Domains und IP-Adressen",
+  description: "Rufe öffentliche WHOIS- und RDAP-Daten für Domains oder IP-Adressräume mit verfügbaren Registry-, Registrar-, Nameserver- und Datumsangaben ab.",
   path: "/whois",
   keywords: ['Whois Lookup', 'Domain Whois', 'IP Whois'],
 });

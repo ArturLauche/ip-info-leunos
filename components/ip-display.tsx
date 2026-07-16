@@ -137,7 +137,7 @@ function DetailCard({
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Icon className="size-4" />
         </span>
-        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
       <dl className="px-5">{children}</dl>
     </Card>

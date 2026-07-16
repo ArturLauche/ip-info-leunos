@@ -33,11 +33,11 @@ export function EmptyState({
       )}
     >
       <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
-        <Icon className="size-6" />
+        <Icon aria-hidden="true" className="size-6" />
       </span>
-      <p className="text-lg font-semibold tracking-tight text-foreground">
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">
         {title}
-      </p>
+      </h2>
       {description && (
         <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
           {description}
