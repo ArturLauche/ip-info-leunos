@@ -96,3 +96,23 @@ export function getGroupTitle(id: NavGroup["id"], locale: Locale): string {
   const toolT = getToolTranslation(locale);
   return id === "overview" ? toolT.navOverview : toolT.navDiagnostics;
 }
+
+/**
+ * Resolves the active tool from a pathname so the shell can keep the sidebar
+ * mounted across navigations instead of remounting it with each page.
+ */
+export function activeToolFromPathname(pathname: string): ToolKey | undefined {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (normalized === "/") return "home";
+
+  const match = navGroups
+    .flatMap((group) => group.items)
+    .filter((item) => item.href !== "/")
+    .filter(
+      (item) =>
+        normalized === item.href || normalized.startsWith(`${item.href}/`),
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
+  return match?.key;
+}

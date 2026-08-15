@@ -8,8 +8,10 @@ import {
   getGroupTitle,
   getNavLabel,
   navGroups,
+  type NavItem,
   type ToolKey,
 } from "./nav-config";
+import { useNavHighlight } from "./use-nav-highlight";
 
 interface NavLinksProps {
   locale: Locale;
@@ -44,72 +46,88 @@ export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
 
   return (
     <nav className="flex flex-col gap-6">
-      {navGroups.map((group) => {
-        const selectedIndex = group.items.findIndex(
-          (item) => item.key === selected,
-        );
+      {navGroups.map((group) => (
+        <div key={group.id} className="flex flex-col gap-1">
+          <p className="px-3 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {getGroupTitle(group.id, locale)}
+          </p>
+          <NavGroupList
+            items={group.items}
+            locale={locale}
+            active={active}
+            selected={selected}
+            onNavigate={handleNavigate}
+          />
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+interface NavGroupListProps {
+  items: NavItem[];
+  locale: Locale;
+  active?: ToolKey;
+  selected?: ToolKey;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, key: ToolKey) => void;
+}
+
+function NavGroupList({
+  items,
+  locale,
+  active,
+  selected,
+  onNavigate,
+}: NavGroupListProps) {
+  const { listRef, setItemRef, view, canAnimate } = useNavHighlight(selected);
+
+  return (
+    <div ref={listRef} className="relative isolate flex flex-col gap-1">
+      <span
+        className="tool-nav-highlight absolute inset-x-0 top-0 z-0"
+        style={{
+          transform: `translate3d(0, ${view.box.y}px, 0)`,
+          height: view.box.height,
+          opacity: view.visible ? 1 : 0,
+        }}
+        data-animate={canAnimate ? "true" : undefined}
+        data-slide={view.slide ? "true" : undefined}
+        aria-hidden
+      />
+      {items.map((item) => {
+        const Icon = item.icon;
+        const isActive = active === item.key;
+        const isSelected = selected === item.key;
 
         return (
-          <div key={group.id} className="flex flex-col gap-1">
-            <p className="px-3 pb-1 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
-              {getGroupTitle(group.id, locale)}
-            </p>
-            <div className="relative flex flex-col gap-1">
-              <span
-                className={cn(
-                  "tool-nav-highlight absolute inset-x-0 top-0 h-9 rounded-lg bg-sidebar-accent",
-                  selectedIndex >= 0 ? "opacity-100" : "opacity-0",
-                )}
-                style={{
-                  transform: `translateY(${Math.max(selectedIndex, 0) * 2.5}rem)`,
-                }}
-                aria-hidden
-              >
-                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
-              </span>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = active === item.key;
-                const isSelected = selected === item.key;
-
-                return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    onClick={(event) => handleNavigate(event, item.key)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "group relative z-10 flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-colors duration-300 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
-                      isSelected
-                        ? "text-sidebar-accent-foreground"
-                        : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "tool-nav-icon flex size-4 shrink-0 items-center justify-center",
-                        isSelected
-                          ? "scale-105 text-primary"
-                          : "text-muted-foreground/80 group-hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <span
-                      className={cn(
-                        "tool-nav-label truncate",
-                        isSelected && "translate-x-0.5",
-                      )}
-                    >
-                      {getNavLabel(item.key, locale)}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+          <Link
+            key={item.key}
+            href={item.href}
+            ref={(node) => setItemRef(item.key, node)}
+            onClick={(event) => onNavigate(event, item.key)}
+            aria-current={isActive ? "page" : undefined}
+            className={cn(
+              "group relative z-10 flex h-10 items-center gap-2.5 rounded-lg py-1 pr-3 pl-3.5 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
+              isSelected
+                ? "text-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/45 hover:text-foreground",
+              isSelected && !view.visible && "tool-nav-item-fallback",
+            )}
+          >
+            <span
+              className={cn(
+                "tool-nav-icon flex size-6 shrink-0 items-center justify-center rounded-md",
+                isSelected
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground/80 group-hover:bg-foreground/5 group-hover:text-foreground",
+              )}
+            >
+              <Icon className="size-3.5" aria-hidden />
+            </span>
+            <span className="min-w-0 truncate">{getNavLabel(item.key, locale)}</span>
+          </Link>
         );
       })}
-    </nav>
+    </div>
   );
 }
