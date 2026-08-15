@@ -47,6 +47,9 @@ export function MobileNav({ locale, active }: MobileNavProps) {
     return () => {
       clearTimeout(closeTimerRef.current);
       clearTimeout(revealTimerRef.current);
+      // The reveal flag lives on <html>, so cancelling the timer alone would
+      // leave page transitions permanently suppressed after an unmount.
+      clearPageReveal();
     };
   }, []);
 
