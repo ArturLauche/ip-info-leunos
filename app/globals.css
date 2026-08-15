@@ -263,21 +263,57 @@
       0 32px 70px -24px rgb(0 0 0 / 0.22);
   }
 
+  /*
+   * Sliding selection frame for the sidebar / mobile nav. The fill, inset
+   * hairline and top sheen read as a framed chip; the capsule on the left is
+   * inset inside that chip so it no longer sits as a flush hairline on the
+   * sidebar edge. Transform only runs while the frame is already visible in
+   * the same group — otherwise it would slide back to the first row on hide.
+   */
   .tool-nav-highlight {
+    pointer-events: none;
+    border-radius: var(--radius);
+    background-color: var(--sidebar-accent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 14%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+
+  .tool-nav-highlight::before {
+    content: "";
+    position: absolute;
+    left: 0.4rem;
+    top: 50%;
+    width: 3px;
+    height: 1.125rem;
+    translate: 0 -50%;
+    border-radius: 9999px;
+    background-color: var(--sidebar-primary);
+  }
+
+  .tool-nav-highlight[data-animate="true"] {
+    transition: opacity 200ms var(--ease-smooth);
+  }
+
+  .tool-nav-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform 450ms var(--ease-fluid),
-      opacity 320ms var(--ease-fluid);
-    will-change: transform;
+      transform 400ms var(--ease-fluid),
+      height 400ms var(--ease-fluid),
+      opacity 200ms var(--ease-smooth);
+  }
+
+  .tool-nav-item-fallback {
+    background-color: var(--sidebar-accent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 14%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
   }
 
   .tool-nav-icon {
     transition:
-      color 280ms var(--ease-smooth),
-      scale 450ms var(--ease-fluid);
-  }
-
-  .tool-nav-label {
-    transition: translate 450ms var(--ease-fluid);
+      color 220ms var(--ease-smooth),
+      background-color 220ms var(--ease-smooth),
+      box-shadow 220ms var(--ease-smooth);
   }
 
   /*
@@ -338,17 +374,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tool-nav-highlight,
-  .tool-nav-icon,
-  .tool-nav-label {
-    transition-duration: 0.01ms;
-  }
-
+  .tool-nav-highlight[data-animate="true"],
+  .tool-nav-highlight[data-animate="true"][data-slide="true"],
   .tool-nav-icon {
-    scale: none;
-  }
-
-  .tool-nav-label {
-    translate: none;
+    transition-duration: 0.01ms;
   }
 
   .tool-page-transition > [data-transition-stage],

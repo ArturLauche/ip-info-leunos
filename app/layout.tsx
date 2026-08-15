@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import { headers } from 'next/headers'
 import './globals.css'
 import { siteConfig } from '@/lib/seo'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { StructuredData } from '@/components/structured-data'
+import { AppShell } from '@/components/shell/app-shell'
+import { resolveLocale } from '@/lib/i18n'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -112,11 +115,13 @@ const jsonLd = {
   ],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = resolveLocale((await headers()).get('accept-language'))
+
   return (
     <html lang="de" suppressHydrationWarning>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
@@ -127,7 +132,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <AppShell locale={locale}>{children}</AppShell>
           <Toaster position="top-center" />
         </ThemeProvider>
       </body>
