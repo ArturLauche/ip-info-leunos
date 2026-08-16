@@ -317,25 +317,16 @@
   }
 
   /*
-   * Page-change transition: the new route's header, panel and footer ease in
-   * with a gentle fade and lift, lightly staggered so the page settles
-   * smoothly instead of popping into place. Mobile uses a longer, more fluid
-   * curve and a slightly larger travel so the handoff reads as a page change.
+   * Page-change transition: the new route's header and panel ease in with a
+   * gentle fade and lift, lightly staggered so the page settles smoothly
+   * instead of popping into place.
    */
-  .tool-page-transition {
-    overflow-x: clip;
-  }
-
   .tool-page-transition > [data-transition-stage] {
     animation: tool-page-enter 440ms var(--ease-out-soft) both;
   }
 
   .tool-page-transition > [data-transition-stage='panel'] {
-    animation-delay: 70ms;
-  }
-
-  .tool-page-transition > [data-transition-stage='footer'] {
-    animation-delay: 120ms;
+    animation-delay: 90ms;
   }
 
   /*
@@ -369,30 +360,6 @@
   }
 }
 
-@keyframes tool-page-enter-mobile {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 1rem, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes tool-page-exit-mobile {
-  from {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translate3d(0, -0.5rem, 0);
-  }
-}
-
 @keyframes tool-reveal {
   from {
     opacity: 0;
@@ -403,91 +370,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/*
- * View Transitions: old page yields quickly, new page arrives more slowly.
- * Chrome groups are frozen so the shell does not slide with the content.
- */
-::view-transition {
-  pointer-events: none;
-}
-
-@media (max-width: 1023px) {
-  .tool-mobile-chrome {
-    view-transition-name: mobile-chrome;
-  }
-}
-
-@media (min-width: 1024px) {
-  .tool-desktop-chrome {
-    view-transition-name: desktop-chrome;
-  }
-}
-
-::view-transition-group(mobile-chrome),
-::view-transition-group(desktop-chrome) {
-  animation: none;
-  z-index: 30;
-}
-
-::view-transition-old(mobile-chrome),
-::view-transition-old(desktop-chrome) {
-  display: none;
-}
-
-::view-transition-new(mobile-chrome),
-::view-transition-new(desktop-chrome) {
-  animation: none;
-}
-
-::view-transition-old(.page-exit) {
-  animation: 180ms var(--ease-smooth) both tool-page-enter reverse;
-}
-
-::view-transition-new(.page-enter) {
-  animation: 420ms var(--ease-out-soft) both tool-page-enter;
-}
-
-@media (max-width: 1023px) {
-  .tool-page-transition > [data-transition-stage] {
-    animation-name: tool-page-enter-mobile;
-    animation-duration: 560ms;
-    animation-timing-function: var(--ease-fluid);
-  }
-
-  .tool-page-transition > [data-transition-stage='panel'] {
-    animation-delay: 80ms;
-  }
-
-  .tool-page-transition > [data-transition-stage='footer'] {
-    animation-delay: 140ms;
-  }
-
-  ::view-transition-old(.page-exit) {
-    animation: 220ms var(--ease-smooth) both tool-page-exit-mobile;
-  }
-
-  ::view-transition-new(.page-enter) {
-    animation: 520ms var(--ease-fluid) 40ms both tool-page-enter-mobile;
-  }
-}
-
-/*
- * While the mobile nav sheet is revealing the destination, skip page motion —
- * the drawer close is the transition, and the new page is already painted.
- */
-html[data-page-reveal='sheet'] .tool-page-transition > [data-transition-stage],
-html:active-view-transition .tool-page-transition > [data-transition-stage] {
-  animation: none;
-}
-
-html[data-page-reveal='sheet']::view-transition-old(*),
-html[data-page-reveal='sheet']::view-transition-new(*),
-html[data-page-reveal='sheet']::view-transition-group(*) {
-  animation: none !important;
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -502,13 +384,5 @@ html[data-page-reveal='sheet']::view-transition-group(*) {
   .tool-reveal,
   .tool-reveal > * {
     animation: none;
-  }
-
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
-    animation: none !important;
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
   }
 }

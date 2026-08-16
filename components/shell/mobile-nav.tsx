@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
@@ -14,12 +14,6 @@ import {
 } from "@/components/ui/sheet";
 import { ModeToggle } from "@/components/mode-toggle";
 import { type Locale } from "@/lib/i18n";
-import {
-  clearPageReveal,
-  markSheetPageReveal,
-  SHEET_NAV_CLOSE_DELAY_MS,
-  SHEET_PAGE_REVEAL_MS,
-} from "@/lib/page-reveal";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { siteConfig } from "@/lib/seo";
 import { BrandMark } from "./brand-mark";
@@ -35,40 +29,7 @@ interface MobileNavProps {
 /** Sticky top bar with a slide-out navigation sheet for small screens. */
 export function MobileNav({ locale, active }: MobileNavProps) {
   const [open, setOpen] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
-  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
   const toolT = getToolTranslation(locale);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(closeTimerRef.current);
-      clearTimeout(revealTimerRef.current);
-      // The reveal flag lives on <html>, so cancelling the timer alone would
-      // leave page transitions permanently suppressed after an unmount.
-      clearPageReveal();
-    };
-  }, []);
-
-  function handleNavigate() {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setOpen(false);
-      return;
-    }
-
-    markSheetPageReveal();
-    clearTimeout(closeTimerRef.current);
-    clearTimeout(revealTimerRef.current);
-    closeTimerRef.current = setTimeout(() => {
-      setOpen(false);
-    }, SHEET_NAV_CLOSE_DELAY_MS);
-    revealTimerRef.current = setTimeout(() => {
-      clearPageReveal();
-    }, SHEET_PAGE_REVEAL_MS);
-  }
 
   const themeLabels = {
     toggle: toolT.themeToggle,
@@ -78,7 +39,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
   };
 
   return (
-    <header className="tool-mobile-chrome sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/85 px-4 backdrop-blur-xl lg:hidden">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/85 px-4 backdrop-blur-xl lg:hidden">
       <Link href="/" className="flex items-center gap-2.5">
         <BrandMark className="size-8" />
         <span className="text-sm font-semibold tracking-tight text-foreground">
@@ -97,8 +58,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
           </SheetTrigger>
           <SheetContent
             side="left"
-            overlayClassName="duration-[400ms] ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=open]:ease-[var(--ease-fluid)] motion-reduce:duration-0"
-            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-fluid)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[360ms] motion-reduce:duration-0"
+            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[300ms] motion-reduce:duration-0"
           >
             <SheetHeader className="h-16 justify-center border-b border-sidebar-border px-5">
               <SheetTitle className="flex items-center gap-3">
@@ -117,7 +77,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
               <NavLinks
                 locale={locale}
                 active={active}
-                onNavigate={handleNavigate}
+                onNavigate={() => setOpen(false)}
               />
             </div>
           </SheetContent>
