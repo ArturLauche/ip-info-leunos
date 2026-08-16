@@ -79,10 +79,7 @@ export function ToolPageShell({
         {children}
       </main>
 
-      <footer
-        className="border-t border-border/60"
-        data-transition-stage="footer"
-      >
+      <footer className="border-t border-border/60">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/privacy-policy"

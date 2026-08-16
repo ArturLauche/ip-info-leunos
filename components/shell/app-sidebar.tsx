@@ -19,7 +19,7 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
   const toolT = getToolTranslation(locale);
 
   return (
-    <aside className="tool-desktop-chrome fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-xl lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur-xl lg:flex">
       <div className="flex h-16 items-center px-5">
         <Link
           href="/"
