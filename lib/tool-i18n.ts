@@ -29,6 +29,19 @@ type ToolTranslation = {
   commandHintNavigate: string;
   commandHintSelect: string;
   commandHintClose: string;
+  notFoundTitle: string;
+  notFoundDescription: string;
+  notFoundBackHome: string;
+  errorTitle: string;
+  errorDescription: string;
+  errorRetry: string;
+  reputationStatusHeader: string;
+  asnRpkiValid: string;
+  asnRpkiInvalid: string;
+  asnRpkiStatus: string;
+  cdnConfidenceHigh: string;
+  cdnConfidenceMedium: string;
+  cdnConfidenceLow: string;
   pingTabLabel: string;
   dnsTabLabel: string;
   whoisTabLabel: string;
@@ -302,6 +315,21 @@ const en: ToolTranslation = {
   commandHintNavigate: "Navigate",
   commandHintSelect: "Open",
   commandHintClose: "Close",
+  notFoundTitle: "Page not found",
+  notFoundDescription:
+    "This address does not belong to any tool. Head back to the start page, or use the search (Ctrl+K).",
+  notFoundBackHome: "Back to the start page",
+  errorTitle: "Something went wrong",
+  errorDescription:
+    "This page could not be loaded. Try again — if it keeps failing, the cause is on our side.",
+  errorRetry: "Try again",
+  reputationStatusHeader: "Status",
+  asnRpkiValid: "RPKI valid",
+  asnRpkiInvalid: "RPKI invalid",
+  asnRpkiStatus: "RPKI {status}",
+  cdnConfidenceHigh: "High",
+  cdnConfidenceMedium: "Medium",
+  cdnConfidenceLow: "Low",
   pingTabLabel: "Ping Tester",
   dnsTabLabel: "DNS Lookup",
   whoisTabLabel: "WHOIS Lookup",
@@ -584,6 +612,24 @@ const de: Partial<ToolTranslation> = {
   commandHintNavigate: "Navigieren",
   commandHintSelect: "Öffnen",
   commandHintClose: "Schließen",
+  notFoundTitle: "Seite nicht gefunden",
+  notFoundDescription:
+    "Diese Adresse gehört zu keinem Tool. Zurück zur Startseite — oder nutze die Suche (Strg+K).",
+  notFoundBackHome: "Zur Startseite",
+  errorTitle: "Etwas ist schiefgelaufen",
+  errorDescription:
+    "Diese Seite konnte nicht geladen werden. Bitte versuche es erneut — wiederholt sich der Fehler, liegt die Ursache bei uns.",
+  errorRetry: "Erneut versuchen",
+  reputationStatusHeader: "Status",
+  asnRpkiValid: "RPKI gültig",
+  asnRpkiInvalid: "RPKI ungültig",
+  asnRpkiStatus: "RPKI {status}",
+  cdnConfidenceHigh: "Hoch",
+  cdnConfidenceMedium: "Mittel",
+  cdnConfidenceLow: "Niedrig",
+  targetPlaceholder: "example.com",
+  whoisPlaceholder: "example.com oder 8.8.8.8",
+  cdnConfidenceNa: "k. A.",
   pingTitle: "Ping- & Port-Tester",
   pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",

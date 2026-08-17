@@ -2,7 +2,7 @@
 
 import { type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
-import { getToolTranslation } from "@/lib/tool-i18n";
+import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
@@ -230,7 +230,10 @@ export function PingChecker({
       if (seq === requestSeq.current) setResult(data);
     } catch (checkError) {
       if (seq === requestSeq.current) {
-        setError((checkError as Error).message || t.pingNetworkError);
+        // Map by error code like every other checker, so rate limits and
+        // validation failures show translated messages instead of the raw
+        // backend string.
+        setError(getApiErrorMessage(checkError, t, t.pingNetworkError));
       }
     } finally {
       if (seq === requestSeq.current) setLoading(false);

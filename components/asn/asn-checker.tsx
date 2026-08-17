@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
@@ -29,6 +30,7 @@ interface AsnCheckerProps {
 export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   const t = getToolTranslation(locale);
   const [showSourceInfo, setShowSourceInfo] = useState(false);
+  const searchParams = useSearchParams();
 
   // Deep links may carry arbitrary input; pass it through so the API can
   // reject it with a translated validation error.
@@ -62,20 +64,14 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     [locale, run, showError, t],
   );
 
+  // Re-sync the source-info flag whenever the URL changes under us. Reacting
+  // to searchParams (not hashchange/popstate) also covers client-side
+  // pushState navigations from the command palette or in-page links.
+  const sourceInfoInUrl = searchParams.has("source-info") || searchParams.has("sourceInfo");
+
   useEffect(() => {
-    const syncSourceInfoFlag = () => {
-      setShowSourceInfo(hasSourceInfoFlag());
-    };
-
-    syncSourceInfoFlag();
-    window.addEventListener("hashchange", syncSourceInfoFlag);
-    window.addEventListener("popstate", syncSourceInfoFlag);
-
-    return () => {
-      window.removeEventListener("hashchange", syncSourceInfoFlag);
-      window.removeEventListener("popstate", syncSourceInfoFlag);
-    };
-  }, []);
+    setShowSourceInfo(sourceInfoInUrl || window.location.hash === "#source-info");
+  }, [sourceInfoInUrl]);
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -128,7 +124,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
           <QuickStats result={result} t={t} locale={locale} />
           <RoutingSection result={result} t={t} locale={locale} />
-          <IxPresenceSection result={result} t={t} />
+          <IxPresenceSection result={result} t={t} locale={locale} />
           <PrefixSection result={result} t={t} />
 
           {result.peeringdb && <PeeringDbProfileSection profile={result.peeringdb} t={t} />}

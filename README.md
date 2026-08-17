@@ -61,6 +61,14 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
+> **Windows + OneDrive note:** if the repository lives inside an
+> OneDrive-synced folder, Turbopack (the default `next dev`/`next build`
+> engine in Next 16) may fail to resolve pnpm-symlinked packages such as
+> `@radix-ui/*`, even though lint, typecheck, tests, and webpack builds pass.
+> This is a local-environment issue, not a repository issue. Use
+> `pnpm exec next dev --webpack` / `pnpm exec next build --webpack` locally,
+> or clone the repository outside OneDrive.
+
 ## Quality Checks
 
 ```bash

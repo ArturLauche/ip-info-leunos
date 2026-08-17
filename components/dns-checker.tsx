@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
@@ -85,6 +86,13 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
           title={t.dnsEmptyTitle}
           description={t.dnsEmptyDescription}
         />
+      )}
+
+      {loading && (
+        <div className="flex flex-col gap-4" aria-hidden="true">
+          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-56 rounded-lg" />
+        </div>
       )}
 
       {error && <ErrorPanel message={error} />}

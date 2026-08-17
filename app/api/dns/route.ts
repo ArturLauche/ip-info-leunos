@@ -10,6 +10,11 @@ export const runtime = "nodejs";
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA", "SRV", "CAA"] as const;
 type RecordType = (typeof RECORD_TYPES)[number] | "PTR";
 
+// Bounds each individual resolver call. The OS resolver can retry for tens
+// of seconds on unresponsive nameservers; racing it keeps the route latency
+// predictable while fast record types still return normally.
+const RESOLVE_TIMEOUT_MS = 6_000;
+
 const dnsQuerySchema = z.object({
   target: z.string().trim().min(1).max(253),
 });
@@ -31,9 +36,29 @@ function errorCode(error: unknown) {
   return (error as NodeJS.ErrnoException).code || (error as Error).message;
 }
 
+function raceResolveTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("DNS query timed out.")),
+      RESOLVE_TIMEOUT_MS,
+    );
+    timer.unref?.();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function resolveByType(hostname: string, type: (typeof RECORD_TYPES)[number]): Promise<ResolveResult> {
   try {
-    const resolved = await dns.resolve(hostname, type);
+    const resolved = await raceResolveTimeout(dns.resolve(hostname, type));
     const records = Array.isArray(resolved) ? resolved : [resolved];
     return {
       type,
@@ -46,7 +71,7 @@ async function resolveByType(hostname: string, type: (typeof RECORD_TYPES)[numbe
 
 async function resolvePtr(ip: string): Promise<ResolveResult> {
   try {
-    const names = await dns.reverse(ip);
+    const names = await raceResolveTimeout(dns.reverse(ip));
     return {
       type: "PTR",
       records: names.map((value) => ({ type: "PTR" as const, value })),
@@ -96,7 +121,7 @@ export async function GET(request: Request) {
   }
 
   const [lookupResult, recordsByType] = await Promise.all([
-    dns.lookup(hostname, { all: true }).then(
+    raceResolveTimeout(dns.lookup(hostname, { all: true })).then(
       (value) => ({ ok: true as const, value }),
       (error) => ({ ok: false as const, error: error as NodeJS.ErrnoException }),
     ),

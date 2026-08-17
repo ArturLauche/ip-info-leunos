@@ -206,7 +206,9 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             onKeyDown={handleKeyDown}
             placeholder={t.commandPlaceholder}
             role="combobox"
-            aria-expanded
+            aria-expanded="true"
+            aria-haspopup="listbox"
+            aria-autocomplete="list"
             aria-controls="command-list"
             aria-activedescendant={
               items.length > 0 ? `command-item-${activeIndex}` : undefined
@@ -223,25 +225,28 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
           id="command-list"
           ref={listRef}
           role="listbox"
+          aria-label={t.commandPlaceholder}
           className="max-h-[min(60vh,24rem)] overflow-y-auto p-2"
         >
-          {items.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-              {t.commandEmpty}
-            </p>
-          ) : (
+          {items.length > 0 && (
             <>
               {actionItems.length > 0 && (
-                <div className="mb-1">
-                  <p className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <div role="group" aria-labelledby="command-group-actions" className="mb-1">
+                  <p
+                    id="command-group-actions"
+                    className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70"
+                  >
                     {t.commandGroupActions}
                   </p>
                   {actionItems.map((item, index) => renderItem(item, index))}
                 </div>
               )}
               {pageItems.length > 0 && (
-                <div>
-                  <p className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <div role="group" aria-labelledby="command-group-pages">
+                  <p
+                    id="command-group-pages"
+                    className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70"
+                  >
                     {t.commandGroupPages}
                   </p>
                   {pageItems.map((item, index) =>
@@ -252,6 +257,11 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             </>
           )}
         </div>
+        {items.length === 0 && (
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+            {t.commandEmpty}
+          </p>
+        )}
 
         <div className="flex items-center gap-4 border-t border-border/50 px-4 py-2.5 text-[0.7rem] text-muted-foreground">
           <span className="flex items-center gap-1.5">

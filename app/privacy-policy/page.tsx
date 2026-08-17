@@ -17,7 +17,7 @@ import { siteConfig } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "Datenschutzerklärung",
   description:
-    "Datenschutzerklärung: Umgang mit IP-Adressen, eingebundene Dienste und deine Rechte nach DSGVO.",
+    "Wie IP Auskunft mit IP-Adressen umgeht: Verarbeitung, eingebundene Dienste und deine Rechte nach DSGVO.",
   path: "/privacy-policy",
   keywords: ["Datenschutz", "DSGVO", "Privacy Policy"],
 });

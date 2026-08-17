@@ -6,6 +6,7 @@ import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
@@ -79,6 +80,13 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
           title={t.whoisEmptyTitle}
           description={t.whoisEmptyDescription}
         />
+      )}
+
+      {loading && (
+        <div className="grid gap-4 md:grid-cols-2" aria-hidden="true">
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+        </div>
       )}
 
       {error && <ErrorPanel message={error} />}

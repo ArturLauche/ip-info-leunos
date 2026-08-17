@@ -41,7 +41,6 @@ export function ModeToggle({ labels, align = "end" }: ModeToggleProps) {
         <Button variant="ghost" size="icon-sm" aria-label={labels.toggle}>
           <Sun className="size-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
           <MoonStar className="absolute size-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-          <span className="sr-only">{labels.toggle}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="min-w-36">

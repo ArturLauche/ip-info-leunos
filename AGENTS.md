@@ -52,13 +52,16 @@ lib/
   api/                  response.ts, rate-limit.ts, client.ts (ApiClientError)
   network/              target.ts (SSRF-Schutz), database-probes.ts
   providers/            ip-api.ts (gemeinsamer ip-api.com-Client)
+  cdn-detection.ts      CDN-Signaturen + detectCdn (pur, von /api/cdn genutzt)
   connection-type.ts    Verbindungstyp-Codes + Proxy-Heuristik (pur, getestet)
   dns-records.ts        DNS-Record-Werte lesbar formatieren
   whois.ts              WHOIS-Parsing, Referral-Normalisierung
   format.ts             formatTemplate, formatNumber, valueOrDash
   utils.ts              cn() (clsx + tailwind-merge) für shadcn-Komponenten
   i18n.ts, tool-i18n.ts, seo.ts, asn.ts, reputation.ts, client-ip-discovery.ts
-public/                 Icons, Verifikation
+app/not-found.tsx       Lokalisierte 404-Seite (noindex) innerhalb der App-Shell
+app/error.tsx           Route-Error-Boundary (Client, Retry + digest)
+public/                 Icons, Verifikation, llms.txt, og-image.png (1200×630)
 app/globals.css         Design-Tokens (Tailwind 4, OKLCH, Light `:root` + `.dark`)
 components.json         shadcn-Konfiguration (New York, Tokens, Aliases)
 ```
@@ -107,8 +110,9 @@ Navigation und `ToolKey`: `components/shell/nav-config.ts` — `home | check | a
 | `/api/cdn` | GET | 20/min | Node |
 | `/api/ping` | POST (JSON) | 20/min | `nodejs` |
 | `/api/reputation` | GET | 20/min | `nodejs` |
+| `/api/flag/[code]` | GET | — (immutable, `force-cache`) | `nodejs` |
 
-Jede Route beginnt mit `enforceRateLimit(request, routeKey, { limit, windowMs })` aus `lib/api/rate-limit.ts`.
+Jede Route beginnt mit `enforceRateLimit(request, routeKey, { limit, windowMs })` aus `lib/api/rate-limit.ts` (Ausnahme: `/api/flag` — cachet unveränderliche SVG-Flaggen same-origin von flagcdn.com, 2-Buchstaben-Code via zod-artiger Regex-Prüfung validiert).
 
 `/api/ip` liefert `connectionType` als **Code** (`datacenter`, `fiber`, `dsl`, ... — siehe `lib/connection-type.ts`); die Übersetzung passiert im Client über `t.connectionTypes`. Unbekannte Felder sind **leere Strings**, niemals server-seitig übersetzte Platzhalter.
 
@@ -192,7 +196,7 @@ Client: `unwrapApiResponse<T>()` wirft bei `ok: false` einen **`ApiClientError`*
 - Server: Locale aus `Accept-Language` (Aliase wie `de-de` → `de`, Default `en`).
 - Client-Checker erhalten `locale` als Prop — **kein** React Context, **kein** next-intl.
 - API-Routes liefern **keine** übersetzten Texte; Daten sind Codes oder leere Strings, die UI übersetzt.
-- `<html lang="de">` in `app/layout.tsx` ist fest (unabhängig von Accept-Language).
+- `<html lang>` in `app/layout.tsx` folgt der aufgelösten Locale (`<html lang={locale}>`), damit die deklarierte Dokumentsprache immer zur gerenderten UI-Sprache passt.
 
 Neue UI-Strings: beide Dateien konsistent pflegen; Deutsch in `tool-i18n` per Spread über Englisch (`de: { ...en, ...de }`).
 
@@ -239,7 +243,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 | Client-IP | `lib/client-ip-discovery.test.ts` |
 | DB-Probes | `lib/network/database-probes.test.ts` |
 | Command-Palette (Query-Klassifizierung/Deep-Links) | `lib/command.test.ts` |
-| Routes | `app/api/ping/route.test.ts`, `app/api/cdn/route.test.ts` |
+| Routes / CDN-Erkennung | `app/api/ping/route.test.ts`, `lib/cdn-detection.test.ts` |
 
 **Nicht vorhanden:** Komponenten-E2E, jsdom, Integrationstests für `/api/ip`, `/api/dns`, `/api/whois`.
 

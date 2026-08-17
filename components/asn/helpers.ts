@@ -33,13 +33,13 @@ export function hasSourceInfoFlag() {
   return searchParams.has("source-info") || searchParams.has("sourceInfo") || window.location.hash === "#source-info";
 }
 
-export function formatSpeed(speed: number | null | undefined, t: ToolTranslation) {
+export function formatSpeed(speed: number | null | undefined, t: ToolTranslation, locale: Locale) {
   if (!speed) return "-";
   if (speed >= 1_000_000) {
     return `${(speed / 1_000_000).toFixed(0)} Tbps`;
   }
   if (speed >= 1_000) {
-    return `${(speed / 1_000).toLocaleString()} Gbps`;
+    return `${formatNumber(Math.round(speed / 1000), locale)} Gbps`;
   }
   return `${speed} ${t.asnSpeedMbps}`;
 }

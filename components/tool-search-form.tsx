@@ -47,6 +47,9 @@ export function ToolSearchForm({
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
+          // The search inputs have no visible label; the placeholder doubles
+          // as the accessible name so screen readers announce the field.
+          aria-label={placeholder}
           placeholder={placeholder}
           autoComplete="off"
           autoCapitalize="off"

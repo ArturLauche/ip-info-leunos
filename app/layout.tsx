@@ -89,29 +89,8 @@ const jsonLd = {
       inLanguage: ['de-DE', 'en'],
       publisher: { '@id': `${siteConfig.url}/#organization` },
     },
-    {
-      '@type': ['SoftwareApplication', 'WebApplication'],
-      '@id': `${siteConfig.url}/#software`,
-      name: siteConfig.name,
-      url: siteConfig.url,
-      description: siteConfig.description,
-      applicationCategory: 'UtilitiesApplication',
-      applicationSubCategory: 'Internet and network information toolbox',
-      operatingSystem: 'Any system with a modern web browser',
-      isAccessibleForFree: true,
-      offers: { '@type': 'Offer', price: 0, priceCurrency: 'EUR' },
-      featureList: [
-        'Öffentliche IPv4- und IPv6-Adresse anzeigen',
-        'Öffentliche IP-Adressen und Domains analysieren',
-        'ASN-, Prefix-, Routing- und Peeringdaten nachschlagen',
-        'DNS- und Whois-Daten abfragen',
-        'CDN- und Edge-Anbieter-Signale erkennen',
-        'Öffentliche Hosts, Ports und Dienste auf Erreichbarkeit prüfen',
-        'IP-Reputation mit Blacklist- und Netzwerksignalen einordnen',
-      ],
-      provider: { '@id': `${siteConfig.url}/#organization` },
-      isPartOf: { '@id': `${siteConfig.url}/#website` },
-    },
+    // The WebApplication node is emitted per page by ToolStructuredData;
+    // a second site-wide copy here would duplicate the graph on every route.
   ],
 }
 
@@ -123,7 +102,9 @@ export default async function RootLayout({
   const locale = resolveLocale((await headers()).get('accept-language'))
 
   return (
-    <html lang="de" suppressHydrationWarning>
+    // lang follows the negotiated locale so the declared document language
+    // always matches the UI language the shell and checkers render.
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <StructuredData data={jsonLd} />
         <ThemeProvider

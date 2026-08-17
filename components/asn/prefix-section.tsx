@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Network } from "lucide-react";
 import type { AsnPrefix, AsnProfile } from "@/lib/asn";
+import { formatTemplate } from "@/lib/format";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,19 +16,19 @@ function PrefixItem({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
   if (rpki === "valid") {
     rpkiBadge = (
       <Badge variant="success" className="text-[0.65rem] uppercase">
-        RPKI Valid
+        {t.asnRpkiValid}
       </Badge>
     );
   } else if (rpki === "invalid") {
     rpkiBadge = (
       <Badge variant="destructive" className="text-[0.65rem] uppercase">
-        RPKI Invalid
+        {t.asnRpkiInvalid}
       </Badge>
     );
   } else if (prefix.rpkiStatus) {
     rpkiBadge = (
       <Badge variant="secondary" className="text-[0.65rem] uppercase">
-        RPKI {prefix.rpkiStatus}
+        {formatTemplate(t.asnRpkiStatus, { status: prefix.rpkiStatus })}
       </Badge>
     );
   }

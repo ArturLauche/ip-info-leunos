@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CircleCheck, Server, Waypoints } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
+import type { Locale } from "@/lib/i18n";
 import { valueOrDash } from "@/lib/format";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,15 @@ function SpeedBar({ pct }: { pct: number }) {
   );
 }
 
-export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
+export function IxPresenceSection({
+  result,
+  t,
+  locale,
+}: {
+  result: AsnProfile;
+  t: ToolTranslation;
+  locale: Locale;
+}) {
   const ixlan = useMemo(() => result.peeringdb?.ixlan || [], [result.peeringdb]);
   const total = result.peeringdb?.ixlanTotal || 0;
 
@@ -92,7 +101,7 @@ export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTr
                   <TableCell>
                     <div className="flex min-w-[120px] flex-col gap-1.5">
                       <span className="font-mono text-xs font-semibold text-foreground/90">
-                        {formatSpeed(entry.speed, t)}
+                        {formatSpeed(entry.speed, t, locale)}
                       </span>
                       {entry.speed ? <SpeedBar pct={speedPct} /> : null}
                     </div>
@@ -144,7 +153,7 @@ export function IxPresenceSection({ result, t }: { result: AsnProfile; t: ToolTr
                     {t.asnLabelSpeed}
                   </span>
                   <div className="mt-1 flex flex-col gap-1">
-                    <span className="font-mono font-bold text-foreground">{formatSpeed(entry.speed, t)}</span>
+                    <span className="font-mono font-bold text-foreground">{formatSpeed(entry.speed, t, locale)}</span>
                     {entry.speed ? <SpeedBar pct={speedPct} /> : null}
                   </div>
                 </div>

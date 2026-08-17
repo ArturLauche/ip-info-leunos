@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -65,8 +65,6 @@ interface IpData {
   mobile: boolean;
   proxy: boolean;
   proxyType?: "tor" | "vpn" | "hosting-proxy" | "unknown";
-  proxyConfidence?: "none" | "low" | "medium" | "high";
-  proxyReasons?: string[];
   hosting: boolean;
   connectionType: ConnectionType;
   ipSources?: {
@@ -92,13 +90,17 @@ function CopyButton({
   copiedLabel: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       toast.success(copiedLabel);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard can be unavailable in some browsers/contexts.
     }

@@ -40,7 +40,10 @@ export function MobileNav({ locale, active }: MobileNavProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/85 px-4 backdrop-blur-xl lg:hidden">
-      <Link href="/" className="flex items-center gap-2.5">
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60"
+      >
         <BrandMark className="size-8" />
         <span className="text-sm font-semibold tracking-tight text-foreground">
           {siteConfig.name}
@@ -58,7 +61,9 @@ export function MobileNav({ locale, active }: MobileNavProps) {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[300ms] motion-reduce:duration-0"
+            // Close faster than the page transition so the drawer clears as
+            // the destination's enter motion peaks; open stays slow and fluid.
+            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[220ms] motion-reduce:duration-0"
           >
             <SheetHeader className="h-16 justify-center border-b border-sidebar-border px-5">
               <SheetTitle className="flex items-center gap-3">

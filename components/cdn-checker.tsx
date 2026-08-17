@@ -42,6 +42,16 @@ interface CdnResult {
   headers: HeaderPair[];
 }
 
+function confidenceLabel(
+  confidence: CdnResult["confidence"],
+  t: ReturnType<typeof getToolTranslation>,
+) {
+  if (confidence === "high") return t.cdnConfidenceHigh;
+  if (confidence === "medium") return t.cdnConfidenceMedium;
+  if (confidence === "low") return t.cdnConfidenceLow;
+  return t.cdnConfidenceNa;
+}
+
 function confidenceVariant(
   confidence: CdnResult["confidence"],
 ): "success" | "warning" | "info" | "secondary" {
@@ -134,7 +144,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                 variant={confidenceVariant(result.confidence)}
                 className="uppercase"
               >
-                {result.confidence || t.cdnConfidenceNa}
+                {confidenceLabel(result.confidence, t)}
               </Badge>
             </div>
             <p className="px-5 text-sm text-muted-foreground">{result.reason}</p>

@@ -42,12 +42,23 @@ export default async function AsnDeepLinkPage({ params }: AsnDeepLinkPageProps) 
   const t = getToolTranslation(locale);
   const { asn } = await params;
 
+  // The deep-linked ASN belongs in the visible H1: every /asn/[asn] page
+  // shares the metadata template, so a static shell title would put thousands
+  // of distinct pages behind one identical headline.
+  let displayTitle = t.asnTitle;
+  try {
+    displayTitle = `${normalizeAsnInput(asn).asn} – ${t.asnTitle}`;
+  } catch {
+    // Invalid input keeps the generic title; the checker surfaces the
+    // translated validation error.
+  }
+
   return (
     <ToolPageShell
       locale={locale}
       active="asn"
       icon={Waypoints}
-      title={t.asnTitle}
+      title={displayTitle}
       subtitle={t.asnSubtitle}
     >
       <AsnChecker locale={locale} initialAsn={asn} />

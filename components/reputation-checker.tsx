@@ -240,7 +240,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
               <TableHeader className="sr-only">
                 <TableRow>
                   <TableHead>{t.reputationBlacklistsLabel}</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
+                  <TableHead className="text-right">{t.reputationStatusHeader}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

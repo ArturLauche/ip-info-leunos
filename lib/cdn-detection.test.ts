@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectCdn } from "./route";
+import { detectCdn } from "./cdn-detection";
 
 describe("CDN detection", () => {
   it("detects Cloudflare from headers", () => {
@@ -31,5 +31,11 @@ describe("CDN detection", () => {
       provider: "Amazon CloudFront",
       confidence: "high",
     });
+  });
+
+  it("returns null when no CDN signals are present", () => {
+    const detection = detectCdn(new Headers({ server: "nginx" }), [], "example.com");
+
+    expect(detection).toBeNull();
   });
 });
