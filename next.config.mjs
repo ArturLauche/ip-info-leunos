@@ -4,6 +4,8 @@ const nextConfig = {
     unoptimized: true,
   },
   poweredByHeader: false,
+  // Client maps are also stripped after build (scripts/strip-client-maps.mjs)
+  // because Turbopack still emits the nomodule-polyfill map (Next.js #89894).
   productionBrowserSourceMaps: false,
   async headers() {
     return [

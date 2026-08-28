@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/strip-client-maps.mjs",
     "start": "next start",
     "lint": "eslint .",
     "icons": "node scripts/generate-icons.mjs",
