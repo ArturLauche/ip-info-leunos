@@ -347,7 +347,7 @@ export function PingChecker({
                       <Label htmlFor="ping-username">{t.pingUsername}</Label>
                       <Input
                         id="ping-username"
-                        name="username"
+                        name="databaseUsername"
                         value={username}
                         onChange={(event) => setUsername(event.target.value)}
                         autoComplete="off"
@@ -357,7 +357,7 @@ export function PingChecker({
                       <Label htmlFor="ping-password">{t.pingPassword}</Label>
                       <Input
                         id="ping-password"
-                        name="password"
+                        name="databasePassword"
                         type="password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}

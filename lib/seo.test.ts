@@ -52,17 +52,11 @@ describe("createPageMetadata", () => {
 });
 
 describe("schemaInLanguage", () => {
-  it("lists every UI locale for the WebSite node", () => {
-    expect([...schemaInLanguage]).toEqual([
-      "de-DE",
-      "en",
-      "es",
-      "fr",
-      "pt-BR",
-      "ja",
-      "ru",
-      "zh-CN",
-    ]);
-    expect(schemaInLanguage).toHaveLength(SUPPORTED_LOCALES.length);
+  it("is derived from every UI locale, with de published as de-DE", () => {
+    expect(schemaInLanguage).toEqual(
+      SUPPORTED_LOCALES.map((locale) => (locale === "de" ? "de-DE" : locale)),
+    );
+    expect(schemaInLanguage).toContain("de-DE");
+    expect(schemaInLanguage).not.toContain("de");
   });
 });

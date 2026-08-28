@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SUPPORTED_LOCALES } from "@/lib/i18n";
 
 export const siteConfig = {
   name: "IP Auskunft",
@@ -32,19 +33,11 @@ const openGraphImageAlt = `${siteConfig.name} – Netzwerk- & IP-Toolkit`;
 
 /**
  * Schema.org `inLanguage` tags for every UI locale. `de` is published as
- * `de-DE` to match the site's primary market. Keep in sync with
- * `SUPPORTED_LOCALES` in `lib/i18n.ts`.
+ * `de-DE` to match the site's primary market.
  */
-export const schemaInLanguage = [
-  "de-DE",
-  "en",
-  "es",
-  "fr",
-  "pt-BR",
-  "ja",
-  "ru",
-  "zh-CN",
-] as const;
+export const schemaInLanguage = SUPPORTED_LOCALES.map((locale) =>
+  locale === "de" ? "de-DE" : locale,
+);
 
 /** Absolute document title. Next.js `title.template` is not applied to `app/page.tsx`. */
 export function documentTitle(title: string): string {
