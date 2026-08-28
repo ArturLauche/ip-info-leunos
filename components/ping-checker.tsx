@@ -3,6 +3,7 @@
 import { type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   CircleCheck,
   Loader2,
@@ -65,6 +75,8 @@ const AUTO_FILLED_PORTS = new Set<number>([
   ...Object.values(MODE_DEFAULT_PORTS),
   ...Object.values(DB_DEFAULT_PORTS).filter((value) => value > 0),
 ]);
+
+const PING_MODES: PingMode[] = ["tcp", "udp", "eb", "database"];
 
 const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "postgres", label: "PostgreSQL" },
@@ -114,6 +126,13 @@ export function PingChecker({
   // the in-flight request) from external navigation (command palette, links).
   const selfSubmitted = useRef<{ target: string; port: string; mode: PingMode } | null>(null);
   const t = getToolTranslation(locale);
+  const isDatabase = mode === "database";
+  const {
+    listRef: modeListRef,
+    setItemRef: setModeTabRef,
+    box: modeTabBox,
+    canAnimate: modeTabCanAnimate,
+  } = useSlidingTabHighlight(mode);
 
   // Sync the URL-backed fields when they change on the same route (e.g. the
   // command palette navigating /ping → /ping?target=…); the component stays
@@ -244,135 +263,185 @@ export function PingChecker({
     <div className="flex w-full flex-col gap-6">
       <form onSubmit={onSubmit}>
         <Card className="gap-0 overflow-hidden py-0">
-          <div className="flex flex-col gap-5 p-5">
-            <div className="flex flex-col gap-2.5">
-              <Label>{t.pingTestMode}</Label>
-              <Tabs value={mode} onValueChange={(value) => onModeChange(value as PingMode)}>
-                <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
-                  {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => (
-                    <TabsTrigger key={value} value={value} className="py-1.5">
-                      {modeLabels[value]}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              <p className="text-xs text-muted-foreground">{modeHelpers[mode]}</p>
-            </div>
-
-            {mode === "database" && (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ping-db-type">{t.pingDatabaseType}</Label>
-                <Select
-                  value={databaseType}
-                  onValueChange={(value) => onDatabaseTypeChange(value as DatabaseType)}
-                >
-                  <SelectTrigger id="ping-db-type" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DATABASE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <span className="font-medium">{option.label}</span>
-                        <span className="text-muted-foreground">
-                          {getDatabaseOptionDetail(option.value, locale)}
-                        </span>
-                      </SelectItem>
+          <div className="flex flex-col p-5">
+            <div className="flex flex-col gap-5">
+              <div>
+                <div className="flex flex-col gap-2.5">
+                  <Label>{t.pingTestMode}</Label>
+                  <Tabs value={mode} onValueChange={(value) => onModeChange(value as PingMode)}>
+                    <TabsList
+                      ref={modeListRef}
+                      className="relative isolate grid h-auto w-full grid-cols-2 overflow-hidden sm:grid-cols-4"
+                    >
+                      <span
+                        aria-hidden
+                        className="ping-mode-highlight"
+                        data-animate={
+                          modeTabCanAnimate && modeTabBox.visible ? "true" : undefined
+                        }
+                        style={{
+                          transform: `translate3d(${modeTabBox.x}px, ${modeTabBox.y}px, 0)`,
+                          width: modeTabBox.width,
+                          height: modeTabBox.height,
+                          opacity: modeTabBox.visible ? 1 : 0,
+                        }}
+                      />
+                      {PING_MODES.map((value) => (
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          ref={(node) => setModeTabRef(value, node)}
+                          className={cn(
+                            "relative z-10 py-1.5",
+                            modeTabBox.visible &&
+                              "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
+                          )}
+                        >
+                          {modeLabels[value]}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                  <div className="grid">
+                    {PING_MODES.map((value) => (
+                      <p
+                        key={value}
+                        className={cn(
+                          "col-start-1 row-start-1 text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)]",
+                          mode === value
+                            ? "z-10 opacity-100"
+                            : "pointer-events-none z-0 opacity-0 select-none",
+                        )}
+                        aria-hidden={mode !== value}
+                      >
+                        {modeHelpers[value]}
+                      </p>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                </div>
+                <ModeExpand open={isDatabase}>
+                  <div className="flex flex-col gap-2 pt-5">
+                    <Label htmlFor="ping-db-type">{t.pingDatabaseType}</Label>
+                    <Select
+                      value={databaseType}
+                      onValueChange={(value) => onDatabaseTypeChange(value as DatabaseType)}
+                    >
+                      <SelectTrigger id="ping-db-type" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DATABASE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-muted-foreground">
+                              {getDatabaseOptionDetail(option.value, locale)}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </ModeExpand>
               </div>
-            )}
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ping-target">{t.pingTargetHost}</Label>
-                <Input
-                  id="ping-target"
-                  value={target}
-                  onChange={(event) => setTarget(event.target.value)}
-                  placeholder="example.com"
-                  autoComplete="off"
-                  spellCheck={false}
-                  className="font-mono"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ping-port">{t.pingPort}</Label>
-                <Input
-                  id="ping-port"
-                  value={port}
-                  onChange={(event) => setPort(event.target.value)}
-                  placeholder="443"
-                  inputMode="numeric"
-                  className="font-mono"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ping-timeout">{t.pingTimeout}</Label>
-                <Input
-                  id="ping-timeout"
-                  value={timeoutMs}
-                  onChange={(event) => setTimeoutMs(event.target.value)}
-                  placeholder="3000"
-                  inputMode="numeric"
-                  className="font-mono"
-                />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ping-target">{t.pingTargetHost}</Label>
+                  <Input
+                    id="ping-target"
+                    value={target}
+                    onChange={(event) => setTarget(event.target.value)}
+                    placeholder="example.com"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ping-port">{t.pingPort}</Label>
+                  <Input
+                    id="ping-port"
+                    value={port}
+                    onChange={(event) => setPort(event.target.value)}
+                    placeholder="443"
+                    inputMode="numeric"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ping-timeout">{t.pingTimeout}</Label>
+                  <Input
+                    id="ping-timeout"
+                    value={timeoutMs}
+                    onChange={(event) => setTimeoutMs(event.target.value)}
+                    placeholder="3000"
+                    inputMode="numeric"
+                    className="font-mono"
+                  />
+                </div>
               </div>
             </div>
 
-            {mode === "database" && (
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3">
-                <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
-                  <LockKeyhole
-                    className={
-                      useAuth ? "size-4 text-primary" : "size-4 text-muted-foreground"
-                    }
-                  />
-                  {t.pingUseAuth}
-                </span>
-                <Switch checked={useAuth} onCheckedChange={setUseAuth} />
-              </label>
-            )}
-
-            {mode === "database" && useAuth && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="ping-username">{t.pingUsername}</Label>
-                  <Input
-                    id="ping-username"
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="ping-password">{t.pingPassword}</Label>
-                  <Input
-                    id="ping-password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label htmlFor="ping-database">{t.pingDatabaseOptional}</Label>
-                  <Input
-                    id="ping-database"
-                    value={database}
-                    onChange={(event) => setDatabase(event.target.value)}
-                    placeholder="postgres / admin / master"
-                    autoComplete="off"
-                  />
-                </div>
+            <ModeExpand open={isDatabase}>
+              <div className="pt-5">
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3">
+                  <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
+                    <LockKeyhole
+                      className={cn(
+                        "size-4 transition-colors duration-200 ease-[var(--ease-smooth)]",
+                        useAuth ? "text-primary" : "text-muted-foreground",
+                      )}
+                    />
+                    {t.pingUseAuth}
+                  </span>
+                  <Switch checked={useAuth} onCheckedChange={setUseAuth} />
+                </label>
+                <ModeExpand open={useAuth}>
+                  <div className="grid gap-4 pt-5 sm:grid-cols-2">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="ping-username">{t.pingUsername}</Label>
+                      <Input
+                        id="ping-username"
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="ping-password">{t.pingPassword}</Label>
+                      <Input
+                        id="ping-password"
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 sm:col-span-2">
+                      <Label htmlFor="ping-database">{t.pingDatabaseOptional}</Label>
+                      <Input
+                        id="ping-database"
+                        value={database}
+                        onChange={(event) => setDatabase(event.target.value)}
+                        placeholder="postgres / admin / master"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+                </ModeExpand>
               </div>
-            )}
+            </ModeExpand>
           </div>
 
           <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="min-w-0 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{t.pingPlan}:</span>{" "}
-              <span className="break-all">{effectiveSummary}</span>
+              <span
+                key={effectiveSummary}
+                className="break-all motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+              >
+                {effectiveSummary}
+              </span>
             </p>
             <Button
               type="submit"
@@ -475,4 +544,96 @@ export function PingChecker({
       )}
     </div>
   );
+}
+
+function ModeExpand({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="ping-mode-expand"
+      data-open={open ? "true" : undefined}
+      inert={open ? undefined : true}
+      aria-hidden={!open}
+    >
+      <div className="ping-mode-expand-inner">{children}</div>
+    </div>
+  );
+}
+
+function useSlidingTabHighlight(active: string) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef(new Map<string, HTMLElement>());
+  const [box, setBox] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    visible: false,
+  });
+  const [canAnimate, setCanAnimate] = useState(false);
+
+  const setItemRef = useCallback((key: string, node: HTMLElement | null) => {
+    if (node) {
+      itemRefs.current.set(key, node);
+    } else {
+      itemRefs.current.delete(key);
+    }
+  }, []);
+
+  const measure = useCallback(() => {
+    const item = itemRefs.current.get(active);
+    if (!item || item.offsetWidth === 0) {
+      setBox((previous) =>
+        previous.visible ? { ...previous, visible: false } : previous,
+      );
+      return;
+    }
+
+    const next = {
+      x: item.offsetLeft,
+      y: item.offsetTop,
+      width: item.offsetWidth,
+      height: item.offsetHeight,
+      visible: true,
+    };
+
+    setBox((previous) =>
+      previous.x === next.x &&
+      previous.y === next.y &&
+      previous.width === next.width &&
+      previous.height === next.height &&
+      previous.visible === next.visible
+        ? previous
+        : next,
+    );
+  }, [active]);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setCanAnimate(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(list);
+    for (const item of itemRefs.current.values()) {
+      observer.observe(item);
+    }
+
+    return () => observer.disconnect();
+  }, [measure]);
+
+  return { listRef, setItemRef, box, canAnimate };
 }
