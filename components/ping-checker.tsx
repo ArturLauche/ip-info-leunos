@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -65,6 +67,8 @@ const AUTO_FILLED_PORTS = new Set<number>([
   ...Object.values(MODE_DEFAULT_PORTS),
   ...Object.values(DB_DEFAULT_PORTS).filter((value) => value > 0),
 ]);
+
+const PING_MODES: PingMode[] = ["tcp", "udp", "eb", "database"];
 
 const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "postgres", label: "PostgreSQL" },
@@ -247,20 +251,16 @@ export function PingChecker({
           <div className="flex flex-col gap-5 p-5">
             <div className="flex flex-col gap-2.5">
               <Label>{t.pingTestMode}</Label>
-              <Tabs value={mode} onValueChange={(value) => onModeChange(value as PingMode)}>
-                <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
-                  {(["tcp", "udp", "eb", "database"] as PingMode[]).map((value) => (
-                    <TabsTrigger key={value} value={value} className="py-1.5">
-                      {modeLabels[value]}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              <p className="text-xs text-muted-foreground">{modeHelpers[mode]}</p>
+              <PingModeTabs
+                mode={mode}
+                labels={modeLabels}
+                helpers={modeHelpers}
+                onModeChange={onModeChange}
+              />
             </div>
 
             {mode === "database" && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 motion-reduce:animate-none animate-in fade-in-0 slide-in-from-top-1 duration-300">
                 <Label htmlFor="ping-db-type">{t.pingDatabaseType}</Label>
                 <Select
                   value={databaseType}
@@ -321,7 +321,7 @@ export function PingChecker({
             </div>
 
             {mode === "database" && (
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3">
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3 motion-reduce:animate-none animate-in fade-in-0 slide-in-from-top-1 duration-300">
                 <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
                   <LockKeyhole
                     className={
@@ -335,7 +335,7 @@ export function PingChecker({
             )}
 
             {mode === "database" && useAuth && (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 motion-reduce:animate-none animate-in fade-in-0 slide-in-from-top-1 duration-300">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="ping-username">{t.pingUsername}</Label>
                   <Input
@@ -474,5 +474,73 @@ export function PingChecker({
         </Card>
       )}
     </div>
+  );
+}
+
+function PingModeTabs({
+  mode,
+  labels,
+  helpers,
+  onModeChange,
+}: {
+  mode: PingMode;
+  labels: Record<PingMode, string>;
+  helpers: Record<PingMode, string>;
+  onModeChange: (mode: PingMode) => void;
+}) {
+  const { containerRef, view, canAnimate } = useSegmentHighlight(mode);
+
+  return (
+    <Tabs
+      value={mode}
+      onValueChange={(value) => onModeChange(value as PingMode)}
+      className="gap-2.5"
+    >
+      <div ref={containerRef} className="relative isolate">
+        <span
+          className="tool-segment-highlight"
+          style={{
+            transform: `translate3d(${view.box.x}px, ${view.box.y}px, 0)`,
+            width: view.box.width,
+            height: view.box.height,
+            opacity: view.visible ? 1 : 0,
+          }}
+          data-animate={canAnimate ? "true" : undefined}
+          data-slide={view.slide ? "true" : undefined}
+          aria-hidden
+        />
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+          {PING_MODES.map((value) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className={cn(
+                "relative z-10 py-1.5 transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
+                view.visible &&
+                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
+              )}
+            >
+              {labels[value]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
+      <div className="relative min-h-4">
+        {PING_MODES.map((value) => (
+          <p
+            key={value}
+            className={cn(
+              "text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
+              mode === value
+                ? "relative opacity-100"
+                : "pointer-events-none absolute inset-x-0 top-0 opacity-0",
+            )}
+            aria-hidden={mode !== value}
+          >
+            {helpers[value]}
+          </p>
+        ))}
+      </div>
+    </Tabs>
   );
 }
