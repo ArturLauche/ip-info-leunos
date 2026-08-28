@@ -20,6 +20,10 @@ type ToolTranslation = {
   themeDark: string;
   themeSystem: string;
   navMenu: string;
+  skipToContent: string;
+  navToolsLabel: string;
+  sidebarLabel: string;
+  navClose: string;
   copyValue: string;
   commandTriggerLabel: string;
   commandPlaceholder: string;
@@ -306,6 +310,10 @@ const en: ToolTranslation = {
   themeDark: "Dark",
   themeSystem: "System",
   navMenu: "Menu",
+  skipToContent: "Skip to content",
+  navToolsLabel: "Tools",
+  sidebarLabel: "Site navigation",
+  navClose: "Close menu",
   copyValue: "Copy",
   commandTriggerLabel: "Search…",
   commandPlaceholder: "Search tools, or enter an IP, domain or ASN…",
@@ -603,6 +611,10 @@ const de: Partial<ToolTranslation> = {
   themeDark: "Dunkel",
   themeSystem: "System",
   navMenu: "Menü",
+  skipToContent: "Zum Inhalt springen",
+  navToolsLabel: "Werkzeuge",
+  sidebarLabel: "Seitennavigation",
+  navClose: "Menü schließen",
   copyValue: "Kopieren",
   commandTriggerLabel: "Suchen…",
   commandPlaceholder: "Tools suchen oder IP, Domain oder ASN eingeben…",

@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next'
-import { siteConfig } from '@/lib/seo'
+import { canonicalUrl } from '@/lib/seo'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
-    { path: '', changeFrequency: 'daily' as const, priority: 1 },
+    { path: '/', changeFrequency: 'daily' as const, priority: 1 },
     { path: '/check', changeFrequency: 'weekly' as const, priority: 0.9 },
     { path: '/asn', changeFrequency: 'weekly' as const, priority: 0.85 },
     { path: '/ping', changeFrequency: 'weekly' as const, priority: 0.8 },
@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
 
   return routes.map((route) => ({
-    url: `${siteConfig.url}${route.path}`,
+    url: canonicalUrl(route.path),
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }))

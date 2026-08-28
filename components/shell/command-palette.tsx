@@ -159,7 +159,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             isActive ? "border-border" : "border-border/60",
           )}
         >
-          <Icon className="size-4 text-muted-foreground" />
+          <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-sm font-medium">{item.title}</span>

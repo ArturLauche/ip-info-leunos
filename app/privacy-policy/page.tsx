@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ShieldCheck } from "lucide-react";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { resolveLocale } from "@/lib/i18n";
-import { createPageMetadata } from "@/lib/seo";
+import { canonicalUrl, createPageMetadata, siteConfig } from "@/lib/seo";
 import {
   getPrivacyContactEmail,
   getPrivacyContent,
@@ -12,7 +12,6 @@ import {
 import { splitEmail, type EmailParts } from "@/lib/email";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { StructuredData } from "@/components/structured-data";
-import { siteConfig } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Datenschutzerklärung",
@@ -62,6 +61,7 @@ export default async function DatenschutzPage() {
   const content = getPrivacyContent(locale);
   const emailParts = splitEmail(getPrivacyContactEmail() ?? "");
   const controller = getPrivacyControllerName() ?? content.controllerNotConfigured;
+  const pageUrl = canonicalUrl("/privacy-policy");
 
   return (
     <ToolPageShell
@@ -74,12 +74,12 @@ export default async function DatenschutzPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "Article",
-          "@id": `${siteConfig.url}/privacy-policy#article`,
+          "@id": `${pageUrl}#article`,
           headline: content.title,
           description: content.subtitle,
           dateModified: content.lastUpdated,
           inLanguage: locale === "de" ? "de-DE" : locale,
-          mainEntityOfPage: `${siteConfig.url}/privacy-policy`,
+          mainEntityOfPage: pageUrl,
           author: { "@id": `${siteConfig.url}/#organization` },
           publisher: { "@id": `${siteConfig.url}/#organization` },
           isPartOf: { "@id": `${siteConfig.url}/#website` },

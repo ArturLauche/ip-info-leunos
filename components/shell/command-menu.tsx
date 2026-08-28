@@ -114,7 +114,7 @@ export function CommandTrigger({
         onClick={() => setOpen(true)}
         className={cn("rounded-full", className)}
       >
-        <Search className="size-5" />
+        <Search className="size-5" aria-hidden="true" />
       </Button>
     );
   }
