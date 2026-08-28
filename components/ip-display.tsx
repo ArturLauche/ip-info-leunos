@@ -42,6 +42,7 @@ import {
   Server,
   Network,
   ExternalLink,
+  Globe,
 } from "lucide-react";
 
 interface IpData {
@@ -123,6 +124,26 @@ function CopyButton({
   );
 }
 
+/** Tinted title row shared by the IP hero and the detail cards. */
+function CardTitleBar({
+  icon: Icon,
+  title,
+}: {
+  icon: LucideIcon;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 border-b bg-muted/30 px-5 py-3.5">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <h2 className="min-w-0 truncate text-sm font-semibold text-foreground">
+        {title}
+      </h2>
+    </div>
+  );
+}
+
 /** Titled container for a group of label/value rows (Location, Network). */
 function DetailCard({
   icon: Icon,
@@ -135,12 +156,7 @@ function DetailCard({
 }) {
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center gap-2.5 border-b bg-muted/30 px-5 py-3.5">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="size-4" />
-        </span>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      </div>
+      <CardTitleBar icon={Icon} title={title} />
       <dl className="px-5">{children}</dl>
     </Card>
   );
@@ -324,10 +340,12 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     return (
       <div className="flex w-full flex-col gap-6">
         <Card className="gap-0 overflow-hidden p-0">
-          <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/20 to-info/40" />
+          <CardTitleBar
+            icon={Globe}
+            title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
+          />
           <div className="grid lg:grid-cols-[1.5fr_1fr]">
             <div className="flex flex-col gap-4 p-6 lg:p-7">
-              <Skeleton className="h-3.5 w-32" />
               <Skeleton className="h-9 w-64" />
               <Skeleton className="h-6 w-80 max-w-full" />
               <Skeleton className="h-4 w-48" />
@@ -415,70 +433,67 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     <div className="tool-reveal flex w-full flex-col gap-6">
       {/* Hero: addresses + connection summary */}
       <Card className="gap-0 overflow-hidden p-0">
-        <div className="h-1 bg-gradient-to-r from-primary/60 via-primary/20 to-info/40" />
+        <CardTitleBar
+          icon={Globe}
+          title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
+        />
         <div className="grid lg:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
-          <div className="flex flex-col gap-5 p-6 lg:p-7">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {targetIp ? t.queriedIpAddress : t.yourIpAddresses}
-            </p>
-
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <Badge
-                  variant={displayIpv4 ? "outline" : "secondary"}
-                  className="font-mono"
-                >
-                  IPv4
-                </Badge>
-                {displayIpv4 ? (
-                  <>
-                    <span className="min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                      {displayIpv4}
-                    </span>
-                    <CopyButton
-                      text={displayIpv4}
-                      label={t.copyIpLabel}
-                      copiedLabel={t.copiedToClipboard}
-                    />
-                  </>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    {t.notAvailable}
+          <div className="flex flex-col gap-4 p-6 lg:p-7">
+            <div className="flex items-center gap-3">
+              <Badge
+                variant={displayIpv4 ? "outline" : "secondary"}
+                className="font-mono"
+              >
+                IPv4
+              </Badge>
+              {displayIpv4 ? (
+                <>
+                  <span className="min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                    {displayIpv4}
                   </span>
-                )}
-              </div>
+                  <CopyButton
+                    text={displayIpv4}
+                    label={t.copyIpLabel}
+                    copiedLabel={t.copiedToClipboard}
+                  />
+                </>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {t.notAvailable}
+                </span>
+              )}
+            </div>
 
-              <div className="flex items-start gap-3">
-                <Badge
-                  variant={displayIpv6 ? "outline" : "secondary"}
-                  className="mt-0.5 font-mono"
-                >
-                  IPv6
-                </Badge>
-                {displayIpv6 ? (
-                  <>
-                    <span className="min-w-0 flex-1 font-mono text-sm font-semibold tracking-tight break-all text-foreground sm:text-lg">
-                      {displayIpv6}
-                    </span>
-                    <CopyButton
-                      text={displayIpv6}
-                      label={t.copyIpLabel}
-                      copiedLabel={t.copiedToClipboard}
-                    />
-                  </>
-                ) : !targetIp && ipv6Loading ? (
-                  <Skeleton className="h-5 w-48" />
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    {t.notAvailable}
+            <div className="flex items-start gap-3">
+              <Badge
+                variant={displayIpv6 ? "outline" : "secondary"}
+                className="mt-0.5 font-mono"
+              >
+                IPv6
+              </Badge>
+              {displayIpv6 ? (
+                <>
+                  <span className="min-w-0 flex-1 font-mono text-sm font-semibold tracking-tight break-all text-foreground sm:text-lg">
+                    {displayIpv6}
                   </span>
-                )}
-              </div>
+                  <CopyButton
+                    text={displayIpv6}
+                    label={t.copyIpLabel}
+                    copiedLabel={t.copiedToClipboard}
+                  />
+                </>
+              ) : !targetIp && ipv6Loading ? (
+                <Skeleton className="h-5 w-48" />
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {t.notAvailable}
+                </span>
+              )}
             </div>
 
             {locationSummary && (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 shrink-0 text-muted-foreground/70" />
                 <CountryFlag countryCode={data.countryCode} />
                 <span className="min-w-0 truncate">{locationSummary}</span>

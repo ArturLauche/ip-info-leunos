@@ -4,14 +4,19 @@ export function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-6">
       {/* Hero header */}
-      <div className="flex flex-col gap-4 rounded-xl border bg-card p-6">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-5 w-20 rounded-full" />
-          <Skeleton className="h-5 w-12 rounded-full" />
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-12 rounded-full" />
+          </div>
+          <Skeleton className="h-5 w-24 rounded-full" />
         </div>
-        <Skeleton className="h-8 w-2/3" />
-        <Skeleton className="h-4 w-1/3" />
+        <div className="flex flex-col gap-3 p-6">
+          <Skeleton className="h-8 w-2/3" />
+          <Skeleton className="h-4 w-1/3" />
+        </div>
       </div>
 
       {/* Stats row */}
