@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CircleCheck, Globe } from "lucide-react";
+import { AlertTriangle, CircleCheck, Globe, Waypoints } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
 import { CountryFlag } from "@/components/country-flag";
 import type { ToolTranslation } from "@/lib/tool-i18n";
@@ -18,6 +18,12 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
     <Card className="gap-0 overflow-hidden py-0">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-5 py-3.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Waypoints className="size-4" aria-hidden />
+          </span>
+          <span className="font-mono text-sm font-semibold text-foreground">
+            {result.asn}
+          </span>
           {result.country && (
             <Badge variant="secondary">
               <CountryFlag countryCode={result.country} />

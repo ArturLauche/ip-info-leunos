@@ -7,8 +7,8 @@ export function LoadingSkeleton() {
       <div className="overflow-hidden rounded-xl border bg-card">
         <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-5 w-16 rounded-full" />
-            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="size-7 rounded-md" />
+            <Skeleton className="h-5 w-16" />
             <Skeleton className="h-5 w-12 rounded-full" />
           </div>
           <Skeleton className="h-5 w-24 rounded-full" />
