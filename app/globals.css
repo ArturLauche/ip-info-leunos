@@ -388,12 +388,22 @@
     z-index: 0;
     border-radius: calc(var(--radius) - 2px);
     background-color: var(--card);
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    box-shadow:
+      0 1px 2px 0 rgb(0 0 0 / 0.06),
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 10%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, var(--foreground) 12%, transparent);
   }
 
+  /*
+   * `--input` is already a 15% white wash in dark mode. Mixing it again at 30%
+   * collapses to ~4% opacity and the pill disappears — mix against `--muted`
+   * so the chip is an opaque, lifted surface on the track.
+   */
   .dark .ping-mode-highlight {
-    background-color: color-mix(in oklab, var(--input) 30%, transparent);
-    box-shadow: inset 0 0 0 1px var(--input);
+    background-color: color-mix(in oklab, var(--foreground) 14%, var(--muted));
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--foreground) 16%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, var(--foreground) 14%, transparent);
   }
 
   .ping-mode-highlight[data-animate="true"] {
@@ -408,8 +418,8 @@
     grid-template-rows: 0fr;
     opacity: 0;
     transition:
-      grid-template-rows 360ms var(--ease-smooth),
-      opacity 240ms var(--ease-smooth);
+      grid-template-rows 400ms var(--ease-smooth),
+      opacity 280ms var(--ease-smooth);
   }
 
   .ping-mode-expand[data-open="true"] {
