@@ -291,6 +291,7 @@ export function PingChecker({
                   <Label htmlFor="ping-target">{t.pingTargetHost}</Label>
                   <Input
                     id="ping-target"
+                    name="target"
                     value={target}
                     onChange={(event) => setTarget(event.target.value)}
                     placeholder="example.com"
@@ -303,6 +304,7 @@ export function PingChecker({
                   <Label htmlFor="ping-port">{t.pingPort}</Label>
                   <Input
                     id="ping-port"
+                    name="port"
                     value={port}
                     onChange={(event) => setPort(event.target.value)}
                     placeholder="443"
@@ -314,6 +316,7 @@ export function PingChecker({
                   <Label htmlFor="ping-timeout">{t.pingTimeout}</Label>
                   <Input
                     id="ping-timeout"
+                    name="timeoutMs"
                     value={timeoutMs}
                     onChange={(event) => setTimeoutMs(event.target.value)}
                     placeholder="3000"
@@ -344,6 +347,7 @@ export function PingChecker({
                       <Label htmlFor="ping-username">{t.pingUsername}</Label>
                       <Input
                         id="ping-username"
+                        name="username"
                         value={username}
                         onChange={(event) => setUsername(event.target.value)}
                         autoComplete="off"
@@ -353,6 +357,7 @@ export function PingChecker({
                       <Label htmlFor="ping-password">{t.pingPassword}</Label>
                       <Input
                         id="ping-password"
+                        name="password"
                         type="password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
@@ -363,6 +368,7 @@ export function PingChecker({
                       <Label htmlFor="ping-database">{t.pingDatabaseOptional}</Label>
                       <Input
                         id="ping-database"
+                        name="database"
                         value={database}
                         onChange={(event) => setDatabase(event.target.value)}
                         placeholder="postgres / admin / master"
