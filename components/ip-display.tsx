@@ -350,7 +350,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               <Skeleton className="h-6 w-80 max-w-full" />
               <Skeleton className="h-4 w-48" />
             </div>
-            <div className="flex flex-col gap-3 border-t bg-muted/30 p-6 lg:border-t-0 lg:border-l lg:p-7">
+            <div className="flex flex-col gap-3 border-t p-6 lg:border-t-0 lg:border-l lg:p-7">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-7 w-40" />
               <Skeleton className="h-8 w-32" />
@@ -502,7 +502,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           </div>
 
           {/* Connection summary */}
-          <div className="flex flex-col justify-center gap-4 border-t bg-muted/30 p-6 lg:border-t-0 lg:border-l lg:p-7">
+          <div className="flex flex-col justify-center gap-4 border-t p-6 lg:border-t-0 lg:border-l lg:p-7">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.detectedConnectionType}
             </p>
