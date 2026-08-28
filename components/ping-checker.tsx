@@ -20,17 +20,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useRouter } from "next/navigation";
-import {
-  FormEvent,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleCheck,
   Loader2,
@@ -127,12 +119,6 @@ export function PingChecker({
   const selfSubmitted = useRef<{ target: string; port: string; mode: PingMode } | null>(null);
   const t = getToolTranslation(locale);
   const isDatabase = mode === "database";
-  const {
-    listRef: modeListRef,
-    setItemRef: setModeTabRef,
-    box: modeTabBox,
-    canAnimate: modeTabCanAnimate,
-  } = useSlidingTabHighlight(mode);
 
   // Sync the URL-backed fields when they change on the same route (e.g. the
   // command palette navigating /ping → /ping?target=…); the component stays
@@ -268,56 +254,12 @@ export function PingChecker({
               <div>
                 <div className="flex flex-col gap-2.5">
                   <Label>{t.pingTestMode}</Label>
-                  <Tabs value={mode} onValueChange={(value) => onModeChange(value as PingMode)}>
-                    <TabsList
-                      ref={modeListRef}
-                      className="relative isolate grid h-auto w-full grid-cols-2 overflow-hidden sm:grid-cols-4"
-                    >
-                      <span
-                        aria-hidden
-                        className="ping-mode-highlight"
-                        data-animate={
-                          modeTabCanAnimate && modeTabBox.visible ? "true" : undefined
-                        }
-                        style={{
-                          transform: `translate3d(${modeTabBox.x}px, ${modeTabBox.y}px, 0)`,
-                          width: modeTabBox.width,
-                          height: modeTabBox.height,
-                          opacity: modeTabBox.visible ? 1 : 0,
-                        }}
-                      />
-                      {PING_MODES.map((value) => (
-                        <TabsTrigger
-                          key={value}
-                          value={value}
-                          ref={(node) => setModeTabRef(value, node)}
-                          className={cn(
-                            "relative z-10 py-1.5",
-                            modeTabBox.visible &&
-                              "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
-                          )}
-                        >
-                          {modeLabels[value]}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
-                  <div className="grid">
-                    {PING_MODES.map((value) => (
-                      <p
-                        key={value}
-                        className={cn(
-                          "col-start-1 row-start-1 text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)]",
-                          mode === value
-                            ? "z-10 opacity-100"
-                            : "pointer-events-none z-0 opacity-0 select-none",
-                        )}
-                        aria-hidden={mode !== value}
-                      >
-                        {modeHelpers[value]}
-                      </p>
-                    ))}
-                  </div>
+                  <PingModeTabs
+                    mode={mode}
+                    labels={modeLabels}
+                    helpers={modeHelpers}
+                    onModeChange={onModeChange}
+                  />
                 </div>
                 <ModeExpand open={isDatabase}>
                   <div className="flex flex-col gap-2 pt-5">
@@ -565,75 +507,70 @@ function ModeExpand({
   );
 }
 
-function useSlidingTabHighlight(active: string) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef(new Map<string, HTMLElement>());
-  const [box, setBox] = useState({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    visible: false,
-  });
-  const [canAnimate, setCanAnimate] = useState(false);
+function PingModeTabs({
+  mode,
+  labels,
+  helpers,
+  onModeChange,
+}: {
+  mode: PingMode;
+  labels: Record<PingMode, string>;
+  helpers: Record<PingMode, string>;
+  onModeChange: (mode: PingMode) => void;
+}) {
+  const { containerRef, view, canAnimate } = useSegmentHighlight(mode);
 
-  const setItemRef = useCallback((key: string, node: HTMLElement | null) => {
-    if (node) {
-      itemRefs.current.set(key, node);
-    } else {
-      itemRefs.current.delete(key);
-    }
-  }, []);
-
-  const measure = useCallback(() => {
-    const item = itemRefs.current.get(active);
-    if (!item || item.offsetWidth === 0) {
-      setBox((previous) =>
-        previous.visible ? { ...previous, visible: false } : previous,
-      );
-      return;
-    }
-
-    const next = {
-      x: item.offsetLeft,
-      y: item.offsetTop,
-      width: item.offsetWidth,
-      height: item.offsetHeight,
-      visible: true,
-    };
-
-    setBox((previous) =>
-      previous.x === next.x &&
-      previous.y === next.y &&
-      previous.width === next.width &&
-      previous.height === next.height &&
-      previous.visible === next.visible
-        ? previous
-        : next,
-    );
-  }, [active]);
-
-  useLayoutEffect(() => {
-    measure();
-  }, [measure]);
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setCanAnimate(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-
-    const observer = new ResizeObserver(() => measure());
-    observer.observe(list);
-    for (const item of itemRefs.current.values()) {
-      observer.observe(item);
-    }
-
-    return () => observer.disconnect();
-  }, [measure]);
-
-  return { listRef, setItemRef, box, canAnimate };
+  return (
+    <Tabs
+      value={mode}
+      onValueChange={(value) => onModeChange(value as PingMode)}
+      className="gap-2.5"
+    >
+      <div ref={containerRef} className="relative isolate">
+        <span
+          className="tool-segment-highlight"
+          style={{
+            transform: `translate3d(${view.box.x}px, ${view.box.y}px, 0)`,
+            width: view.box.width,
+            height: view.box.height,
+            opacity: view.visible ? 1 : 0,
+          }}
+          data-animate={canAnimate ? "true" : undefined}
+          data-slide={view.slide ? "true" : undefined}
+          aria-hidden
+        />
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+          {PING_MODES.map((value) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className={cn(
+                "relative z-10 py-1.5 transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
+                view.visible &&
+                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
+              )}
+            >
+              {labels[value]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
+      <div className="grid">
+        {PING_MODES.map((value) => (
+          <p
+            key={value}
+            className={cn(
+              "col-start-1 row-start-1 text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
+              mode === value
+                ? "z-10 opacity-100"
+                : "pointer-events-none z-0 opacity-0 select-none",
+            )}
+            aria-hidden={mode !== value}
+          >
+            {helpers[value]}
+          </p>
+        ))}
+      </div>
+    </Tabs>
+  );
 }
