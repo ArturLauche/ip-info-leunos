@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -55,12 +56,13 @@ export function MobileNav({ locale, active }: MobileNavProps) {
         <ModeToggle labels={themeLabels} />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={toolT.navMenu}>
-              <Menu className="size-5" />
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={toolT.navMenu}>
+              <Menu className="size-5" aria-hidden="true" />
             </Button>
           </SheetTrigger>
           <SheetContent
             side="left"
+            closeLabel={toolT.navClose}
             // Close faster than the page transition so the drawer clears as
             // the destination's enter motion peaks; open stays slow and fluid.
             className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[220ms] motion-reduce:duration-0"
@@ -77,6 +79,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
                   </span>
                 </span>
               </SheetTitle>
+              <SheetDescription className="sr-only">{toolT.brandTagline}</SheetDescription>
             </SheetHeader>
             <div className="overflow-y-auto px-3 py-5">
               <NavLinks

@@ -1,7 +1,7 @@
 import { navGroups, type ToolKey } from "@/components/shell/nav-config";
 import { StructuredData } from "@/components/structured-data";
 import type { Locale } from "@/lib/i18n";
-import { siteConfig } from "@/lib/seo";
+import { canonicalUrl, siteConfig } from "@/lib/seo";
 
 const featureLists: Record<ToolKey, { de: string[]; en: string[] }> = {
   home: {
@@ -47,7 +47,7 @@ interface ToolStructuredDataProps {
 
 export function ToolStructuredData({ tool, locale, name, description }: ToolStructuredDataProps) {
   const path = navGroups.flatMap((group) => group.items).find((item) => item.key === tool)?.href ?? "/";
-  const url = new URL(path, siteConfig.url).toString();
+  const url = canonicalUrl(path);
   const language = locale === "de" ? "de-DE" : locale;
   const features = locale === "de" ? featureLists[tool].de : featureLists[tool].en;
 

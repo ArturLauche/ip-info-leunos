@@ -9,6 +9,8 @@
 //   apple-icon.png        180 px, dark tile, full-bleed (iOS masks corners)
 //   icon-light-32x32.png  dark tile  (for light backgrounds)
 //   icon-dark-32x32.png   light tile (for dark backgrounds)
+//   icon-192.png          192 px PWA icon, dark full-bleed
+//   icon-512.png          512 px PWA icon, dark full-bleed
 //   og-image.png          1200×630 social preview (og:image / twitter card)
 
 import { writeFile } from "node:fs/promises";
@@ -143,12 +145,16 @@ async function main() {
   await writeFile(join(publicDir, "apple-icon.png"), await toPng(appleSvg, 180));
   await writeFile(join(publicDir, "icon-light-32x32.png"), await toPng(darkSvg, 32));
   await writeFile(join(publicDir, "icon-dark-32x32.png"), await toPng(lightSvg, 32));
+  await writeFile(join(publicDir, "icon-192.png"), await toPng(appleSvg, 192));
+  await writeFile(join(publicDir, "icon-512.png"), await toPng(appleSvg, 512));
   await writeFile(
     join(publicDir, "og-image.png"),
     await sharp(Buffer.from(makeOgSvg())).png({ compressionLevel: 9 }).toBuffer(),
   );
 
-  console.log("Generated: icon.svg, favicon.ico, apple-icon.png, icon-light-32x32.png, icon-dark-32x32.png, og-image.png");
+  console.log(
+    "Generated: icon.svg, favicon.ico, apple-icon.png, icon-light-32x32.png, icon-dark-32x32.png, icon-192.png, icon-512.png, og-image.png",
+  );
 }
 
 main().catch((error) => {

@@ -3,7 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { headers } from 'next/headers'
 import './globals.css'
-import { siteConfig } from '@/lib/seo'
+import { schemaInLanguage, siteConfig } from '@/lib/seo'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { StructuredData } from '@/components/structured-data'
@@ -17,14 +17,14 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  // Canonical URLs are set per page via createPageMetadata. A root canonical
+  // would leak onto the 404 route and tell crawlers that missing URLs are the homepage.
   alternates: {
-    canonical: siteConfig.url,
     types: {
       'text/plain': `${siteConfig.url}/llms.txt`,
     },
   },
   applicationName: siteConfig.name,
-  generator: 'Next.js',
   referrer: 'origin-when-cross-origin',
   keywords: siteConfig.keywords,
   creator: siteConfig.name,
@@ -50,10 +50,20 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon-light-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icon-dark-32x32.png', sizes: '32x32', type: 'image/png' },
+      {
+        url: '/icon-light-32x32.png',
+        sizes: '32x32',
+        type: 'image/png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        sizes: '32x32',
+        type: 'image/png',
+        media: '(prefers-color-scheme: dark)',
+      },
     ],
-    apple: '/apple-icon.png',
+    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
   },
 }
 
@@ -86,7 +96,7 @@ const jsonLd = {
       name: siteConfig.name,
       url: siteConfig.url,
       description: siteConfig.description,
-      inLanguage: ['de-DE', 'en'],
+      inLanguage: schemaInLanguage,
       publisher: { '@id': `${siteConfig.url}/#organization` },
     },
     // The WebApplication node is emitted per page by ToolStructuredData;

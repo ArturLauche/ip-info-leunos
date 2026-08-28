@@ -32,7 +32,11 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
   const t = getToolTranslation(locale);
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex flex-1 flex-col items-center justify-center px-4 py-16 outline-none"
+    >
       <Card className="w-full max-w-md items-center gap-3 overflow-hidden p-8 text-center sm:p-12">
         <span className="flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20">
           <AlertTriangle aria-hidden="true" className="size-6" />
@@ -48,7 +52,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             {error.digest}
           </p>
         )}
-        <Button onClick={reset} className="mt-2">
+        <Button type="button" onClick={reset} className="mt-2">
           <RotateCw aria-hidden="true" className="size-4" />
           {t.errorRetry}
         </Button>

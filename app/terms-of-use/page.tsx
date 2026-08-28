@@ -3,13 +3,12 @@ import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { resolveLocale } from "@/lib/i18n";
-import { createPageMetadata } from "@/lib/seo";
+import { canonicalUrl, createPageMetadata, siteConfig } from "@/lib/seo";
 import { getPrivacyContactEmail } from "@/lib/privacy";
 import { getTermsContent } from "@/lib/terms";
 import { splitEmail, type EmailParts } from "@/lib/email";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { StructuredData } from "@/components/structured-data";
-import { siteConfig } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Nutzungsbedingungen",
@@ -57,6 +56,7 @@ export default async function TermsOfUsePage() {
   const locale = resolveLocale(headersList.get("accept-language"));
   const content = getTermsContent(locale);
   const emailParts = splitEmail(getPrivacyContactEmail() ?? "");
+  const pageUrl = canonicalUrl("/terms-of-use");
 
   return (
     <ToolPageShell
@@ -69,12 +69,12 @@ export default async function TermsOfUsePage() {
         data={{
           "@context": "https://schema.org",
           "@type": "Article",
-          "@id": `${siteConfig.url}/terms-of-use#article`,
+          "@id": `${pageUrl}#article`,
           headline: content.title,
           description: content.subtitle,
           dateModified: content.lastUpdated,
           inLanguage: locale === "de" ? "de-DE" : locale,
-          mainEntityOfPage: `${siteConfig.url}/terms-of-use`,
+          mainEntityOfPage: pageUrl,
           author: { "@id": `${siteConfig.url}/#organization` },
           publisher: { "@id": `${siteConfig.url}/#organization` },
           isPartOf: { "@id": `${siteConfig.url}/#website` },

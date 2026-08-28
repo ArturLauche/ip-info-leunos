@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SUPPORTED_LOCALES } from "@/lib/i18n";
 
 export const siteConfig = {
   name: "IP Auskunft",
@@ -28,6 +29,33 @@ export const siteConfig = {
 export const defaultOpenGraphImage = "/og-image.png";
 const openGraphImageWidth = 1200;
 const openGraphImageHeight = 630;
+const openGraphImageAlt = `${siteConfig.name} – Netzwerk- & IP-Toolkit`;
+
+/**
+ * Schema.org `inLanguage` tags for every UI locale. `de` is published as
+ * `de-DE` to match the site's primary market.
+ */
+export const schemaInLanguage = SUPPORTED_LOCALES.map((locale) =>
+  locale === "de" ? "de-DE" : locale,
+);
+
+/** Absolute document title. Next.js `title.template` is not applied to `app/page.tsx`. */
+export function documentTitle(title: string): string {
+  return `${title} | ${siteConfig.name}`;
+}
+
+/**
+ * Canonical URL without a trailing slash on the site root, so `<link rel="canonical">`,
+ * the sitemap, and JSON-LD `@id`/`url` values all agree.
+ */
+export function canonicalUrl(path = "/"): string {
+  const url = new URL(path || "/", siteConfig.url);
+  if (url.pathname === "/") {
+    return `${siteConfig.url}${url.search}${url.hash}`;
+  }
+  const pathname = url.pathname.replace(/\/+$/, "");
+  return `${url.origin}${pathname}${url.search}${url.hash}`;
+}
 
 export function createPageMetadata({
   title,
@@ -40,10 +68,12 @@ export function createPageMetadata({
   path?: string;
   keywords?: string[];
 }): Metadata {
-  const canonical = new URL(path, siteConfig.url).toString();
+  const canonical = canonicalUrl(path);
 
   return {
-    title,
+    title: {
+      absolute: documentTitle(title),
+    },
     description,
     keywords: [...siteConfig.keywords, ...keywords],
     applicationName: siteConfig.name,
@@ -85,7 +115,8 @@ export function createPageMetadata({
           url: defaultOpenGraphImage,
           width: openGraphImageWidth,
           height: openGraphImageHeight,
-          alt: `${siteConfig.name} – Netzwerk- & IP-Toolkit`,
+          alt: openGraphImageAlt,
+          type: "image/png",
         },
       ],
     },
@@ -93,7 +124,15 @@ export function createPageMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: [defaultOpenGraphImage],
+      images: [
+        {
+          url: defaultOpenGraphImage,
+          width: openGraphImageWidth,
+          height: openGraphImageHeight,
+          alt: openGraphImageAlt,
+          type: "image/png",
+        },
+      ],
     },
   };
 }

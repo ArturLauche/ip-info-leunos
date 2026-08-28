@@ -11,6 +11,7 @@ import {
   type NavItem,
   type ToolKey,
 } from "./nav-config";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { useNavHighlight } from "./use-nav-highlight";
 
 interface NavLinksProps {
@@ -22,6 +23,7 @@ interface NavLinksProps {
 /** The grouped navigation list shared by the desktop sidebar and mobile sheet. */
 export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
   const [selected, setSelected] = useState(active);
+  const toolsLabel = getToolTranslation(locale).navToolsLabel;
 
   useEffect(() => {
     setSelected(active);
@@ -45,7 +47,7 @@ export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
   }
 
   return (
-    <nav className="flex flex-col gap-6">
+    <nav className="flex flex-col gap-6" aria-label={toolsLabel}>
       {navGroups.map((group) => (
         <div key={group.id} className="flex flex-col gap-1">
           <p className="px-3 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70">

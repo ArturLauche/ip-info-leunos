@@ -6,6 +6,7 @@ import { ArrowLeft, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { resolveLocale } from "@/lib/i18n";
+import { documentTitle } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,8 +14,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = getToolTranslation(locale);
 
   return {
-    title: t.notFoundTitle,
-    robots: { index: false, follow: false },
+    title: { absolute: documentTitle(t.notFoundTitle) },
+    description: t.notFoundDescription,
+    robots: {
+      index: false,
+      follow: false,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+      },
+    },
   };
 }
 
@@ -27,7 +37,11 @@ export default async function NotFound() {
   const t = getToolTranslation(locale);
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex flex-1 flex-col items-center justify-center px-4 py-16 outline-none"
+    >
       <Card className="bg-grid w-full max-w-md items-center gap-3 overflow-hidden p-8 text-center sm:p-12">
         <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
           <Compass aria-hidden="true" className="size-6" />

@@ -85,10 +85,12 @@ function CopyButton({
   text,
   label,
   copiedLabel,
+  failedLabel,
 }: {
   text: string;
   label: string;
   copiedLabel: string;
+  failedLabel: string;
 }) {
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -103,12 +105,13 @@ function CopyButton({
       clearTimeout(resetTimer.current);
       resetTimer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard can be unavailable in some browsers/contexts.
+      toast.error(failedLabel);
     }
   };
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon-sm"
       onClick={handleCopy}
@@ -116,9 +119,9 @@ function CopyButton({
       className="shrink-0 text-muted-foreground hover:text-foreground"
     >
       {copied ? (
-        <Check className="size-4 text-success" />
+        <Check className="size-4 text-success" aria-hidden="true" />
       ) : (
-        <Copy className="size-4" />
+        <Copy className="size-4" aria-hidden="true" />
       )}
     </Button>
   );
@@ -456,6 +459,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                     text={displayIpv4}
                     label={t.copyIpLabel}
                     copiedLabel={t.copiedToClipboard}
+                    failedLabel={t.copyFailed}
                   />
                 </>
               ) : (
@@ -481,6 +485,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                     text={displayIpv6}
                     label={t.copyIpLabel}
                     copiedLabel={t.copiedToClipboard}
+                    failedLabel={t.copyFailed}
                   />
                 </>
               ) : !targetIp && ipv6Loading ? (
