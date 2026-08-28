@@ -30,7 +30,10 @@ jobs:
 
       - name: Assert no client source maps remain
         run: |
-          maps=$(find .next/static -name '*.map' -print)
+          maps=""
+          if [ -d .next/static ]; then
+            maps=$(find .next/static -name '*.map' -print)
+          fi
           if [ -n "$maps" ]; then
             echo "Client source maps remain under .next/static after pnpm build:"
             printf '%s\n' "$maps"
