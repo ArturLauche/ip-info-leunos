@@ -247,7 +247,7 @@ export function PingChecker({
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} autoComplete="off">
         <Card className="gap-0 overflow-hidden py-0">
           <div className="flex flex-col p-5">
             <div className="flex flex-col gap-5">
@@ -361,7 +361,9 @@ export function PingChecker({
                         type="password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        autoComplete="off"
+                        // MDN: off is ignored on password fields; new-password is for
+                        // credentials that are not this origin's login.
+                        autoComplete="new-password"
                       />
                     </div>
                     <div className="flex flex-col gap-2 sm:col-span-2">
