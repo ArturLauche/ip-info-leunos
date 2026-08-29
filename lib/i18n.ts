@@ -132,6 +132,21 @@ export type Translation = {
   reverseDnsDetail: string;
   checkReputation: string;
   networkSection: string;
+  browserSection: string;
+  deviceSection: string;
+  browserName: string;
+  browserVersion: string;
+  operatingSystem: string;
+  deviceType: string;
+  browserTimezone: string;
+  browserFingerprint: string;
+  browserFingerprintHint: string;
+  copyFingerprintLabel: string;
+  deviceTypes: {
+    desktop: string;
+    mobile: string;
+    tablet: string;
+  };
   checkEmptyTitle?: string;
   checkEmptyDescription?: string;
   connectionTypes: Record<ConnectionType, string>;
@@ -193,8 +208,8 @@ export const translations: Record<Locale, Translation> = {
     location: "Standort",
     city: "Stadt",
     country: "Land",
-    timezone: "Zeitzone",
-    timezoneDetail: "IANA Zeitzone",
+    timezone: "Zeitzone (IP)",
+    timezoneDetail: "IANA Zeitzone aus der IP-Geolocation",
     isp: "Anbieter (ISP)",
     ispDetail: "Internetdienstanbieter",
     organization: "Organisation",
@@ -217,6 +232,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "PTR-Hostname",
     checkReputation: "IP-Reputation prüfen",
     networkSection: "Netzwerk",
+    browserSection: "Browser",
+    deviceSection: "Gerät",
+    browserName: "Name",
+    browserVersion: "Version",
+    operatingSystem: "Betriebssystem",
+    deviceType: "Gerätetyp",
+    browserTimezone: "Zeitzone (Browser)",
+    browserFingerprint: "Fingerprint",
+    browserFingerprintHint:
+      "Lokal aus Browser- und Gerätesignalen erzeugt, nicht gespeichert und nicht an den Server gesendet.",
+    copyFingerprintLabel: "Fingerprint kopieren",
+    deviceTypes: {
+      desktop: "Desktop",
+      mobile: "Mobilgerät",
+      tablet: "Tablet",
+    },
     checkEmptyTitle: "Beliebige IP-Adresse oder Domain nachschlagen",
     checkEmptyDescription:
       "Gib eine IPv4, IPv6 oder Domain ein, um Standort, Netzwerk, ASN, Reverse DNS und Verbindungsdetails zu sehen.",
@@ -291,8 +322,8 @@ export const translations: Record<Locale, Translation> = {
     location: "Location",
     city: "City",
     country: "Country",
-    timezone: "Timezone",
-    timezoneDetail: "IANA timezone",
+    timezone: "Timezone (IP)",
+    timezoneDetail: "IANA timezone from IP geolocation",
     isp: "Provider (ISP)",
     ispDetail: "Internet service provider",
     organization: "Organization",
@@ -315,6 +346,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "PTR hostname",
     checkReputation: "Check IP reputation",
     networkSection: "Network",
+    browserSection: "Browser",
+    deviceSection: "Device",
+    browserName: "Name",
+    browserVersion: "Version",
+    operatingSystem: "Operating system",
+    deviceType: "Device type",
+    browserTimezone: "Timezone (browser)",
+    browserFingerprint: "Fingerprint",
+    browserFingerprintHint:
+      "Generated locally from browser and device signals. It is not stored or sent to the server.",
+    copyFingerprintLabel: "Copy fingerprint",
+    deviceTypes: {
+      desktop: "Desktop",
+      mobile: "Mobile",
+      tablet: "Tablet",
+    },
     checkEmptyTitle: "Look up any IP address or domain",
     checkEmptyDescription:
       "Enter an IPv4, IPv6 or domain to see its location, network, ASN, reverse DNS and connection details.",
@@ -390,8 +437,8 @@ export const translations: Record<Locale, Translation> = {
     location: "Ubicación",
     city: "Ciudad",
     country: "País",
-    timezone: "Zona horaria",
-    timezoneDetail: "Zona horaria IANA",
+    timezone: "Zona horaria (IP)",
+    timezoneDetail: "Zona horaria IANA de la geolocalización IP",
     isp: "Proveedor (ISP)",
     ispDetail: "Proveedor de internet",
     organization: "Organización",
@@ -414,6 +461,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "Nombre de host PTR",
     checkReputation: "Comprobar reputación de la IP",
     networkSection: "Red",
+    browserSection: "Navegador",
+    deviceSection: "Dispositivo",
+    browserName: "Nombre",
+    browserVersion: "Versión",
+    operatingSystem: "Sistema operativo",
+    deviceType: "Tipo de dispositivo",
+    browserTimezone: "Zona horaria (navegador)",
+    browserFingerprint: "Huella",
+    browserFingerprintHint:
+      "Generada localmente a partir de señales del navegador y del dispositivo. No se almacena ni se envía al servidor.",
+    copyFingerprintLabel: "Copiar huella",
+    deviceTypes: {
+      desktop: "Escritorio",
+      mobile: "Móvil",
+      tablet: "Tableta",
+    },
     connectionTypes: {
       datacenter: "Centro de datos / Hosting",
       tor: "Nodo de salida Tor",
@@ -486,8 +549,8 @@ export const translations: Record<Locale, Translation> = {
     location: "Localisation",
     city: "Ville",
     country: "Pays",
-    timezone: "Fuseau horaire",
-    timezoneDetail: "Fuseau horaire IANA",
+    timezone: "Fuseau horaire (IP)",
+    timezoneDetail: "Fuseau horaire IANA issu de la géolocalisation IP",
     isp: "Fournisseur (ISP)",
     ispDetail: "Fournisseur d'accès internet",
     organization: "Organisation",
@@ -510,6 +573,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "Nom d'hôte PTR",
     checkReputation: "Vérifier la réputation de l'IP",
     networkSection: "Réseau",
+    browserSection: "Navigateur",
+    deviceSection: "Appareil",
+    browserName: "Nom",
+    browserVersion: "Version",
+    operatingSystem: "Système d’exploitation",
+    deviceType: "Type d’appareil",
+    browserTimezone: "Fuseau horaire (navigateur)",
+    browserFingerprint: "Empreinte",
+    browserFingerprintHint:
+      "Générée localement à partir de signaux du navigateur et de l’appareil. Elle n’est ni stockée ni envoyée au serveur.",
+    copyFingerprintLabel: "Copier l’empreinte",
+    deviceTypes: {
+      desktop: "Ordinateur",
+      mobile: "Mobile",
+      tablet: "Tablette",
+    },
     connectionTypes: {
       datacenter: "Centre de données / Hébergement",
       tor: "Nœud de sortie Tor",
@@ -582,8 +661,8 @@ export const translations: Record<Locale, Translation> = {
     location: "Localização",
     city: "Cidade",
     country: "País",
-    timezone: "Fuso horário",
-    timezoneDetail: "Fuso horário IANA",
+    timezone: "Fuso horário (IP)",
+    timezoneDetail: "Fuso horário IANA da geolocalização do IP",
     isp: "Provedor (ISP)",
     ispDetail: "Provedor de internet",
     organization: "Organização",
@@ -606,6 +685,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "Hostname PTR",
     checkReputation: "Verificar reputação do IP",
     networkSection: "Rede",
+    browserSection: "Navegador",
+    deviceSection: "Dispositivo",
+    browserName: "Nome",
+    browserVersion: "Versão",
+    operatingSystem: "Sistema operacional",
+    deviceType: "Tipo de dispositivo",
+    browserTimezone: "Fuso horário (navegador)",
+    browserFingerprint: "Impressão digital",
+    browserFingerprintHint:
+      "Gerada localmente a partir de sinais do navegador e do dispositivo. Não é armazenada nem enviada ao servidor.",
+    copyFingerprintLabel: "Copiar impressão digital",
+    deviceTypes: {
+      desktop: "Desktop",
+      mobile: "Celular",
+      tablet: "Tablet",
+    },
     connectionTypes: {
       datacenter: "Data center / Hospedagem",
       tor: "Nó de saída Tor",
@@ -677,8 +772,8 @@ export const translations: Record<Locale, Translation> = {
     location: "場所",
     city: "都市",
     country: "国",
-    timezone: "タイムゾーン",
-    timezoneDetail: "IANAタイムゾーン",
+    timezone: "タイムゾーン（IP）",
+    timezoneDetail: "IP位置情報のIANAタイムゾーン",
     isp: "プロバイダー (ISP)",
     ispDetail: "インターネットサービスプロバイダー",
     organization: "組織",
@@ -701,6 +796,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "PTRホスト名",
     checkReputation: "IPレピュテーションを確認",
     networkSection: "ネットワーク",
+    browserSection: "ブラウザ",
+    deviceSection: "デバイス",
+    browserName: "名前",
+    browserVersion: "バージョン",
+    operatingSystem: "OS",
+    deviceType: "デバイスの種類",
+    browserTimezone: "タイムゾーン（ブラウザ）",
+    browserFingerprint: "フィンガープリント",
+    browserFingerprintHint:
+      "ブラウザとデバイスの信号からローカルで生成されます。保存もサーバー送信も行いません。",
+    copyFingerprintLabel: "フィンガープリントをコピー",
+    deviceTypes: {
+      desktop: "デスクトップ",
+      mobile: "モバイル",
+      tablet: "タブレット",
+    },
     connectionTypes: {
       datacenter: "データセンター / ホスティング",
       tor: "Tor出口ノード",
@@ -773,8 +884,8 @@ export const translations: Record<Locale, Translation> = {
     location: "Местоположение",
     city: "Город",
     country: "Страна",
-    timezone: "Часовой пояс",
-    timezoneDetail: "Часовой пояс IANA",
+    timezone: "Часовой пояс (IP)",
+    timezoneDetail: "Часовой пояс IANA по геолокации IP",
     isp: "Провайдер (ISP)",
     ispDetail: "Интернет-провайдер",
     organization: "Организация",
@@ -797,6 +908,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "Имя узла PTR",
     checkReputation: "Проверить репутацию IP",
     networkSection: "Сеть",
+    browserSection: "Браузер",
+    deviceSection: "Устройство",
+    browserName: "Название",
+    browserVersion: "Версия",
+    operatingSystem: "Операционная система",
+    deviceType: "Тип устройства",
+    browserTimezone: "Часовой пояс (браузер)",
+    browserFingerprint: "Отпечаток",
+    browserFingerprintHint:
+      "Создаётся локально из сигналов браузера и устройства. Не сохраняется и не отправляется на сервер.",
+    copyFingerprintLabel: "Скопировать отпечаток",
+    deviceTypes: {
+      desktop: "Компьютер",
+      mobile: "Смартфон",
+      tablet: "Планшет",
+    },
     connectionTypes: {
       datacenter: "Дата-центр / Хостинг",
       tor: "Выходной узел Tor",
@@ -868,8 +995,8 @@ export const translations: Record<Locale, Translation> = {
     location: "位置",
     city: "城市",
     country: "国家",
-    timezone: "时区",
-    timezoneDetail: "IANA 时区",
+    timezone: "时区（IP）",
+    timezoneDetail: "来自 IP 地理位置的 IANA 时区",
     isp: "运营商 (ISP)",
     ispDetail: "互联网服务提供商",
     organization: "组织",
@@ -892,6 +1019,22 @@ export const translations: Record<Locale, Translation> = {
     reverseDnsDetail: "PTR 主机名",
     checkReputation: "检查 IP 信誉",
     networkSection: "网络",
+    browserSection: "浏览器",
+    deviceSection: "设备",
+    browserName: "名称",
+    browserVersion: "版本",
+    operatingSystem: "操作系统",
+    deviceType: "设备类型",
+    browserTimezone: "时区（浏览器）",
+    browserFingerprint: "指纹",
+    browserFingerprintHint:
+      "根据浏览器和设备信号在本地生成，不会存储或发送到服务器。",
+    copyFingerprintLabel: "复制指纹",
+    deviceTypes: {
+      desktop: "桌面设备",
+      mobile: "手机",
+      tablet: "平板",
+    },
     connectionTypes: {
       datacenter: "数据中心 / 托管",
       tor: "Tor 出口节点",
