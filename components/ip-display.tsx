@@ -24,13 +24,22 @@ import {
   isProxyHintProduct,
   mergeProxyHintAssessments,
   PROXY_HINT_PRODUCT_NAMES,
-  type BrowserDeviceHints,
   type ConnectionType,
   type ProxyHintAssessment,
   type ProxyHintConfidence,
   type ProxyHintFixedLabel,
   type ProxyHintLabel,
 } from "@/lib/connection-type";
+import {
+  buildFingerprintMaterial,
+  collectBrowserDeviceHints,
+  formatBrowserVersion,
+  formatOsLabel,
+  hashFingerprintMaterial,
+  readUserAgentClientHints,
+  resolveVisitorBrowserInfo,
+  type DetectedBrowserInfo,
+} from "@/lib/browser-info";
 import {
   MapPin,
   Copy,
@@ -43,6 +52,8 @@ import {
   Network,
   ExternalLink,
   Globe,
+  AppWindow,
+  MonitorSmartphone,
 } from "lucide-react";
 
 interface IpData {
@@ -151,16 +162,37 @@ function CardTitleBar({
 function DetailCard({
   icon: Icon,
   title,
+  footer,
   children,
 }: {
   icon: LucideIcon;
   title: string;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <CardTitleBar icon={Icon} title={title} />
       <dl className="px-5">{children}</dl>
+      {footer}
+    </Card>
+  );
+}
+
+function DetailCardSkeleton() {
+  return (
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="border-b bg-muted/30 px-5 py-3.5">
+        <Skeleton className="h-5 w-28" />
+      </div>
+      <div className="flex flex-col gap-3 p-5">
+        {Array.from({ length: 5 }).map((_, row) => (
+          <div key={row} className="flex justify-between gap-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }
@@ -233,6 +265,9 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(null);
   const [ipv6Loading, setIpv6Loading] = useState(false);
   const [localProxyHints, setLocalProxyHints] = useState<ProxyHintAssessment | null>(null);
+  const [visitorBrowser, setVisitorBrowser] = useState<DetectedBrowserInfo | null>(null);
+  const [fingerprint, setFingerprint] = useState<string | null>(null);
+  const [fingerprintReady, setFingerprintReady] = useState(false);
   const t = getTranslation(locale);
 
   useEffect(() => {
@@ -301,42 +336,47 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
 
   useEffect(() => {
     setLocalProxyHints(null);
+    setVisitorBrowser(null);
+    setFingerprint(null);
+    setFingerprintReady(false);
     if (targetIp || loading || error || !data) return;
 
     const now = new Date();
-    const navigatorWithNetworkInfo = navigator as Navigator & {
-      deviceMemory?: number;
-      connection?: BrowserDeviceHints["connection"];
-    };
-    const connection = navigatorWithNetworkInfo.connection;
-    const deviceHints: BrowserDeviceHints = {
-      userAgent: navigator.userAgent || "",
-      platform: navigator.platform || "",
-      language: navigator.language || "",
-      languages: [...(navigator.languages || [])],
-      hardwareConcurrency: navigator.hardwareConcurrency,
-      deviceMemory: navigatorWithNetworkInfo.deviceMemory,
-      maxTouchPoints: navigator.maxTouchPoints,
-      webdriver: navigator.webdriver,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
-      timezoneOffsetMinutes: -now.getTimezoneOffset(),
-      screen: {
-        width: screen.width,
-        height: screen.height,
-        colorDepth: screen.colorDepth,
-      },
-      connection: connection
-        ? {
-            type: connection.type,
-            effectiveType: connection.effectiveType,
-            downlink: connection.downlink,
-            rtt: connection.rtt,
-            saveData: connection.saveData,
-          }
-        : undefined,
-    };
+    const deviceHints = collectBrowserDeviceHints(now);
+    if (!deviceHints) {
+      setVisitorBrowser({
+        browserName: null,
+        browserMajorVersion: null,
+        browserFullVersion: null,
+        osName: null,
+        osVersion: null,
+        deviceType: null,
+        timeZone: null,
+      });
+      setFingerprintReady(true);
+      return;
+    }
 
     setLocalProxyHints(assessLocalProxyHints(data, deviceHints, now));
+
+    let active = true;
+    void (async () => {
+      const uaHints = await readUserAgentClientHints();
+      if (!active) return;
+
+      const info = resolveVisitorBrowserInfo(targetIp, deviceHints, uaHints);
+      if (!info) return;
+
+      setVisitorBrowser(info);
+      const hash = await hashFingerprintMaterial(buildFingerprintMaterial(deviceHints, info));
+      if (!active) return;
+      setFingerprint(hash);
+      setFingerprintReady(true);
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [data, error, loading, targetIp]);
 
   if (loading) {
@@ -361,20 +401,8 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
           </div>
         </Card>
         <div className="grid gap-4 lg:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, card) => (
-            <Card key={card} className="gap-0 overflow-hidden py-0">
-              <div className="border-b bg-muted/30 px-5 py-3.5">
-                <Skeleton className="h-5 w-28" />
-              </div>
-              <div className="flex flex-col gap-3 p-5">
-                {Array.from({ length: 5 }).map((_, row) => (
-                  <div key={row} className="flex justify-between gap-4">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                ))}
-              </div>
-            </Card>
+          {Array.from({ length: targetIp ? 2 : 4 }).map((_, card) => (
+            <DetailCardSkeleton key={card} />
           ))}
         </div>
       </div>
@@ -618,6 +646,64 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             </DetailRow>
           )}
         </DetailCard>
+
+        {!targetIp &&
+          (visitorBrowser ? (
+            <>
+              <DetailCard
+                icon={AppWindow}
+                title={t.browserSection}
+                footer={
+                  <p className="border-t border-border/60 px-5 py-3 text-[11px] leading-relaxed text-muted-foreground/80">
+                    {t.browserFingerprintHint}
+                  </p>
+                }
+              >
+                <DetailRow label={t.browserName}>
+                  {orUnknown(visitorBrowser.browserName ?? "")}
+                </DetailRow>
+                <DetailRow label={t.browserVersion}>
+                  {orUnknown(formatBrowserVersion(visitorBrowser) ?? "")}
+                </DetailRow>
+                <DetailRow label={t.browserFingerprint}>
+                  {!fingerprintReady ? (
+                    <Skeleton className="ml-auto h-4 w-40" />
+                  ) : fingerprint ? (
+                    <span className="inline-flex max-w-full items-start justify-end gap-1">
+                      <span className="font-mono text-xs font-medium break-all">{fingerprint}</span>
+                      <CopyButton
+                        text={fingerprint}
+                        label={t.copyFingerprintLabel}
+                        copiedLabel={t.copiedToClipboard}
+                        failedLabel={t.copyFailed}
+                      />
+                    </span>
+                  ) : (
+                    t.unknown
+                  )}
+                </DetailRow>
+              </DetailCard>
+
+              <DetailCard icon={MonitorSmartphone} title={t.deviceSection}>
+                <DetailRow label={t.operatingSystem}>
+                  {orUnknown(formatOsLabel(visitorBrowser) ?? "")}
+                </DetailRow>
+                <DetailRow label={t.deviceType}>
+                  {visitorBrowser.deviceType
+                    ? t.deviceTypes[visitorBrowser.deviceType]
+                    : t.unknown}
+                </DetailRow>
+                <DetailRow label={t.browserTimezone}>
+                  {orUnknown(visitorBrowser.timeZone ?? "")}
+                </DetailRow>
+              </DetailCard>
+            </>
+          ) : (
+            <>
+              <DetailCardSkeleton />
+              <DetailCardSkeleton />
+            </>
+          ))}
       </div>
     </div>
   );
