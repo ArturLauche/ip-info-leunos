@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  OVERLAY_CLOSE_MS,
+  OVERLAY_PAGE_REVEAL_MS,
   PAGE_REVEAL_ATTR,
+  PAGE_REVEAL_OVERLAY,
   PAGE_REVEAL_SHEET,
   SHEET_CLOSE_MS,
   SHEET_NAV_CLOSE_DELAY_MS,
@@ -47,6 +50,15 @@ describe("sheet / page motion timing", () => {
   it("uses a stable document attribute for CSS hooks", () => {
     expect(PAGE_REVEAL_ATTR).toBe("data-page-reveal");
     expect(PAGE_REVEAL_SHEET).toBe("sheet");
+    expect(PAGE_REVEAL_OVERLAY).toBe("overlay");
     expect(SUPPORTS_VIEW_TRANSITIONS_CLASS).toBe("supports-view-transitions");
+  });
+});
+
+describe("overlay / page motion timing", () => {
+  it("does not delay navigation on the command-palette close", () => {
+    expect(OVERLAY_CLOSE_MS).toBe(200);
+    expect(OVERLAY_PAGE_REVEAL_MS).toBeGreaterThanOrEqual(OVERLAY_CLOSE_MS);
+    expect(OVERLAY_PAGE_REVEAL_MS).toBeLessThan(600);
   });
 });

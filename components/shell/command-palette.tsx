@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { CornerDownLeft, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { buildActionTargets, classifyQuery, matchesQuery } from "@/lib/command";
 import type { Locale } from "@/lib/i18n";
+import { markOverlayPageReveal } from "@/lib/page-transition";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +116,17 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
   }, [activeIndex]);
 
   const select = (item: ResolvedItem) => {
-    onOpenChange(false);
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (!reducedMotion) {
+      markOverlayPageReveal();
+    }
+    // Commit the close before Next starts the View Transition so the Radix
+    // portal is not frozen into the outgoing snapshot.
+    flushSync(() => {
+      onOpenChange(false);
+    });
     router.push(item.href);
   };
 

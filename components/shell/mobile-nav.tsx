@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
@@ -46,10 +46,8 @@ export function MobileNav({ locale, active }: MobileNavProps) {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
   const previousPathnameRef = useRef(pathname);
+  const openRef = useRef(open);
   const toolT = getToolTranslation(locale);
 
   const closeSheetForRouteChange = useCallback((fromNavLinks: boolean) => {
@@ -58,22 +56,21 @@ export function MobileNav({ locale, active }: MobileNavProps) {
       return;
     }
 
-    markSheetPageReveal();
     clearTimeout(closeTimerRef.current);
-    clearTimeout(revealTimerRef.current);
     const delay = fromNavLinks ? SHEET_NAV_CLOSE_DELAY_MS : 0;
+    markSheetPageReveal(delay + SHEET_CLOSE_MS + 20);
     closeTimerRef.current = setTimeout(() => {
       setOpen(false);
     }, delay);
-    revealTimerRef.current = setTimeout(() => {
-      clearPageReveal();
-    }, delay + SHEET_CLOSE_MS + 20);
   }, []);
+
+  useLayoutEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   useEffect(() => {
     return () => {
       clearTimeout(closeTimerRef.current);
-      clearTimeout(revealTimerRef.current);
       // The reveal flag lives on <html>, so cancelling the timer alone would
       // leave view transitions permanently suppressed after an unmount.
       clearPageReveal();
@@ -88,6 +85,18 @@ export function MobileNav({ locale, active }: MobileNavProps) {
     if (hasSheetPageReveal()) return;
     closeSheetForRouteChange(false);
   }, [pathname, open, closeSheetForRouteChange]);
+
+  useEffect(() => {
+    const onHistoryTraverse = () => {
+      if (!openRef.current) return;
+      closeSheetForRouteChange(false);
+    };
+
+    window.addEventListener("popstate", onHistoryTraverse, true);
+    return () => {
+      window.removeEventListener("popstate", onHistoryTraverse, true);
+    };
+  }, [closeSheetForRouteChange]);
 
   const themeLabels = {
     toggle: toolT.themeToggle,

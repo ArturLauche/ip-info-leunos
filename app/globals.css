@@ -387,8 +387,8 @@
    * and the container clips so the lift never flashes a horizontal scrollbar.
    *
    * Browsers with View Transitions use the snapshot crossfade instead. The
-   * inner CSS enter is the fallback, and also runs while the mobile sheet is
-   * revealing a destination (snapshots would freeze the drawer).
+   * inner CSS enter is the fallback, and also runs while an overlay (mobile
+   * sheet or command palette) is revealing a destination.
    */
   .tool-page-transition-host {
     display: flex;
@@ -532,8 +532,9 @@
 
 /*
  * View Transitions: the outgoing page yields quickly while the incoming
- * page arrives on the same curve as the CSS fallback. Chrome groups are
- * frozen so the sidebar and mobile top bar do not slide with the content.
+ * page arrives on the same curve as the CSS fallback. Named chrome groups
+ * punch a hole in the overlay so the live sidebar and mobile top bar (and
+ * their nav highlight) stay visible instead of sliding with the content.
  * Rules sit outside @layer so the pseudo-elements win over layered styles.
  */
 ::view-transition {
@@ -571,9 +572,21 @@ html:active-view-transition {
   display: none;
 }
 
+/*
+ * Hide the new chrome snapshot too. A frozen new-state image would sit
+ * above the live sidebar/top bar and hide the 400ms nav-highlight slide.
+ * Opacity 0 keeps the group box as a hole in the overlay so the live chrome
+ * (forced visible below) shows through.
+ */
 ::view-transition-new(mobile-chrome),
 ::view-transition-new(desktop-chrome) {
   animation: none;
+  opacity: 0;
+}
+
+html:active-view-transition .tool-desktop-chrome,
+html:active-view-transition .tool-mobile-chrome {
+  visibility: visible !important;
 }
 
 ::view-transition-old(.page-exit) {
@@ -599,8 +612,9 @@ html:active-view-transition {
  * replay (flash) when :active-view-transition ends — fill-mode `both` restarts
  * from opacity 0 on the live DOM. The class is therefore kept on for the
  * whole session on View-Transitions browsers, not only while a transition
- * is active. Exception: while the mobile sheet is revealing the destination,
- * CSS enter still runs (the drawer close is the overlay).
+ * is active. Exception: while an overlay is revealing the destination
+ * (`data-page-reveal`), CSS enter still runs so the drawer or palette close
+ * is the motion, not a frozen snapshot.
  */
 html.supports-view-transitions:not([data-page-reveal]) .tool-page-transition > [data-transition-stage] {
   animation: none;
@@ -612,9 +626,9 @@ html:active-view-transition:not([data-page-reveal]) .tool-page-transition > [dat
   transform: none;
 }
 
-html[data-page-reveal='sheet']::view-transition-old(*),
-html[data-page-reveal='sheet']::view-transition-new(*),
-html[data-page-reveal='sheet']::view-transition-group(*) {
+html[data-page-reveal]::view-transition-old(*),
+html[data-page-reveal]::view-transition-new(*),
+html[data-page-reveal]::view-transition-group(*) {
   animation: none !important;
   animation-duration: 0s !important;
   animation-delay: 0s !important;
