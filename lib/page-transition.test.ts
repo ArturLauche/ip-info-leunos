@@ -6,6 +6,7 @@ import {
   SHEET_CLOSE_MS,
   SHEET_NAV_CLOSE_DELAY_MS,
   SHEET_PAGE_REVEAL_MS,
+  SUPPORTS_VIEW_TRANSITIONS_CLASS,
   getPageTransitionKey,
 } from "./page-transition";
 
@@ -46,5 +47,6 @@ describe("sheet / page motion timing", () => {
   it("uses a stable document attribute for CSS hooks", () => {
     expect(PAGE_REVEAL_ATTR).toBe("data-page-reveal");
     expect(PAGE_REVEAL_SHEET).toBe("sheet");
+    expect(SUPPORTS_VIEW_TRANSITIONS_CLASS).toBe("supports-view-transitions");
   });
 });

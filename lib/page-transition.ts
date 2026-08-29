@@ -11,6 +11,7 @@ import { activeToolFromPathname } from "@/components/shell/nav-config";
  */
 export const PAGE_REVEAL_ATTR = "data-page-reveal";
 export const PAGE_REVEAL_SHEET = "sheet";
+export const SUPPORTS_VIEW_TRANSITIONS_CLASS = "supports-view-transitions";
 
 /** Lets the selection highlight paint before the sheet starts closing. */
 export const SHEET_NAV_CLOSE_DELAY_MS = 80;
@@ -36,6 +37,13 @@ export function getPageTransitionKey(pathname: string): string {
 
   const normalized = pathname.replace(/\/+$/, "") || "/";
   return `route:${normalized}`;
+}
+
+export function markViewTransitionSupport() {
+  if (typeof document === "undefined") return;
+  if ("startViewTransition" in document) {
+    document.documentElement.classList.add(SUPPORTS_VIEW_TRANSITIONS_CLASS);
+  }
 }
 
 export function markSheetPageReveal() {

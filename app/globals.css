@@ -386,10 +386,17 @@
    * over the page. Animations are opacity/transform only (compositor-driven),
    * and the container clips so the lift never flashes a horizontal scrollbar.
    *
-   * When a View Transition is running (and the sheet is not covering the
-   * page), inner CSS enter is skipped so the snapshot crossfade is the only
-   * motion — otherwise the new page would capture at opacity 0.
+   * Browsers with View Transitions use the snapshot crossfade instead. The
+   * inner CSS enter is the fallback, and also runs while the mobile sheet is
+   * revealing a destination (snapshots would freeze the drawer).
    */
+  .tool-page-transition-host {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
   .tool-page-transition {
     overflow-x: clip;
   }
@@ -588,13 +595,19 @@ html:active-view-transition {
 }
 
 /*
- * Inner CSS enter would capture the new snapshot at opacity 0. Skip it
- * while a real view transition is running. While the mobile sheet is
- * revealing the destination, keep the CSS enter (the drawer close is the
- * overlay) and zero-out the snapshots so they do not freeze the sheet.
+ * Inner CSS enter would capture the new snapshot at opacity 0, and would
+ * replay (flash) when :active-view-transition ends. Browsers that support
+ * View Transitions skip it except while the mobile sheet is revealing the
+ * destination — then the drawer close is the overlay and CSS enter runs.
  */
+html.supports-view-transitions:not([data-page-reveal]) .tool-page-transition > [data-transition-stage] {
+  animation: none;
+}
+
 html:active-view-transition:not([data-page-reveal]) .tool-page-transition > [data-transition-stage] {
   animation: none;
+  opacity: 1;
+  transform: none;
 }
 
 html[data-page-reveal='sheet']::view-transition-old(*),
