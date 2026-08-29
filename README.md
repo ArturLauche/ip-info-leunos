@@ -40,7 +40,7 @@ Set `PRIVACY_CONTROLLER_NAME` to the controller's identity (name / legal entity)
 
 ## Datenschutz / GDPR
 
-The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, linked from the footer on every page. It documents the processing of IP addresses, the in-memory rate limiting, the external services that requests are forwarded to (including third-country transfers), the functional theme storage, and data-subject rights under the GDPR. The app sets no tracking cookies, runs no analytics, and stores no persistent request logs of its own.
+The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, linked from the footer on every page. It documents the processing of IP addresses, the in-memory rate limiting, the external services that requests are forwarded to (including third-country transfers), the local in-browser device/browser diagnostic display and fingerprint hash (never sent to the server or stored), the functional theme storage, and data-subject rights under the GDPR. The app sets no tracking cookies, runs no analytics, and stores no persistent request logs of its own.
 
 ## Tech Stack
 

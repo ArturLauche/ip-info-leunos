@@ -267,6 +267,34 @@ describe("browser parsing", () => {
     expect(unknownWindows.osVersion).toBeNull();
   });
 
+  it("prefers explicit User-Agent brands over generic Chrome/Chromium Client Hints", () => {
+    const genericHints: UserAgentClientHints = {
+      brands: [
+        { brand: "Not.A/Brand", version: "99" },
+        { brand: "Chromium", version: "128" },
+        { brand: "Google Chrome", version: "128" },
+      ],
+      mobile: false,
+      platform: "Windows",
+    };
+
+    const vivaldi = detect(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Vivaldi/7.0.3495.15",
+      { platform: "Win32" },
+      genericHints,
+    );
+    const opera = detect(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.5230.38",
+      { platform: "Win32" },
+      genericHints,
+    );
+
+    expect(vivaldi.browserName).toBe("Vivaldi");
+    expect(vivaldi.browserFullVersion).toBe("7.0.3495.15");
+    expect(opera.browserName).toBe("Opera");
+    expect(opera.browserFullVersion).toBe("114.0.5230.38");
+  });
+
   it("uses Client Hints to classify Android tablets vs phones", () => {
     const phone = detect(
       "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.99 Safari/537.36",
@@ -450,6 +478,24 @@ describe("fingerprint generation", () => {
     expect(tokyo.timeZone).toBe("Asia/Tokyo");
     expect(berlinHash).toBe(berlinAgain);
     expect(berlinHash).not.toBe(tokyoHash);
+  });
+
+  it("keeps the same hash when screen width and height swap after rotation", async () => {
+    const portrait = hints({ screen: { width: 390, height: 844, colorDepth: 24 } });
+    const landscape = hints({ screen: { width: 844, height: 390, colorDepth: 24 } });
+    const portraitInfo = detectVisitorBrowserInfo(portrait);
+    const landscapeInfo = detectVisitorBrowserInfo(landscape);
+
+    const portraitMaterial = buildFingerprintMaterial(portrait, portraitInfo);
+    const landscapeMaterial = buildFingerprintMaterial(landscape, landscapeInfo);
+
+    expect(portraitMaterial.screenShortSide).toBe(390);
+    expect(portraitMaterial.screenLongSide).toBe(844);
+    expect(landscapeMaterial.screenShortSide).toBe(390);
+    expect(landscapeMaterial.screenLongSide).toBe(844);
+    expect(await hashFingerprintMaterial(portraitMaterial)).toBe(
+      await hashFingerprintMaterial(landscapeMaterial),
+    );
   });
 });
 
