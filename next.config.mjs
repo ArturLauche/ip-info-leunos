@@ -4,6 +4,11 @@ const nextConfig = {
     unoptimized: true,
   },
   poweredByHeader: false,
+  experimental: {
+    // Lets React wrap App Router navigations in startViewTransition so
+    // PageTransition can crossfade outgoing and incoming tool pages.
+    viewTransition: true,
+  },
   // Client maps are also stripped after build (scripts/strip-client-maps.mjs)
   // because Turbopack still emits the nomodule-polyfill map (Next.js #89894).
   productionBrowserSourceMaps: false,

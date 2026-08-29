@@ -17,11 +17,28 @@
   /*
    * Motion easing tokens. Tuned to feel calm and smooth rather than snappy:
    * `smooth` decelerates and accelerates gently (for elements that move or
-   * morph between states), `out-soft` is a soft decelerate for enter/reveal.
+   * morph between states), `out-soft` is a soft decelerate for enter/reveal,
+   * `fluid` overshoots slightly for mobile page travel.
    */
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /*
+   * Page-transition durations. Desktop is quick and subtle; mobile is a
+   * touch longer and more fluid but stays under half a second. Keep the
+   * sheet close (`SHEET_CLOSE_MS` in lib/page-transition.ts) at 220ms so
+   * the drawer clears as the enter peaks.
+   */
+  --page-enter-duration: 320ms;
+  --page-exit-duration: 180ms;
+  --page-enter-duration-mobile: 400ms;
+  --page-exit-duration-mobile: 200ms;
+  --page-stage-panel-delay: 50ms;
+  --page-stage-footer-delay: 80ms;
+  --page-stage-mobile-delay: 40ms;
+  --page-stage-panel-delay-mobile: 90ms;
+  --page-stage-footer-delay-mobile: 130ms;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -364,40 +381,43 @@
    * Page-change transition: the new route's header, panel and footer ease in
    * with a gentle fade and lift, lightly staggered so the page settles
    * smoothly instead of popping into place. Mobile (below the lg sidebar
-   * breakpoint) uses a longer, more fluid travel; its stages start slightly
+   * breakpoint) uses a slightly longer, more fluid travel; its stages start
    * later so the motion peak lands just as the nav sheet finishes closing
    * over the page. Animations are opacity/transform only (compositor-driven),
-   * and the container clips horizontally so the lift never flashes a
-   * horizontal scrollbar.
+   * and the container clips so the lift never flashes a horizontal scrollbar.
+   *
+   * When a View Transition is running (and the sheet is not covering the
+   * page), inner CSS enter is skipped so the snapshot crossfade is the only
+   * motion — otherwise the new page would capture at opacity 0.
    */
   .tool-page-transition {
     overflow-x: clip;
   }
 
   .tool-page-transition > [data-transition-stage] {
-    animation: tool-page-enter 440ms var(--ease-out-soft) both;
+    animation: tool-page-enter var(--page-enter-duration) var(--ease-out-soft) both;
   }
 
   .tool-page-transition > [data-transition-stage='panel'] {
-    animation-delay: 90ms;
+    animation-delay: var(--page-stage-panel-delay);
   }
 
   .tool-page-transition > [data-transition-stage='footer'] {
-    animation-delay: 120ms;
+    animation-delay: var(--page-stage-footer-delay);
   }
 
   @media (max-width: 1023px) {
     .tool-page-transition > [data-transition-stage] {
-      animation: tool-page-enter-mobile 520ms var(--ease-fluid) both;
-      animation-delay: 40ms;
+      animation: tool-page-enter-mobile var(--page-enter-duration-mobile) var(--ease-fluid) both;
+      animation-delay: var(--page-stage-mobile-delay);
     }
 
     .tool-page-transition > [data-transition-stage='panel'] {
-      animation-delay: 110ms;
+      animation-delay: var(--page-stage-panel-delay-mobile);
     }
 
     .tool-page-transition > [data-transition-stage='footer'] {
-      animation-delay: 170ms;
+      animation-delay: var(--page-stage-footer-delay-mobile);
     }
   }
 
@@ -446,24 +466,48 @@
 @keyframes tool-page-enter {
   from {
     opacity: 0;
-    transform: translateY(0.5rem);
+    transform: translate3d(0, 0.5rem, 0);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes tool-page-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, -0.35rem, 0);
   }
 }
 
 @keyframes tool-page-enter-mobile {
   from {
     opacity: 0;
-    transform: translate3d(0, 0.875rem, 0);
+    transform: translate3d(0, 0.75rem, 0);
   }
 
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes tool-page-exit-mobile {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, -0.45rem, 0);
   }
 }
 
@@ -477,6 +521,88 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/*
+ * View Transitions: the outgoing page yields quickly while the incoming
+ * page arrives on the same curve as the CSS fallback. Chrome groups are
+ * frozen so the sidebar and mobile top bar do not slide with the content.
+ * Rules sit outside @layer so the pseudo-elements win over layered styles.
+ */
+::view-transition {
+  pointer-events: none;
+}
+
+html:active-view-transition {
+  overflow-x: clip;
+}
+
+::view-transition-group(*) {
+  overflow: clip;
+}
+
+@media (max-width: 1023px) {
+  .tool-mobile-chrome {
+    view-transition-name: mobile-chrome;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tool-desktop-chrome {
+    view-transition-name: desktop-chrome;
+  }
+}
+
+::view-transition-group(mobile-chrome),
+::view-transition-group(desktop-chrome) {
+  animation: none;
+  z-index: 30;
+}
+
+::view-transition-old(mobile-chrome),
+::view-transition-old(desktop-chrome) {
+  display: none;
+}
+
+::view-transition-new(mobile-chrome),
+::view-transition-new(desktop-chrome) {
+  animation: none;
+}
+
+::view-transition-old(.page-exit) {
+  animation: var(--page-exit-duration) var(--ease-smooth) both tool-page-exit;
+}
+
+::view-transition-new(.page-enter) {
+  animation: var(--page-enter-duration) var(--ease-out-soft) both tool-page-enter;
+}
+
+@media (max-width: 1023px) {
+  ::view-transition-old(.page-exit) {
+    animation: var(--page-exit-duration-mobile) var(--ease-smooth) both tool-page-exit-mobile;
+  }
+
+  ::view-transition-new(.page-enter) {
+    animation: var(--page-enter-duration-mobile) var(--ease-fluid) var(--page-stage-mobile-delay) both tool-page-enter-mobile;
+  }
+}
+
+/*
+ * Inner CSS enter would capture the new snapshot at opacity 0. Skip it
+ * while a real view transition is running. While the mobile sheet is
+ * revealing the destination, keep the CSS enter (the drawer close is the
+ * overlay) and zero-out the snapshots so they do not freeze the sheet.
+ */
+html:active-view-transition:not([data-page-reveal]) .tool-page-transition > [data-transition-stage] {
+  animation: none;
+}
+
+html[data-page-reveal='sheet']::view-transition-old(*),
+html[data-page-reveal='sheet']::view-transition-new(*),
+html[data-page-reveal='sheet']::view-transition-group(*) {
+  animation: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -495,5 +621,13 @@
   .tool-reveal,
   .tool-reveal > * {
     animation: none;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }
