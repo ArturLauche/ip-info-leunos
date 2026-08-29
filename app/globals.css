@@ -596,9 +596,11 @@ html:active-view-transition {
 
 /*
  * Inner CSS enter would capture the new snapshot at opacity 0, and would
- * replay (flash) when :active-view-transition ends. Browsers that support
- * View Transitions skip it except while the mobile sheet is revealing the
- * destination — then the drawer close is the overlay and CSS enter runs.
+ * replay (flash) when :active-view-transition ends — fill-mode `both` restarts
+ * from opacity 0 on the live DOM. The class is therefore kept on for the
+ * whole session on View-Transitions browsers, not only while a transition
+ * is active. Exception: while the mobile sheet is revealing the destination,
+ * CSS enter still runs (the drawer close is the overlay).
  */
 html.supports-view-transitions:not([data-page-reveal]) .tool-page-transition > [data-transition-stage] {
   animation: none;
