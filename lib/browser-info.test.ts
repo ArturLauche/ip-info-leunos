@@ -267,6 +267,22 @@ describe("browser parsing", () => {
     expect(unknownWindows.osVersion).toBeNull();
   });
 
+  it("maps pre-2004 Windows 10 Client Hint platform versions to Windows 10", () => {
+    const info = detect(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+      { platform: "Win32" },
+      {
+        brands: [{ brand: "Google Chrome", version: "128" }],
+        mobile: false,
+        platform: "Windows",
+        platformVersion: "4.0.0",
+      },
+    );
+
+    expect(info.osName).toBe("Windows");
+    expect(info.osVersion).toBe("10");
+  });
+
   it("prefers explicit User-Agent brands over generic Chrome/Chromium Client Hints", () => {
     const genericHints: UserAgentClientHints = {
       brands: [
@@ -310,6 +326,31 @@ describe("browser parsing", () => {
     expect(phone.deviceType).toBe("mobile");
     expect(tablet.deviceType).toBe("tablet");
     expect(tablet.osName).toBe("Android");
+  });
+
+  it("does not report Safari for legacy Android WebKit UAs", () => {
+    const info = detect(
+      "Mozilla/5.0 (Linux; U; Android 4.4.2; en-us; Nexus 4 Build/KOT49H) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30",
+    );
+
+    expect(info.browserName).toBeNull();
+    expect(info.osName).toBe("Android");
+    expect(info.deviceType).toBe("mobile");
+  });
+
+  it("reads modern Opera and Opera Mini versions instead of the Presto 9.80 marker", () => {
+    const presto = detect(
+      "Opera/9.80 (Windows NT 6.1) Presto/2.12.388 Version/12.16",
+      { platform: "Win32" },
+    );
+    const mini = detect(
+      "Opera/9.80 (Android; Opera Mini/43.0.2245.123) Presto/2.12 Version/11.10",
+    );
+
+    expect(presto.browserName).toBe("Opera");
+    expect(presto.browserFullVersion).toBe("12.16");
+    expect(mini.browserName).toBe("Opera Mini");
+    expect(mini.browserFullVersion).toBe("43.0.2245.123");
   });
 
   it("does not guess a browser, OS, or device type from an empty or ambiguous UA", () => {

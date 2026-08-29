@@ -332,7 +332,9 @@ function detectBrowserFromUserAgent(userAgent: string): {
   const rules: { name: string; pattern: RegExp }[] = [
     { name: "Yandex", pattern: /YaBrowser\/([0-9.]+)/i },
     { name: "Samsung Internet", pattern: /SamsungBrowser\/([0-9.]+)/i },
-    { name: "Opera", pattern: /(?:OPR|Opera)\/([0-9.]+)/i },
+    { name: "Opera Mini", pattern: /Opera Mini\/([0-9.]+)/i },
+    { name: "Opera", pattern: /(?:OPR|OPiOS)\/([0-9.]+)/i },
+    { name: "Opera", pattern: /Opera\/[0-9.]+.*Version\/([0-9.]+)/i },
     { name: "Edge", pattern: /(?:Edg|EdgiOS|EdgA)\/([0-9.]+)/i },
     { name: "Vivaldi", pattern: /Vivaldi\/([0-9.]+)/i },
     { name: "Brave", pattern: /Brave\/([0-9.]+)/i },
@@ -342,10 +344,12 @@ function detectBrowserFromUserAgent(userAgent: string): {
   ];
 
   for (const rule of rules) {
-    if (rule.name === "Chrome" && /(?:Edg|EdgiOS|EdgA|OPR|Opera|SamsungBrowser|YaBrowser|Vivaldi|Brave)\//i.test(ua)) {
+    if (rule.name === "Chrome" && /(?:Edg|EdgiOS|EdgA|OPR|OPiOS|Opera|SamsungBrowser|YaBrowser|Vivaldi|Brave)\//i.test(ua)) {
       continue;
     }
-    if (rule.name === "Safari" && /(?:Chrome|CriOS|Chromium|Android)\//i.test(ua)) {
+    // Android UAs use "Android 14;" not "Android/". Treat them as non-Safari
+    // rather than reporting the WebKit Version token as Safari.
+    if (rule.name === "Safari" && /(?:Chrome|CriOS|Chromium)\/|Android/i.test(ua)) {
       continue;
     }
 
@@ -549,9 +553,10 @@ function mapWindowsPlatformVersion(platformVersion: string | undefined): string 
   if (!major) return null;
   const numeric = Number(major);
   if (!Number.isFinite(numeric) || numeric === 0) return null;
-  // Chromium maps Windows 11 to UniversalApiContract >= 13.
+  // Chromium maps Windows 11 to UniversalApiContract >= 13, and Windows 10
+  // releases from 1507 through 2004+ to majors 1–12. 0.x is Windows 7/8/8.1.
   if (numeric >= 13) return "11";
-  if (numeric === 10) return "10";
+  if (numeric >= 1 && numeric <= 12) return "10";
   return null;
 }
 
