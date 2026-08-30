@@ -390,7 +390,6 @@
 
   .tool-page-snapshot {
     width: 100%;
-    min-height: 100%;
     background-color: var(--background);
     pointer-events: none;
     will-change: opacity, transform;

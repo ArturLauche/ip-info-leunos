@@ -33,6 +33,12 @@ interface PrepareEventDetail {
 
 const SNAPSHOT_SCROLL_TOP = "pageSnapshotScrollTop";
 const SNAPSHOT_SCROLL_LEFT = "pageSnapshotScrollLeft";
+const KEYFRAME_METADATA = new Set([
+  "offset",
+  "computedOffset",
+  "easing",
+  "composite",
+]);
 
 /** Prepares outgoing content for navigation that is not initiated by a Link. */
 export function preparePageTransition(href: string): void {
@@ -53,6 +59,38 @@ function readEnvironment(): PageTransitionEnvironment {
   };
 }
 
+function toCssPropertyName(property: string): string {
+  if (property.startsWith("--")) return property;
+  return property.replace(/[A-Z]/g, (character) => `-${character.toLowerCase()}`);
+}
+
+function activeAnimatedProperties(
+  source: HTMLDivElement,
+): Map<HTMLElement, Set<string>> {
+  const propertiesByElement = new Map<HTMLElement, Set<string>>();
+
+  source.getAnimations({ subtree: true }).forEach((animation) => {
+    if (animation.playState === "idle" || animation.playState === "finished") {
+      return;
+    }
+
+    const effect = animation.effect;
+    if (!(effect instanceof KeyframeEffect)) return;
+    const target = effect.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const properties = propertiesByElement.get(target) ?? new Set<string>();
+    effect.getKeyframes().forEach((keyframe) => {
+      Object.keys(keyframe).forEach((property) => {
+        if (!KEYFRAME_METADATA.has(property)) properties.add(property);
+      });
+    });
+    if (properties.size > 0) propertiesByElement.set(target, properties);
+  });
+
+  return propertiesByElement;
+}
+
 function cloneContent(source: HTMLDivElement): HTMLDivElement {
   const clone = source.cloneNode(true) as HTMLDivElement;
   clone.classList.add("tool-page-snapshot");
@@ -60,6 +98,7 @@ function cloneContent(source: HTMLDivElement): HTMLDivElement {
   clone.setAttribute("aria-hidden", "true");
   clone.inert = true;
   clone.dataset.scrollBefore = String(window.scrollY);
+  clone.style.height = `${source.getBoundingClientRect().height}px`;
 
   // The visual copy is hidden from accessibility APIs and must not duplicate
   // document targets such as #main-content while it overlaps the live route.
@@ -84,9 +123,10 @@ function cloneContent(source: HTMLDivElement): HTMLDivElement {
     }
   });
 
-  // cloneNode also resets the live scroll position of nested result panes and
-  // table wrappers. Record non-zero offsets on their matching visual copies;
-  // they are restored as soon as the clone is mounted into the snapshot layer.
+  // Preserve live state that cloneNode does not carry. Scroll offsets are
+  // restored after mounting, while in-flight animation values are fixed as
+  // inline styles before clone animations are disabled by the snapshot CSS.
+  const animatedProperties = activeAnimatedProperties(source);
   const sourceElements = [
     source,
     ...Array.from(source.querySelectorAll("*")).filter(
@@ -108,6 +148,15 @@ function cloneContent(source: HTMLDivElement): HTMLDivElement {
     if (element.scrollLeft !== 0) {
       copy.dataset[SNAPSHOT_SCROLL_LEFT] = String(element.scrollLeft);
     }
+
+    const properties = animatedProperties.get(element);
+    if (!properties) return;
+    const computedStyle = getComputedStyle(element);
+    properties.forEach((property) => {
+      const cssProperty = toCssPropertyName(property);
+      const value = computedStyle.getPropertyValue(cssProperty);
+      if (value) copy.style.setProperty(cssProperty, value);
+    });
   });
 
   return clone;
