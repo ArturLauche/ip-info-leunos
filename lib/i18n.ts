@@ -140,7 +140,6 @@ export type Translation = {
   deviceType: string;
   browserTimezone: string;
   browserFingerprint: string;
-  browserFingerprintHint: string;
   copyFingerprintLabel: string;
   deviceTypes: {
     desktop: string;
@@ -240,8 +239,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "Gerätetyp",
     browserTimezone: "Zeitzone (Browser)",
     browserFingerprint: "Fingerprint",
-    browserFingerprintHint:
-      "Lokal aus Browser- und Gerätesignalen erzeugt, nicht gespeichert und nicht an den Server gesendet.",
     copyFingerprintLabel: "Fingerprint kopieren",
     deviceTypes: {
       desktop: "Desktop",
@@ -354,8 +351,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "Device type",
     browserTimezone: "Timezone (browser)",
     browserFingerprint: "Fingerprint",
-    browserFingerprintHint:
-      "Generated locally from browser and device signals. It is not stored or sent to the server.",
     copyFingerprintLabel: "Copy fingerprint",
     deviceTypes: {
       desktop: "Desktop",
@@ -469,8 +464,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "Tipo de dispositivo",
     browserTimezone: "Zona horaria (navegador)",
     browserFingerprint: "Huella",
-    browserFingerprintHint:
-      "Generada localmente a partir de señales del navegador y del dispositivo. No se almacena ni se envía al servidor.",
     copyFingerprintLabel: "Copiar huella",
     deviceTypes: {
       desktop: "Escritorio",
@@ -581,8 +574,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "Type d’appareil",
     browserTimezone: "Fuseau horaire (navigateur)",
     browserFingerprint: "Empreinte",
-    browserFingerprintHint:
-      "Générée localement à partir de signaux du navigateur et de l’appareil. Elle n’est ni stockée ni envoyée au serveur.",
     copyFingerprintLabel: "Copier l’empreinte",
     deviceTypes: {
       desktop: "Ordinateur",
@@ -693,8 +684,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "Tipo de dispositivo",
     browserTimezone: "Fuso horário (navegador)",
     browserFingerprint: "Impressão digital",
-    browserFingerprintHint:
-      "Gerada localmente a partir de sinais do navegador e do dispositivo. Não é armazenada nem enviada ao servidor.",
     copyFingerprintLabel: "Copiar impressão digital",
     deviceTypes: {
       desktop: "Desktop",
@@ -804,8 +793,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "デバイスの種類",
     browserTimezone: "タイムゾーン（ブラウザ）",
     browserFingerprint: "フィンガープリント",
-    browserFingerprintHint:
-      "ブラウザとデバイスの信号からローカルで生成されます。保存もサーバー送信も行いません。",
     copyFingerprintLabel: "フィンガープリントをコピー",
     deviceTypes: {
       desktop: "デスクトップ",
@@ -916,8 +903,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "Тип устройства",
     browserTimezone: "Часовой пояс (браузер)",
     browserFingerprint: "Отпечаток",
-    browserFingerprintHint:
-      "Создаётся локально из сигналов браузера и устройства. Не сохраняется и не отправляется на сервер.",
     copyFingerprintLabel: "Скопировать отпечаток",
     deviceTypes: {
       desktop: "Компьютер",
@@ -1027,8 +1012,6 @@ export const translations: Record<Locale, Translation> = {
     deviceType: "设备类型",
     browserTimezone: "时区（浏览器）",
     browserFingerprint: "指纹",
-    browserFingerprintHint:
-      "根据浏览器和设备信号在本地生成，不会存储或发送到服务器。",
     copyFingerprintLabel: "复制指纹",
     deviceTypes: {
       desktop: "桌面设备",

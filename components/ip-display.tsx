@@ -34,6 +34,7 @@ import {
   buildFingerprintMaterial,
   collectBrowserDeviceHints,
   formatBrowserVersion,
+  formatFingerprint,
   formatOsLabel,
   hashFingerprintMaterial,
   readUserAgentClientHints,
@@ -162,19 +163,16 @@ function CardTitleBar({
 function DetailCard({
   icon: Icon,
   title,
-  footer,
   children,
 }: {
   icon: LucideIcon;
   title: string;
-  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <CardTitleBar icon={Icon} title={title} />
       <dl className="px-5">{children}</dl>
-      {footer}
     </Card>
   );
 }
@@ -204,6 +202,55 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
       <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-right text-sm font-medium break-words text-foreground">
         {children}
+      </dd>
+    </div>
+  );
+}
+
+/** Hex fingerprint on its own row so the value can wrap at even group lines. */
+function FingerprintRow({
+  label,
+  value,
+  ready,
+  unknownLabel,
+  copyLabel,
+  copiedLabel,
+  failedLabel,
+}: {
+  label: string;
+  value: string | null;
+  ready: boolean;
+  unknownLabel: string;
+  copyLabel: string;
+  copiedLabel: string;
+  failedLabel: string;
+}) {
+  return (
+    <div className="border-b border-border/60 py-3 last:border-b-0">
+      <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+        <span>{label}</span>
+        {ready && value ? (
+          <CopyButton
+            text={value}
+            label={copyLabel}
+            copiedLabel={copiedLabel}
+            failedLabel={failedLabel}
+          />
+        ) : null}
+      </dt>
+      <dd className="mt-2 min-w-0">
+        {!ready ? (
+          <Skeleton className="h-12 w-full" />
+        ) : value ? (
+          <code
+            title={value}
+            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
+          >
+            {formatFingerprint(value)}
+          </code>
+        ) : (
+          <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
+        )}
       </dd>
     </div>
   );
@@ -650,38 +697,22 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
         {!targetIp &&
           (visitorBrowser ? (
             <>
-              <DetailCard
-                icon={AppWindow}
-                title={t.browserSection}
-                footer={
-                  <p className="border-t border-border/60 px-5 py-3 text-[11px] leading-relaxed text-muted-foreground/80">
-                    {t.browserFingerprintHint}
-                  </p>
-                }
-              >
+              <DetailCard icon={AppWindow} title={t.browserSection}>
                 <DetailRow label={t.browserName}>
                   {orUnknown(visitorBrowser.browserName ?? "")}
                 </DetailRow>
                 <DetailRow label={t.browserVersion}>
                   {orUnknown(formatBrowserVersion(visitorBrowser) ?? "")}
                 </DetailRow>
-                <DetailRow label={t.browserFingerprint}>
-                  {!fingerprintReady ? (
-                    <Skeleton className="ml-auto h-4 w-40" />
-                  ) : fingerprint ? (
-                    <span className="inline-flex max-w-full items-start justify-end gap-1">
-                      <span className="font-mono text-xs font-medium break-all">{fingerprint}</span>
-                      <CopyButton
-                        text={fingerprint}
-                        label={t.copyFingerprintLabel}
-                        copiedLabel={t.copiedToClipboard}
-                        failedLabel={t.copyFailed}
-                      />
-                    </span>
-                  ) : (
-                    t.unknown
-                  )}
-                </DetailRow>
+                <FingerprintRow
+                  label={t.browserFingerprint}
+                  value={fingerprint}
+                  ready={fingerprintReady}
+                  unknownLabel={t.unknown}
+                  copyLabel={t.copyFingerprintLabel}
+                  copiedLabel={t.copiedToClipboard}
+                  failedLabel={t.copyFailed}
+                />
               </DetailCard>
 
               <DetailCard icon={MonitorSmartphone} title={t.deviceSection}>

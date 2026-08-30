@@ -5,12 +5,14 @@ import {
   collectBrowserDeviceHints,
   detectVisitorBrowserInfo,
   formatBrowserVersion,
+  formatFingerprint,
   formatOsLabel,
   hashFingerprintMaterial,
   readBrowserTimeZone,
   readUserAgentClientHints,
   resolveVisitorBrowserInfo,
   serializeFingerprintMaterial,
+  splitFingerprintGroups,
   type DetectedBrowserInfo,
   type UserAgentClientHints,
 } from "./browser-info";
@@ -450,6 +452,35 @@ describe("fingerprint generation", () => {
     expect(tokyo.timeZone).toBe("Asia/Tokyo");
     expect(berlinHash).toBe(berlinAgain);
     expect(berlinHash).not.toBe(tokyoHash);
+  });
+});
+
+describe("fingerprint display", () => {
+  const hash = "ddb2b258340ac3677b8737627d28c0cc6a556a10512fe90d642bfa3ac3650287";
+
+  it("splits a SHA-256 hex digest into 8-character groups", () => {
+    expect(splitFingerprintGroups(hash)).toEqual([
+      "ddb2b258",
+      "340ac367",
+      "7b873762",
+      "7d28c0cc",
+      "6a556a10",
+      "512fe90d",
+      "642bfa3a",
+      "c3650287",
+    ]);
+    expect(formatFingerprint(hash)).toBe(
+      "ddb2b258 340ac367 7b873762 7d28c0cc\n6a556a10 512fe90d 642bfa3a c3650287",
+    );
+    expect(formatFingerprint(hash, 8, 8)).toBe(
+      "ddb2b258 340ac367 7b873762 7d28c0cc 6a556a10 512fe90d 642bfa3a c3650287",
+    );
+  });
+
+  it("keeps a remainder group and ignores empty input", () => {
+    expect(splitFingerprintGroups("abcde", 4)).toEqual(["abcd", "e"]);
+    expect(formatFingerprint("")).toBe("");
+    expect(splitFingerprintGroups("abcd", 0)).toEqual(["abcd"]);
   });
 });
 
