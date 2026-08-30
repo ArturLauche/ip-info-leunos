@@ -34,11 +34,11 @@ import {
   buildFingerprintMaterial,
   collectBrowserDeviceHints,
   formatBrowserVersion,
-  formatFingerprint,
   formatOsLabel,
   hashFingerprintMaterial,
   readUserAgentClientHints,
   resolveVisitorBrowserInfo,
+  splitFingerprintGroups,
   type DetectedBrowserInfo,
 } from "@/lib/browser-info";
 import {
@@ -55,6 +55,7 @@ import {
   Globe,
   AppWindow,
   MonitorSmartphone,
+  Fingerprint,
 } from "lucide-react";
 
 interface IpData {
@@ -207,7 +208,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint on its own row so the value can wrap at even group lines. */
+/** Hex fingerprint presented as compact, scan-friendly groups. */
 function FingerprintRow({
   label,
   value,
@@ -226,28 +227,33 @@ function FingerprintRow({
   failedLabel: string;
 }) {
   return (
-    <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+    <div className="border-b border-border/60 py-3.5 last:border-b-0">
+      <dt className="mb-2.5 flex items-center gap-2 text-sm text-muted-foreground">
+        <Fingerprint className="size-3.5" aria-hidden="true" />
         <span>{label}</span>
-        {ready && value ? (
-          <CopyButton
-            text={value}
-            label={copyLabel}
-            copiedLabel={copiedLabel}
-            failedLabel={failedLabel}
-          />
-        ) : null}
       </dt>
-      <dd className="mt-2 min-w-0">
+      <dd className="min-w-0">
         {!ready ? (
-          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-[4.5rem] w-full rounded-lg" />
         ) : value ? (
-          <code
-            title={value}
-            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
-          >
-            {formatFingerprint(value)}
-          </code>
+          <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/25 p-2.5 shadow-xs">
+            <code
+              title={value}
+              className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all sm:grid-cols-4"
+            >
+              {splitFingerprintGroups(value).map((group, index) => (
+                <span key={`${group}-${index}`} className="text-center tabular-nums">
+                  {group}
+                </span>
+              ))}
+            </code>
+            <CopyButton
+              text={value}
+              label={copyLabel}
+              copiedLabel={copiedLabel}
+              failedLabel={failedLabel}
+            />
+          </div>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
         )}
