@@ -40,3 +40,15 @@ export function exitScrollOffset(
   const offset = scrollAfter - scrollBefore;
   return Math.abs(offset) < 1 ? 0 : Math.round(offset);
 }
+
+/**
+ * A timed-out preflight deliberately removes its visual copy. If that exact
+ * navigation eventually commits, using the detached fallback would revive an
+ * older view of the route and cause a flash over the incoming page.
+ */
+export function shouldUseFallbackSnapshot(
+  nextPathname: string,
+  expiredPreflightPathname: string | null,
+): boolean {
+  return nextPathname !== expiredPreflightPathname;
+}

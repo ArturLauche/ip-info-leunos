@@ -12,6 +12,7 @@ import {
 import {
   exitScrollOffset,
   getExitDurationMs,
+  shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "@/lib/page-transition";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,9 @@ interface PageTransitionProps {
 interface PrepareEventDetail {
   pathname: string;
 }
+
+const SNAPSHOT_SCROLL_TOP = "pageSnapshotScrollTop";
+const SNAPSHOT_SCROLL_LEFT = "pageSnapshotScrollLeft";
 
 /** Prepares outgoing content for navigation that is not initiated by a Link. */
 export function preparePageTransition(href: string): void {
@@ -80,7 +84,64 @@ function cloneContent(source: HTMLDivElement): HTMLDivElement {
     }
   });
 
+  // cloneNode also resets the live scroll position of nested result panes and
+  // table wrappers. Record non-zero offsets on their matching visual copies;
+  // they are restored as soon as the clone is mounted into the snapshot layer.
+  const sourceElements = [
+    source,
+    ...Array.from(source.querySelectorAll("*")).filter(
+      (element): element is HTMLElement => element instanceof HTMLElement,
+    ),
+  ];
+  const cloneElements = [
+    clone,
+    ...Array.from(clone.querySelectorAll("*")).filter(
+      (element): element is HTMLElement => element instanceof HTMLElement,
+    ),
+  ];
+  sourceElements.forEach((element, index) => {
+    const copy = cloneElements[index];
+    if (!copy) return;
+    if (element.scrollTop !== 0) {
+      copy.dataset[SNAPSHOT_SCROLL_TOP] = String(element.scrollTop);
+    }
+    if (element.scrollLeft !== 0) {
+      copy.dataset[SNAPSHOT_SCROLL_LEFT] = String(element.scrollLeft);
+    }
+  });
+
   return clone;
+}
+
+function restoreSnapshotScroll(snapshot: HTMLDivElement): void {
+  const scrolledElements = [
+    snapshot,
+    ...snapshot.querySelectorAll<HTMLElement>(
+      "[data-page-snapshot-scroll-top], [data-page-snapshot-scroll-left]",
+    ),
+  ];
+
+  scrolledElements.forEach((element) => {
+    const scrollTop = element.dataset[SNAPSHOT_SCROLL_TOP];
+    const scrollLeft = element.dataset[SNAPSHOT_SCROLL_LEFT];
+    if (scrollTop !== undefined) element.scrollTop = Number(scrollTop);
+    if (scrollLeft !== undefined) element.scrollLeft = Number(scrollLeft);
+    delete element.dataset[SNAPSHOT_SCROLL_TOP];
+    delete element.dataset[SNAPSHOT_SCROLL_LEFT];
+  });
+}
+
+function mountSnapshot(
+  layer: HTMLDivElement,
+  snapshot: HTMLDivElement,
+): void {
+  layer.replaceChildren(snapshot);
+  restoreSnapshotScroll(snapshot);
+}
+
+function startSnapshotExit(snapshot: HTMLDivElement, duration: number): void {
+  snapshot.style.setProperty("--page-exit-duration", `${duration}ms`);
+  snapshot.dataset.phase = "exiting";
 }
 
 /**
@@ -101,6 +162,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   const committedPathname = useRef(pathname);
   const pendingSnapshot = useRef<HTMLDivElement | null>(null);
   const fallbackSnapshot = useRef<HTMLDivElement | null>(null);
+  const expiredPreflightPathname = useRef<string | null>(null);
   const pendingTimer = useRef<number | null>(null);
   const exitTimer = useRef<number | null>(null);
   const holdFrame = useRef<number | null>(null);
@@ -139,12 +201,14 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       }
 
       const snapshot = cloneContent(source);
-      layer.replaceChildren(snapshot);
+      mountSnapshot(layer, snapshot);
       pendingSnapshot.current = snapshot;
+      expiredPreflightPathname.current = null;
 
       // A cancelled or failed navigation must not leave a stale visual copy
       // covering later client-side updates indefinitely.
       pendingTimer.current = window.setTimeout(() => {
+        expiredPreflightPathname.current = nextPathname;
         removeSnapshot(snapshot);
         pendingTimer.current = null;
       }, PENDING_SNAPSHOT_TIMEOUT_MS);
@@ -205,8 +269,13 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 
     cancelAnimation();
     const layer = snapshotLayerRef.current;
-    const snapshot = pendingSnapshot.current ?? fallbackSnapshot.current;
+    const snapshot =
+      pendingSnapshot.current ??
+      (shouldUseFallbackSnapshot(pathname, expiredPreflightPathname.current)
+        ? fallbackSnapshot.current
+        : null);
     committedPathname.current = pathname;
+    expiredPreflightPathname.current = null;
 
     if (pendingTimer.current !== null) {
       window.clearTimeout(pendingTimer.current);
@@ -215,7 +284,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     if (!layer || !snapshot) return;
 
     if (snapshot.parentElement !== layer) {
-      layer.replaceChildren(snapshot);
+      mountSnapshot(layer, snapshot);
     }
     pendingSnapshot.current = null;
 
@@ -225,8 +294,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       return;
     }
 
-    snapshot.style.setProperty("--page-exit-duration", `${duration}ms`);
-    snapshot.dataset.phase = "exiting";
+    startSnapshotExit(snapshot, duration);
 
     const scrollBefore = Number(snapshot.dataset.scrollBefore || window.scrollY);
     let applied: number | null = null;

@@ -6,6 +6,7 @@ import {
   MOBILE_BREAKPOINT_PX,
   exitScrollOffset,
   getExitDurationMs,
+  shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "./page-transition";
 
@@ -57,5 +58,19 @@ describe("exitScrollOffset", () => {
 
   it("ignores sub-pixel drift", () => {
     expect(exitScrollOffset(100, 100.4)).toBe(0);
+  });
+});
+
+describe("shouldUseFallbackSnapshot", () => {
+  it("allows fallback continuity when no preflight expired", () => {
+    expect(shouldUseFallbackSnapshot("/dns", null)).toBe(true);
+  });
+
+  it("does not revive a fallback for the navigation that timed out", () => {
+    expect(shouldUseFallbackSnapshot("/whois", "/whois")).toBe(false);
+  });
+
+  it("still allows a fallback for an unrelated direct route change", () => {
+    expect(shouldUseFallbackSnapshot("/ping", "/whois")).toBe(true);
   });
 });
