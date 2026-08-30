@@ -9,7 +9,6 @@ import {
   navGroups,
   type ToolKey,
 } from "@/components/shell/nav-config";
-import { PageTransition } from "@/components/page-transition";
 import { ToolStructuredData } from "@/components/tool-structured-data";
 
 interface ToolPageShellProps {
@@ -37,7 +36,7 @@ export function ToolPageShell({
   const termsLabel = getTermsContent(locale).navLabel;
 
   return (
-    <PageTransition className="flex flex-1 flex-col">
+    <>
       {active && (
         <ToolStructuredData
           tool={active}
@@ -100,6 +99,6 @@ export function ToolPageShell({
           </Link>
         </div>
       </footer>
-    </PageTransition>
+    </>
   );
 }
