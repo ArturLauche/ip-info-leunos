@@ -39,6 +39,7 @@ const KEYFRAME_METADATA = new Set([
   "easing",
   "composite",
 ]);
+type SnapshotElement = HTMLElement | SVGElement;
 
 /** Prepares outgoing content for navigation that is not initiated by a Link. */
 export function preparePageTransition(href: string): void {
@@ -64,10 +65,14 @@ function toCssPropertyName(property: string): string {
   return property.replace(/[A-Z]/g, (character) => `-${character.toLowerCase()}`);
 }
 
+function isSnapshotElement(element: Element): element is SnapshotElement {
+  return element instanceof HTMLElement || element instanceof SVGElement;
+}
+
 function activeAnimatedProperties(
   source: HTMLDivElement,
-): Map<HTMLElement, Set<string>> {
-  const propertiesByElement = new Map<HTMLElement, Set<string>>();
+): Map<SnapshotElement, Set<string>> {
+  const propertiesByElement = new Map<SnapshotElement, Set<string>>();
 
   source.getAnimations({ subtree: true }).forEach((animation) => {
     if (animation.playState === "idle" || animation.playState === "finished") {
@@ -77,7 +82,7 @@ function activeAnimatedProperties(
     const effect = animation.effect;
     if (!(effect instanceof KeyframeEffect)) return;
     const target = effect.target;
-    if (!(target instanceof HTMLElement)) return;
+    if (!(target instanceof Element) || !isSnapshotElement(target)) return;
 
     const properties = propertiesByElement.get(target) ?? new Set<string>();
     effect.getKeyframes().forEach((keyframe) => {
@@ -130,14 +135,12 @@ function cloneContent(source: HTMLDivElement): HTMLDivElement {
   const sourceElements = [
     source,
     ...Array.from(source.querySelectorAll("*")).filter(
-      (element): element is HTMLElement => element instanceof HTMLElement,
+      isSnapshotElement,
     ),
   ];
   const cloneElements = [
     clone,
-    ...Array.from(clone.querySelectorAll("*")).filter(
-      (element): element is HTMLElement => element instanceof HTMLElement,
-    ),
+    ...Array.from(clone.querySelectorAll("*")).filter(isSnapshotElement),
   ];
   sourceElements.forEach((element, index) => {
     const copy = cloneElements[index];
