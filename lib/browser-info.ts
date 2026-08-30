@@ -223,6 +223,32 @@ export function formatOsLabel(info: DetectedBrowserInfo): string | null {
   return `${info.osName} ${info.osVersion}`;
 }
 
+/** Groups used when rendering a hex fingerprint in the UI. */
+export const FINGERPRINT_DISPLAY_GROUP_SIZE = 8;
+
+/** Split a hex fingerprint into fixed-width groups so it can wrap at group boundaries. */
+export function splitFingerprintGroups(
+  hash: string,
+  groupSize = FINGERPRINT_DISPLAY_GROUP_SIZE,
+): string[] {
+  if (!hash) return [];
+  if (groupSize < 1) return [hash];
+
+  const groups: string[] = [];
+  for (let i = 0; i < hash.length; i += groupSize) {
+    groups.push(hash.slice(i, i + groupSize));
+  }
+  return groups;
+}
+
+/** Space-separated fingerprint for a single selectable text node. */
+export function formatFingerprint(
+  hash: string,
+  groupSize = FINGERPRINT_DISPLAY_GROUP_SIZE,
+): string {
+  return splitFingerprintGroups(hash, groupSize).join(" ");
+}
+
 export function buildFingerprintMaterial(
   hints: BrowserDeviceHints,
   info: DetectedBrowserInfo,
