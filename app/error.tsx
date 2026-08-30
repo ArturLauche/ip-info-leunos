@@ -35,6 +35,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
     <main
       id="main-content"
       tabIndex={-1}
+      // The shell's shared `PageTransition` animates every route; marking this
+      // as a stage is all a boundary needs to take part in it.
+      data-transition-stage="panel"
       className="flex flex-1 flex-col items-center justify-center px-4 py-16 outline-none"
     >
       <Card className="w-full max-w-md items-center gap-3 overflow-hidden p-8 text-center sm:p-12">

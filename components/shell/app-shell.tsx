@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
+import { PageTransition } from "@/components/page-transition";
 import { AppSidebar } from "./app-sidebar";
 import { CommandMenuProvider } from "./command-menu";
 import { MobileNav } from "./mobile-nav";
@@ -37,7 +38,13 @@ export function AppShell({ locale, children }: AppShellProps) {
         <AppSidebar locale={locale} active={active} />
         <div className="flex min-h-screen w-full flex-col lg:pl-64">
           <MobileNav locale={locale} active={active} />
-          {children}
+          {/*
+           * Every route renders through this one wrapper. It has to sit here
+           * rather than inside a page: the App Router keys each route segment,
+           * so a page-level component is remounted on navigation and could not
+           * hold the outgoing tree long enough to animate it out.
+           */}
+          <PageTransition className="flex flex-1 flex-col">{children}</PageTransition>
         </div>
       </div>
     </CommandMenuProvider>

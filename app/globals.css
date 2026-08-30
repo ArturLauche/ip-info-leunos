@@ -23,6 +23,16 @@
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /*
+   * Shared duration scale. Every motion in the app — nav highlight, segment
+   * chip, icon colour, navigation sheet and page transition — draws from these
+   * three steps so the whole UI reads as one system instead of a set of
+   * independently tuned animations.
+   */
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 420ms;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
 
@@ -292,14 +302,14 @@
   }
 
   .tool-nav-highlight[data-animate="true"] {
-    transition: opacity 200ms var(--ease-smooth);
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .tool-nav-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform 400ms var(--ease-fluid),
-      height 400ms var(--ease-fluid),
-      opacity 200ms var(--ease-smooth);
+      transform var(--motion-slow) var(--ease-fluid),
+      height var(--motion-slow) var(--ease-fluid),
+      opacity var(--motion-base) var(--ease-smooth);
   }
 
   /*
@@ -335,15 +345,15 @@
   }
 
   .tool-segment-highlight[data-animate="true"] {
-    transition: opacity 200ms var(--ease-smooth);
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .tool-segment-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform 400ms var(--ease-fluid),
-      width 400ms var(--ease-fluid),
-      height 400ms var(--ease-fluid),
-      opacity 200ms var(--ease-smooth);
+      transform var(--motion-slow) var(--ease-fluid),
+      width var(--motion-slow) var(--ease-fluid),
+      height var(--motion-slow) var(--ease-fluid),
+      opacity var(--motion-base) var(--ease-smooth);
   }
 
   .tool-nav-item-fallback {
@@ -355,49 +365,76 @@
 
   .tool-nav-icon {
     transition:
-      color 220ms var(--ease-smooth),
-      background-color 220ms var(--ease-smooth),
-      box-shadow 220ms var(--ease-smooth);
+      color var(--motion-base) var(--ease-smooth),
+      background-color var(--motion-base) var(--ease-smooth),
+      box-shadow var(--motion-base) var(--ease-smooth);
   }
 
   /*
-   * Page-change transition: the new route's header, panel and footer ease in
-   * with a gentle fade and lift, lightly staggered so the page settles
-   * smoothly instead of popping into place. Mobile (below the lg sidebar
-   * breakpoint) uses a longer, more fluid travel; its stages start slightly
-   * later so the motion peak lands just as the nav sheet finishes closing
-   * over the page. Animations are opacity/transform only (compositor-driven),
-   * and the container clips horizontally so the lift never flashes a
-   * horizontal scrollbar.
+   * Page-change transition. Two halves, one motion:
+   *
+   * - `entering`: the incoming route's header, panel and footer ease in with a
+   *   gentle fade and lift, staggered so the page settles instead of popping.
+   * - `exiting`: the outgoing route stays mounted (see
+   *   `components/page-transition.tsx`) and lifts away first, so navigation
+   *   reads as a handover rather than a cut.
+   *
+   * `--page-exit-duration` is published by the component so the CSS animation
+   * and the swap timer cannot drift apart; `--page-exit-offset` carries the
+   * scroll compensation that keeps the outgoing page visually still while the
+   * router moves the viewport underneath it.
+   *
+   * Mobile (below the lg sidebar breakpoint) travels further on a more fluid
+   * curve, and its stages start later so the panel's entrance peaks just as
+   * the navigation sheet finishes closing over the page.
+   *
+   * Everything is opacity/transform only (compositor-driven), and the
+   * container clips horizontally so the lift never flashes a scrollbar.
    */
   .tool-page-transition {
     overflow-x: clip;
+
+    --page-enter-duration: 260ms;
+    --page-enter-distance: 0.375rem;
+    --page-exit-distance: 0.25rem;
+  }
+
+  .tool-page-transition[data-phase='exiting'] {
+    animation: tool-page-exit var(--page-exit-duration, 120ms) var(--ease-smooth) both;
+    /* The outgoing page is on its way out — keep it from swallowing clicks. */
+    pointer-events: none;
   }
 
   .tool-page-transition > [data-transition-stage] {
-    animation: tool-page-enter 440ms var(--ease-out-soft) both;
+    animation: tool-page-enter var(--page-enter-duration) var(--ease-out-soft) both;
   }
 
   .tool-page-transition > [data-transition-stage='panel'] {
-    animation-delay: 90ms;
+    animation-delay: 60ms;
   }
 
   .tool-page-transition > [data-transition-stage='footer'] {
-    animation-delay: 120ms;
+    animation-delay: 100ms;
   }
 
   @media (max-width: 1023px) {
+    .tool-page-transition {
+      --page-enter-duration: 300ms;
+      --page-enter-distance: 0.625rem;
+      --page-exit-distance: 0.375rem;
+    }
+
     .tool-page-transition > [data-transition-stage] {
-      animation: tool-page-enter-mobile 520ms var(--ease-fluid) both;
-      animation-delay: 40ms;
+      animation-timing-function: var(--ease-fluid);
+      animation-delay: 20ms;
     }
 
     .tool-page-transition > [data-transition-stage='panel'] {
-      animation-delay: 110ms;
+      animation-delay: 85ms;
     }
 
     .tool-page-transition > [data-transition-stage='footer'] {
-      animation-delay: 170ms;
+      animation-delay: 130ms;
     }
   }
 
@@ -409,7 +446,7 @@
    * container remounts on every lookup, so the stagger replays each time.
    */
   .tool-reveal > * {
-    animation: tool-reveal 420ms var(--ease-out-soft) both;
+    animation: tool-reveal var(--motion-slow) var(--ease-out-soft) both;
   }
 
   .tool-reveal > *:nth-child(1) { animation-delay: 0ms; }
@@ -443,27 +480,42 @@
   }
 }
 
+/*
+ * One enter keyframe for both breakpoints: distance and duration come from the
+ * container's custom properties, so desktop and mobile share the curve while
+ * differing only in how far and how long they travel.
+ */
 @keyframes tool-page-enter {
   from {
     opacity: 0;
-    transform: translateY(0.5rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes tool-page-enter-mobile {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 0.875rem, 0);
+    transform: translate3d(0, var(--page-enter-distance, 0.5rem), 0);
   }
 
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+/*
+ * Outgoing page. `--page-exit-offset` holds the router's scroll move still;
+ * the extra `--page-exit-distance` is the lift that gives the handover its
+ * direction. Both are resolved per frame, so the compensation and the lift
+ * compose into a single compositor transform.
+ */
+@keyframes tool-page-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, var(--page-exit-offset, 0px), 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(
+      0,
+      calc(var(--page-exit-offset, 0px) - var(--page-exit-distance, 0.25rem)),
+      0
+    );
   }
 }
 
@@ -480,6 +532,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .tool-nav-highlight,
   .tool-nav-highlight[data-animate="true"],
   .tool-nav-highlight[data-animate="true"][data-slide="true"],
@@ -491,6 +547,11 @@
     transition-duration: 0.01ms;
   }
 
+  /*
+   * The component also skips the exit phase and swaps in place when reduced
+   * motion is on; this is the CSS half of that guarantee.
+   */
+  .tool-page-transition[data-phase='exiting'],
   .tool-page-transition > [data-transition-stage],
   .tool-reveal,
   .tool-reveal > * {

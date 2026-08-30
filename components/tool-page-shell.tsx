@@ -9,7 +9,6 @@ import {
   navGroups,
   type ToolKey,
 } from "@/components/shell/nav-config";
-import { PageTransition } from "@/components/page-transition";
 import { ToolStructuredData } from "@/components/tool-structured-data";
 
 interface ToolPageShellProps {
@@ -36,8 +35,14 @@ export function ToolPageShell({
   const privacyLabel = getPrivacyContent(locale).navLabel;
   const termsLabel = getTermsContent(locale).navLabel;
 
+  /*
+   * A fragment, not a wrapper: `AppShell` owns the single `PageTransition`
+   * around `{children}`, so these three stages are its direct children and the
+   * staged entrance in `globals.css` picks them up without any per-page
+   * animation code.
+   */
   return (
-    <PageTransition className="flex flex-1 flex-col">
+    <>
       {active && (
         <ToolStructuredData
           tool={active}
@@ -100,6 +105,6 @@ export function ToolPageShell({
           </Link>
         </div>
       </footer>
-    </PageTransition>
+    </>
   );
 }
