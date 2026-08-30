@@ -23,6 +23,11 @@
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /* Shared scale for selection, overlay and page motion. */
+  --motion-fast: 120ms;
+  --motion-base: 220ms;
+  --motion-slow: 420ms;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
 
@@ -292,14 +297,14 @@
   }
 
   .tool-nav-highlight[data-animate="true"] {
-    transition: opacity 200ms var(--ease-smooth);
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .tool-nav-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform 400ms var(--ease-fluid),
-      height 400ms var(--ease-fluid),
-      opacity 200ms var(--ease-smooth);
+      transform var(--motion-slow) var(--ease-fluid),
+      height var(--motion-slow) var(--ease-fluid),
+      opacity var(--motion-base) var(--ease-smooth);
   }
 
   /*
@@ -335,15 +340,15 @@
   }
 
   .tool-segment-highlight[data-animate="true"] {
-    transition: opacity 200ms var(--ease-smooth);
+    transition: opacity var(--motion-base) var(--ease-smooth);
   }
 
   .tool-segment-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform 400ms var(--ease-fluid),
-      width 400ms var(--ease-fluid),
-      height 400ms var(--ease-fluid),
-      opacity 200ms var(--ease-smooth);
+      transform var(--motion-slow) var(--ease-fluid),
+      width var(--motion-slow) var(--ease-fluid),
+      height var(--motion-slow) var(--ease-fluid),
+      opacity var(--motion-base) var(--ease-smooth);
   }
 
   .tool-nav-item-fallback {
@@ -355,49 +360,83 @@
 
   .tool-nav-icon {
     transition:
-      color 220ms var(--ease-smooth),
-      background-color 220ms var(--ease-smooth),
-      box-shadow 220ms var(--ease-smooth);
+      color var(--motion-base) var(--ease-smooth),
+      background-color var(--motion-base) var(--ease-smooth),
+      box-shadow var(--motion-base) var(--ease-smooth);
   }
 
   /*
-   * Page-change transition: the new route's header, panel and footer ease in
-   * with a gentle fade and lift, lightly staggered so the page settles
-   * smoothly instead of popping into place. Mobile (below the lg sidebar
-   * breakpoint) uses a longer, more fluid travel; its stages start slightly
-   * later so the motion peak lands just as the nav sheet finishes closing
-   * over the page. Animations are opacity/transform only (compositor-driven),
-   * and the container clips horizontally so the lift never flashes a
-   * horizontal scrollbar.
+   * Page-change transition. The persistent wrapper retains the outgoing route
+   * for a quick fade/lift, then the incoming header, panel and footer settle in
+   * with the existing staged reveal. Mobile travels slightly farther and uses
+   * the fluid curve, while desktop stays quick and subtle. The wrapper clips
+   * horizontally and every animated property is compositor-friendly.
    */
   .tool-page-transition {
+    position: relative;
     overflow-x: clip;
+
+    --page-enter-duration: 260ms;
+    --page-enter-distance: 0.375rem;
+    --page-exit-distance: 0.25rem;
   }
 
-  .tool-page-transition > [data-transition-stage] {
-    animation: tool-page-enter 440ms var(--ease-out-soft) both;
+  .tool-page-snapshot-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
   }
 
-  .tool-page-transition > [data-transition-stage='panel'] {
-    animation-delay: 90ms;
+  .tool-page-snapshot {
+    width: 100%;
+    background-color: var(--background);
+    pointer-events: none;
+    will-change: opacity, transform;
   }
 
-  .tool-page-transition > [data-transition-stage='footer'] {
-    animation-delay: 120ms;
+  /* Cloned descendants must look exactly as they did when captured, not
+   * restart their own entrance/loading animations inside the visual copy. */
+  .tool-page-snapshot * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .tool-page-snapshot[data-phase='exiting'] {
+    animation: tool-page-exit var(--page-exit-duration, var(--motion-fast)) var(--ease-smooth)
+      both;
+  }
+
+  .tool-page-current > [data-transition-stage] {
+    animation: tool-page-enter var(--page-enter-duration) var(--ease-out-soft) both;
+  }
+
+  .tool-page-current > [data-transition-stage='panel'] {
+    animation-delay: 60ms;
+  }
+
+  .tool-page-current > [data-transition-stage='footer'] {
+    animation-delay: 100ms;
   }
 
   @media (max-width: 1023px) {
-    .tool-page-transition > [data-transition-stage] {
-      animation: tool-page-enter-mobile 520ms var(--ease-fluid) both;
-      animation-delay: 40ms;
+    .tool-page-transition {
+      --page-enter-duration: 300ms;
+      --page-enter-distance: 0.625rem;
+      --page-exit-distance: 0.375rem;
     }
 
-    .tool-page-transition > [data-transition-stage='panel'] {
-      animation-delay: 110ms;
+    .tool-page-current > [data-transition-stage] {
+      animation-timing-function: var(--ease-fluid);
+      animation-delay: 20ms;
     }
 
-    .tool-page-transition > [data-transition-stage='footer'] {
-      animation-delay: 170ms;
+    .tool-page-current > [data-transition-stage='panel'] {
+      animation-delay: 85ms;
+    }
+
+    .tool-page-current > [data-transition-stage='footer'] {
+      animation-delay: 130ms;
     }
   }
 
@@ -409,7 +448,7 @@
    * container remounts on every lookup, so the stagger replays each time.
    */
   .tool-reveal > * {
-    animation: tool-reveal 420ms var(--ease-out-soft) both;
+    animation: tool-reveal var(--motion-slow) var(--ease-out-soft) both;
   }
 
   .tool-reveal > *:nth-child(1) { animation-delay: 0ms; }
@@ -446,24 +485,28 @@
 @keyframes tool-page-enter {
   from {
     opacity: 0;
-    transform: translateY(0.5rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes tool-page-enter-mobile {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 0.875rem, 0);
+    transform: translate3d(0, var(--page-enter-distance, 0.5rem), 0);
   }
 
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes tool-page-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, var(--page-exit-offset, 0px), 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(
+      0,
+      calc(var(--page-exit-offset, 0px) - var(--page-exit-distance, 0.25rem)),
+      0
+    );
   }
 }
 
@@ -480,6 +523,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .tool-nav-highlight,
   .tool-nav-highlight[data-animate="true"],
   .tool-nav-highlight[data-animate="true"][data-slide="true"],
@@ -491,7 +538,8 @@
     transition-duration: 0.01ms;
   }
 
-  .tool-page-transition > [data-transition-stage],
+  .tool-page-snapshot[data-phase='exiting'],
+  .tool-page-current > [data-transition-stage],
   .tool-reveal,
   .tool-reveal > * {
     animation: none;

@@ -35,6 +35,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
     <main
       id="main-content"
       tabIndex={-1}
+      data-transition-stage="panel"
       className="flex flex-1 flex-col items-center justify-center px-4 py-16 outline-none"
     >
       <Card className="w-full max-w-md items-center gap-3 overflow-hidden p-8 text-center sm:p-12">

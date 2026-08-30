@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { preparePageTransition } from "@/components/page-transition";
 import {
   Dialog,
   DialogDescription,
@@ -114,6 +115,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
   }, [activeIndex]);
 
   const select = (item: ResolvedItem) => {
+    preparePageTransition(item.href);
     onOpenChange(false);
     router.push(item.href);
   };

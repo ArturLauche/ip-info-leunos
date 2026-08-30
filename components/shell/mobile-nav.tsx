@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
@@ -31,6 +31,12 @@ interface MobileNavProps {
 export function MobileNav({ locale, active }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const toolT = getToolTranslation(locale);
+
+  useEffect(() => {
+    const closeOnHistoryNavigation = () => setOpen(false);
+    window.addEventListener("popstate", closeOnHistoryNavigation);
+    return () => window.removeEventListener("popstate", closeOnHistoryNavigation);
+  }, []);
 
   const themeLabels = {
     toggle: toolT.themeToggle,
@@ -63,9 +69,10 @@ export function MobileNav({ locale, active }: MobileNavProps) {
           <SheetContent
             side="left"
             closeLabel={toolT.navClose}
-            // Close faster than the page transition so the drawer clears as
-            // the destination's enter motion peaks; open stays slow and fluid.
-            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[420ms] data-[state=closed]:duration-[220ms] motion-reduce:duration-0"
+            // Sheet and page motion share the same duration scale. The drawer
+            // clears while the short route exit runs, before the incoming
+            // panel reaches its motion peak.
+            className="w-72 gap-0 p-0 data-[state=open]:ease-[var(--ease-fluid)] data-[state=closed]:ease-[var(--ease-smooth)] data-[state=open]:duration-[var(--motion-slow)] data-[state=closed]:duration-[var(--motion-base)] motion-reduce:duration-0"
           >
             <SheetHeader className="h-16 justify-center border-b border-sidebar-border px-5">
               <SheetTitle className="flex items-center gap-3">

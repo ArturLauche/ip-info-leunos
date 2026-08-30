@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
+import { PageTransition } from "@/components/page-transition";
 import { AppSidebar } from "./app-sidebar";
 import { CommandMenuProvider } from "./command-menu";
 import { MobileNav } from "./mobile-nav";
@@ -35,9 +36,11 @@ export function AppShell({ locale, children }: AppShellProps) {
           {t.skipToContent}
         </a>
         <AppSidebar locale={locale} active={active} />
-        <div className="flex min-h-screen w-full flex-col lg:pl-64">
+        <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip lg:pl-64">
           <MobileNav locale={locale} active={active} />
-          {children}
+          <PageTransition className="flex flex-1 flex-col">
+            {children}
+          </PageTransition>
         </div>
       </div>
     </CommandMenuProvider>
