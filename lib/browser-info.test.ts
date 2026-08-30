@@ -470,6 +470,9 @@ describe("fingerprint display", () => {
       "c3650287",
     ]);
     expect(formatFingerprint(hash)).toBe(
+      "ddb2b258 340ac367 7b873762 7d28c0cc\n6a556a10 512fe90d 642bfa3a c3650287",
+    );
+    expect(formatFingerprint(hash, 8, 8)).toBe(
       "ddb2b258 340ac367 7b873762 7d28c0cc 6a556a10 512fe90d 642bfa3a c3650287",
     );
   });

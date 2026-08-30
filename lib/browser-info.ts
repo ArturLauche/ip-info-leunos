@@ -225,6 +225,7 @@ export function formatOsLabel(info: DetectedBrowserInfo): string | null {
 
 /** Groups used when rendering a hex fingerprint in the UI. */
 export const FINGERPRINT_DISPLAY_GROUP_SIZE = 8;
+export const FINGERPRINT_DISPLAY_GROUPS_PER_LINE = 4;
 
 /** Split a hex fingerprint into fixed-width groups so it can wrap at group boundaries. */
 export function splitFingerprintGroups(
@@ -241,12 +242,24 @@ export function splitFingerprintGroups(
   return groups;
 }
 
-/** Space-separated fingerprint for a single selectable text node. */
+/**
+ * Space-separated fingerprint, wrapped into even lines of groups.
+ * SHA-256 hex (64 chars) becomes two lines of four 8-character groups.
+ */
 export function formatFingerprint(
   hash: string,
   groupSize = FINGERPRINT_DISPLAY_GROUP_SIZE,
+  groupsPerLine = FINGERPRINT_DISPLAY_GROUPS_PER_LINE,
 ): string {
-  return splitFingerprintGroups(hash, groupSize).join(" ");
+  const groups = splitFingerprintGroups(hash, groupSize);
+  if (groups.length === 0) return "";
+  if (groupsPerLine < 1) return groups.join(" ");
+
+  const lines: string[] = [];
+  for (let i = 0; i < groups.length; i += groupsPerLine) {
+    lines.push(groups.slice(i, i + groupsPerLine).join(" "));
+  }
+  return lines.join("\n");
 }
 
 export function buildFingerprintMaterial(

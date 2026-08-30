@@ -207,7 +207,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint on its own row so the value can wrap at group boundaries. */
+/** Hex fingerprint on its own row so the value can wrap at even group lines. */
 function FingerprintRow({
   label,
   value,
@@ -227,25 +227,27 @@ function FingerprintRow({
 }) {
   return (
     <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+        <span>{label}</span>
+        {ready && value ? (
+          <CopyButton
+            text={value}
+            label={copyLabel}
+            copiedLabel={copiedLabel}
+            failedLabel={failedLabel}
+          />
+        ) : null}
+      </dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-12 w-full" />
         ) : value ? (
-          <div className="flex items-start gap-1 rounded-md bg-muted/50 py-1.5 pl-2.5 pr-1">
-            <code
-              title={value}
-              className="min-w-0 flex-1 py-0.5 font-mono text-xs font-medium leading-5 tracking-wide break-words text-foreground select-all"
-            >
-              {formatFingerprint(value)}
-            </code>
-            <CopyButton
-              text={value}
-              label={copyLabel}
-              copiedLabel={copiedLabel}
-              failedLabel={failedLabel}
-            />
-          </div>
+          <code
+            title={value}
+            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
+          >
+            {formatFingerprint(value)}
+          </code>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
         )}
