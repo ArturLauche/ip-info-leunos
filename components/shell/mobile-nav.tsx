@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
@@ -31,6 +31,12 @@ interface MobileNavProps {
 export function MobileNav({ locale, active }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const toolT = getToolTranslation(locale);
+
+  useEffect(() => {
+    const closeOnHistoryNavigation = () => setOpen(false);
+    window.addEventListener("popstate", closeOnHistoryNavigation);
+    return () => window.removeEventListener("popstate", closeOnHistoryNavigation);
+  }, []);
 
   const themeLabels = {
     toggle: toolT.themeToggle,
