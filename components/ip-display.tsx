@@ -34,11 +34,11 @@ import {
   buildFingerprintMaterial,
   collectBrowserDeviceHints,
   formatBrowserVersion,
+  formatFingerprint,
   formatOsLabel,
   hashFingerprintMaterial,
   readUserAgentClientHints,
   resolveVisitorBrowserInfo,
-  splitFingerprintGroups,
   type DetectedBrowserInfo,
 } from "@/lib/browser-info";
 import {
@@ -207,7 +207,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint rendered as grouped mono chips, recovery-code style. */
+/** Hex fingerprint on its own row so the value can wrap at even group lines. */
 function FingerprintRow({
   label,
   value,
@@ -240,21 +240,14 @@ function FingerprintRow({
       </dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-[138px] w-full sm:h-[66px]" />
+          <Skeleton className="h-12 w-full" />
         ) : value ? (
-          <div
+          <code
             title={value}
-            className="grid grid-cols-2 gap-1.5 select-all sm:grid-cols-4"
+            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
           >
-            {splitFingerprintGroups(value).map((group, index) => (
-              <span
-                key={index}
-                className="rounded-md border border-border/60 bg-muted/40 px-2 py-2 text-center font-mono text-xs leading-none font-medium tracking-wider text-foreground"
-              >
-                {group}
-              </span>
-            ))}
-          </div>
+            {formatFingerprint(value)}
+          </code>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
         )}
