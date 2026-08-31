@@ -55,6 +55,7 @@ import {
   Globe,
   AppWindow,
   MonitorSmartphone,
+  Fingerprint,
 } from "lucide-react";
 
 interface IpData {
@@ -207,52 +208,125 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint on its own row so the value can wrap at even group lines. */
-function FingerprintRow({
-  label,
+/**
+ * Browser fingerprint card. Rendered at full width below the browser/device
+ * detail cards so the long hex value has room to breathe and the copy action
+ * can scale up to a comfortable tap target on touch screens.
+ */
+function FingerprintCard({
   value,
   ready,
-  unknownLabel,
-  copyLabel,
-  copiedLabel,
-  failedLabel,
+  t,
 }: {
-  label: string;
   value: string | null;
   ready: boolean;
-  unknownLabel: string;
-  copyLabel: string;
-  copiedLabel: string;
-  failedLabel: string;
+  t: Translation;
 }) {
+  const [copied, setCopied] = useState(false);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      toast.success(t.copiedToClipboard);
+      clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(t.copyFailed);
+    }
+  };
+
   return (
-    <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>{label}</span>
+    <Card className="gap-0 overflow-hidden py-0">
+      <CardTitleBar icon={Fingerprint} title={t.browserFingerprint} />
+      <div className="flex flex-col gap-4 p-5">
+        {/* Algorithm + schema metadata, with the copy action next to it on desktop. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="info" className="font-mono">
+            {t.fingerprintAlgorithm}
+          </Badge>
+          <Badge variant="outline" className="font-mono">
+            {t.fingerprintSchemaLabel}: {t.fingerprintSchema}
+          </Badge>
+          <span className="flex-1" />
+          {ready && value ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleCopy}
+              aria-label={t.copyFingerprintLabel}
+              className="shrink-0 text-muted-foreground hover:text-foreground max-sm:hidden"
+            >
+              {copied ? (
+                <Check className="size-4 text-success" aria-hidden="true" />
+              ) : (
+                <Copy className="size-4" aria-hidden="true" />
+              )}
+            </Button>
+          ) : null}
+        </div>
+
+        {/* The hash itself — two lines of four groups on desktop, one wrapped
+            stream on mobile so it never needs horizontal scrolling. */}
+        <div className="relative">
+          {!ready ? (
+            <Skeleton className="h-24 w-full" />
+          ) : value ? (
+            <code
+              title={value}
+              className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-3 py-3 font-mono text-xs font-medium leading-6 tracking-wide text-foreground select-all"
+            >
+              {formatFingerprint(value)}
+            </code>
+          ) : (
+            <span className="text-sm font-medium text-foreground">{t.unknown}</span>
+          )}
+        </div>
+
+        {/* Full-width copy on touch devices — the icon-only control is too
+            small a target for the most important action of this card. */}
         {ready && value ? (
-          <CopyButton
-            text={value}
-            label={copyLabel}
-            copiedLabel={copiedLabel}
-            failedLabel={failedLabel}
-          />
-        ) : null}
-      </dt>
-      <dd className="mt-2 min-w-0">
-        {!ready ? (
-          <Skeleton className="h-12 w-full" />
-        ) : value ? (
-          <code
-            title={value}
-            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            className="w-full sm:hidden"
           >
-            {formatFingerprint(value)}
-          </code>
-        ) : (
-          <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
-        )}
-      </dd>
-    </div>
+            {copied ? (
+              <Check className="size-4" aria-hidden="true" />
+            ) : (
+              <Copy className="size-4" aria-hidden="true" />
+            )}
+            {copied ? t.copiedToClipboard : t.copyFingerprintLabel}
+          </Button>
+        ) : null}
+
+        {/* Documented inputs — a readable list of exactly what was hashed,
+            so the value is not an opaque hex blob. */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t.fingerprintInputsLabel}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {t.fingerprintInputs.map((input) => (
+              <Badge key={input} variant="secondary" className="font-normal">
+                {input}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t.fingerprintDisclaimer}
+        </p>
+      </div>
+    </Card>
   );
 }
 
@@ -446,12 +520,32 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
               <Skeleton className="h-8 w-32" />
             </div>
           </div>
-        </Card>
+</Card>
         <div className="grid gap-4 lg:grid-cols-2">
           {Array.from({ length: targetIp ? 2 : 4 }).map((_, card) => (
             <DetailCardSkeleton key={card} />
           ))}
         </div>
+        {!targetIp && (
+          <Card className="gap-0 overflow-hidden py-0">
+            <div className="border-b bg-muted/30 px-5 py-3.5">
+              <Skeleton className="h-5 w-24" />
+            </div>
+            <div className="flex flex-col gap-4 p-5">
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+              <Skeleton className="h-24 w-full" />
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: 13 }).map((_, i) => (
+                  <Skeleton key={i} className="h-6 w-20" />
+                ))}
+              </div>
+              <Skeleton className="h-3 w-full" />
+            </div>
+          </Card>
+        )}
       </div>
     );
   }
@@ -645,7 +739,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
         </div>
       </Card>
 
-      {/* Grouped details */}
+{/* Grouped details */}
       <div className="grid gap-4 lg:grid-cols-2">
         <DetailCard icon={MapPin} title={t.location}>
           <DetailRow label={t.city}>{orUnknown(data.city)}</DetailRow>
@@ -704,15 +798,6 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                 <DetailRow label={t.browserVersion}>
                   {orUnknown(formatBrowserVersion(visitorBrowser) ?? "")}
                 </DetailRow>
-                <FingerprintRow
-                  label={t.browserFingerprint}
-                  value={fingerprint}
-                  ready={fingerprintReady}
-                  unknownLabel={t.unknown}
-                  copyLabel={t.copyFingerprintLabel}
-                  copiedLabel={t.copiedToClipboard}
-                  failedLabel={t.copyFailed}
-                />
               </DetailCard>
 
               <DetailCard icon={MonitorSmartphone} title={t.deviceSection}>
@@ -736,6 +821,16 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             </>
           ))}
       </div>
+
+      {/* Browser fingerprint — full width so the long hex value and its
+          copy action have room on every screen size. */}
+      {!targetIp && (
+        <FingerprintCard
+          value={fingerprint}
+          ready={fingerprintReady}
+          t={t}
+        />
+      )}
     </div>
   );
 }
