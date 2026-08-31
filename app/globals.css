@@ -458,6 +458,73 @@
   .tool-reveal > *:nth-child(5) { animation-delay: 240ms; }
   .tool-reveal > *:nth-child(n + 6) { animation-delay: 280ms; }
 
+  /* Fingerprint-specific animations */
+  .fingerprint-reveal {
+    animation: fingerprint-reveal var(--motion-slow) var(--ease-out-soft) both;
+  }
+
+  @keyframes fingerprint-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Pulse effect for fingerprint hover */
+  .fingerprint-glow {
+    position: relative;
+  }
+
+  .fingerprint-glow::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      120deg,
+      transparent 30%,
+      color-mix(in oklab, var(--primary) 20%, transparent) 38%,
+      color-mix(in oklab, var(--primary) 20%, transparent) 42%,
+      transparent 50%
+    );
+    background-size: 200% 200%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .fingerprint-glow:hover::after {
+    opacity: 1;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Mobile-specific fingerprint styling */
+  @media (max-width: 767px) {
+    .fingerprint-mobile-enhanced {
+      border-radius: var(--radius-lg);
+      border-width: 2px;
+    }
+
+    .fingerprint-mobile-enhanced:hover {
+      transform: translateY(-2px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+  }
+
   /*
    * Ping mode-specific fields expand on a 0fr→1fr grid so database/auth
    * controls ease in instead of jumping the form height.

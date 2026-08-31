@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
 import { CountryFlag } from "@/components/country-flag";
 import { unwrapApiResponse } from "@/lib/api/client";
@@ -55,6 +56,7 @@ import {
   Globe,
   AppWindow,
   MonitorSmartphone,
+  Fingerprint,
 } from "lucide-react";
 
 interface IpData {
@@ -128,7 +130,7 @@ function CopyButton({
       size="icon-sm"
       onClick={handleCopy}
       aria-label={label}
-      className="shrink-0 text-muted-foreground hover:text-foreground"
+      className="shrink-0 text-muted-foreground hover:text-primary transition-colors hover:bg-muted/50"
     >
       {copied ? (
         <Check className="size-4 text-success" aria-hidden="true" />
@@ -143,13 +145,25 @@ function CopyButton({
 function CardTitleBar({
   icon: Icon,
   title,
+  highlight = false,
 }: {
   icon: LucideIcon;
   title: string;
+  highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2.5 border-b bg-muted/30 px-5 py-3.5">
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+    <div
+      className={cn(
+        "flex items-center gap-2.5 border-b px-5 py-3.5",
+        highlight ? "bg-primary/5 dark:bg-primary/10" : "bg-muted/30"
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-md",
+          highlight ? "bg-primary/15 text-primary dark:bg-primary/20" : "bg-primary/10 text-primary"
+        )}
+      >
         <Icon className="size-4" aria-hidden />
       </span>
       <h2 className="min-w-0 truncate text-sm font-semibold text-foreground">
@@ -164,14 +178,25 @@ function DetailCard({
   icon: Icon,
   title,
   children,
+  highlight = false,
+  className,
 }: {
   icon: LucideIcon;
   title: string;
   children: ReactNode;
+  highlight?: boolean;
+  className?: string;
 }) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <CardTitleBar icon={Icon} title={title} />
+    <Card
+      className={cn(
+        "gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md",
+        highlight &&
+          "ring-1 ring-primary/20 dark:ring-primary/30 bg-gradient-to-b from-muted/30 to-muted/20",
+        className
+      )}
+    >
+      <CardTitleBar icon={Icon} title={title} highlight={highlight} />
       <dl className="px-5">{children}</dl>
     </Card>
   );
@@ -198,16 +223,18 @@ function DetailCardSkeleton() {
 /** One label/value row inside a DetailCard, hairline-separated. */
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
-      <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-right text-sm font-medium break-words text-foreground">
+    <div className="flex flex-col gap-1 border-b border-border/60 py-3 last:border-b-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <dt className="shrink-0 text-sm text-muted-foreground sm:text-right sm:min-w-[120px]">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-sm font-medium break-words text-foreground sm:text-right">
         {children}
       </dd>
     </div>
   );
 }
 
-/** Hex fingerprint on its own row so the value can wrap at even group lines. */
+/** Hex fingerprint display component with enhanced UI */
 function FingerprintRow({
   label,
   value,
@@ -225,29 +252,99 @@ function FingerprintRow({
   copiedLabel: string;
   failedLabel: string;
 }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [internalCopied, setInternalCopied] = useState(false);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setInternalCopied(true);
+      toast.success(copiedLabel);
+      clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => setInternalCopied(false), 2000);
+    } catch {
+      toast.error(failedLabel);
+    }
+  };
+
+  // Use different formatting for mobile vs desktop
+  const formattedFingerprint = isMobile
+    ? formatFingerprint(value || "", 16, 2) // 16 chars per group, 2 groups per line for mobile
+    : formatFingerprint(value || ""); // Default formatting for desktop
+
   return (
-    <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>{label}</span>
-        {ready && value ? (
+    <div className="py-3">
+      <dt className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span>{label}</span>
+          <button
+            type="button"
+            onClick={() => setShowTooltip(!showTooltip)}
+            aria-label="What is a fingerprint?"
+            className="relative flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-muted/50 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="size-3.5 text-muted-foreground/70"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-4.293a1 1 0 00-1.414-1.414L10 11.586 8.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {showTooltip && (
+              <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 transform rounded-lg border border-border/70 bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg z-50 max-w-xs">
+                Unique browser identifier based on device and settings
+                <div className="absolute bottom-[-6px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-border/70 bg-background" />
+              </div>
+            )}
+          </button>
+        </div>
+        {ready && value && (
           <CopyButton
             text={value}
             label={copyLabel}
             copiedLabel={copiedLabel}
             failedLabel={failedLabel}
           />
-        ) : null}
+        )}
       </dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-14 w-full" />
         ) : value ? (
-          <code
-            title={value}
-            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
-          >
-            {formatFingerprint(value)}
-          </code>
+          <div className="relative overflow-hidden rounded-xl border border-border/60 bg-muted/50 p-1 transition-all hover:border-primary/30 hover:bg-muted/60 fingerprint-glow">
+            <pre
+              title={value}
+              onClick={handleCopy}
+              className="w-full whitespace-pre-wrap break-all px-3 py-3 text-xs sm:text-sm font-mono font-medium leading-6 tracking-wide text-foreground select-all outline-none cursor-pointer hover:bg-muted/40 rounded-lg transition-colors relative z-10"
+            >
+              {formattedFingerprint}
+            </pre>
+            {internalCopied && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <Check className="size-5 text-success animate-in fade-in zoom-in" />
+              </div>
+            )}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-muted/20 to-muted/30 opacity-0 transition-opacity duration-300 hover:opacity-100" />
+          </div>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
         )}
@@ -704,15 +801,6 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
                 <DetailRow label={t.browserVersion}>
                   {orUnknown(formatBrowserVersion(visitorBrowser) ?? "")}
                 </DetailRow>
-                <FingerprintRow
-                  label={t.browserFingerprint}
-                  value={fingerprint}
-                  ready={fingerprintReady}
-                  unknownLabel={t.unknown}
-                  copyLabel={t.copyFingerprintLabel}
-                  copiedLabel={t.copiedToClipboard}
-                  failedLabel={t.copyFailed}
-                />
               </DetailCard>
 
               <DetailCard icon={MonitorSmartphone} title={t.deviceSection}>
@@ -736,6 +824,35 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
             </>
           ))}
       </div>
+
+      {/* Fingerprint section - full width for better visibility */}
+      {!targetIp && visitorBrowser && (
+        <DetailCard
+          icon={Fingerprint}
+          title={t.browserFingerprint}
+          highlight
+          className="fingerprint-reveal fingerprint-mobile-enhanced"
+        >
+          <FingerprintRow
+            label={t.browserFingerprint}
+            value={fingerprint}
+            ready={fingerprintReady}
+            unknownLabel={t.unknown}
+            copyLabel={t.copyFingerprintLabel}
+            copiedLabel={t.copiedToClipboard}
+            failedLabel={t.copyFailed}
+          />
+        </DetailCard>
+      )}
+
+      {!targetIp && !visitorBrowser && (
+        <Card className="gap-0 overflow-hidden py-0 fingerprint-mobile-enhanced">
+          <CardTitleBar icon={Fingerprint} title={t.browserFingerprint} highlight />
+          <div className="px-5 py-4">
+            <Skeleton className="h-14 w-full" />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
