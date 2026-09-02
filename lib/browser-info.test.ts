@@ -269,6 +269,50 @@ describe("browser parsing", () => {
     expect(unknownWindows.osVersion).toBeNull();
   });
 
+  it("maps pre-2004 Windows 10 Client Hint platform versions to Windows 10", () => {
+    const info = detect(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+      { platform: "Win32" },
+      {
+        brands: [{ brand: "Google Chrome", version: "128" }],
+        mobile: false,
+        platform: "Windows",
+        platformVersion: "4.0.0",
+      },
+    );
+
+    expect(info.osName).toBe("Windows");
+    expect(info.osVersion).toBe("10");
+  });
+
+  it("prefers explicit User-Agent brands over generic Chrome/Chromium Client Hints", () => {
+    const genericHints: UserAgentClientHints = {
+      brands: [
+        { brand: "Not.A/Brand", version: "99" },
+        { brand: "Chromium", version: "128" },
+        { brand: "Google Chrome", version: "128" },
+      ],
+      mobile: false,
+      platform: "Windows",
+    };
+
+    const vivaldi = detect(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Vivaldi/7.0.3495.15",
+      { platform: "Win32" },
+      genericHints,
+    );
+    const opera = detect(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 OPR/114.0.5230.38",
+      { platform: "Win32" },
+      genericHints,
+    );
+
+    expect(vivaldi.browserName).toBe("Vivaldi");
+    expect(vivaldi.browserFullVersion).toBe("7.0.3495.15");
+    expect(opera.browserName).toBe("Opera");
+    expect(opera.browserFullVersion).toBe("114.0.5230.38");
+  });
+
   it("uses Client Hints to classify Android tablets vs phones", () => {
     const phone = detect(
       "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.99 Safari/537.36",
@@ -284,6 +328,31 @@ describe("browser parsing", () => {
     expect(phone.deviceType).toBe("mobile");
     expect(tablet.deviceType).toBe("tablet");
     expect(tablet.osName).toBe("Android");
+  });
+
+  it("does not report Safari for legacy Android WebKit UAs", () => {
+    const info = detect(
+      "Mozilla/5.0 (Linux; U; Android 4.4.2; en-us; Nexus 4 Build/KOT49H) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30",
+    );
+
+    expect(info.browserName).toBeNull();
+    expect(info.osName).toBe("Android");
+    expect(info.deviceType).toBe("mobile");
+  });
+
+  it("reads modern Opera and Opera Mini versions instead of the Presto 9.80 marker", () => {
+    const presto = detect(
+      "Opera/9.80 (Windows NT 6.1) Presto/2.12.388 Version/12.16",
+      { platform: "Win32" },
+    );
+    const mini = detect(
+      "Opera/9.80 (Android; Opera Mini/43.0.2245.123) Presto/2.12 Version/11.10",
+    );
+
+    expect(presto.browserName).toBe("Opera");
+    expect(presto.browserFullVersion).toBe("12.16");
+    expect(mini.browserName).toBe("Opera Mini");
+    expect(mini.browserFullVersion).toBe("43.0.2245.123");
   });
 
   it("does not guess a browser, OS, or device type from an empty or ambiguous UA", () => {
@@ -452,6 +521,24 @@ describe("fingerprint generation", () => {
     expect(tokyo.timeZone).toBe("Asia/Tokyo");
     expect(berlinHash).toBe(berlinAgain);
     expect(berlinHash).not.toBe(tokyoHash);
+  });
+
+  it("keeps the same hash when screen width and height swap after rotation", async () => {
+    const portrait = hints({ screen: { width: 390, height: 844, colorDepth: 24 } });
+    const landscape = hints({ screen: { width: 844, height: 390, colorDepth: 24 } });
+    const portraitInfo = detectVisitorBrowserInfo(portrait);
+    const landscapeInfo = detectVisitorBrowserInfo(landscape);
+
+    const portraitMaterial = buildFingerprintMaterial(portrait, portraitInfo);
+    const landscapeMaterial = buildFingerprintMaterial(landscape, landscapeInfo);
+
+    expect(portraitMaterial.screenShortSide).toBe(390);
+    expect(portraitMaterial.screenLongSide).toBe(844);
+    expect(landscapeMaterial.screenShortSide).toBe(390);
+    expect(landscapeMaterial.screenLongSide).toBe(844);
+    expect(await hashFingerprintMaterial(portraitMaterial)).toBe(
+      await hashFingerprintMaterial(landscapeMaterial),
+    );
   });
 });
 

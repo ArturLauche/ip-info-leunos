@@ -42,8 +42,10 @@ export interface DetectedBrowserInfo {
 
 /**
  * Documented fingerprint v1 inputs. Only these fields are hashed.
- * Intentionally omitted: full User-Agent, IP addresses, timezone offset (DST),
- * network connection metrics, webdriver, canvas/WebGL/audio, fonts, device model.
+ * Screen sides are stored as short/long so portrait/landscape rotation does not
+ * change the hash. Intentionally omitted: full User-Agent, IP addresses,
+ * timezone offset (DST), network connection metrics, webdriver, canvas/WebGL/audio,
+ * fonts, device model.
  */
 export interface FingerprintMaterial {
   v: typeof FINGERPRINT_SCHEMA_VERSION;
@@ -57,8 +59,10 @@ export interface FingerprintMaterial {
   platform: string;
   hardwareConcurrency: number | "";
   deviceMemory: number | "";
-  screenWidth: number | "";
-  screenHeight: number | "";
+  /** Shorter screen side in CSS pixels; orientation-independent with `screenLongSide`. */
+  screenShortSide: number | "";
+  /** Longer screen side in CSS pixels; orientation-independent with `screenShortSide`. */
+  screenLongSide: number | "";
   colorDepth: number | "";
   maxTouchPoints: number | "";
 }
@@ -278,8 +282,7 @@ export function buildFingerprintMaterial(
     platform: hints.platform || "",
     hardwareConcurrency: finiteOrEmpty(hints.hardwareConcurrency),
     deviceMemory: finiteOrEmpty(hints.deviceMemory),
-    screenWidth: finiteOrEmpty(hints.screen?.width),
-    screenHeight: finiteOrEmpty(hints.screen?.height),
+    ...canonicalScreenSides(hints.screen),
     colorDepth: finiteOrEmpty(hints.screen?.colorDepth),
     maxTouchPoints: finiteOrEmpty(hints.maxTouchPoints),
   };
@@ -298,8 +301,8 @@ export function serializeFingerprintMaterial(material: FingerprintMaterial): str
     platform: material.platform,
     hardwareConcurrency: material.hardwareConcurrency,
     deviceMemory: material.deviceMemory,
-    screenWidth: material.screenWidth,
-    screenHeight: material.screenHeight,
+    screenShortSide: material.screenShortSide,
+    screenLongSide: material.screenLongSide,
     colorDepth: material.colorDepth,
     maxTouchPoints: material.maxTouchPoints,
   };
@@ -319,13 +322,27 @@ export async function hashFingerprintMaterial(material: FingerprintMaterial): Pr
   }
 }
 
+const GENERIC_CLIENT_HINT_BRANDS = new Set(["Chrome", "Chromium"]);
+
 function detectBrowser(
   hints: BrowserDeviceHints,
   uaHints?: UserAgentClientHints | null,
 ): { name: string | null; majorVersion: string | null; fullVersion: string | null } {
+  const fromUa = detectBrowserFromUserAgent(hints.userAgent);
   const fromHints = pickBrand(
     uaHints?.fullVersionList?.length ? uaHints.fullVersionList : uaHints?.brands,
   );
+
+  // Client Hints often expose only Chromium/Chrome even when the UA has a more
+  // specific branded token (Vivaldi, Opera, …). Prefer that explicit UA brand.
+  if (
+    fromUa.name &&
+    fromHints &&
+    GENERIC_CLIENT_HINT_BRANDS.has(fromHints.name) &&
+    !GENERIC_CLIENT_HINT_BRANDS.has(fromUa.name)
+  ) {
+    return fromUa;
+  }
 
   if (fromHints) {
     const fullFromList = reliableFullVersion(fromHints.version);
@@ -338,7 +355,7 @@ function detectBrowser(
     return { name: fromHints.name, majorVersion, fullVersion };
   }
 
-  return detectBrowserFromUserAgent(hints.userAgent);
+  return fromUa;
 }
 
 function detectBrowserFromUserAgent(userAgent: string): {
@@ -354,7 +371,9 @@ function detectBrowserFromUserAgent(userAgent: string): {
   const rules: { name: string; pattern: RegExp }[] = [
     { name: "Yandex", pattern: /YaBrowser\/([0-9.]+)/i },
     { name: "Samsung Internet", pattern: /SamsungBrowser\/([0-9.]+)/i },
-    { name: "Opera", pattern: /(?:OPR|Opera)\/([0-9.]+)/i },
+    { name: "Opera Mini", pattern: /Opera Mini\/([0-9.]+)/i },
+    { name: "Opera", pattern: /(?:OPR|OPiOS)\/([0-9.]+)/i },
+    { name: "Opera", pattern: /Opera\/[0-9.]+.*Version\/([0-9.]+)/i },
     { name: "Edge", pattern: /(?:Edg|EdgiOS|EdgA)\/([0-9.]+)/i },
     { name: "Vivaldi", pattern: /Vivaldi\/([0-9.]+)/i },
     { name: "Brave", pattern: /Brave\/([0-9.]+)/i },
@@ -364,10 +383,12 @@ function detectBrowserFromUserAgent(userAgent: string): {
   ];
 
   for (const rule of rules) {
-    if (rule.name === "Chrome" && /(?:Edg|EdgiOS|EdgA|OPR|Opera|SamsungBrowser|YaBrowser|Vivaldi|Brave)\//i.test(ua)) {
+    if (rule.name === "Chrome" && /(?:Edg|EdgiOS|EdgA|OPR|OPiOS|Opera|SamsungBrowser|YaBrowser|Vivaldi|Brave)\//i.test(ua)) {
       continue;
     }
-    if (rule.name === "Safari" && /(?:Chrome|CriOS|Chromium|Android)\//i.test(ua)) {
+    // Android UAs use "Android 14;" not "Android/". Treat them as non-Safari
+    // rather than reporting the WebKit Version token as Safari.
+    if (rule.name === "Safari" && /(?:Chrome|CriOS|Chromium)\/|Android/i.test(ua)) {
       continue;
     }
 
@@ -571,9 +592,10 @@ function mapWindowsPlatformVersion(platformVersion: string | undefined): string 
   if (!major) return null;
   const numeric = Number(major);
   if (!Number.isFinite(numeric) || numeric === 0) return null;
-  // Chromium maps Windows 11 to UniversalApiContract >= 13.
+  // Chromium maps Windows 11 to UniversalApiContract >= 13, and Windows 10
+  // releases from 1507 through 2004+ to majors 1–12. 0.x is Windows 7/8/8.1.
   if (numeric >= 13) return "11";
-  if (numeric === 10) return "10";
+  if (numeric >= 1 && numeric <= 12) return "10";
   return null;
 }
 
@@ -591,6 +613,29 @@ function firstGroup(value: string, pattern: RegExp): string | null {
 
 function finiteOrEmpty(value: number | undefined): number | "" {
   return typeof value === "number" && Number.isFinite(value) ? value : "";
+}
+
+function canonicalScreenSides(screen?: { width: number; height: number }): {
+  screenShortSide: number | "";
+  screenLongSide: number | "";
+} {
+  const width = finiteOrEmpty(screen?.width);
+  const height = finiteOrEmpty(screen?.height);
+
+  if (width === "" && height === "") {
+    return { screenShortSide: "", screenLongSide: "" };
+  }
+  if (width === "") {
+    return { screenShortSide: height, screenLongSide: height };
+  }
+  if (height === "") {
+    return { screenShortSide: width, screenLongSide: width };
+  }
+
+  return {
+    screenShortSide: Math.min(width, height),
+    screenLongSide: Math.max(width, height),
+  };
 }
 
 function toHex(bytes: Uint8Array): string {

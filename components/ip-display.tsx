@@ -435,7 +435,10 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
       if (!active) return;
 
       const info = resolveVisitorBrowserInfo(targetIp, deviceHints, uaHints);
-      if (!info) return;
+      if (!info) {
+        setFingerprintReady(true);
+        return;
+      }
 
       setVisitorBrowser(info);
       const hash = await hashFingerprintMaterial(buildFingerprintMaterial(deviceHints, info));
