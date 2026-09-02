@@ -42,6 +42,9 @@ export function ToolSearchForm({
       className="flex w-full flex-col gap-2.5 sm:flex-row"
     >
       <div className="relative flex-1">
+        <label htmlFor="tool-query" className="sr-only">
+          {placeholder}
+        </label>
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input
           id="tool-query"

@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
+import Link from "next/link";
 import { type Locale, getTranslation } from "@/lib/i18n";
 import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
@@ -9,7 +10,7 @@ import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -166,15 +167,15 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-3">
+    <section className="overflow-hidden border-y border-border/70">
+      <div className="flex items-center gap-2 bg-muted/20 px-1 py-3">
         <Icon className="size-4 text-primary" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
-        </p>
+        </h2>
       </div>
       <div className="flex flex-col">{children}</div>
-    </Card>
+    </section>
   );
 }
 
@@ -243,24 +244,25 @@ function StatCard({
   secondary?: string;
 }) {
   return (
-    <Card className="gap-2 py-4">
-      <div className="flex items-center gap-2 px-4 text-muted-foreground">
-        <Icon className="size-4 text-primary" />
+    <div className="border-t border-border/60 py-4 first:border-t-0 sm:border-t-0 sm:border-l sm:px-4 sm:first:border-l-0 sm:first:pl-0">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon aria-hidden="true" className="size-4 text-primary" />
         <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
       </div>
-      <div className="px-4">
-        <p className="text-sm font-semibold break-words text-foreground">{primary}</p>
+      <div>
+        <p className="mt-2 text-sm font-semibold break-words text-foreground">{primary}</p>
         {secondary && (
-          <p className="mt-0.5 text-xs break-words text-muted-foreground">{secondary}</p>
+          <p className="mt-1 text-xs break-words text-muted-foreground">{secondary}</p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
 
 export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerProps) {
   const t = getToolTranslation(locale);
   const baseT = getTranslation(locale);
+  const [lastQuery, setLastQuery] = useState(initialIp);
 
   const { loading, error, result, run } = useToolLookup<ReputationSummary>({
     buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
@@ -270,14 +272,17 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
   });
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col gap-8">
       <ToolSearchForm
         initialValue={initialIp}
         placeholder={t.reputationPlaceholder}
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}
         loading={loading}
-        onSubmit={run}
+        onSubmit={(value) => {
+          setLastQuery(value);
+          run(value);
+        }}
       />
 
       {!loading && !error && !result && (
@@ -285,29 +290,39 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
           icon={ShieldAlert}
           title={t.reputationEmptyTitle}
           description={t.reputationEmptyDescription}
+          className="rounded-none border-0 bg-transparent p-6 shadow-none sm:p-8"
         />
       )}
 
       {loading && (
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-32 rounded-xl" />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="flex flex-col gap-6" aria-label={t.reputationChecking} aria-busy="true">
+          <Skeleton className="h-40 rounded-lg" />
+          <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-24 rounded-xl" />
+              <Skeleton key={index} className="h-20 rounded-lg" />
             ))}
           </div>
-          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-48 rounded-lg" />
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          action={lastQuery ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => run(lastQuery)}>
+              {t.reputationCheckButton}
+            </Button>
+          ) : undefined}
+        />
+      )}
 
       {result && (
-        <div className="tool-reveal flex flex-col gap-4">
-          <Card className="gap-3 py-5">
+        <div className="tool-reveal flex flex-col gap-8">
+          <section className="border-y border-border/70 py-6 sm:py-8" aria-labelledby="reputation-verdict">
             <div className="flex flex-wrap items-center gap-3 px-5">
               <RiskIcon level={result.level} />
-              <p className="font-mono text-lg font-semibold break-all text-foreground">
+              <p className="font-mono text-base font-semibold break-all text-foreground sm:text-lg">
                 {result.ip}
               </p>
               <Badge variant={riskVariant(result.level)} className="uppercase">
@@ -315,13 +330,13 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
               </Badge>
             </div>
             <div className="flex flex-col gap-1 px-5">
-              <p className="text-sm font-medium text-foreground">{headlineLabel(result, t)}</p>
+              <h2 id="reputation-verdict" aria-live="polite" className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{headlineLabel(result, t)}</h2>
               {result.contextCategories.length > 0 && (
                 <p className="text-sm text-muted-foreground">
                   {result.contextCategories.map((category) => categoryLabel(category, t)).join(" · ")}
                 </p>
               )}
-              <p className="font-mono text-xs text-muted-foreground">
+              <p className="font-mono text-xs tabular-nums text-muted-foreground">
                 {t.reputationScoreLabel}: {result.score}/100 ·{" "}
                 {formatTemplate(t.reputationCoverageChecked, {
                   count: result.coverage.checkedCount,
@@ -339,9 +354,9 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                 })}
               </p>
             </div>
-          </Card>
+          </section>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={MapPin}
               label={t.reputationGeoLabel}
@@ -373,7 +388,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                   ? baseT.connectionTypes[result.networkContext.connectionType]
                   : "-"
               }
-              secondary={result.networkContext?.reverse || undefined}
+               secondary={result.networkContext?.reverse ? `${t.reputationReverseLabel}: ${result.networkContext.reverse}` : undefined}
             />
             <StatCard
               icon={ListChecks}
@@ -504,7 +519,17 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                     <TableRow key={source.id}>
                       <TableCell className="py-3">
                         <p className="text-sm font-medium text-foreground">
-                          {definition?.name ?? source.id}
+                          {definition?.docsUrl ? (
+                            <Link
+                              href={definition.docsUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                            >
+                              {definition.name}
+                              <span className="sr-only"> (documentation)</span>
+                            </Link>
+                          ) : definition?.name ?? source.id}
                         </p>
                         {description && (
                           <p className="mt-0.5 hidden max-w-xl text-xs leading-relaxed text-muted-foreground md:block">
