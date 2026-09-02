@@ -33,6 +33,7 @@ import {
 import {
   buildFingerprintMaterial,
   collectBrowserDeviceHints,
+  FINGERPRINT_HASH_ALGORITHM,
   formatBrowserVersion,
   formatFingerprint,
   formatOsLabel,
@@ -230,24 +231,31 @@ function FingerprintRow({
       <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
         <span>{label}</span>
         {ready && value ? (
-          <CopyButton
-            text={value}
-            label={copyLabel}
-            copiedLabel={copiedLabel}
-            failedLabel={failedLabel}
-          />
+          <span className="shrink-0 font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+            {FINGERPRINT_HASH_ALGORITHM}
+          </span>
         ) : null}
       </dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-18 w-full rounded-lg" />
         ) : value ? (
-          <code
-            title={value}
-            className="block w-full whitespace-pre-wrap rounded-md bg-muted/50 px-2.5 py-2 font-mono text-xs font-medium leading-5 tracking-wide text-foreground select-all"
-          >
-            {formatFingerprint(value)}
-          </code>
+          <div className="relative rounded-lg border bg-muted/40">
+            <code
+              title={value}
+              className="block w-full whitespace-pre-wrap px-3.5 py-3 pr-12 font-mono text-xs font-medium leading-6 tracking-[0.04em] text-foreground select-all"
+            >
+              {formatFingerprint(value)}
+            </code>
+            <div className="absolute right-1.5 top-1.5">
+              <CopyButton
+                text={value}
+                label={copyLabel}
+                copiedLabel={copiedLabel}
+                failedLabel={failedLabel}
+              />
+            </div>
+          </div>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
         )}
