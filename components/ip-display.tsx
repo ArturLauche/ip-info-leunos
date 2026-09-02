@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
+import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { CountryFlag } from "@/components/country-flag";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { normalizeAsnInput } from "@/lib/asn";
@@ -92,6 +93,8 @@ interface IpData {
 interface IpDisplayProps {
   targetIp?: string;
   locale: Locale;
+  /** Notifies the host tool (e.g. IpLookup) so its search form can spin. */
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 function CopyButton({
@@ -312,10 +315,10 @@ function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
   return t.proxyHintSignals[label as ProxyHintFixedLabel] || t.proxyHintSignals["proxy-signature"];
 }
 
-export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
+export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(null);
   const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(null);
   const [ipv6Loading, setIpv6Loading] = useState(false);
@@ -324,10 +327,22 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [fingerprintReady, setFingerprintReady] = useState(false);
   const t = getTranslation(locale);
+  const toolT = getToolTranslation(locale);
+  // Ref-held so a new callback identity never re-triggers the fetch effect.
+  const onLoadingChangeRef = useRef(onLoadingChange);
 
   useEffect(() => {
-    setLoading(true);
-    setError(false);
+    onLoadingChangeRef.current = onLoadingChange;
+  }, [onLoadingChange]);
+
+  useEffect(() => {
+    const reportLoading = (value: boolean) => {
+      setLoading(value);
+      onLoadingChangeRef.current?.(value);
+    };
+
+    reportLoading(true);
+    setError(null);
     setData(null);
 
     const controller = new AbortController();
@@ -339,18 +354,18 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
       .then((res) => res.json())
       .then((json) => {
         setData(unwrapApiResponse<IpData>(json));
-        setLoading(false);
+        reportLoading(false);
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         // Ignore the abort triggered when targetIp changes mid-flight so a
         // stale response can never overwrite a newer lookup.
         if (controller.signal.aborted) return;
-        setError(true);
-        setLoading(false);
+        setError(getApiErrorMessage(cause, toolT, t.ipInfoError));
+        reportLoading(false);
       });
 
     return () => controller.abort();
-  }, [targetIp]);
+  }, [targetIp, t, toolT]);
 
   useEffect(() => {
     if (targetIp) return;
@@ -468,7 +483,7 @@ export function IpDisplay({ targetIp, locale }: IpDisplayProps) {
     return (
       <Card className="items-center gap-3 p-10 text-center">
         <ShieldAlert className="size-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{t.ipInfoError}</p>
+        <p className="text-sm text-muted-foreground">{error || t.ipInfoError}</p>
       </Card>
     );
   }
