@@ -67,7 +67,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
             </Button>
           </SheetTrigger>
           <SheetContent
-            side="left"
+            side="right"
             closeLabel={toolT.navClose}
             // Sheet and page motion share the same duration scale. The drawer
             // clears while the short route exit runs, before the incoming
