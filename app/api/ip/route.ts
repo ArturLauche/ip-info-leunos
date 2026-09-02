@@ -12,6 +12,12 @@ import {
 import { assessRequestProxyHints, normalizeForwardedIp } from "@/lib/request-proxy-hints";
 import { lookupIpApi, type IpApiData } from "@/lib/providers/ip-api";
 import {
+  getCachedLookup,
+  getInflightLookup,
+  setCachedLookup,
+  trackInflightLookup,
+} from "@/lib/ip-lookup-cache";
+import {
   assertPublicIpAddress,
   assertPublicTarget,
   isIPv4Address,
@@ -22,38 +28,10 @@ import {
 export const runtime = "nodejs";
 
 // Short server-side memo for explicit ?ip= lookups (upstream ip-api.com quota
-// protection). The header-derived auto-detect branch is never cached: it
-// depends on per-request forwarding headers and must not leak one visitor's
-// addresses to another. The response header stays no-store; this only avoids
-// repeated upstream fetches for popular lookups.
-const LOOKUP_CACHE_TTL_MS = 60_000;
-const LOOKUP_CACHE_MAX_ENTRIES = 512;
-
-interface LookupCacheEntry {
-  storedAt: number;
-  payload: unknown;
-}
-
-const lookupCache = new Map<string, LookupCacheEntry>();
-
-function getCachedLookup(key: string): unknown | null {
-  const cached = lookupCache.get(key);
-  if (!cached) return null;
-  if (Date.now() - cached.storedAt >= LOOKUP_CACHE_TTL_MS) {
-    lookupCache.delete(key);
-    return null;
-  }
-  return cached.payload;
-}
-
-function setCachedLookup(key: string, payload: unknown) {
-  lookupCache.set(key, { storedAt: Date.now(), payload });
-  while (lookupCache.size > LOOKUP_CACHE_MAX_ENTRIES) {
-    const oldest = lookupCache.keys().next().value;
-    if (oldest === undefined) break;
-    lookupCache.delete(oldest);
-  }
-}
+// protection; see lib/ip-lookup-cache.ts). The header-derived auto-detect
+// branch is never cached: it depends on per-request forwarding headers and
+// must not leak one visitor's addresses to another. The response header stays
+// no-store; this only avoids repeated upstream fetches for popular lookups.
 
 const ipQuerySchema = z.object({
   ip: z.string().trim().min(1).max(253).optional(),
@@ -265,10 +243,15 @@ export async function GET(request: Request) {
       return apiOk(cachedPayload);
     }
 
-    const data = await lookupIpApi(ip, { language });
+    let shared = getInflightLookup(cacheKey);
+    if (!shared) {
+      shared = trackInflightLookup(cacheKey, lookupIpApi(ip, { language }));
+    }
+    const data = await shared;
 
     if (!data) {
-      const payload = {
+      // Upstream failure: never memoized, so the next request retries live.
+      return apiOk({
         ipv4: isIPv4Address(ip) ? ip : null,
         ipv6: isIPv6Address(ip) ? ip : null,
         ipVersion: isIPv6Address(ip) ? 6 : 4,
@@ -278,9 +261,7 @@ export async function GET(request: Request) {
         },
         localIpChecks: [],
         ...getUnknownResult(),
-      };
-      setCachedLookup(cacheKey, payload);
-      return apiOk(payload);
+      });
     }
 
     const payload = toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null);

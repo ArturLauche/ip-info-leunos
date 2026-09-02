@@ -51,19 +51,12 @@ export function aggregateReputation(items: RawEvidence[]): AggregatedReputation 
     return {
       ...item,
       points,
+      // Provisional: replaced with the discounted share below so per-item
+      // adjusted points always sum to the group's adjusted total.
+      adjustedPoints: points,
       severity: severityFromWeight(item.weight),
     };
   });
-
-  const contributions: ScoreContribution[] = evidence
-    .filter((item) => item.points > 0)
-    .map((item) => ({
-      sourceId: item.sourceId,
-      sourceName: getReputationSource(item.sourceId)?.name ?? item.sourceId,
-      category: item.category,
-      reason: item.reason,
-      points: item.points,
-    }));
 
   // Within one provider family the strongest signal counts fully, weaker
   // correlated signals only half, so e.g. ZEN SBL + DROP is not double counted.
@@ -81,7 +74,18 @@ export function aggregateReputation(items: RawEvidence[]): AggregatedReputation 
     const sorted = [...items].sort((a, b) => b.points - a.points);
     const total = sorted[0].points + Math.round(sorted.slice(1).reduce((sum, item) => sum + item.points, 0) * 0.5);
     adjustedGroupTotals.set(group, total);
+    distributeGroupDiscount(sorted, total);
   }
+
+  const contributions: ScoreContribution[] = evidence
+    .filter((item) => item.adjustedPoints > 0)
+    .map((item) => ({
+      sourceId: item.sourceId,
+      sourceName: getReputationSource(item.sourceId)?.name ?? item.sourceId,
+      category: item.category,
+      reason: item.reason,
+      points: item.adjustedPoints,
+    }));
 
   const directGroups = countGroups(adjustedGroupTotals, evidence, DIRECT_CATEGORIES);
   const mailGroups = countGroups(adjustedGroupTotals, evidence, new Set(["mail_reputation"]));
@@ -136,6 +140,36 @@ export function aggregateReputation(items: RawEvidence[]): AggregatedReputation 
     mailCategories,
     contextCategories,
   };
+}
+
+/**
+ * Splits a group's adjusted total across its items so per-item (and hence
+ * per-source) adjusted points sum exactly to the total the score uses: the
+ * strongest signal keeps its full points, the discounted remainder is shared
+ * by the weaker signals via largest remainder on their halves.
+ */
+function distributeGroupDiscount(sorted: EvidenceItem[], total: number): void {
+  if (sorted.length === 0) return;
+  sorted[0].adjustedPoints = sorted[0].points;
+  const rest = sorted.slice(1);
+  if (rest.length === 0) return;
+
+  const halves = rest.map((item) => item.points * 0.5);
+  const floors = halves.map((half) => Math.floor(half));
+  const remainder = Math.max(
+    0,
+    total - sorted[0].points - floors.reduce((sum, floor) => sum + floor, 0),
+  );
+  const winners = new Set(
+    rest
+      .map((_, index) => index)
+      .sort((a, b) => halves[b] - floors[b] - (halves[a] - floors[a]))
+      .slice(0, remainder),
+  );
+
+  rest.forEach((item, index) => {
+    item.adjustedPoints = floors[index] + (winners.has(index) ? 1 : 0);
+  });
 }
 
 function evidencePoints(item: RawEvidence): number {

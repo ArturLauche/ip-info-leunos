@@ -4,6 +4,7 @@ import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { assertPublicTarget, isIpAddress, TargetValidationError } from "@/lib/network/target";
+import { isCacheableDnsResult } from "@/lib/dns-cache";
 
 export const runtime = "nodejs";
 
@@ -144,14 +145,17 @@ export async function GET(request: Request) {
   if (isIpAddress(hostname)) {
     const ptrResult = await resolvePtr(hostname);
 
+    const recordErrors = ptrResult.error ? [{ type: ptrResult.type, error: ptrResult.error }] : [];
     const payload = {
       target: hostname,
       addresses: [{ address: hostname, family: net.isIP(hostname) }],
       records: ptrResult.records,
       lookupError: null,
-      recordErrors: ptrResult.error ? [{ type: ptrResult.type, error: ptrResult.error }] : [],
+      recordErrors,
     };
-    setCachedDns(hostname, payload);
+    if (isCacheableDnsResult(null, recordErrors)) {
+      setCachedDns(hostname, payload);
+    }
     return apiOk(payload);
   }
 
@@ -166,16 +170,20 @@ export async function GET(request: Request) {
   const records = recordsByType.flatMap((entry) => entry.records);
   const addresses = lookupResult.ok ? lookupResult.value : [];
 
+  const lookupError = lookupResult.ok ? null : lookupResult.error.code || lookupResult.error.message;
+  const recordErrors = recordsByType
+    // A type without records (ENODATA/ENOTFOUND) is normal, not noteworthy.
+    .filter((entry) => entry.error && entry.error !== "ENODATA" && entry.error !== "ENOTFOUND")
+    .map((entry) => ({ type: entry.type, error: entry.error }));
   const payload = {
     target: hostname,
     addresses,
     records,
-    lookupError: lookupResult.ok ? null : lookupResult.error.code || lookupResult.error.message,
-    recordErrors: recordsByType
-      // A type without records (ENODATA/ENOTFOUND) is normal, not noteworthy.
-      .filter((entry) => entry.error && entry.error !== "ENODATA" && entry.error !== "ENOTFOUND")
-      .map((entry) => ({ type: entry.type, error: entry.error })),
+    lookupError,
+    recordErrors,
   };
-  setCachedDns(hostname, payload);
+  if (isCacheableDnsResult(lookupError, recordErrors)) {
+    setCachedDns(hostname, payload);
+  }
   return apiOk(payload);
 }

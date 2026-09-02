@@ -104,7 +104,15 @@ export interface RawEvidence {
 
 export interface EvidenceItem extends RawEvidence {
   severity: EvidenceSeverity;
+  /** Raw observation strength (weight x confidence x freshness + bonus). */
   points: number;
+  /**
+   * Score contribution after the independence-group discount (strongest
+   * signal per provider family counts fully, correlated ones half).
+   * Per-source point totals sum these, so they reconcile with the score
+   * (before corroboration bonuses and the 100-point cap).
+   */
+  adjustedPoints: number;
 }
 
 export interface SourceResult {

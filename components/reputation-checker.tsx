@@ -34,7 +34,7 @@ import {
   ShieldCheck,
   Waypoints,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ToolT = ToolTranslation;
 
@@ -68,7 +68,7 @@ const SEVERITY_ORDER: Record<EvidenceSeverity, number> = {
 
 function sortEvidence(items: EvidenceItem[]) {
   return [...items].sort(
-    (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.points - a.points,
+    (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.adjustedPoints - a.adjustedPoints,
   );
 }
 
@@ -179,9 +179,9 @@ function EvidenceCard({ item, t, locale }: { item: EvidenceItem; t: ToolT; local
         </p>
         <span className="inline-flex items-center gap-2">
           <Badge variant={severityVariant(item.severity)}>{severityLabel(item.severity, t)}</Badge>
-          {item.points > 0 && (
+          {item.adjustedPoints > 0 && (
             <span className="text-xs text-muted-foreground tabular-nums">
-              +{formatNumber(item.points, locale)}
+              +{formatNumber(item.adjustedPoints, locale)}
             </span>
           )}
         </span>
@@ -258,9 +258,38 @@ function filterEvidence(items: EvidenceItem[], filter: EvidenceFilter) {
   return items;
 }
 
-/** Sums score contributions per source so each source row can carry its
- *  points inline (replacing the separate score-breakdown card). Aggregation
- *  bonuses apply across sources and are reported separately below the list.
+function EvidenceList({
+  items,
+  empty,
+  t,
+  locale,
+}: {
+  items: EvidenceItem[];
+  empty: string;
+  t: ToolT;
+  locale: Locale;
+}) {
+  if (items.length === 0) {
+    return <p className="px-5 py-4 text-sm text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <>
+      {items.map((item, index) => (
+        <EvidenceCard
+          key={`${item.sourceId}-${item.reason}-${index}`}
+          item={item}
+          t={t}
+          locale={locale}
+        />
+      ))}
+    </>
+  );
+}
+
+/** Sums discounted score contributions per source so each source row carries
+ *  points that reconcile with the score (before corroboration bonuses and
+ *  the 100-point cap). Aggregation bonuses apply across sources and are
+ *  reported separately below the list.
  */
 function pointsBySource(contributions: ReputationSummary["contributions"]) {
   const totals = new Map<string, number>();
@@ -358,8 +387,6 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
     }
     return { activeSources: active, hiddenSources: hidden };
   }, [result]);
-
-  const visibleEvidence = evidenceGroups ? evidenceGroups[filter] : [];
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -519,14 +546,15 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
             </div>
           </Card>
 
-          {/* Evidence with filter */}
+          {/* Evidence with filter. Each trigger owns a TabsContent panel so
+              the Radix tabs pattern keeps its trigger/panel relationship. */}
           <Card className="gap-0 overflow-hidden py-0">
             <CardHeader icon={ListChecks} title={t.reputationSectionSummary} />
-            <div className="border-b px-5 py-3">
-              <Tabs
-                value={filter}
-                onValueChange={(value) => setFilter(value as EvidenceFilter)}
-              >
+            <Tabs
+              value={filter}
+              onValueChange={(value) => setFilter(value as EvidenceFilter)}
+            >
+              <div className="border-b px-5 py-3">
                 <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                   <TabsTrigger value="all">
                     {t.reputationFilterAll} ({formatNumber(evidenceGroups.all.length, locale)})
@@ -541,28 +569,20 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                     {t.reputationSectionNetwork} ({formatNumber(evidenceGroups.network.length, locale)})
                   </TabsTrigger>
                 </TabsList>
-              </Tabs>
-            </div>
-            <div className="flex flex-col">
-              {visibleEvidence.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-muted-foreground">
-                  {filter === "threats"
-                    ? t.reputationNoThreatEvidence
-                    : filter === "mail"
-                      ? t.reputationNoMailEvidence
-                      : t.reputationNoEvidence}
-                </p>
-              ) : (
-                visibleEvidence.map((item, index) => (
-                  <EvidenceCard
-                    key={`${item.sourceId}-${item.reason}-${index}`}
-                    item={item}
-                    t={t}
-                    locale={locale}
-                  />
-                ))
-              )}
-            </div>
+              </div>
+              <TabsContent value="all" className="flex flex-col">
+                <EvidenceList items={evidenceGroups.all} empty={t.reputationNoEvidence} t={t} locale={locale} />
+              </TabsContent>
+              <TabsContent value="threats" className="flex flex-col">
+                <EvidenceList items={evidenceGroups.threats} empty={t.reputationNoThreatEvidence} t={t} locale={locale} />
+              </TabsContent>
+              <TabsContent value="mail" className="flex flex-col">
+                <EvidenceList items={evidenceGroups.mail} empty={t.reputationNoMailEvidence} t={t} locale={locale} />
+              </TabsContent>
+              <TabsContent value="network" className="flex flex-col">
+                <EvidenceList items={evidenceGroups.network} empty={t.reputationNoEvidence} t={t} locale={locale} />
+              </TabsContent>
+            </Tabs>
           </Card>
 
           {/* Sources */}

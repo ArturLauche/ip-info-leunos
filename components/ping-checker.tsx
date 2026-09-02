@@ -146,6 +146,9 @@ export function PingChecker({
       return;
     }
 
+    // External navigation: abort the obsolete request before invalidating
+    // its sequence guard so it stops consuming server time after discard.
+    abortRef.current?.abort();
     setTarget(initialTarget);
     setPort(initialPort);
     setMode(initialMode);

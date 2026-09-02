@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isCacheableDnsResult } from "@/lib/dns-cache";
 import { GET } from "./route";
 
 describe("GET /api/dns", () => {
@@ -33,5 +34,21 @@ describe("GET /api/dns", () => {
 
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("target_blocked");
+  });
+});
+
+describe("isCacheableDnsResult", () => {
+  it("caches clean answers and stable negatives", () => {
+    expect(isCacheableDnsResult(null, [])).toBe(true);
+    expect(isCacheableDnsResult("ENOTFOUND", [])).toBe(true);
+    expect(isCacheableDnsResult("ENODATA", [])).toBe(true);
+  });
+
+  it("does not cache transient resolver failures", () => {
+    expect(isCacheableDnsResult("DNS query timed out.", [])).toBe(false);
+    expect(isCacheableDnsResult("SERVFAIL", [])).toBe(false);
+    expect(isCacheableDnsResult("EREFUSED", [])).toBe(false);
+    expect(isCacheableDnsResult(null, [{ type: "A", error: "DNS query timed out." }])).toBe(false);
+    expect(isCacheableDnsResult(null, [{ type: "MX", error: "SERVFAIL" }])).toBe(false);
   });
 });

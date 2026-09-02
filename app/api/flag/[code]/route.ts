@@ -21,7 +21,9 @@ export async function GET(_request: Request, context: RouteContext) {
   const normalized = code?.trim().toLowerCase();
 
   if (!normalized || !/^[a-z]{2}$/.test(normalized)) {
-    return new Response("Invalid country code", { status: 400 });
+    // Image endpoint: locale-neutral contract, so error bodies stay empty.
+    // Consumers are <img> tags; only the status code is observable.
+    return new Response(null, { status: 400 });
   }
 
   const controller = new AbortController();
@@ -36,13 +38,13 @@ export async function GET(_request: Request, context: RouteContext) {
     });
 
     if (!upstream.ok) {
-      return new Response("Flag not found", { status: 404 });
+      return new Response(null, { status: 404 });
     }
 
     const svg = await upstream.text();
     // Defend against the upstream ever returning a non-SVG error body.
     if (!svg.includes("<svg")) {
-      return new Response("Flag not found", { status: 404 });
+      return new Response(null, { status: 404 });
     }
 
     return new Response(svg, {
@@ -54,7 +56,7 @@ export async function GET(_request: Request, context: RouteContext) {
       },
     });
   } catch {
-    return new Response("Flag upstream error", { status: 502 });
+    return new Response(null, { status: 502 });
   } finally {
     clearTimeout(timer);
   }
