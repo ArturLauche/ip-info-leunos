@@ -21,6 +21,40 @@ import {
 
 export const runtime = "nodejs";
 
+// Short server-side memo for explicit ?ip= lookups (upstream ip-api.com quota
+// protection). The header-derived auto-detect branch is never cached: it
+// depends on per-request forwarding headers and must not leak one visitor's
+// addresses to another. The response header stays no-store; this only avoids
+// repeated upstream fetches for popular lookups.
+const LOOKUP_CACHE_TTL_MS = 60_000;
+const LOOKUP_CACHE_MAX_ENTRIES = 512;
+
+interface LookupCacheEntry {
+  storedAt: number;
+  payload: unknown;
+}
+
+const lookupCache = new Map<string, LookupCacheEntry>();
+
+function getCachedLookup(key: string): unknown | null {
+  const cached = lookupCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.storedAt >= LOOKUP_CACHE_TTL_MS) {
+    lookupCache.delete(key);
+    return null;
+  }
+  return cached.payload;
+}
+
+function setCachedLookup(key: string, payload: unknown) {
+  lookupCache.set(key, { storedAt: Date.now(), payload });
+  while (lookupCache.size > LOOKUP_CACHE_MAX_ENTRIES) {
+    const oldest = lookupCache.keys().next().value;
+    if (oldest === undefined) break;
+    lookupCache.delete(oldest);
+  }
+}
+
 const ipQuerySchema = z.object({
   ip: z.string().trim().min(1).max(253).optional(),
 });
@@ -225,10 +259,16 @@ export async function GET(request: Request) {
       return apiError("invalid_target", "Please provide a valid public IP address or domain.", 400);
     }
 
+    const cacheKey = `${ip}:${language}`;
+    const cachedPayload = getCachedLookup(cacheKey);
+    if (cachedPayload) {
+      return apiOk(cachedPayload);
+    }
+
     const data = await lookupIpApi(ip, { language });
 
     if (!data) {
-      return apiOk({
+      const payload = {
         ipv4: isIPv4Address(ip) ? ip : null,
         ipv6: isIPv6Address(ip) ? ip : null,
         ipVersion: isIPv6Address(ip) ? 6 : 4,
@@ -238,10 +278,14 @@ export async function GET(request: Request) {
         },
         localIpChecks: [],
         ...getUnknownResult(),
-      });
+      };
+      setCachedLookup(cacheKey, payload);
+      return apiOk(payload);
     }
 
-    return apiOk(toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null));
+    const payload = toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null);
+    setCachedLookup(cacheKey, payload);
+    return apiOk(payload);
   }
 
   // Auto-detect from request headers. Vercel's forwarding headers are normal

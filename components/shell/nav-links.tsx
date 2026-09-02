@@ -109,7 +109,7 @@ function NavGroupList({
             onClick={(event) => onNavigate(event, item.key)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative z-10 flex h-10 items-center gap-2.5 rounded-lg py-1 pr-3 pl-3.5 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
+              "group relative z-10 flex min-h-11 items-center gap-2.5 rounded-lg py-1 pr-3 pl-3.5 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
               isSelected
                 ? "text-foreground"
                 : "text-muted-foreground hover:bg-sidebar-accent/45 hover:text-foreground",

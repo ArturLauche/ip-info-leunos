@@ -15,19 +15,19 @@ function PrefixItem({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
 
   if (rpki === "valid") {
     rpkiBadge = (
-      <Badge variant="success" className="text-[0.65rem] uppercase">
+      <Badge variant="success" className="text-[11px] uppercase">
         {t.asnRpkiValid}
       </Badge>
     );
   } else if (rpki === "invalid") {
     rpkiBadge = (
-      <Badge variant="destructive" className="text-[0.65rem] uppercase">
+      <Badge variant="destructive" className="text-[11px] uppercase">
         {t.asnRpkiInvalid}
       </Badge>
     );
   } else if (prefix.rpkiStatus) {
     rpkiBadge = (
-      <Badge variant="secondary" className="text-[0.65rem] uppercase">
+      <Badge variant="secondary" className="text-[11px] uppercase">
         {formatTemplate(t.asnRpkiStatus, { status: prefix.rpkiStatus })}
       </Badge>
     );
@@ -109,7 +109,7 @@ export function PrefixSection({ result, t }: { result: AsnProfile; t: ToolTransl
         <p className="text-xs leading-normal text-muted-foreground">{t.asnPrefixesDescription}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 px-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 px-5 lg:grid-cols-2">
         <PrefixColumn
           title={t.asnLabelIpv4}
           prefixes={result.prefixes4}

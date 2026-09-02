@@ -26,6 +26,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+  timer.unref?.();
 
   try {
     const upstream = await fetch(`https://flagcdn.com/${normalized}.svg`, {

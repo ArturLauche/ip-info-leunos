@@ -284,6 +284,9 @@ type ToolTranslation = {
   reputationGeneratedAt: string;
   reputationNoThreatEvidence: string;
   reputationNoMailEvidence: string;
+  reputationFilterAll: string;
+  reputationNoEvidence: string;
+  reputationPointsHeader: string;
   reputationConnectionLabel: string;
   reputationReverseLabel: string;
   reputationFieldSource: string;
@@ -596,6 +599,9 @@ const en: ToolTranslation = {
   reputationNoThreatEvidence:
     "No direct malicious observations were found in the sources that could be checked.",
   reputationNoMailEvidence: "No email reputation listings were found in the checked sources.",
+  reputationFilterAll: "All",
+  reputationNoEvidence: "No evidence in this group from the sources that could be checked.",
+  reputationPointsHeader: "Score",
   reputationConnectionLabel: "Connection",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Source",
@@ -1038,6 +1044,9 @@ const de: Partial<ToolTranslation> = {
   reputationNoThreatEvidence:
     "In den prüfbaren Quellen wurden keine direkten bösartigen Beobachtungen gefunden.",
   reputationNoMailEvidence: "In den geprüften Quellen wurden keine Mail-Reputations-Einträge gefunden.",
+  reputationFilterAll: "Alle",
+  reputationNoEvidence: "Keine Evidenz in dieser Gruppe aus den prüfbaren Quellen.",
+  reputationPointsHeader: "Score",
   reputationConnectionLabel: "Verbindung",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Quelle",

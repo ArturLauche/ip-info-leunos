@@ -19,6 +19,34 @@ const dnsQuerySchema = z.object({
   target: z.string().trim().min(1).max(253),
 });
 
+// Short server-side memo for repeated public DNS lookups. DNS answers are
+// public data (no per-request identity), so caching by normalized hostname is
+// safe. The response header stays no-store; this only avoids hammering the
+// resolver with 10 parallel queries per repeat request.
+const DNS_CACHE_TTL_MS = 120_000;
+const DNS_CACHE_MAX_ENTRIES = 512;
+
+const dnsCache = new Map<string, { storedAt: number; payload: unknown }>();
+
+function getCachedDns(hostname: string): unknown | null {
+  const cached = dnsCache.get(hostname);
+  if (!cached) return null;
+  if (Date.now() - cached.storedAt >= DNS_CACHE_TTL_MS) {
+    dnsCache.delete(hostname);
+    return null;
+  }
+  return cached.payload;
+}
+
+function setCachedDns(hostname: string, payload: unknown) {
+  dnsCache.set(hostname, { storedAt: Date.now(), payload });
+  while (dnsCache.size > DNS_CACHE_MAX_ENTRIES) {
+    const oldest = dnsCache.keys().next().value;
+    if (oldest === undefined) break;
+    dnsCache.delete(oldest);
+  }
+}
+
 type DnsRecordValue = string | number | boolean | null | DnsRecordValue[] | { [key: string]: DnsRecordValue };
 
 interface DnsRecord {
@@ -107,17 +135,24 @@ export async function GET(request: Request) {
     return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
   }
 
+  const cachedPayload = getCachedDns(hostname);
+  if (cachedPayload) {
+    return apiOk(cachedPayload);
+  }
+
   // IP targets only support reverse (PTR) lookups.
   if (isIpAddress(hostname)) {
     const ptrResult = await resolvePtr(hostname);
 
-    return apiOk({
+    const payload = {
       target: hostname,
       addresses: [{ address: hostname, family: net.isIP(hostname) }],
       records: ptrResult.records,
       lookupError: null,
       recordErrors: ptrResult.error ? [{ type: ptrResult.type, error: ptrResult.error }] : [],
-    });
+    };
+    setCachedDns(hostname, payload);
+    return apiOk(payload);
   }
 
   const [lookupResult, recordsByType] = await Promise.all([
@@ -131,7 +166,7 @@ export async function GET(request: Request) {
   const records = recordsByType.flatMap((entry) => entry.records);
   const addresses = lookupResult.ok ? lookupResult.value : [];
 
-  return apiOk({
+  const payload = {
     target: hostname,
     addresses,
     records,
@@ -140,5 +175,7 @@ export async function GET(request: Request) {
       // A type without records (ENODATA/ENOTFOUND) is normal, not noteworthy.
       .filter((entry) => entry.error && entry.error !== "ENODATA" && entry.error !== "ENOTFOUND")
       .map((entry) => ({ type: entry.type, error: entry.error })),
-  });
+  };
+  setCachedDns(hostname, payload);
+  return apiOk(payload);
 }

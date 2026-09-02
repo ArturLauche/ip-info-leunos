@@ -79,6 +79,7 @@ async function lookupViaRdap(target: string) {
   const path = isIp(target) ? `ip/${target}` : `domain/${target}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SOCKET_TIMEOUT_MS);
+  timer.unref?.();
 
   try {
     const response = await fetch(`https://rdap.org/${path}`, {
@@ -162,14 +163,15 @@ export async function GET(request: Request) {
         note: "WHOIS port lookup unavailable; returned RDAP data instead.",
       });
     } catch (rdapError) {
+      // Locale-neutral message (the UI translates by code); upstream details
+      // stay machine-readable in details instead of leaking English text.
       const whoisMessage = (whoisError as Error).message || "unknown WHOIS error";
       const rdapMessage = (rdapError as Error).message || "unknown RDAP error";
 
-      return apiError(
-        "network_error",
-        `WHOIS lookup failed (${whoisMessage}). RDAP fallback failed (${rdapMessage}).`,
-        400,
-      );
+      return apiError("network_error", "WHOIS lookup failed.", 400, {
+        whois: whoisMessage,
+        rdap: rdapMessage,
+      });
     }
   }
 }

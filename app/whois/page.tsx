@@ -2,7 +2,7 @@ import { WhoisChecker } from "@/components/whois-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { Search } from "lucide-react";
+import { Activity } from "lucide-react";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
@@ -28,7 +28,7 @@ export default async function WhoisPage({ searchParams }: WhoisPageProps) {
     <ToolPageShell
       locale={locale}
       active="whois"
-      icon={Search}
+      icon={Activity}
       title={t.whoisTitle}
       subtitle={t.whoisSubtitle}
     >

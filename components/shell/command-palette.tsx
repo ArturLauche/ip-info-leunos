@@ -139,17 +139,16 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
     const Icon = item.icon;
     const isActive = index === activeIndex;
     return (
-      <button
+      <div
         key={item.id}
         id={`command-item-${index}`}
-        type="button"
         role="option"
         aria-selected={isActive}
         data-index={index}
         onClick={() => select(item)}
-        onMouseMove={() => setActiveIndex(index)}
+        onMouseEnter={() => setActiveIndex(index)}
         className={cn(
-          "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors",
+          "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors",
           isActive
             ? "bg-accent text-accent-foreground"
             : "text-foreground hover:bg-accent/60",
@@ -175,23 +174,20 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             aria-hidden
           />
         )}
-      </button>
+      </div>
     );
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        {/* Plain dim scrim (no blur) so the bar's glass has the page to refract
-            through, while the background itself stays un-frosted. */}
+        {/* Plain dim scrim without blur; the surface below is opaque. */}
         <DialogOverlay className="bg-black/30 backdrop-blur-none" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden sm:max-w-xl",
-            "max-h-[76vh] rounded-[1.75rem] duration-200",
+            "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden border bg-popover shadow-lg sm:max-w-xl",
+            "max-h-[76vh] rounded-xl duration-200",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            // iOS-26 liquid glass surface (see .liquid-glass in globals.css).
-            "liquid-glass",
           )}
         >
         <DialogTitle className="sr-only">{t.commandTriggerLabel}</DialogTitle>
@@ -265,7 +261,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
           </p>
         )}
 
-        <div className="flex items-center gap-4 border-t border-border/50 px-4 py-2.5 text-[0.7rem] text-muted-foreground">
+        <div className="hidden items-center gap-4 border-t border-border/50 px-4 py-2.5 text-xs text-muted-foreground sm:flex">
           <span className="flex items-center gap-1.5">
             <Kbd>↑</Kbd>
             <Kbd>↓</Kbd>

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { type Locale, getTranslation } from "@/lib/i18n";
 import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
@@ -32,19 +32,17 @@ import type {
   SourceStatus,
 } from "@/lib/reputation/model";
 import {
-  AlertTriangle,
   Flag,
-  Gauge,
+  Info,
   ListChecks,
-  Mail,
   MapPin,
   Network,
-  Radar,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Waypoints,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ToolT = ToolTranslation;
 
@@ -113,10 +111,10 @@ function severityLabel(severity: EvidenceSeverity, t: ToolT) {
   return t.reputationSeverities[severity] ?? severity;
 }
 
-function severityClass(severity: EvidenceSeverity) {
-  if (severity === "critical" || severity === "high") return "text-destructive";
-  if (severity === "medium") return "text-warning";
-  return "text-muted-foreground";
+function severityVariant(severity: EvidenceSeverity): "destructive" | "warning" | "secondary" {
+  if (severity === "critical" || severity === "high") return "destructive";
+  if (severity === "medium") return "warning";
+  return "secondary";
 }
 
 function sourceName(sourceId: string) {
@@ -156,33 +154,22 @@ function errorMessage(error: unknown, t: ToolT) {
   return getApiErrorMessage(error, t, t.reputationNetworkError);
 }
 
-function SectionCard({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: typeof Shield;
-  title: string;
-  children: ReactNode;
-}) {
+function CardHeader({ icon: Icon, title }: { icon: typeof Shield; title: string }) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-3">
-        <Icon className="size-4 text-primary" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </p>
-      </div>
-      <div className="flex flex-col">{children}</div>
-    </Card>
+    <div className="flex items-center gap-2 border-b bg-muted/30 px-5 py-3">
+      <Icon className="size-4 text-primary" aria-hidden="true" />
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </p>
+    </div>
   );
 }
 
 function MetaRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
-      <span className="font-mono uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="break-words text-foreground">{value}</span>
+    <div className="grid grid-cols-[110px_1fr] gap-2 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="min-w-0 break-all text-foreground">{value}</span>
     </div>
   );
 }
@@ -193,20 +180,24 @@ function EvidenceCard({ item, t, locale }: { item: EvidenceItem; t: ToolT; local
   const confidence = item.confidence !== null ? `${formatNumber(item.confidence, locale)}%` : null;
 
   return (
-    <div className="flex flex-col gap-2 border-b px-4 py-4 last:border-b-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
+    <div className="flex flex-col gap-2 border-b px-5 py-4 last:border-b-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">
           {categoryLabel(item.category, t)}
         </p>
-        <p className={`font-mono text-xs ${severityClass(item.severity)}`}>
-          {severityLabel(item.severity, t)}
-          {item.points > 0 ? ` · +${formatNumber(item.points, locale)}` : ""}
-        </p>
+        <span className="inline-flex items-center gap-2">
+          <Badge variant={severityVariant(item.severity)}>{severityLabel(item.severity, t)}</Badge>
+          {item.points > 0 && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              +{formatNumber(item.points, locale)}
+            </span>
+          )}
+        </span>
       </div>
 
       <p className="text-sm leading-relaxed text-foreground">{reasonText(item, t)}</p>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
         <MetaRow label={t.reputationFieldSource} value={sourceName(item.sourceId)} />
         {confidence !== null && <MetaRow label={t.reputationFieldConfidence} value={confidence} />}
         {firstSeen !== null && <MetaRow label={t.reputationFieldFirstSeen} value={firstSeen} />}
@@ -231,7 +222,7 @@ function EvidenceCard({ item, t, locale }: { item: EvidenceItem; t: ToolT; local
   );
 }
 
-function StatCard({
+function ContextCell({
   icon: Icon,
   label,
   primary,
@@ -243,31 +234,86 @@ function StatCard({
   secondary?: string;
 }) {
   return (
-    <Card className="gap-2 py-4">
-      <div className="flex items-center gap-2 px-4 text-muted-foreground">
-        <Icon className="size-4 text-primary" />
+    <div>
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="size-4 text-primary" aria-hidden="true" />
         <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
       </div>
-      <div className="px-4">
-        <p className="text-sm font-semibold break-words text-foreground">{primary}</p>
-        {secondary && (
-          <p className="mt-0.5 text-xs break-words text-muted-foreground">{secondary}</p>
-        )}
-      </div>
-    </Card>
+      <p className="mt-1.5 text-sm font-semibold break-words text-foreground">{primary}</p>
+      {secondary && (
+        <p className="mt-0.5 text-xs break-words text-muted-foreground">{secondary}</p>
+      )}
+    </div>
   );
+}
+
+type EvidenceFilter = "all" | "threats" | "mail" | "network";
+
+function filterEvidence(items: EvidenceItem[], filter: EvidenceFilter) {
+  if (filter === "mail") {
+    return items.filter((item) => MAIL_SECTION_CATEGORIES.has(item.category));
+  }
+  if (filter === "network") {
+    return items.filter((item) => NETWORK_SECTION_CATEGORIES.has(item.category));
+  }
+  if (filter === "threats") {
+    return items.filter(
+      (item) =>
+        !MAIL_SECTION_CATEGORIES.has(item.category) &&
+        !NETWORK_SECTION_CATEGORIES.has(item.category),
+    );
+  }
+  return items;
+}
+
+/** Sums score contributions per source so the sources table can carry the
+ *  points column (replacing the separate score-breakdown card). Aggregation
+ *  bonuses apply across sources and are reported separately below the table.
+ */
+function pointsBySource(contributions: ReputationSummary["contributions"]) {
+  const totals = new Map<string, number>();
+  for (const contribution of contributions) {
+    if (contribution.sourceId === "aggregation") continue;
+    totals.set(contribution.sourceId, (totals.get(contribution.sourceId) ?? 0) + contribution.points);
+  }
+  return totals;
 }
 
 export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerProps) {
   const t = getToolTranslation(locale);
   const baseT = getTranslation(locale);
+  const [filter, setFilter] = useState<EvidenceFilter>("all");
 
   const { loading, error, result, run } = useToolLookup<ReputationSummary>({
     buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
     buildHref: (ip) => `/reputation?ip=${encodeURIComponent(ip)}`,
     mapError: (checkError) => errorMessage(checkError, t),
     initialQuery: initialIp,
+    onStart: () => setFilter("all"),
   });
+
+  const evidenceGroups = useMemo(() => {
+    if (!result) return null;
+    const sorted = sortEvidence(result.evidence);
+    return {
+      all: sorted,
+      threats: filterEvidence(sorted, "threats"),
+      mail: filterEvidence(sorted, "mail"),
+      network: filterEvidence(sorted, "network"),
+    };
+  }, [result]);
+
+  const sourcePoints = useMemo(
+    () => (result ? pointsBySource(result.contributions) : new Map<string, number>()),
+    [result],
+  );
+
+  const aggregationNotes = useMemo(
+    () => result?.contributions.filter((c) => c.sourceId === "aggregation") ?? [],
+    [result],
+  );
+
+  const visibleEvidence = evidenceGroups ? evidenceGroups[filter] : [];
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -289,21 +335,24 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       )}
 
       {loading && (
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-32 rounded-xl" />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="flex flex-col gap-6" role="status" aria-busy="true">
+          <span className="sr-only">{t.reputationChecking}</span>
+          <Skeleton className="h-28 rounded-xl" aria-hidden="true" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={index} className="h-24 rounded-xl" />
             ))}
           </div>
-          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" aria-hidden="true" />
+          <Skeleton className="h-48 rounded-xl" aria-hidden="true" />
         </div>
       )}
 
       {error && <ErrorPanel message={error} />}
 
-      {result && (
-        <div className="tool-reveal flex flex-col gap-4">
+      {result && evidenceGroups && (
+        <div className="tool-reveal flex flex-col gap-6">
+          {/* Verdict */}
           <Card className="gap-3 py-5">
             <div className="flex flex-wrap items-center gap-3 px-5">
               <RiskIcon level={result.level} />
@@ -314,216 +363,239 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                 {headlineLabel(result, t)}
               </Badge>
             </div>
-            <div className="flex flex-col gap-1 px-5">
-              <p className="text-sm font-medium text-foreground">{headlineLabel(result, t)}</p>
+            <div className="flex flex-col gap-1.5 px-5">
               {result.contextCategories.length > 0 && (
                 <p className="text-sm text-muted-foreground">
                   {result.contextCategories.map((category) => categoryLabel(category, t)).join(" · ")}
                 </p>
               )}
-              <p className="font-mono text-xs text-muted-foreground">
-                {t.reputationScoreLabel}: {result.score}/100 ·{" "}
-                {formatTemplate(t.reputationCoverageChecked, {
-                  count: result.coverage.checkedCount,
-                })}
-                {result.coverage.matchedCount > 0 &&
-                  ` · ${formatTemplate(t.reputationCoverageMatched, {
-                    count: result.coverage.matchedCount,
-                  })}`}
-                {result.coverage.unavailableCount > 0 &&
-                  ` · ${formatTemplate(t.reputationCoverageUnavailable, {
-                    count: result.coverage.unavailableCount,
-                  })}`}{" "}
-                · {formatTemplate(t.reputationGeneratedAt, {
-                  time: formatDateTime(result.checkedAt, locale) ?? result.checkedAt,
-                })}
+              <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground tabular-nums">
+                  {t.reputationScoreLabel}: {result.score}/100
+                </span>
+                <span>
+                  {formatTemplate(t.reputationCoverageChecked, {
+                    count: result.coverage.checkedCount,
+                  })}
+                </span>
+                {result.coverage.matchedCount > 0 && (
+                  <span>
+                    {formatTemplate(t.reputationCoverageMatched, {
+                      count: result.coverage.matchedCount,
+                    })}
+                  </span>
+                )}
+                {result.coverage.unavailableCount > 0 && (
+                  <span>
+                    {formatTemplate(t.reputationCoverageUnavailable, {
+                      count: result.coverage.unavailableCount,
+                    })}
+                  </span>
+                )}
+                <span>
+                  {formatTemplate(t.reputationGeneratedAt, {
+                    time: formatDateTime(result.checkedAt, locale) ?? result.checkedAt,
+                  })}
+                </span>
               </p>
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon={MapPin}
-              label={t.reputationGeoLabel}
-              primary={
-                result.geo ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <CountryFlag countryCode={result.geo.countryCode} />
-                    <span className="min-w-0">
-                      {[result.geo.city, result.geo.country].filter(Boolean).join(", ") || "-"}
+          {/* Context */}
+          <Card className="p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <ContextCell
+                icon={MapPin}
+                label={t.reputationGeoLabel}
+                primary={
+                  result.geo ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <CountryFlag countryCode={result.geo.countryCode} />
+                      <span className="min-w-0">
+                        {[result.geo.city, result.geo.country].filter(Boolean).join(", ") || "-"}
+                      </span>
                     </span>
-                  </span>
-                ) : (
-                  "-"
-                )
-              }
-              secondary={result.geo?.region || undefined}
-            />
-            <StatCard
-              icon={Waypoints}
-              label={t.reputationNetworkLabel}
-              primary={result.network?.as || "-"}
-              secondary={result.network?.isp || result.network?.org || undefined}
-            />
-            <StatCard
-              icon={Network}
-              label={t.reputationConnectionLabel}
-              primary={
-                result.networkContext
-                  ? baseT.connectionTypes[result.networkContext.connectionType]
-                  : "-"
-              }
-              secondary={result.networkContext?.reverse || undefined}
-            />
-            <StatCard
-              icon={ListChecks}
-              label={t.reputationSectionSources}
-              primary={formatTemplate(t.reputationCoverageChecked, {
-                count: result.coverage.checkedCount,
-              })}
-              secondary={
-                result.coverage.matchedCount > 0
-                  ? formatTemplate(t.reputationCoverageMatched, {
-                      count: result.coverage.matchedCount,
-                    })
-                  : result.coverage.policyCount > 0
-                    ? formatTemplate(t.reputationCoveragePolicy, {
-                        count: result.coverage.policyCount,
-                      })
-                    : undefined
-              }
-            />
-          </div>
-
-          <SectionCard icon={Radar} title={t.reputationSectionThreats}>
-            {(() => {
-              const items = sortEvidence(
-                result.evidence.filter(
-                  (item) =>
-                    !MAIL_SECTION_CATEGORIES.has(item.category) &&
-                    !NETWORK_SECTION_CATEGORIES.has(item.category),
-                ),
-              );
-              if (items.length === 0) {
-                return (
-                  <p className="px-4 py-4 text-sm text-muted-foreground">
-                    {t.reputationNoThreatEvidence}
-                  </p>
-                );
-              }
-              return items.map((item, index) => (
-                <EvidenceCard key={`${item.sourceId}-${item.reason}-${index}`} item={item} t={t} locale={locale} />
-              ));
-            })()}
-          </SectionCard>
-
-          <SectionCard icon={Mail} title={t.reputationSectionMail}>
-            {(() => {
-              const items = sortEvidence(
-                result.evidence.filter((item) => MAIL_SECTION_CATEGORIES.has(item.category)),
-              );
-              if (items.length === 0) {
-                return (
-                  <p className="px-4 py-4 text-sm text-muted-foreground">
-                    {t.reputationNoMailEvidence}
-                  </p>
-                );
-              }
-              return items.map((item, index) => (
-                <EvidenceCard key={`${item.sourceId}-${item.reason}-${index}`} item={item} t={t} locale={locale} />
-              ));
-            })()}
-          </SectionCard>
-
-          <SectionCard icon={Network} title={t.reputationSectionNetwork}>
-            {(() => {
-              const items = sortEvidence(
-                result.evidence.filter((item) => NETWORK_SECTION_CATEGORIES.has(item.category)),
-              );
-              return (
-                <>
-                  {items.length === 0 ? (
-                    <p className="px-4 py-4 text-sm text-muted-foreground">-</p>
                   ) : (
-                    items.map((item, index) => (
-                      <div
-                        key={`${item.sourceId}-${item.reason}-${index}`}
-                        className="flex flex-col gap-1 border-b px-4 py-3 last:border-b-0"
-                      >
-                        <p className="text-sm font-medium text-foreground">
-                          {categoryLabel(item.category, t)}
-                        </p>
-                        <p className="text-sm leading-relaxed text-muted-foreground">
-                          {reasonText(item, t)}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </>
-              );
-            })()}
-          </SectionCard>
-
-          {result.contributions.length > 0 && (
-            <SectionCard icon={Gauge} title={t.reputationSectionScore}>
-              {result.contributions.map((contribution, index) => (
-                <div
-                  key={`${contribution.sourceId}-${contribution.reason}-${index}`}
-                  className="flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-2.5 last:border-b-0"
-                >
-                  <p className="text-sm text-foreground">
-                    <span className="text-muted-foreground">
-                      {contribution.sourceId === "aggregation"
-                        ? t.reputationReasons[contribution.reason]
-                        : `${sourceName(contribution.sourceId)} — ${categoryLabel(contribution.category, t)}`}
-                    </span>
-                  </p>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    +{formatNumber(contribution.points, locale)}
-                  </p>
-                </div>
-              ))}
-            </SectionCard>
-          )}
-
-          <SectionCard icon={Flag} title={t.reputationSectionSources}>
-            <Table>
-              <TableHeader className="sr-only">
-                <TableRow>
-                  <TableHead>{t.reputationFieldSource}</TableHead>
-                  <TableHead>{t.reputationStatusHeader}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.sources.map((source) => {
-                  const definition = getReputationSource(source.id);
-                  const description = definition
-                    ? t.reputationSourceDescriptions[source.id]
-                    : undefined;
-                  return (
-                    <TableRow key={source.id}>
-                      <TableCell className="py-3">
-                        <p className="text-sm font-medium text-foreground">
-                          {definition?.name ?? source.id}
-                        </p>
-                        {description && (
-                          <p className="mt-0.5 hidden max-w-xl text-xs leading-relaxed text-muted-foreground md:block">
-                            {description}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right align-top">
-                        <Badge variant={stateVariant(source.status)}>{stateLabel(source.status, t)}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
+                    "-"
+                  )
+                }
+                secondary={result.geo?.region || undefined}
+              />
+              <ContextCell
+                icon={Waypoints}
+                label={t.reputationNetworkLabel}
+                primary={result.network?.as || "-"}
+                secondary={result.network?.isp || result.network?.org || undefined}
+              />
+              <ContextCell
+                icon={Network}
+                label={t.reputationConnectionLabel}
+                primary={
+                  result.networkContext
+                    ? baseT.connectionTypes[result.networkContext.connectionType]
+                    : "-"
+                }
+                secondary={result.networkContext?.reverse || undefined}
+              />
+              <ContextCell
+                icon={ListChecks}
+                label={t.reputationSectionSources}
+                primary={formatTemplate(t.reputationCoverageChecked, {
+                  count: result.coverage.checkedCount,
                 })}
-              </TableBody>
-            </Table>
-          </SectionCard>
+                secondary={
+                  result.coverage.matchedCount > 0
+                    ? formatTemplate(t.reputationCoverageMatched, {
+                        count: result.coverage.matchedCount,
+                      })
+                    : result.coverage.policyCount > 0
+                      ? formatTemplate(t.reputationCoveragePolicy, {
+                          count: result.coverage.policyCount,
+                        })
+                      : undefined
+                }
+              />
+            </div>
+          </Card>
+
+          {/* Evidence with filter */}
+          <Card className="gap-0 overflow-hidden py-0">
+            <CardHeader icon={ListChecks} title={t.reputationSectionSummary} />
+            <div className="border-b px-5 py-3">
+              <Tabs
+                value={filter}
+                onValueChange={(value) => setFilter(value as EvidenceFilter)}
+              >
+                <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+                  <TabsTrigger value="all">
+                    {t.reputationFilterAll} ({formatNumber(evidenceGroups.all.length, locale)})
+                  </TabsTrigger>
+                  <TabsTrigger value="threats">
+                    {t.reputationSectionThreats} ({formatNumber(evidenceGroups.threats.length, locale)})
+                  </TabsTrigger>
+                  <TabsTrigger value="mail">
+                    {t.reputationSectionMail} ({formatNumber(evidenceGroups.mail.length, locale)})
+                  </TabsTrigger>
+                  <TabsTrigger value="network">
+                    {t.reputationSectionNetwork} ({formatNumber(evidenceGroups.network.length, locale)})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <div className="flex flex-col">
+              {visibleEvidence.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground">
+                  {filter === "threats"
+                    ? t.reputationNoThreatEvidence
+                    : filter === "mail"
+                      ? t.reputationNoMailEvidence
+                      : t.reputationNoEvidence}
+                </p>
+              ) : (
+                visibleEvidence.map((item, index) => (
+                  <EvidenceCard
+                    key={`${item.sourceId}-${item.reason}-${index}`}
+                    item={item}
+                    t={t}
+                    locale={locale}
+                  />
+                ))
+              )}
+            </div>
+          </Card>
+
+          {/* Sources */}
+          <Card className="gap-0 overflow-hidden py-0">
+            <CardHeader icon={Flag} title={t.reputationSectionSources} />
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t.reputationFieldSource}</TableHead>
+                    <TableHead>{t.reputationStatusHeader}</TableHead>
+                    <TableHead className="text-right">{t.reputationPointsHeader}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.sources.map((source) => {
+                    const definition = getReputationSource(source.id);
+                    const description = definition
+                      ? t.reputationSourceDescriptions[source.id]
+                      : undefined;
+                    const points = sourcePoints.get(source.id);
+                    return (
+                      <TableRow key={source.id}>
+                        <TableCell className="py-3">
+                          <p className="text-sm font-medium text-foreground">
+                            {definition?.name ?? source.id}
+                          </p>
+                          {description && (
+                            <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted-foreground">
+                              {description}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge variant={stateVariant(source.status)}>{stateLabel(source.status, t)}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right align-top text-xs text-muted-foreground tabular-nums">
+                          {points ? `+${formatNumber(points, locale)}` : "–"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <ul className="flex flex-col md:hidden">
+              {result.sources.map((source) => {
+                const definition = getReputationSource(source.id);
+                const description = definition
+                  ? t.reputationSourceDescriptions[source.id]
+                  : undefined;
+                const points = sourcePoints.get(source.id);
+                return (
+                  <li
+                    key={source.id}
+                    className="flex flex-col gap-1.5 border-b px-5 py-3.5 last:border-b-0"
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-foreground">
+                        {definition?.name ?? source.id}
+                      </span>
+                      <Badge variant={stateVariant(source.status)}>{stateLabel(source.status, t)}</Badge>
+                    </span>
+                    {description && (
+                      <span className="text-xs leading-relaxed text-muted-foreground">
+                        {description}
+                      </span>
+                    )}
+                    {points ? (
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        +{formatNumber(points, locale)} {t.reputationPointsHeader.toLowerCase()}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+            {aggregationNotes.length > 0 && (
+              <div className="border-t px-5 py-3">
+                {aggregationNotes.map((note, index) => (
+                  <p
+                    key={`${note.reason}-${index}`}
+                    className="text-xs leading-relaxed text-muted-foreground"
+                  >
+                    {t.reputationReasons[note.reason] ?? note.reason}{" "}
+                    <span className="tabular-nums">+{formatNumber(note.points, locale)}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+          </Card>
 
           <Alert variant="info">
-            <AlertTriangle />
+            <Info />
             <AlertDescription>{t.reputationDisclaimer}</AlertDescription>
           </Alert>
         </div>

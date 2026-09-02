@@ -10,6 +10,13 @@ const buckets = new Map<string, Bucket>();
 const MAX_BUCKETS = 10_000;
 let lastSweepAt = 0;
 
+/**
+ * Trust boundary: `cf-connecting-ip` / `true-client-ip` / `x-real-ip` are
+ * only trustworthy behind a CDN/proxy that strips spoofed values (Vercel,
+ * Cloudflare). On direct exposure an attacker can rotate these headers to
+ * bypass per-IP limits — deploy behind a trusted proxy or accept the weaker
+ * guarantee. In-memory buckets additionally don't share across instances.
+ */
 export function getClientIp(request: Request) {
   const directHeaders = [
     request.headers.get("cf-connecting-ip"),

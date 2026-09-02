@@ -87,13 +87,13 @@ export function ToolPageShell({
         <div className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/privacy-policy"
-            className="rounded-md text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="rounded-md px-2 py-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             {privacyLabel}
           </Link>
           <Link
             href="/terms-of-use"
-            className="rounded-md text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="rounded-md px-2 py-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             {termsLabel}
           </Link>

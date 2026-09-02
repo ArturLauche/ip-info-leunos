@@ -12,7 +12,7 @@ function ProfileField({ label, value }: { label: string; value: string | number 
 
   return (
     <div className="min-w-0 border-b py-2 last:border-b-0">
-      <dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{label}</dt>
+      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">{label}</dt>
       <dd className="mt-1 text-sm font-semibold break-all text-foreground">
         {isUrl ? (
           <a
@@ -64,7 +64,7 @@ export function PeeringDbProfileSection({ profile, t }: { profile: PeeringDbProf
   ];
 
   return (
-    <Card className="gap-5 py-5">
+    <Card className="gap-4 py-5">
       <div className="border-b px-5 pb-3">
         <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
           <Globe className="size-5 text-primary" />
@@ -73,10 +73,10 @@ export function PeeringDbProfileSection({ profile, t }: { profile: PeeringDbProf
         <p className="text-xs leading-normal text-muted-foreground">{t.asnPeeringDbDescription}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 px-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 px-5 md:grid-cols-3">
         {groups.map((group) => (
-          <div key={group.heading} className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-4">
-            <p className="border-b pb-2 text-xs font-bold uppercase tracking-wider text-primary">
+          <div key={group.heading} className="flex flex-col gap-3">
+            <p className="border-b pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {group.heading}
             </p>
             <dl className="flex flex-col">

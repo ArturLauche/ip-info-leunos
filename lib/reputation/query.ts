@@ -57,13 +57,17 @@ interface ProviderOutcome {
   evidence: RawEvidence[];
 }
 
+// Module singleton: constructing a Resolver per provider per request churns
+// sockets and dominates reputation latency (~12 upstream lookups per check).
+const sharedResolver = new dns.Resolver({ timeout: DNSBL_TIMEOUT_MS, tries: 1 });
+
 async function queryDnsbl(
   sourceId: string,
   queryName: string,
   interpret: (aRecords: string[], txtRecords: string[][]) => DnsblInterpretation,
   options: { withTxt?: boolean } = {},
 ): Promise<ProviderOutcome> {
-  const resolver = new dns.Resolver({ timeout: DNSBL_TIMEOUT_MS, tries: 1 });
+  const resolver = sharedResolver;
 
   let aRecords: string[] = [];
   let txtRecords: string[][] = [];
@@ -103,6 +107,7 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
+  timer.unref?.();
 
   try {
     return await fetch(url, {

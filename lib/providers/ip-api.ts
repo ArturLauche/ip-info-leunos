@@ -36,6 +36,8 @@ const ipApiPayloadSchema = z
 
 export type IpApiData = z.infer<typeof ipApiPayloadSchema>;
 
+const MAX_IP_API_BYTES = 64_000;
+
 export async function lookupIpApi(
   ip: string,
   options: { language?: string; timeoutMs?: number } = {},
@@ -44,13 +46,27 @@ export async function lookupIpApi(
   const language = options.language ?? "en";
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  timer.unref?.();
 
   try {
     const response = await fetch(
       `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${IP_API_FIELDS}&lang=${encodeURIComponent(language)}`,
       { cache: "no-store", signal: controller.signal },
     );
-    const parsed = ipApiPayloadSchema.safeParse(await response.json());
+    if (!response.ok) return null;
+    // Bounded read: ip-api.com answers are a few hundred bytes; refuse to
+    // buffer an unexpectedly large body into memory.
+    const contentLength = response.headers.get("content-length");
+    if (contentLength && Number(contentLength) > MAX_IP_API_BYTES) return null;
+    const text = await response.text();
+    if (text.length > MAX_IP_API_BYTES) return null;
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      return null;
+    }
+    const parsed = ipApiPayloadSchema.safeParse(json);
     if (!parsed.success || parsed.data.status === "fail") return null;
 
     return parsed.data;

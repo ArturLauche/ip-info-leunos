@@ -56,8 +56,8 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
       </div>
 
       <div className="flex flex-col gap-3 p-6">
-        <h2 className="text-2xl font-bold tracking-tight break-words text-foreground md:text-3xl">
-          <span className="mr-2 font-mono text-primary">{result.asn}</span>
+        <h2 className="text-xl font-semibold tracking-tight break-words text-foreground">
+          <span className="mr-2 font-mono">{result.asn}</span>
           <span className="text-foreground/90">{result.name || t.asnUnnamed}</span>
         </h2>
 
@@ -75,7 +75,7 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
           )}
           {result.allocated && (
             <span className="flex items-center gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                 {t.asnLabelAllocated}:
               </span>
               <span className="text-foreground/80">{result.allocated}</span>

@@ -46,7 +46,7 @@ export function QuickStats({ result, t, locale }: { result: AsnProfile; t: ToolT
           >
             <div className="flex flex-col gap-1 p-5">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   {stat.label}
                 </p>
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
@@ -56,7 +56,7 @@ export function QuickStats({ result, t, locale }: { result: AsnProfile; t: ToolT
               <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-foreground">
                 {stat.value}
               </p>
-              <p className="mt-1.5 text-[10px] leading-normal text-muted-foreground">
+              <p className="mt-1.5 text-[11px] leading-normal text-muted-foreground">
                 {stat.detail}
               </p>
             </div>

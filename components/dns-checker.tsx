@@ -89,9 +89,10 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
       )}
 
       {loading && (
-        <div className="flex flex-col gap-4" aria-hidden="true">
-          <Skeleton className="h-20 rounded-lg" />
-          <Skeleton className="h-56 rounded-lg" />
+        <div className="flex flex-col gap-4" role="status" aria-busy="true">
+          <span className="sr-only">{t.lookupInProgress}</span>
+          <Skeleton className="h-20 rounded-lg" aria-hidden="true" />
+          <Skeleton className="h-56 rounded-lg" aria-hidden="true" />
         </div>
       )}
 
@@ -99,21 +100,19 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
       {result && (
         <ResultPanel title={`${t.dnsRecordsFor} ${result.target}`}>
-          <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="border-b pb-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.resolvedAddresses}
             </p>
-            <ul className="mt-2.5 flex flex-wrap gap-2">
+            <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
               {result.addresses.length > 0 ? (
                 result.addresses.map((address) => (
                   <li
                     key={`${address.address}-${address.family}`}
-                    className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground"
+                    className="min-w-0 font-mono text-xs break-all text-foreground"
                   >
-                    <span className="min-w-0 break-all">{address.address}</span>
-                    <Badge variant="secondary" className="shrink-0 font-mono text-[0.65rem]">
-                      IPv{address.family}
-                    </Badge>
+                    {address.address}
+                    <span className="ml-1.5 text-muted-foreground">IPv{address.family}</span>
                   </li>
                 ))
               ) : (
@@ -130,7 +129,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
               value={selectedType}
               onValueChange={(value) => value && setSelectedType(value)}
               variant="outline"
-              size="sm"
+              size="default"
               className="flex-wrap"
             >
               {["ALL", ...recordTypes].map((type) => (
@@ -142,7 +141,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
           )}
 
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.recordDetails}
             </p>
             {visibleRecords.length > 0 ? (

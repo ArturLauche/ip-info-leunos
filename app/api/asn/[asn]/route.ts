@@ -139,6 +139,7 @@ export async function GET(request: Request, context: RouteContext) {
 async function fetchAggregatedAsn(normalized: NormalizedAsn) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGGREGATION_DEADLINE_MS);
+  timer.unref?.();
   const token = process.env.IPINFO_TOKEN?.trim() || "";
 
   try {
@@ -410,6 +411,7 @@ async function fetchProviderJson(url: string, headers: HeadersInit, signal?: Abo
   const controller = new AbortController();
   const abortFromParent = () => controller.abort();
   const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+  timer.unref?.();
 
   try {
     if (signal?.aborted) {

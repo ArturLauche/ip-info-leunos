@@ -109,10 +109,10 @@ export function CommandTrigger({
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         aria-label={t.commandTriggerLabel}
         onClick={() => setOpen(true)}
-        className={cn("rounded-full", className)}
+        className={cn("rounded-md", className)}
       >
         <Search className="size-5" aria-hidden="true" />
       </Button>
@@ -124,15 +124,13 @@ export function CommandTrigger({
       type="button"
       onClick={() => setOpen(true)}
       className={cn(
-        // Liquid-glass pill: fully rounded, translucent frosted fill, blur,
-        // saturation/brightness lift and a subtle specular top highlight.
-        "group flex h-9 w-full items-center gap-2 rounded-full border border-border/60 bg-background/40 px-3.5 text-sm text-muted-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] outline-none backdrop-blur-md backdrop-saturate-150 backdrop-brightness-105 transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 supports-[backdrop-filter]:bg-background/25 dark:bg-input/30",
+        "group flex h-11 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground shadow-sm outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
         className,
       )}
     >
       <Search className="size-4 shrink-0" aria-hidden />
       <span className="flex-1 truncate text-left">{t.commandTriggerLabel}</span>
-      <kbd className="pointer-events-none hidden items-center rounded-full border border-border bg-muted/60 px-2 font-sans text-[0.7rem] font-medium text-muted-foreground sm:inline-flex">
+      <kbd className="pointer-events-none hidden items-center rounded-md border border-border bg-muted/60 px-2 py-0.5 font-sans text-xs font-medium text-muted-foreground sm:inline-flex">
         {isMac ? "⌘K" : "Ctrl K"}
       </kbd>
     </button>

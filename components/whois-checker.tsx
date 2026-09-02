@@ -40,11 +40,11 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
 
   return (
-    <div className="flex flex-col gap-0.5 border-b py-2 last:border-b-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+    <div className="grid grid-cols-1 gap-0.5 border-b py-2 last:border-b-0 sm:grid-cols-[140px_1fr] sm:gap-4">
       <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
-      <dd className="font-mono text-sm break-all text-foreground sm:text-right">
+      <dd className="font-mono text-sm break-all text-foreground">
         {value}
       </dd>
     </div>
@@ -83,9 +83,12 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
       )}
 
       {loading && (
-        <div className="grid gap-4 md:grid-cols-2" aria-hidden="true">
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
+        <div className="grid gap-4 md:grid-cols-2" role="status" aria-busy="true">
+          <span className="sr-only">{t.lookupInProgress}</span>
+          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
         </div>
       )}
 
@@ -93,38 +96,39 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
 
       {result && (
         <ResultPanel title={`${t.whoisFor} ${result.target}`}>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
-              <p className="text-muted-foreground">
-                {t.queriedServer}:{" "}
-                <span className="font-mono text-foreground">{result.server}</span>
-              </p>
-              {result.refer && (
-                <p className="mt-1 text-muted-foreground">
-                  {t.referralSource}:{" "}
-                  <span className="font-mono text-foreground">{result.refer}</span>
-                </p>
-              )}
-              {result.note && (
-                <p className="mt-2 text-xs text-muted-foreground">{result.note}</p>
-              )}
+          <dl className="border-b pb-2">
+            <div className="grid grid-cols-1 gap-0.5 border-b py-2 last:border-b-0 sm:grid-cols-[140px_1fr] sm:gap-4">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {t.queriedServer}
+              </dt>
+              <dd className="font-mono text-sm break-all text-foreground">{result.server}</dd>
             </div>
-
+            {result.refer && (
+              <div className="grid grid-cols-1 gap-0.5 border-b py-2 last:border-b-0 sm:grid-cols-[140px_1fr] sm:gap-4">
+                <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {t.referralSource}
+                </dt>
+                <dd className="font-mono text-sm break-all text-foreground">{result.refer}</dd>
+              </div>
+            )}
             {result.summary && (
-              <dl className="rounded-lg border bg-muted/30 p-4">
+              <>
                 <SummaryRow label={t.whoisRegistrar} value={result.summary.registrar} />
                 <SummaryRow label={t.whoisCreated} value={result.summary.created} />
                 <SummaryRow label={t.whoisUpdated} value={result.summary.updated} />
                 <SummaryRow label={t.whoisExpires} value={result.summary.expires} />
-              </dl>
+              </>
             )}
-          </div>
+          </dl>
+          {result.note && (
+            <p className="text-xs text-muted-foreground">{result.note}</p>
+          )}
 
           {result.summary &&
             (result.summary.status.length > 0 ||
               result.summary.nameservers.length > 0) && (
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-lg border bg-muted/30 p-4">
+                <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {t.whoisStatusLabel}
                   </p>
@@ -140,7 +144,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
                     )}
                   </div>
                 </div>
-                <div className="rounded-lg border bg-muted/30 p-4">
+                <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {t.whoisNameservers}
                   </p>
