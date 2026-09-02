@@ -7,18 +7,10 @@ import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { formatNumber, formatTemplate } from "@/lib/format";
 import { CountryFlag } from "@/components/country-flag";
@@ -32,8 +24,8 @@ import type {
   SourceStatus,
 } from "@/lib/reputation/model";
 import {
+  ChevronDown,
   Flag,
-  Info,
   ListChecks,
   MapPin,
   Network,
@@ -197,7 +189,7 @@ function EvidenceCard({ item, t, locale }: { item: EvidenceItem; t: ToolT; local
 
       <p className="text-sm leading-relaxed text-foreground">{reasonText(item, t)}</p>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-2 rounded-md bg-muted/30 px-3 py-2.5 sm:grid-cols-2">
         <MetaRow label={t.reputationFieldSource} value={sourceName(item.sourceId)} />
         {confidence !== null && <MetaRow label={t.reputationFieldConfidence} value={confidence} />}
         {firstSeen !== null && <MetaRow label={t.reputationFieldFirstSeen} value={firstSeen} />}
@@ -266,9 +258,9 @@ function filterEvidence(items: EvidenceItem[], filter: EvidenceFilter) {
   return items;
 }
 
-/** Sums score contributions per source so the sources table can carry the
- *  points column (replacing the separate score-breakdown card). Aggregation
- *  bonuses apply across sources and are reported separately below the table.
+/** Sums score contributions per source so each source row can carry its
+ *  points inline (replacing the separate score-breakdown card). Aggregation
+ *  bonuses apply across sources and are reported separately below the list.
  */
 function pointsBySource(contributions: ReputationSummary["contributions"]) {
   const totals = new Map<string, number>();
@@ -279,17 +271,59 @@ function pointsBySource(contributions: ReputationSummary["contributions"]) {
   return totals;
 }
 
+function SourceRow({
+  sourceId,
+  status,
+  points,
+  t,
+  locale,
+}: {
+  sourceId: string;
+  status: SourceStatus;
+  points: number | undefined;
+  t: ToolT;
+  locale: Locale;
+}) {
+  const definition = getReputationSource(sourceId);
+  const description = definition ? t.reputationSourceDescriptions[sourceId] : undefined;
+
+  return (
+    <li className="flex flex-col gap-1 border-b px-5 py-3 last:border-b-0">
+      <span className="flex items-center justify-between gap-2">
+        <span className="min-w-0 text-sm font-medium text-foreground">
+          {definition?.name ?? sourceId}
+          {points ? (
+            <span className="ml-2 text-xs font-normal text-muted-foreground tabular-nums">
+              +{formatNumber(points, locale)}
+            </span>
+          ) : null}
+        </span>
+        <Badge variant={stateVariant(status)} className="shrink-0">
+          {stateLabel(status, t)}
+        </Badge>
+      </span>
+      {description && (
+        <span className="text-xs leading-relaxed text-muted-foreground">{description}</span>
+      )}
+    </li>
+  );
+}
+
 export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerProps) {
   const t = getToolTranslation(locale);
   const baseT = getTranslation(locale);
   const [filter, setFilter] = useState<EvidenceFilter>("all");
+  const [showHiddenSources, setShowHiddenSources] = useState(false);
 
   const { loading, error, result, run } = useToolLookup<ReputationSummary>({
     buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
     buildHref: (ip) => `/reputation?ip=${encodeURIComponent(ip)}`,
     mapError: (checkError) => errorMessage(checkError, t),
     initialQuery: initialIp,
-    onStart: () => setFilter("all"),
+    onStart: () => {
+      setFilter("all");
+      setShowHiddenSources(false);
+    },
   });
 
   const evidenceGroups = useMemo(() => {
@@ -312,6 +346,18 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
     () => result?.contributions.filter((c) => c.sourceId === "aggregation") ?? [],
     [result],
   );
+
+  // Sources without a configured key never contribute evidence; keep them
+  // collapsed behind a toggle so the list shows what was actually checked.
+  const { activeSources, hiddenSources } = useMemo(() => {
+    const active: ReputationSummary["sources"] = [];
+    const hidden: ReputationSummary["sources"] = [];
+    for (const source of result?.sources ?? []) {
+      if (source.status === "not_configured") hidden.push(source);
+      else active.push(source);
+    }
+    return { activeSources: active, hiddenSources: hidden };
+  }, [result]);
 
   const visibleEvidence = evidenceGroups ? evidenceGroups[filter] : [];
 
@@ -507,78 +553,55 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
           {/* Sources */}
           <Card className="gap-0 overflow-hidden py-0">
             <CardHeader icon={Flag} title={t.reputationSectionSources} />
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t.reputationFieldSource}</TableHead>
-                    <TableHead>{t.reputationStatusHeader}</TableHead>
-                    <TableHead className="text-right">{t.reputationPointsHeader}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {result.sources.map((source) => {
-                    const definition = getReputationSource(source.id);
-                    const description = definition
-                      ? t.reputationSourceDescriptions[source.id]
-                      : undefined;
-                    const points = sourcePoints.get(source.id);
-                    return (
-                      <TableRow key={source.id}>
-                        <TableCell className="py-3">
-                          <p className="text-sm font-medium text-foreground">
-                            {definition?.name ?? source.id}
-                          </p>
-                          {description && (
-                            <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                              {description}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Badge variant={stateVariant(source.status)}>{stateLabel(source.status, t)}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right align-top text-xs text-muted-foreground tabular-nums">
-                          {points ? `+${formatNumber(points, locale)}` : "–"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <ul className="flex flex-col md:hidden">
-              {result.sources.map((source) => {
-                const definition = getReputationSource(source.id);
-                const description = definition
-                  ? t.reputationSourceDescriptions[source.id]
-                  : undefined;
-                const points = sourcePoints.get(source.id);
-                return (
-                  <li
-                    key={source.id}
-                    className="flex flex-col gap-1.5 border-b px-5 py-3.5 last:border-b-0"
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-foreground">
-                        {definition?.name ?? source.id}
-                      </span>
-                      <Badge variant={stateVariant(source.status)}>{stateLabel(source.status, t)}</Badge>
-                    </span>
-                    {description && (
-                      <span className="text-xs leading-relaxed text-muted-foreground">
-                        {description}
-                      </span>
-                    )}
-                    {points ? (
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        +{formatNumber(points, locale)} {t.reputationPointsHeader.toLowerCase()}
-                      </span>
-                    ) : null}
-                  </li>
-                );
-              })}
+            <ul className="flex flex-col">
+              {activeSources.map((source) => (
+                <SourceRow
+                  key={source.id}
+                  sourceId={source.id}
+                  status={source.status}
+                  points={sourcePoints.get(source.id)}
+                  t={t}
+                  locale={locale}
+                />
+              ))}
             </ul>
+            {hiddenSources.length > 0 && (
+              <div className="border-t">
+                {showHiddenSources && (
+                  <ul className="flex flex-col border-b">
+                    {hiddenSources.map((source) => (
+                      <SourceRow
+                        key={source.id}
+                        sourceId={source.id}
+                        status={source.status}
+                        points={sourcePoints.get(source.id)}
+                        t={t}
+                        locale={locale}
+                      />
+                    ))}
+                  </ul>
+                )}
+                <div className="px-5 py-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded={showHiddenSources}
+                    onClick={() => setShowHiddenSources((value) => !value)}
+                  >
+                    <ChevronDown
+                      className={`size-4 transition-transform ${showHiddenSources ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
+                    {showHiddenSources
+                      ? t.reputationHideHiddenSources
+                      : formatTemplate(t.reputationShowHiddenSources, {
+                          count: hiddenSources.length,
+                        })}
+                  </Button>
+                </div>
+              </div>
+            )}
             {aggregationNotes.length > 0 && (
               <div className="border-t px-5 py-3">
                 {aggregationNotes.map((note, index) => (
@@ -593,11 +616,6 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
               </div>
             )}
           </Card>
-
-          <Alert variant="info">
-            <Info />
-            <AlertDescription>{t.reputationDisclaimer}</AlertDescription>
-          </Alert>
         </div>
       )}
     </div>

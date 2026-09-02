@@ -40,7 +40,6 @@ type ToolTranslation = {
   errorTitle: string;
   errorDescription: string;
   errorRetry: string;
-  reputationStatusHeader: string;
   asnRpkiValid: string;
   asnRpkiInvalid: string;
   asnRpkiStatus: string;
@@ -286,7 +285,6 @@ type ToolTranslation = {
   reputationNoMailEvidence: string;
   reputationFilterAll: string;
   reputationNoEvidence: string;
-  reputationPointsHeader: string;
   reputationConnectionLabel: string;
   reputationReverseLabel: string;
   reputationFieldSource: string;
@@ -306,7 +304,8 @@ type ToolTranslation = {
   reputationSourceDescriptions: Record<string, string>;
   reputationGeoLabel: string;
   reputationNetworkLabel: string;
-  reputationDisclaimer: string;
+  reputationShowHiddenSources: string;
+  reputationHideHiddenSources: string;
 };
 
 const en: ToolTranslation = {
@@ -349,7 +348,6 @@ const en: ToolTranslation = {
   errorDescription:
     "This page could not be loaded. Try again — if it keeps failing, the cause is on our side.",
   errorRetry: "Try again",
-  reputationStatusHeader: "Status",
   asnRpkiValid: "RPKI valid",
   asnRpkiInvalid: "RPKI invalid",
   asnRpkiStatus: "RPKI {status}",
@@ -601,7 +599,6 @@ const en: ToolTranslation = {
   reputationNoMailEvidence: "No email reputation listings were found in the checked sources.",
   reputationFilterAll: "All",
   reputationNoEvidence: "No evidence in this group from the sources that could be checked.",
-  reputationPointsHeader: "Score",
   reputationConnectionLabel: "Connection",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Source",
@@ -750,8 +747,8 @@ const en: ToolTranslation = {
   },
   reputationGeoLabel: "Geolocation",
   reputationNetworkLabel: "ASN / Provider",
-  reputationDisclaimer:
-    "Aggregated from public sources; results are indicative hints, not a definitive verdict. A listing does not automatically mean the current user of an address did anything wrong.",
+  reputationShowHiddenSources: "Show {count} unconfigured sources",
+  reputationHideHiddenSources: "Hide unconfigured sources",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -800,7 +797,6 @@ const de: Partial<ToolTranslation> = {
   errorDescription:
     "Diese Seite konnte nicht geladen werden. Bitte versuche es erneut — wiederholt sich der Fehler, liegt die Ursache bei uns.",
   errorRetry: "Erneut versuchen",
-  reputationStatusHeader: "Status",
   asnRpkiValid: "RPKI gültig",
   asnRpkiInvalid: "RPKI ungültig",
   asnRpkiStatus: "RPKI {status}",
@@ -1046,7 +1042,6 @@ const de: Partial<ToolTranslation> = {
   reputationNoMailEvidence: "In den geprüften Quellen wurden keine Mail-Reputations-Einträge gefunden.",
   reputationFilterAll: "Alle",
   reputationNoEvidence: "Keine Evidenz in dieser Gruppe aus den prüfbaren Quellen.",
-  reputationPointsHeader: "Score",
   reputationConnectionLabel: "Verbindung",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Quelle",
@@ -1195,8 +1190,8 @@ const de: Partial<ToolTranslation> = {
   },
   reputationGeoLabel: "Geolokalisierung",
   reputationNetworkLabel: "ASN / Provider",
-  reputationDisclaimer:
-    "Aus öffentlichen Quellen aggregiert; Ergebnisse sind Hinweise, kein endgültiges Urteil. Ein Listeneintrag bedeutet nicht automatisch, dass die aktuelle Nutzung der Adresse etwas falsch gemacht hat.",
+  reputationShowHiddenSources: "{count} nicht konfigurierte Quellen anzeigen",
+  reputationHideHiddenSources: "Nicht konfigurierte Quellen ausblenden",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
