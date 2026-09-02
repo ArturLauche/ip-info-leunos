@@ -289,6 +289,7 @@ type ToolTranslation = {
   reputationFactMatched: string;
   reputationFactUnavailable: string;
   reputationFactCheckedAt: string;
+  reputationScoreCapped: string;
   reputationConnectionLabel: string;
   reputationReverseLabel: string;
   reputationFieldSource: string;
@@ -607,6 +608,7 @@ const en: ToolTranslation = {
   reputationFactMatched: "With threat evidence",
   reputationFactUnavailable: "Unavailable",
   reputationFactCheckedAt: "Checked at",
+  reputationScoreCapped: "Capped from {count} raw points",
   reputationConnectionLabel: "Connection",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Source",
@@ -755,7 +757,7 @@ const en: ToolTranslation = {
   },
   reputationGeoLabel: "Geolocation",
   reputationNetworkLabel: "ASN / Provider",
-  reputationShowHiddenSources: "Show {count} unconfigured sources",
+  reputationShowHiddenSources: "Show unconfigured sources ({count})",
   reputationHideHiddenSources: "Hide unconfigured sources",
 };
 
@@ -1053,7 +1055,8 @@ const de: Partial<ToolTranslation> = {
   reputationFactChecked: "Geprüft",
   reputationFactMatched: "Mit Bedrohungsevidenz",
   reputationFactUnavailable: "Nicht verfügbar",
-  reputationFactCheckedAt: "Erstellt",
+  reputationFactCheckedAt: "Geprüft am",
+  reputationScoreCapped: "Von {count} Rohpunkten begrenzt",
   reputationConnectionLabel: "Verbindung",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Quelle",
@@ -1202,7 +1205,7 @@ const de: Partial<ToolTranslation> = {
   },
   reputationGeoLabel: "Geolokalisierung",
   reputationNetworkLabel: "ASN / Provider",
-  reputationShowHiddenSources: "{count} nicht konfigurierte Quellen anzeigen",
+  reputationShowHiddenSources: "Nicht konfigurierte Quellen anzeigen ({count})",
   reputationHideHiddenSources: "Nicht konfigurierte Quellen ausblenden",
 };
 

@@ -145,7 +145,12 @@ export async function GET(request: Request) {
   if (isIpAddress(hostname)) {
     const ptrResult = await resolvePtr(hostname);
 
-    const recordErrors = ptrResult.error ? [{ type: ptrResult.type, error: ptrResult.error }] : [];
+    // Stable negatives (no PTR record) are normal, not noteworthy — same
+    // normalization as the hostname path, so clean PTR misses stay cacheable.
+    const recordErrors =
+      ptrResult.error && ptrResult.error !== "ENOTFOUND" && ptrResult.error !== "ENODATA"
+        ? [{ type: ptrResult.type, error: ptrResult.error }]
+        : [];
     const payload = {
       target: hostname,
       addresses: [{ address: hostname, family: net.isIP(hostname) }],

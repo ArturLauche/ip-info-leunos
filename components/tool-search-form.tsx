@@ -53,7 +53,6 @@ export function ToolSearchForm({
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          aria-label={placeholder}
           placeholder={placeholder}
           autoComplete="off"
           autoCapitalize="off"

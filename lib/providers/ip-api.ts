@@ -36,6 +36,53 @@ const ipApiPayloadSchema = z
 
 export type IpApiData = z.infer<typeof ipApiPayloadSchema>;
 
+/**
+ * Provider-level upstream budget for the free ip-api.com endpoint, shared by
+ * every caller (/api/ip explicit + auto-detect branches, /api/reputation).
+ * The free tier allows 45 requests/minute per source IP; this process-wide
+ * fixed window stays conservatively below that so unique misses from many
+ * clients cannot exhaust the shared server-egress quota on their own.
+ * Provider backpressure is honored too: when ip-api.com reports `X-Rl: 0`
+ * (or answers 429), lookups pause until the `X-Ttl` interval elapses.
+ * In-memory only — like the route rate limiter, it does not span instances.
+ */
+const UPSTREAM_BUDGET_CAPACITY = 40;
+const UPSTREAM_BUDGET_WINDOW_MS = 60_000;
+
+let budgetTokens = UPSTREAM_BUDGET_CAPACITY;
+let budgetWindowEndsAt = 0;
+let backoffUntilMs = 0;
+
+function takeUpstreamBudget(nowMs: number): boolean {
+  if (nowMs < backoffUntilMs) return false;
+  if (nowMs >= budgetWindowEndsAt) {
+    budgetTokens = UPSTREAM_BUDGET_CAPACITY;
+    budgetWindowEndsAt = nowMs + UPSTREAM_BUDGET_WINDOW_MS;
+  }
+  if (budgetTokens <= 0) return false;
+  budgetTokens -= 1;
+  return true;
+}
+
+function noteUpstreamBackpressure(response: Response, nowMs: number): void {
+  // NB: a missing header must not trigger backoff (Number(null) is 0).
+  const remainingRaw = response.headers.get("x-rl");
+  const remaining = remainingRaw === null ? Number.NaN : Number(remainingRaw);
+  if (response.status === 429 || remaining === 0) {
+    const ttlSeconds = Number(response.headers.get("x-ttl"));
+    const waitMs =
+      Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds * 1_000 : UPSTREAM_BUDGET_WINDOW_MS;
+    backoffUntilMs = Math.max(backoffUntilMs, nowMs + waitMs);
+  }
+}
+
+/** Test hook: resets budget and backoff state between cases. */
+export function clearIpApiBudgetForTests() {
+  budgetTokens = UPSTREAM_BUDGET_CAPACITY;
+  budgetWindowEndsAt = 0;
+  backoffUntilMs = 0;
+}
+
 const MAX_IP_API_BYTES = 64_000;
 
 async function readBoundedText(response: Response): Promise<string | null> {
@@ -76,18 +123,24 @@ export async function lookupIpApi(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   timer.unref?.();
 
+  if (!takeUpstreamBudget(Date.now())) return null;
+
   try {
     const response = await fetch(
       `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${IP_API_FIELDS}&lang=${encodeURIComponent(language)}`,
       { cache: "no-store", signal: controller.signal },
     );
+    noteUpstreamBackpressure(response, Date.now());
     if (!response.ok) return null;
     // Bounded read: ip-api.com answers are a few hundred bytes; refuse to
     // buffer an unexpectedly large body into memory. Streamed chunk by chunk
     // (byte-counted, not UTF-16 length) so a missing or lying Content-Length
     // cannot force the whole body into memory first.
     const contentLength = response.headers.get("content-length");
-    if (contentLength && Number(contentLength) > MAX_IP_API_BYTES) return null;
+    if (contentLength && Number(contentLength) > MAX_IP_API_BYTES) {
+      await response.body?.cancel().catch(() => {});
+      return null;
+    }
     const text = await readBoundedText(response);
     if (text === null) return null;
     let json: unknown;

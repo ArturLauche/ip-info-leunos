@@ -98,6 +98,7 @@ export async function GET(request: Request) {
   const summary: ReputationSummary = {
     ip,
     score: aggregated.score,
+    rawScore: aggregated.rawScore,
     level: aggregated.level,
     headline: aggregated.headline,
     evidence: aggregated.evidence,

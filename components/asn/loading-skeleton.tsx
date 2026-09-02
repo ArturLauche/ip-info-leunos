@@ -1,10 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function LoadingSkeleton() {
+export function LoadingSkeleton({ label }: { label: string }) {
   return (
     <div className="flex flex-col gap-6" role="status" aria-busy="true">
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{label}</span>
       {/* Hero header */}
       <Card className="gap-0 overflow-hidden py-0" aria-hidden="true">
         <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-5 py-3.5">

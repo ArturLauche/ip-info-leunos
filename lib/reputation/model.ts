@@ -291,6 +291,8 @@ export type ReputationHeadline =
 export interface ReputationSummary {
   ip: string;
   score: number;
+  /** Pre-cap score total; equals score unless the 100-point cap applied. */
+  rawScore: number;
   level: RiskLevel;
   headline: ReputationHeadline;
   evidence: EvidenceItem[];

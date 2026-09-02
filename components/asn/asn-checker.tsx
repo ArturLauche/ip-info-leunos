@@ -93,7 +93,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         />
       )}
 
-      {loading && <LoadingSkeleton />}
+      {loading && <LoadingSkeleton label={t.lookupInProgress} />}
 
       {error && <ErrorPanel message={error} />}
 

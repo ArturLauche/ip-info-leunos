@@ -156,6 +156,7 @@ describe("evidence scoring semantics", () => {
 
     // 63 + 70 + 44 = 177 raw, +22 for three independent direct-evidence groups.
     expect(result.score).toBe(100);
+    expect(result.rawScore).toBe(199);
     expect(result.level).toBe("high");
     expect(result.contributions).toEqual(
       expect.arrayContaining([
@@ -222,6 +223,21 @@ describe("evidence scoring semantics", () => {
     // Displayed source points plus aggregation bonuses equal the score.
     const contributionPoints = result.contributions.reduce((sum, item) => sum + item.points, 0);
     expect(contributionPoints).toBe(result.score);
+  });
+
+  it("keeps adjusted points exact when discounted halves round", () => {
+    const result = aggregateReputation([
+      evidence({ sourceId: "spamhaus-zen", category: "botnet", reason: "xbl", weight: 11, confidence: 100 }),
+      evidence({ sourceId: "spamhaus-drop", category: "botnet", reason: "drop", weight: 7, confidence: 100 }),
+      evidence({ sourceId: "spamhaus-zen", category: "botnet", reason: "bcl", weight: 5, confidence: 100 }),
+    ]);
+
+    // Raw 11 + 7 + 5, discounted group total 11 + round(12 * 0.5) = 17.
+    // Halves 3.5 + 2.5 distribute the rounding unit to the first item.
+    expect(result.score).toBe(17);
+    expect(result.rawScore).toBe(17);
+    expect(result.evidence.map((item) => item.adjustedPoints).sort((a, b) => b - a)).toEqual([11, 4, 2]);
+    expect(result.contributions.reduce((sum, item) => sum + item.points, 0)).toBe(result.score);
   });
 
   it("requires three independent mail reputation lists before adding mail corroboration", () => {

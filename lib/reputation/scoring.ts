@@ -35,7 +35,10 @@ const VOLUME_BONUS_CATEGORIES: ReadonlySet<EvidenceCategory> = new Set([
 ]);
 
 export interface AggregatedReputation {
+  /** Displayed score: rawScore clamped to 0–100. */
   score: number;
+  /** Pre-cap total (adjusted group totals + corroboration bonuses). */
+  rawScore: number;
   level: RiskLevel;
   headline: ReputationHeadline;
   evidence: EvidenceItem[];
@@ -98,7 +101,8 @@ export function aggregateReputation(items: RawEvidence[]): AggregatedReputation 
     corroborationBonus +
     mailCorroborationBonus;
 
-  const score = Math.min(100, Math.max(0, Math.round(rawScore)));
+  const roundedRawScore = Math.round(rawScore);
+  const score = Math.min(100, Math.max(0, roundedRawScore));
   const level: RiskLevel = score >= HIGH_RISK_THRESHOLD ? "high" : score >= MEDIUM_RISK_THRESHOLD ? "medium" : "low";
 
   if (corroborationBonus > 0) {
@@ -132,6 +136,7 @@ export function aggregateReputation(items: RawEvidence[]): AggregatedReputation 
 
   return {
     score,
+    rawScore: roundedRawScore,
     level,
     headline,
     evidence,

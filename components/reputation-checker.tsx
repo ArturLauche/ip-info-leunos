@@ -449,6 +449,11 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                 <dd className="mt-1 text-base font-semibold text-foreground tabular-nums">
                   {result.score}/100
                 </dd>
+                {result.rawScore > result.score && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {formatTemplate(t.reputationScoreCapped, { count: result.rawScore })}
+                  </p>
+                )}
               </div>
               <div>
                 <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
