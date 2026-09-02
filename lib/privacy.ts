@@ -41,7 +41,7 @@ export interface PrivacyContent {
 }
 
 /** ISO date shown as "last updated"; bump when the policy text changes. */
-const LAST_UPDATED = "2026-06-15";
+const LAST_UPDATED = "2026-09-02";
 
 const de: PrivacyContent = {
   navLabel: "Datenschutz",
@@ -94,8 +94,13 @@ const de: PrivacyContent = {
         "stat.ripe.net (RIPE NCC, EU) – öffentliche Routing- und ASN-Daten (serverseitig).",
         "peeringdb.com – öffentliche Netzwerk- und Peering-Profile (serverseitig).",
         "WHOIS/RDAP – bei WHOIS-Abfragen wird das eingegebene Ziel zunächst an whois.iana.org und anschließend an den jeweils zuständigen Registry- bzw. Referral-WHOIS-Server übermittelt; rdap.org dient als RDAP-/Ausweichquelle (serverseitig).",
+        "Reputationsprüfung bei DNS-Blocklisten (zen.spamhaus.org inkl. SBL/CSS/XBL/PBL, bl.spamcop.net, b.barracudacentral.org, dnsbl.dronebl.org, bl.blocklist.de) – die geprüfte IP wird hierfür serverseitig per DNS-Abfrage übermittelt.",
+        "api.blocklist.de – zusätzlich die Anzahl gemeldeter Angriffe zur geprüften IP (serverseitig, ohne API-Schlüssel).",
+        "Feodo Tracker (feodotracker.abuse.ch) und Spamhaus DROP (drop/dropv6) – Botnet-C2- bzw. als kriminell eingestufte Netzblöcke; diese Datensätze werden serverseitig in regelmäßigen Abständen heruntergeladen und gecacht. Die geprüfte IP wird hierbei nicht an abuse.ch oder Spamhaus übermittelt.",
+        "api.greynoise.io (Community-API) – Kontext zu Internet-weiten Scannern; unauthentifiziert oder mit einem optional konfigurierten kostenlosen Schlüssel; Ergebnisse werden serverseitig pro IP für 24 Stunden gecacht.",
         "api.abuseipdb.com – optionale Reputations-/Missbrauchsdaten, sofern ein Schlüssel konfiguriert ist (serverseitig).",
-        "DNS-Blacklists zen.spamhaus.org, bl.spamcop.net, b.barracudacentral.org – Reputationsprüfung (serverseitig).",
+        "dnsbl.httpbl.org (Project Honey Pot) – optionale Web-Abuse-Daten (Harvester, Kommentar-Spammer), sofern ein Access-Key konfiguriert ist (serverseitig).",
+        "threatfox-api.abuse.ch – optionale Abfrage von Threat-Indikatoren (IOCs), sofern ein Auth-Key konfiguriert ist (serverseitig).",
         "flagcdn.com – Länderflaggen. Enthält ein Ergebnis ein Land, wird der zugehörige Ländercode serverseitig über einen eigenen Proxy an flagcdn.com übermittelt (Ihre IP-Adresse wird dabei nicht weitergegeben); die Flaggengrafik wird serverseitig zwischengespeichert.",
         "Rekursiver DNS-Resolver – für domainbasierte Prüfungen wird der eingegebene Hostname über den vom Hosting bzw. System konfigurierten DNS-Resolver aufgelöst; dieser Resolver (ggf. durch den Hosting-Anbieter betrieben) erhält dabei den angefragten Hostnamen.",
         "api64.ipify.org und checkip.amazonaws.com – Ermittlung der eigenen IP-Adresse direkt aus Ihrem Browser; dabei wird Ihre IP-Adresse unmittelbar an diese Dienste übermittelt.",
@@ -209,8 +214,13 @@ const en: PrivacyContent = {
         "stat.ripe.net (RIPE NCC, EU) – public routing and ASN data (server-side).",
         "peeringdb.com – public network and peering profiles (server-side).",
         "WHOIS/RDAP – for WHOIS lookups the entered target is first sent to whois.iana.org and then to the relevant registry or referral WHOIS server; rdap.org serves as an RDAP/fallback source (server-side).",
+        "DNS blocklists zen.spamhaus.org (including SBL/CSS/XBL/PBL), bl.spamcop.net, b.barracudacentral.org, dnsbl.dronebl.org, bl.blocklist.de – for reputation checks the queried IP is transmitted server-side via DNS queries.",
+        "api.blocklist.de – additionally the number of reported attacks for the queried IP (server-side, no API key).",
+        "Feodo Tracker (feodotracker.abuse.ch) and Spamhaus DROP (drop/dropv6) – botnet C2 and criminal netblock datasets; these feeds are downloaded and cached server-side at regular intervals. The queried IP is not transmitted to abuse.ch or Spamhaus for these feed-based checks.",
+        "api.greynoise.io (Community API) – Internet-wide scanner context; unauthenticated or with an optional free key; results are cached server-side per IP for 24 hours.",
         "api.abuseipdb.com – optional reputation/abuse data if a key is configured (server-side).",
-        "DNS blacklists zen.spamhaus.org, bl.spamcop.net, b.barracudacentral.org – reputation checks (server-side).",
+        "dnsbl.httpbl.org (Project Honey Pot) – optional web-abuse data (harvesters, comment spammers) if an access key is configured (server-side).",
+        "threatfox-api.abuse.ch – optional threat-indicator (IOC) lookups if an Auth-Key is configured (server-side).",
         "flagcdn.com – country flags. When a result includes a country, the corresponding country code is forwarded server-side via an own proxy to flagcdn.com (your IP address is not shared in the process); the flag image is cached server-side.",
         "Recursive DNS resolver – for domain-based checks the entered hostname is resolved via the DNS resolver configured by the hosting/system; that resolver (possibly operated by the hosting provider) receives the queried hostname.",
         "api64.ipify.org and checkip.amazonaws.com – discovering your own IP directly from your browser; your IP address is sent directly to these services.",

@@ -1,5 +1,6 @@
 import { ApiClientError } from "@/lib/api/client";
 import { type Locale } from "@/lib/i18n";
+import type { EvidenceCategory, EvidenceSeverity, SourceStatus } from "@/lib/reputation/model";
 
 type ToolTranslation = {
   errorRateLimited: string;
@@ -268,24 +269,38 @@ type ToolTranslation = {
   reputationRiskLow: string;
   reputationRiskMedium: string;
   reputationRiskHigh: string;
+  reputationHeadlineClean: string;
   reputationScoreLabel: string;
-  reputationNoThreats: string;
-  reputationThreatProxy: string;
-  reputationThreatTor: string;
-  reputationThreatHosting: string;
-  reputationThreatSpam: string;
-  reputationThreatBotnet: string;
-  reputationThreatAbuse: string;
-  reputationBlacklistsLabel: string;
-  reputationListedSummary: string;
-  reputationBlacklistListed: string;
-  reputationBlacklistClean: string;
-  reputationBlacklistUnchecked: string;
-  reputationAbuseLabel: string;
-  reputationAbuseReports: string;
-  reputationAbuseConfidence: string;
-  reputationAbuseNotConfigured: string;
-  reputationAbuseUnavailable: string;
+  reputationSectionSummary: string;
+  reputationSectionThreats: string;
+  reputationSectionMail: string;
+  reputationSectionNetwork: string;
+  reputationSectionSources: string;
+  reputationSectionScore: string;
+  reputationCoverageChecked: string;
+  reputationCoverageMatched: string;
+  reputationCoveragePolicy: string;
+  reputationCoverageUnavailable: string;
+  reputationGeneratedAt: string;
+  reputationNoThreatEvidence: string;
+  reputationNoMailEvidence: string;
+  reputationConnectionLabel: string;
+  reputationReverseLabel: string;
+  reputationFieldSource: string;
+  reputationFieldConfidence: string;
+  reputationFieldFirstSeen: string;
+  reputationFieldLastSeen: string;
+  reputationFieldReports: string;
+  reputationFieldAttacks: string;
+  reputationFieldMalware: string;
+  reputationFieldDetail: string;
+  reputationFieldReturnCode: string;
+  reputationPointsLabel: string;
+  reputationCategories: Record<EvidenceCategory, string>;
+  reputationSeverities: Record<EvidenceSeverity, string>;
+  reputationSourceStates: Record<SourceStatus, string>;
+  reputationReasons: Record<string, string>;
+  reputationSourceDescriptions: Record<string, string>;
   reputationGeoLabel: string;
   reputationNetworkLabel: string;
   reputationDisclaimer: string;
@@ -550,7 +565,8 @@ const en: ToolTranslation = {
   cdnInterestingHeaders: "Interesting response headers",
   cdnNoHeaders: "No relevant headers found.",
   reputationTitle: "IP Reputation Check",
-  reputationSubtitle: "Scan a public IP address against multiple reputation sources and get a concise risk summary.",
+  reputationSubtitle:
+    "Check a public IP address against independent reputation and threat-intelligence sources and get an evidence-based risk assessment.",
   reputationPlaceholder: "8.8.8.8 or 2001:4860:4860::8888",
   reputationCheckButton: "Check reputation",
   reputationChecking: "Checking...",
@@ -559,31 +575,177 @@ const en: ToolTranslation = {
   reputationInvalidIp: "Please enter a valid public IP address (IPv4 or IPv6).",
   reputationBlockedIp: "Private, reserved, and internal IP ranges cannot be checked.",
   reputationEmptyTitle: "Enter an IP address to check its reputation",
-  reputationEmptyDescription: "The IP is checked against DNS blacklists, proxy/hosting heuristics, and abuse reports when an AbuseIPDB key is configured.",
+  reputationEmptyDescription:
+    "The IP is checked against DNS blocklists, abuse-report databases, botnet C2 trackers, and network classification sources. Optional providers (AbuseIPDB, GreyNoise, http:BL, ThreatFox) activate when a free API key is configured.",
   reputationRiskLow: "Low risk",
   reputationRiskMedium: "Medium risk",
   reputationRiskHigh: "High risk",
+  reputationHeadlineClean: "No malicious activity detected",
   reputationScoreLabel: "Risk score",
-  reputationNoThreats: "No threat categories detected.",
-  reputationThreatProxy: "Proxy / VPN",
-  reputationThreatTor: "Tor exit node",
-  reputationThreatHosting: "Hosting / datacenter",
-  reputationThreatSpam: "Spam source",
-  reputationThreatBotnet: "Botnet / exploited",
-  reputationThreatAbuse: "Abuse reported",
-  reputationBlacklistsLabel: "Blacklists",
-  reputationListedSummary: "{listed} of {checked} listed",
-  reputationBlacklistListed: "listed",
-  reputationBlacklistClean: "clean",
-  reputationBlacklistUnchecked: "unchecked",
-  reputationAbuseLabel: "Abuse reports",
-  reputationAbuseReports: "{count} reports (90 days)",
-  reputationAbuseConfidence: "{score}% confidence",
-  reputationAbuseNotConfigured: "not configured",
-  reputationAbuseUnavailable: "unavailable",
+  reputationSectionSummary: "Reputation Summary",
+  reputationSectionThreats: "Threat Evidence",
+  reputationSectionMail: "Mail Reputation",
+  reputationSectionNetwork: "Network Classification",
+  reputationSectionSources: "Sources",
+  reputationSectionScore: "How this score was calculated",
+  reputationCoverageChecked: "{count} sources checked",
+  reputationCoverageMatched: "{count} with threat evidence",
+  reputationCoveragePolicy: "{count} with policy or context info",
+  reputationCoverageUnavailable: "{count} unavailable",
+  reputationGeneratedAt: "Generated {time}",
+  reputationNoThreatEvidence:
+    "No direct malicious observations were found in the sources that could be checked.",
+  reputationNoMailEvidence: "No email reputation listings were found in the checked sources.",
+  reputationConnectionLabel: "Connection",
+  reputationReverseLabel: "Reverse DNS",
+  reputationFieldSource: "Source",
+  reputationFieldConfidence: "Confidence",
+  reputationFieldFirstSeen: "First seen",
+  reputationFieldLastSeen: "Last seen",
+  reputationFieldReports: "Reports",
+  reputationFieldAttacks: "Attack events",
+  reputationFieldMalware: "Malware",
+  reputationFieldDetail: "Detail",
+  reputationFieldReturnCode: "Return code",
+  reputationPointsLabel: "+{points} points",
+  reputationCategories: {
+    mail_policy: "Mail policy listing",
+    mail_reputation: "Email reputation listing",
+    spam_observed: "Spam activity observed",
+    abuse_reported: "Abuse reported",
+    scanner: "Internet-wide scanner",
+    bruteforce: "Brute-force attacks",
+    web_attack: "Web attacks",
+    ddos: "DDoS / flood attacks",
+    botnet: "Botnet activity",
+    malware: "Malware infrastructure",
+    proxy: "Open proxy",
+    vpn: "VPN / anonymizer",
+    tor: "Tor exit node",
+    hosting: "Hosting / datacenter",
+    residential: "Residential network",
+    mobile: "Mobile network",
+    benign_service: "Known business service",
+  },
+  reputationSeverities: {
+    info: "Info",
+    low: "Low severity",
+    medium: "Medium severity",
+    high: "High severity",
+    critical: "Critical",
+  },
+  reputationSourceStates: {
+    available: "available",
+    clean: "clean",
+    matched: "matched",
+    policy_listed: "listed (policy)",
+    not_configured: "not configured",
+    unsupported: "unsupported",
+    rate_limited: "rate limited",
+    resolver_blocked: "resolver blocked",
+    unavailable: "unavailable",
+  },
+  reputationReasons: {
+    sbl:
+      "Listed on the Spamhaus SBL: verified spam sources, spam services, or ROKSO spammers (evidence-based, human-maintained listing).",
+    css:
+      "Listed on Spamhaus CSS: automated detection of high-volume or grey-area email sending. Weaker evidence than the SBL.",
+    xbl:
+      "Listed on the Spamhaus XBL: the host was observed running trojan/exploit software or an open proxy — typically a compromised machine.",
+    drop:
+      "The address is in a Spamhaus DROP netblock: ranges controlled by criminal or bulletproof-hosting operations and used for malware, botnet controllers, or spam.",
+    pbl_isp:
+      "Listed on the Spamhaus PBL (ISP-maintained): this range is not expected to deliver SMTP mail directly to third-party mail servers. This is normal for most residential, dynamic, and end-user addresses and is not evidence of abuse.",
+    pbl_spamhaus:
+      "Listed on the Spamhaus PBL (Spamhaus-maintained): a policy range that should not deliver mail directly. Normal for many end-user addresses, not evidence of abuse.",
+    bcl:
+      "Listed on the Spamhaus Botnet Controller List: confirmed active botnet command-and-control infrastructure.",
+    spamcop_listing:
+      "Listed on SpamCop based on recent spam reports (spamtraps and user-submitted evidence). Listings expire shortly after the last report.",
+    barracuda_listing:
+      "Poor email reputation measured across the Barracuda filter network. This is aggregated, partly historical evidence and can also affect dynamically reassigned addresses — it does not prove that this address is currently sending spam.",
+    dronebl_irc_drone: "Observed as an IRC spam drone (bot) by the DroneBL network.",
+    dronebl_bottler: "Observed as a Bottler IRC bot by the DroneBL network.",
+    dronebl_worm: "Observed running a worm or spambot by the DroneBL network.",
+    dronebl_ddos_drone: "Observed as a DDoS drone (participates in distributed attacks).",
+    dronebl_open_socks_proxy:
+      "Observed running an open SOCKS proxy — abusable infrastructure, not necessarily malicious by itself.",
+    dronebl_open_http_proxy:
+      "Observed running an open HTTP proxy — abusable infrastructure, not necessarily malicious by itself.",
+    dronebl_proxychain: "Observed as part of a proxy chain.",
+    dronebl_web_proxy: "Observed running an open web proxy.",
+    dronebl_dictionary: "Observed performing automated dictionary (brute-force) attacks.",
+    dronebl_wingate: "Observed running an open WinGate proxy.",
+    dronebl_compromised_router: "Observed as a compromised router or gateway.",
+    dronebl_botnet_auto:
+      "Automatically classified as botnet infrastructure by DroneBL (experimental detection).",
+    dronebl_compromised_host: "Possibly compromised host detected on IRC.",
+    dronebl_uncategorized: "Listed on DroneBL with an uncategorized threat class.",
+    bld_attack:
+      "Attack reports filed by affected server operators and collected by blocklist.de. A live DNS entry means attacks were reported recently.",
+    bld_counts_only:
+      "Historical abuse reports recorded by blocklist.de; the address is not currently in the live DNS zone.",
+    feodo_c2_online:
+      "Currently active botnet command-and-control server, verified by Feodo Tracker (abuse.ch) through a valid C2 response.",
+    feodo_c2_offline:
+      "Botnet C2 server tracked by Feodo Tracker (abuse.ch); last seen within the past days and retained in the blocklist.",
+    greynoise_scanner_malicious:
+      "Observed scanning the internet within the last 90 days and classified as malicious by GreyNoise.",
+    greynoise_scanner_unknown:
+      "Observed scanning the internet within the last 90 days; GreyNoise could not classify the activity.",
+    greynoise_scanner_benign:
+      "Observed scanning the internet, but classified as benign (for example a research project) by GreyNoise.",
+    greynoise_riot:
+      "Known common business service in the GreyNoise RIOT dataset (for example a CDN or security company).",
+    abuseipdb_reports:
+      "Abuse reports filed by AbuseIPDB users over the last 90 days. The confidence score reflects report volume and consistency.",
+    abuseipdb_tor: "Identified as a Tor exit node by AbuseIPDB.",
+    threatfox_ioc:
+      "Published as a threat indicator (IOC) in the abuse.ch ThreatFox database, shared by security researchers.",
+    httpbl_search_engine: "Known search engine crawler (Project Honey Pot).",
+    httpbl_suspicious:
+      "Suspicious web visitor observed in the Project Honey Pot honeypot network. Often harmless robots; treat with care.",
+    httpbl_harvester:
+      "Observed harvesting email addresses from honeypots in the Project Honey Pot network.",
+    httpbl_comment_spammer:
+      "Observed posting comment spam to honeypots in the Project Honey Pot network.",
+    ipapi_vpn: "Flagged as a VPN, proxy, or anonymizer service by ip-api.com.",
+    ipapi_hosting: "Flagged as a hosting or datacenter address by ip-api.com.",
+    ipapi_mobile: "Identified as a mobile or cellular connection by ip-api.com.",
+    residential_estimate:
+      "Estimated residential connection based on connection type and reverse DNS naming — a heuristic, not provider-confirmed.",
+    corroboration: "Several independent sources report malicious activity for this address.",
+    mail_corroboration: "Several independent email reputation lists contain this address.",
+  },
+  reputationSourceDescriptions: {
+    "spamhaus-zen":
+      "Combined Spamhaus DNSBL: SBL (verified spam sources), CSS (automated spam-sender detection), XBL (exploited hosts), PBL (mail policy ranges), BCL (botnet controllers).",
+    "spamhaus-drop":
+      "Free Spamhaus feed of whole netblocks controlled by criminal or bulletproof-hosting operations. Checked locally from a cached, hourly-refreshed copy.",
+    spamcop:
+      "Email blocklist built from spamtraps and user spam reports. Listings are short-lived and reflect recent sending behavior.",
+    barracuda:
+      "Email reputation scores measured across the Barracuda Networks spam filter network. Aggregated and partly historical signal.",
+    dronebl:
+      "DNSBL operated by the DroneBL project listing drones, compromised hosts, DDoS participants, and open proxies observed by IRC and monitoring networks. Free for commercial and non-commercial use.",
+    "blocklist-de":
+      "German abuse-report platform collecting attack reports (SSH brute force, mail attacks, web scans, ...) from affected server operators.",
+    "feodo-tracker":
+      "abuse.ch tracker for botnet C2 servers (Dridex, Emotet, TrickBot, QakBot, BazarLoader). Entries require an observed valid C2 response. Checked locally from a cached feed.",
+    greynoise:
+      "Internet-wide scanner intelligence. The community API reports whether an address was observed scanning recently and how it is classified.",
+    abuseipdb:
+      "Crowd-sourced abuse report database with a confidence score. Requires a free API key (ABUSEIPDB_API_KEY).",
+    httpbl:
+      "Project Honey Pot DNSBL for web abuse: harvesters, comment spammers, and suspicious bots. Requires a free access key (HTTPBL_ACCESS_KEY).",
+    threatfox:
+      "abuse.ch platform for sharing indicators of compromise, including botnet C2 addresses. Requires a free Auth-Key (THREATFOX_AUTH_KEY).",
+    "ip-api": "IP metadata: geolocation, network/ASN, and connection classification flags.",
+  },
   reputationGeoLabel: "Geolocation",
   reputationNetworkLabel: "ASN / Provider",
-  reputationDisclaimer: "Aggregated from public sources; results are indicative, not a definitive verdict.",
+  reputationDisclaimer:
+    "Aggregated from public sources; results are indicative hints, not a definitive verdict. A listing does not automatically mean the current user of an address did anything wrong.",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -845,7 +1007,8 @@ const de: Partial<ToolTranslation> = {
   cdnInterestingHeaders: "Auffällige Response-Header",
   cdnNoHeaders: "Keine relevanten Header gefunden.",
   reputationTitle: "IP-Reputationsprüfung",
-  reputationSubtitle: "Prüfe eine öffentliche IP-Adresse gegen mehrere Reputationsquellen und erhalte eine kompakte Risikoübersicht.",
+  reputationSubtitle:
+    "Prüfe eine öffentliche IP-Adresse gegen unabhängige Reputations- und Threat-Intelligence-Quellen und erhalte eine evidenzbasierte Risikobewertung.",
   reputationPlaceholder: "8.8.8.8 oder 2001:4860:4860::8888",
   reputationCheckButton: "Reputation prüfen",
   reputationChecking: "Prüfung läuft...",
@@ -854,31 +1017,177 @@ const de: Partial<ToolTranslation> = {
   reputationInvalidIp: "Bitte eine gültige öffentliche IP-Adresse eingeben (IPv4 oder IPv6).",
   reputationBlockedIp: "Private, reservierte und interne IP-Bereiche können nicht geprüft werden.",
   reputationEmptyTitle: "IP-Adresse eingeben, um ihre Reputation zu prüfen",
-  reputationEmptyDescription: "Die IP wird gegen DNS-Blacklists, Proxy-/Hosting-Heuristiken und Abuse-Meldungen geprüft, sofern ein AbuseIPDB-Schlüssel konfiguriert ist.",
+  reputationEmptyDescription:
+    "Die IP wird gegen DNS-Blocklisten, Abuse-Meldedatenbanken, Botnet-C2-Tracker und Netzwerk-Klassifizierungsquellen geprüft. Optionale Anbieter (AbuseIPDB, GreyNoise, http:BL, ThreatFox) werden aktiviert, wenn ein kostenloser API-Schlüssel konfiguriert ist.",
   reputationRiskLow: "Geringes Risiko",
   reputationRiskMedium: "Mittleres Risiko",
   reputationRiskHigh: "Hohes Risiko",
+  reputationHeadlineClean: "Keine bösartige Aktivität festgestellt",
   reputationScoreLabel: "Risiko-Score",
-  reputationNoThreats: "Keine Bedrohungskategorien erkannt.",
-  reputationThreatProxy: "Proxy / VPN",
-  reputationThreatTor: "Tor-Exit-Node",
-  reputationThreatHosting: "Hosting / Rechenzentrum",
-  reputationThreatSpam: "Spam-Quelle",
-  reputationThreatBotnet: "Botnetz / kompromittiert",
-  reputationThreatAbuse: "Abuse gemeldet",
-  reputationBlacklistsLabel: "Blacklists",
-  reputationListedSummary: "{listed} von {checked} gelistet",
-  reputationBlacklistListed: "gelistet",
-  reputationBlacklistClean: "sauber",
-  reputationBlacklistUnchecked: "nicht geprüft",
-  reputationAbuseLabel: "Abuse-Meldungen",
-  reputationAbuseReports: "{count} Meldungen (90 Tage)",
-  reputationAbuseConfidence: "{score} % Konfidenz",
-  reputationAbuseNotConfigured: "nicht konfiguriert",
-  reputationAbuseUnavailable: "nicht verfügbar",
+  reputationSectionSummary: "Reputationsübersicht",
+  reputationSectionThreats: "Bedrohungsevidenz",
+  reputationSectionMail: "Mail-Reputation",
+  reputationSectionNetwork: "Netzwerk-Klassifizierung",
+  reputationSectionSources: "Quellen",
+  reputationSectionScore: "Wie dieser Score zustande kommt",
+  reputationCoverageChecked: "{count} Quellen geprüft",
+  reputationCoverageMatched: "{count} mit Bedrohungsevidenz",
+  reputationCoveragePolicy: "{count} mit Richtlinien-/Kontextinfos",
+  reputationCoverageUnavailable: "{count} nicht verfügbar",
+  reputationGeneratedAt: "Erstellt {time}",
+  reputationNoThreatEvidence:
+    "In den prüfbaren Quellen wurden keine direkten bösartigen Beobachtungen gefunden.",
+  reputationNoMailEvidence: "In den geprüften Quellen wurden keine Mail-Reputations-Einträge gefunden.",
+  reputationConnectionLabel: "Verbindung",
+  reputationReverseLabel: "Reverse DNS",
+  reputationFieldSource: "Quelle",
+  reputationFieldConfidence: "Konfidenz",
+  reputationFieldFirstSeen: "Erstmals gesehen",
+  reputationFieldLastSeen: "Zuletzt gesehen",
+  reputationFieldReports: "Meldungen",
+  reputationFieldAttacks: "Angriffsereignisse",
+  reputationFieldMalware: "Malware",
+  reputationFieldDetail: "Detail",
+  reputationFieldReturnCode: "Return-Code",
+  reputationPointsLabel: "+{points} Punkte",
+  reputationCategories: {
+    mail_policy: "Mail-Richtlinieneintrag",
+    mail_reputation: "Mail-Reputations-Eintrag",
+    spam_observed: "Spam-Aktivität beobachtet",
+    abuse_reported: "Abuse gemeldet",
+    scanner: "Internet-weiter Scanner",
+    bruteforce: "Brute-Force-Angriffe",
+    web_attack: "Web-Angriffe",
+    ddos: "DDoS-/Flut-Angriffe",
+    botnet: "Botnetz-Aktivität",
+    malware: "Malware-Infrastruktur",
+    proxy: "Offener Proxy",
+    vpn: "VPN / Anonymizer",
+    tor: "Tor-Exit-Node",
+    hosting: "Hosting / Rechenzentrum",
+    residential: "Privatnetz / Residential",
+    mobile: "Mobilfunknetz",
+    benign_service: "Bekannter Geschäftsdienst",
+  },
+  reputationSeverities: {
+    info: "Info",
+    low: "Geringe Schwere",
+    medium: "Mittlere Schwere",
+    high: "Hohe Schwere",
+    critical: "Kritisch",
+  },
+  reputationSourceStates: {
+    available: "verfügbar",
+    clean: "sauber",
+    matched: "Treffer",
+    policy_listed: "gelistet (Richtlinie)",
+    not_configured: "nicht konfiguriert",
+    unsupported: "nicht unterstützt",
+    rate_limited: "Rate-Limit",
+    resolver_blocked: "Resolver blockiert",
+    unavailable: "nicht verfügbar",
+  },
+  reputationReasons: {
+    sbl:
+      "Gelistet auf der Spamhaus SBL: verifizierte Spam-Quellen, Spam-Dienste oder ROKSO-Spammer (evidenzbasierte, redaktionell gepflegte Liste).",
+    css:
+      "Gelistet auf Spamhaus CSS: automatische Erkennung von Massen- oder Grauzonen-Mail-Versand. Schwächere Evidenz als die SBL.",
+    xbl:
+      "Gelistet auf der Spamhaus XBL: Der Rechner wurde mit Trojaner-/Exploit-Software oder als offener Proxy beobachtet – typischerweise ein kompromittiertes System.",
+    drop:
+      "Die Adresse liegt in einem Spamhaus-DROP-Netzblock: Bereiche unter der Kontrolle krimineller oder Bulletproof-Hosting-Operationen, genutzt u. a. für Malware, Botnet-Controller und Spam.",
+    pbl_isp:
+      "Gelistet auf der Spamhaus PBL (vom ISP gepflegt): Dieser Bereich soll SMTP-Mail nicht direkt an Mailserver Dritter zustellen. Das ist für die meisten Privat-, dynamischen und Endkunden-Adressen normal und kein Hinweis auf Missbrauch.",
+    pbl_spamhaus:
+      "Gelistet auf der Spamhaus PBL (von Spamhaus gepflegt): ein Richtlinien-Bereich, der nicht direkt versenden soll. Für viele Endkunden-Adressen normal, kein Hinweis auf Missbrauch.",
+    bcl:
+      "Gelistet auf der Spamhaus Botnet Controller List: bestätigte, aktive Botnet-Kommando-und-Kontroll-Infrastruktur.",
+    spamcop_listing:
+      "Gelistet auf SpamCop basierend auf aktuellen Spam-Meldungen (Spamtraps und Nutzer-Evidenz). Einträge verfallen kurz nach der letzten Meldung.",
+    barracuda_listing:
+      "Schlechte Mail-Reputation, gemessen im Barracuda-Filternetzwerk. Aggregiertes, teils historisches Signal; kann auch dynamisch neu zugewiesene Adressen treffen – es belegt nicht, dass diese Adresse aktuell Spam versendet.",
+    dronebl_irc_drone: "Vom DroneBL-Netzwerk als IRC-Spam-Drone (Bot) beobachtet.",
+    dronebl_bottler: "Vom DroneBL-Netzwerk als Bottler-IRC-Bot beobachtet.",
+    dronebl_worm: "Vom DroneBL-Netzwerk mit Wurm oder Spam-Bot beobachtet.",
+    dronebl_ddos_drone: "Als DDoS-Drone beobachtet (beteiligt sich an verteilten Angriffen).",
+    dronebl_open_socks_proxy:
+      "Betreibt einen offenen SOCKS-Proxy – missbrauchbare Infrastruktur, nicht automatisch bösartig.",
+    dronebl_open_http_proxy:
+      "Betreibt einen offenen HTTP-Proxy – missbrauchbare Infrastruktur, nicht automatisch bösartig.",
+    dronebl_proxychain: "Als Teil einer Proxy-Kette beobachtet.",
+    dronebl_web_proxy: "Betreibt einen offenen Web-Proxy.",
+    dronebl_dictionary: "Beobachtet bei automatisierten Wörterbuch-/Brute-Force-Angriffen.",
+    dronebl_wingate: "Betreibt einen offenen WinGate-Proxy.",
+    dronebl_compromised_router: "Als kompromittierter Router oder Gateway beobachtet.",
+    dronebl_botnet_auto:
+      "Von DroneBL automatisch als Botnet-Infrastruktur klassifiziert (experimentelle Erkennung).",
+    dronebl_compromised_host: "Möglicherweise kompromittierter Rechner, erkannt über IRC.",
+    dronebl_uncategorized: "Auf DroneBL mit unkategorisierter Bedrohungsklasse gelistet.",
+    bld_attack:
+      "Angriffsmeldungen betroffener Serverbetreiber, gesammelt von blocklist.de. Ein Live-Eintrag im DNS bedeutet kürzlich gemeldete Angriffe.",
+    bld_counts_only:
+      "Historische Abuse-Meldungen bei blocklist.de; die Adresse steht derzeit nicht in der Live-DNS-Zone.",
+    feodo_c2_online:
+      "Aktiver Botnet-Kommando-und-Kontroll-Server, von Feodo Tracker (abuse.ch) über eine gültige C2-Antwort verifiziert.",
+    feodo_c2_offline:
+      "Botnet-C2-Server, verfolgt von Feodo Tracker (abuse.ch); in den letzten Tagen zuletzt gesehen und in der Blockliste behalten.",
+    greynoise_scanner_malicious:
+      "Wurde in den letzten 90 Tagen beim Internet-weiten Scannen beobachtet und von GreyNoise als bösartig eingestuft.",
+    greynoise_scanner_unknown:
+      "Wurde in den letzten 90 Tagen beim Internet-weiten Scannen beobachtet; GreyNoise konnte die Aktivität nicht einordnen.",
+    greynoise_scanner_benign:
+      "Beim Internet-weiten Scannen beobachtet, aber von GreyNoise als gutartig eingestuft (z. B. Forschungsprojekt).",
+    greynoise_riot:
+      "Bekannter häufiger Geschäftsdienst im GreyNoise-RIOT-Datensatz (z. B. CDN oder Sicherheitsfirma).",
+    abuseipdb_reports:
+      "Abuse-Meldungen von AbuseIPDB-Nutzern der letzten 90 Tage. Der Konfidenzwert spiegelt Menge und Konsistenz der Meldungen.",
+    abuseipdb_tor: "Von AbuseIPDB als Tor-Exit-Node identifiziert.",
+    threatfox_ioc:
+      "Als Bedrohungsindikator (IOC) in der abuse.ch-ThreatFox-Datenbank veröffentlicht, geteilt von Sicherheitsforschern.",
+    httpbl_search_engine: "Bekannter Suchmaschinen-Crawler (Project Honey Pot).",
+    httpbl_suspicious:
+      "Verdächtiger Web-Besucher, beobachtet im Honeypot-Netzwerk von Project Honey Pot. Oft harmlose Bots – mit Vorsicht bewerten.",
+    httpbl_harvester:
+      "Beobachtet beim Absammeln von E-Mail-Adressen aus Honeypots im Project Honey Pot-Netzwerk.",
+    httpbl_comment_spammer:
+      "Beobachtet beim Posten von Kommentar-Spam in Honeypots im Project Honey Pot-Netzwerk.",
+    ipapi_vpn: "Von ip-api.com als VPN-, Proxy- oder Anonymizer-Dienst eingestuft.",
+    ipapi_hosting: "Von ip-api.com als Hosting-/Rechenzentrums-Adresse eingestuft.",
+    ipapi_mobile: "Von ip-api.com als Mobilfunk-Verbindung identifiziert.",
+    residential_estimate:
+      "Geschätzte Privatverbindung anhand von Verbindungstyp und Reverse-DNS-Namensmuster – eine Heuristik, keine Anbieterbestätigung.",
+    corroboration: "Mehrere unabhängige Quellen melden bösartige Aktivität für diese Adresse.",
+    mail_corroboration: "Mehrere unabhängige Mail-Reputationslisten enthalten diese Adresse.",
+  },
+  reputationSourceDescriptions: {
+    "spamhaus-zen":
+      "Kombinierte Spamhaus-DNSBL: SBL (verifizierte Spam-Quellen), CSS (automatische Spam-Sender-Erkennung), XBL (ausgenutzte Systeme), PBL (Mail-Richtlinienbereiche), BCL (Botnet-Controller).",
+    "spamhaus-drop":
+      "Kostenloser Spamhaus-Feed kompletter Netzblöcke unter der Kontrolle krimineller oder Bulletproof-Hosting-Operationen. Lokal geprüft anhand einer gecachten, stündlich aktualisierten Kopie.",
+    spamcop:
+      "Mail-Blockliste aus Spamtraps und Nutzer-Spam-Meldungen. Einträge sind kurzlebig und spiegeln aktuelles Sendeverhalten.",
+    barracuda:
+      "Mail-Reputationswerte, gemessen im Spamfilter-Netzwerk von Barracuda Networks. Aggregiertes, teils historisches Signal.",
+    dronebl:
+      "Vom Projekt DroneBL betriebene DNSBL mit Drones, kompromittierten Systemen, DDoS-Teilnehmern und offenen Proxys, beobachtet über IRC- und Monitoringsysteme. Kostenlos für kommerzielle und nicht-kommerzielle Nutzung.",
+    "blocklist-de":
+      "Deutsche Abuse-Meldeplattform, die Angriffsmeldungen (SSH-Brute-Force, Mail-Angriffe, Web-Scans, ...) betroffener Serverbetreiber sammelt.",
+    "feodo-tracker":
+      "abuse.ch-Tracker für Botnet-C2-Server (Dridex, Emotet, TrickBot, QakBot, BazarLoader). Einträge erfordern eine beobachtete gültige C2-Antwort. Lokal anhand eines gecachten Feeds geprüft.",
+    greynoise:
+      "Intelligence zu Internet-weiten Scannern. Die Community-API meldet, ob eine Adresse kürzlich beim Scannen beobachtet wurde und wie sie klassifiziert ist.",
+    abuseipdb:
+      "Crowd-basierte Abuse-Meldedatenbank mit Konfidenzwert. Benötigt einen kostenlosen API-Schlüssel (ABUSEIPDB_API_KEY).",
+    httpbl:
+      "Project Honey Pot DNSBL für Web-Abuse: Harvester, Kommentar-Spammer und verdächtige Bots. Benötigt einen kostenlosen Access Key (HTTPBL_ACCESS_KEY).",
+    threatfox:
+      "abuse.ch-Plattform zum Teilen von Indicators of Compromise, inklusive Botnet-C2-Adressen. Benötigt einen kostenlosen Auth-Key (THREATFOX_AUTH_KEY).",
+    "ip-api": "IP-Metadaten: Geolokalisierung, Netzwerk/ASN und Verbindungsklassifizierung.",
+  },
   reputationGeoLabel: "Geolokalisierung",
   reputationNetworkLabel: "ASN / Provider",
-  reputationDisclaimer: "Aus öffentlichen Quellen aggregiert; Ergebnisse sind Hinweise, kein endgültiges Urteil.",
+  reputationDisclaimer:
+    "Aus öffentlichen Quellen aggregiert; Ergebnisse sind Hinweise, kein endgültiges Urteil. Ein Listeneintrag bedeutet nicht automatisch, dass die aktuelle Nutzung der Adresse etwas falsch gemacht hat.",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {

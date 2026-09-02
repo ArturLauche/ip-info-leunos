@@ -13,7 +13,7 @@ Die Werkzeuge laufen serverseitig (Next.js API-Routes). Eingaben werden mit Zod 
 - [DNS Lookup](https://ip-info.leunos.com/dns): DNS-Lookups für A, AAAA, MX, TXT, NS und weitere Records.
 - [Whois Lookup](https://ip-info.leunos.com/whois): Whois-Daten für Domains und IP-Adressräume inkl. Registrar, Inhaber und Ablauf.
 - [CDN Check](https://ip-info.leunos.com/cdn): Erkennt eingesetzte Content Delivery Networks und Edge-Anbieter für Domains.
-- [IP Reputation](https://ip-info.leunos.com/reputation): Prüft eine öffentliche IP gegen DNS-Blacklists, Proxy-/Hosting-Heuristiken und Abuse-Meldungen inkl. Risiko-Score, Geolokalisierung und ASN.
+- [IP Reputation](https://ip-info.leunos.com/reputation): Evidenzbasierte Prüfung einer öffentlichen IP gegen unabhängige Quellen (Spamhaus ZEN/DROP, SpamCop, Barracuda, DroneBL, blocklist.de, Feodo Tracker, GreyNoise, optional AbuseIPDB/http:BL/ThreatFox) — trennt Richtlinien-Einträge (z. B. Spamhaus PBL) und Netzwerk-Kontext (Residential, Hosting, VPN, Tor) klar von echter Bedrohungsevidenz; Risiko-Score mit nachvollziehbaren Beiträgen je Quelle.
 
 ## JSON-API (maschinenlesbar, ratenlimitiert)
 
@@ -23,7 +23,7 @@ Die Werkzeuge laufen serverseitig (Next.js API-Routes). Eingaben werden mit Zod 
 - [Whois](https://ip-info.leunos.com/api/whois): Whois zu Domain/IP (20/min).
 - [CDN-Erkennung](https://ip-info.leunos.com/api/cdn): CDN-Anbieter einer Domain (20/min).
 - [Ping/Port-Test](https://ip-info.leunos.com/api/ping): TCP/UDP-Erreichbarkeit, POST (20/min).
-- [IP-Reputation](https://ip-info.leunos.com/api/reputation): Blacklist- und Abuse-Prüfung (20/min).
+- [IP-Reputation](https://ip-info.leunos.com/api/reputation): Evidenzbasierte Risiko- und Quellenprüfung (20/min).
 
 ## Optional
 

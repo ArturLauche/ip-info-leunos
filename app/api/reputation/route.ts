@@ -1,177 +1,54 @@
-import dns from "node:dns/promises";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
-import { lookupIpApi } from "@/lib/providers/ip-api";
 import {
   assertPublicIpAddress,
   isIPv4Address,
   stripIpv6Brackets,
   TargetValidationError,
 } from "@/lib/network/target";
-import {
-  aggregateReputation,
-  interpretDnsblResponse,
-  ipv6ToNibbleFormat,
-  REPUTATION_BLACKLISTS,
-  reverseIpv4ForDnsbl,
-  type AbuseSummary,
-  type BlacklistDefinition,
-  type BlacklistStatus,
-  type ReputationSummary,
-} from "@/lib/reputation";
+import { collectReputation } from "@/lib/reputation/query";
+import { aggregateReputation } from "@/lib/reputation/scoring";
+import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
 
-const SOURCE_TIMEOUT_MS = 4_000;
-const DNSBL_TIMEOUT_MS = 2_500;
+const RESPONSE_CACHE_TTL_MS = 10 * 60_000;
+const RESPONSE_CACHE_MAX_ENTRIES = 512;
 
 const reputationQuerySchema = z.object({
   ip: z.string().trim().min(1).max(64),
 });
 
-async function queryBlacklist(
-  ip: string,
-  family: 4 | 6,
-  definition: BlacklistDefinition,
-): Promise<BlacklistStatus> {
-  const base: BlacklistStatus = {
-    id: definition.id,
-    name: definition.name,
-    listed: false,
-    checked: false,
-    categories: [],
-  };
-
-  if (family === 6 && !definition.supportsIpv6) {
-    return base;
-  }
-
-  const prefix = family === 4 ? reverseIpv4ForDnsbl(ip) : ipv6ToNibbleFormat(ip);
-  if (!prefix) {
-    return base;
-  }
-
-  const resolver = new dns.Resolver({ timeout: DNSBL_TIMEOUT_MS, tries: 1 });
-
-  try {
-    const records = await resolver.resolve4(`${prefix}.${definition.zone}`);
-    const interpretation = interpretDnsblResponse(definition.zone, records);
-
-    return {
-      ...base,
-      listed: interpretation.listed,
-      checked: !interpretation.blocked,
-      categories: interpretation.categories,
-    };
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code || "";
-    if (code === "ENOTFOUND" || code === "ENODATA") {
-      return { ...base, checked: true };
-    }
-    return base;
-  }
+interface CacheEntry {
+  storedAt: number;
+  summary: ReputationSummary;
 }
 
-type IpApiResult = {
-  geo: ReputationSummary["geo"];
-  network: ReputationSummary["network"];
-  proxy: boolean;
-  hosting: boolean;
-  mobile: boolean;
-} | null;
+const responseCache = new Map<string, CacheEntry>();
 
-async function lookupIpMetadata(ip: string): Promise<IpApiResult> {
-  const data = await lookupIpApi(ip, { timeoutMs: SOURCE_TIMEOUT_MS });
-  if (!data) return null;
+const CHECKED_STATUSES: ReadonlySet<SourceStatus> = new Set([
+  "clean",
+  "matched",
+  "policy_listed",
+  "available",
+]);
 
-  return {
-    geo: {
-      country: data.country || "",
-      countryCode: data.countryCode || "",
-      region: data.regionName || "",
-      city: data.city || "",
-    },
-    network: {
-      as: data.as || "",
-      asname: data.asname || "",
-      isp: data.isp || "",
-      org: data.org || "",
-    },
-    proxy: Boolean(data.proxy),
-    hosting: Boolean(data.hosting),
-    mobile: Boolean(data.mobile),
-  };
-}
+const UNAVAILABLE_STATUSES: ReadonlySet<SourceStatus> = new Set([
+  "unavailable",
+  "rate_limited",
+  "resolver_blocked",
+]);
 
-const abuseIpDbSchema = z
-  .object({
-    data: z
-      .object({
-        abuseConfidenceScore: z.number().optional(),
-        totalReports: z.number().optional(),
-        lastReportedAt: z.string().nullable().optional(),
-        isTor: z.boolean().optional(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
+const SKIPPED_STATUSES: ReadonlySet<SourceStatus> = new Set(["not_configured", "unsupported"]);
 
-async function lookupAbuseIpDb(ip: string): Promise<AbuseSummary & { isTor: boolean }> {
-  const key = process.env.ABUSEIPDB_API_KEY;
-  if (!key) {
-    return {
-      status: "not_configured",
-      confidenceScore: null,
-      totalReports: null,
-      lastReportedAt: null,
-      isTor: false,
-    };
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SOURCE_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(
-      `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90`,
-      {
-        headers: { Key: key, Accept: "application/json" },
-        cache: "no-store",
-        signal: controller.signal,
-      },
-    );
-
-    const parsed = abuseIpDbSchema.safeParse(await response.json());
-    if (!response.ok || !parsed.success) {
-      return {
-        status: "unavailable",
-        confidenceScore: null,
-        totalReports: null,
-        lastReportedAt: null,
-        isTor: false,
-      };
-    }
-
-    const data = parsed.data.data;
-    return {
-      status: "available",
-      confidenceScore: data.abuseConfidenceScore ?? 0,
-      totalReports: data.totalReports ?? 0,
-      lastReportedAt: data.lastReportedAt || null,
-      isTor: Boolean(data.isTor),
-    };
-  } catch {
-    return {
-      status: "unavailable",
-      confidenceScore: null,
-      totalReports: null,
-      lastReportedAt: null,
-      isTor: false,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+function configFingerprint(): string {
+  return [
+    Boolean(process.env.ABUSEIPDB_API_KEY?.trim()),
+    Boolean(process.env.GREYNOISE_API_KEY?.trim()),
+    Boolean(process.env.HTTPBL_ACCESS_KEY?.trim()),
+    Boolean(process.env.THREATFOX_AUTH_KEY?.trim()),
+  ].join(",");
 }
 
 export async function GET(request: Request) {
@@ -199,45 +76,58 @@ export async function GET(request: Request) {
   }
 
   const family: 4 | 6 = isIPv4Address(ip) ? 4 : 6;
+  const cacheKey = `${ip}:${configFingerprint()}`;
 
-  const [blacklists, ipApi, abuse] = await Promise.all([
-    Promise.all(REPUTATION_BLACKLISTS.map((definition) => queryBlacklist(ip, family, definition))),
-    lookupIpMetadata(ip),
-    lookupAbuseIpDb(ip),
-  ]);
+  const cached = responseCache.get(cacheKey);
+  if (cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
+    return apiOk(cached.summary);
+  }
+  responseCache.delete(cacheKey);
 
-  const { score, level, categories } = aggregateReputation({
-    blacklists,
-    abuseConfidence: abuse.confidenceScore,
-    abuseReports: abuse.totalReports,
-    proxy: ipApi?.proxy ?? false,
-    hosting: ipApi?.hosting ?? false,
-    tor: abuse.isTor,
-  });
+  const { sources, evidence, geo, network, networkContext } = await collectReputation(ip, family);
 
-  const payload: ReputationSummary = {
+  const checkedSources = sources.filter((source) => CHECKED_STATUSES.has(source.status));
+  if (checkedSources.length === 0) {
+    return apiError("upstream_error", "Reputation sources are currently unavailable.", 502, {
+      sources: sources.map((source) => ({ id: source.id, status: source.status })),
+    });
+  }
+
+  const aggregated = aggregateReputation(evidence);
+
+  const summary: ReputationSummary = {
     ip,
-    score,
-    level,
-    categories,
-    blacklists,
-    listedCount: blacklists.filter((entry) => entry.listed).length,
-    checkedCount: blacklists.filter((entry) => entry.checked).length,
-    abuse: {
-      status: abuse.status,
-      confidenceScore: abuse.confidenceScore,
-      totalReports: abuse.totalReports,
-      lastReportedAt: abuse.lastReportedAt,
+    score: aggregated.score,
+    level: aggregated.level,
+    headline: aggregated.headline,
+    evidence: aggregated.evidence,
+    contributions: aggregated.contributions,
+    threatCategories: aggregated.threatCategories,
+    mailCategories: aggregated.mailCategories,
+    contextCategories: aggregated.contextCategories,
+    networkContext,
+    sources,
+    coverage: {
+      checkedCount: checkedSources.length,
+      matchedCount: sources.filter((source) => source.status === "matched").length,
+      policyCount: sources.filter(
+        (source) => source.status === "policy_listed" || source.status === "available",
+      ).length,
+      cleanCount: sources.filter((source) => source.status === "clean").length,
+      unavailableCount: sources.filter((source) => UNAVAILABLE_STATUSES.has(source.status)).length,
+      skippedCount: sources.filter((source) => SKIPPED_STATUSES.has(source.status)).length,
     },
-    geo: ipApi?.geo ?? null,
-    network: ipApi?.network ?? null,
-    flags: {
-      proxy: ipApi?.proxy ?? false,
-      hosting: ipApi?.hosting ?? false,
-      mobile: ipApi?.mobile ?? false,
-    },
+    geo,
+    network,
     checkedAt: new Date().toISOString(),
   };
 
-  return apiOk(payload);
+  responseCache.set(cacheKey, { storedAt: Date.now(), summary });
+  while (responseCache.size > RESPONSE_CACHE_MAX_ENTRIES) {
+    const oldest = responseCache.keys().next().value;
+    if (oldest === undefined) break;
+    responseCache.delete(oldest);
+  }
+
+  return apiOk(summary);
 }

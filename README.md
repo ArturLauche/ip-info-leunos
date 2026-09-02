@@ -11,7 +11,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Query WHOIS/RDAP data at `/whois`.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
-- Check IP reputation against DNS blacklists, proxy/hosting heuristics, and optional AbuseIPDB reports at `/reputation`.
+- Check IP reputation at `/reputation` against independent DNS blocklists (Spamhaus ZEN, SpamCop, Barracuda, DroneBL, blocklist.de), botnet C2 feeds (abuse.ch Feodo Tracker, Spamhaus DROP), GreyNoise scanner intelligence, and optional AbuseIPDB, Project Honey Pot http:BL, and ThreatFox data — with an evidence-based risk score that separates policy listings and network context from actual threat evidence.
 - Jump between tools or deep-link a typed IP, domain, or ASN into the right tool from a Spotlight-style command palette (⌘K / Ctrl+K, or `/`).
 
 ## Public-Site Safety Model
@@ -32,7 +32,15 @@ Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` 
 
 Set `IPINFO_TOKEN` to enable IPinfo ASN details on `/asn`. Without a token, ASN lookups still use public PeeringDB data when available.
 
-Set `ABUSEIPDB_API_KEY` to enable AbuseIPDB abuse reports on `/reputation`. Without the key, the reputation tool still uses DNS blacklists and ip-api.com data.
+Set `ABUSEIPDB_API_KEY` to enable AbuseIPDB abuse reports on `/reputation`. Without the key, the reputation tool still uses DNS blocklists, threat feeds, GreyNoise, and ip-api.com data.
+
+Set `GREYNOISE_API_KEY` to a free GreyNoise Community API key for higher lookup limits on `/reputation`. Without a key, the GreyNoise Community endpoint is used unauthenticated (about 10 lookups per day); lookups are cached per IP for 24 hours, and the source simply reports its state when the quota is exhausted.
+
+Set `HTTPBL_ACCESS_KEY` to a free Project Honey Pot access key (12 lowercase letters) to enable the http:BL DNSBL for web-abuse evidence (harvesters, comment spammers) on `/reputation`.
+
+Set `THREATFOX_AUTH_KEY` to a free abuse.ch Auth-Key to enable ThreatFox IOC lookups on `/reputation`.
+
+The reputation feature works without any of these keys; the optional sources then report "not configured" and the remaining sources still produce a verdict.
 
 Set `PRIVACY_CONTACT_EMAIL` to the controller's contact address shown on the privacy page (`/privacy-policy`). No address is hardcoded in the repository; when the variable is unset the page renders a neutral "not configured" note instead of an email.
 
@@ -93,8 +101,15 @@ This app is not purely static because the tools use server-side API routes. Depl
 - `api64.ipify.org` for primary client-side IPv6 discovery
 - `checkip.amazonaws.com` as a client-side IP discovery fallback
 - `rdap.org` as WHOIS fallback
-- `zen.spamhaus.org`, `bl.spamcop.net`, and `b.barracudacentral.org` DNSBLs for IP reputation
+- `zen.spamhaus.org` DNSBL (SBL/CSS/XBL/PBL/BCL return codes) and the free `drop_v4.json`/`drop_v6.json` feeds (cached server-side, refreshed at most hourly per Spamhaus terms) for IP reputation
+- `bl.spamcop.net` and `b.barracudacentral.org` DNSBLs for email reputation
+- `dnsbl.dronebl.org` (DroneBL) for drones, compromised hosts, and open proxies
+- `bl.blocklist.de` DNSBL and `api.blocklist.de` HTTP API for recent attack reports (SSH brute force, mail attacks, web scans)
+- `feodotracker.abuse.ch` botnet C2 IP feed (cached server-side, refreshed every 15 minutes; the queried IP is never sent to abuse.ch for feed-based checks)
+- `api.greynoise.io` Community API for Internet-wide scanner context (unauthenticated or with a free `GREYNOISE_API_KEY`)
 - `api.abuseipdb.com` for abuse confidence scores and report counts (optional key)
+- `dnsbl.httpbl.org` (Project Honey Pot) for harvester/comment-spammer evidence (optional key)
+- `threatfox-api.abuse.ch` for IOC/botnet C2 lookups (optional key)
 
 PeeringDB data is public and user-maintained, so it may be incomplete when a network does not maintain a PeeringDB profile. IPinfo ASN details may require an appropriate IPinfo plan for the configured token.
 PeeringDB describes network peering policy and presence; BGP-style routing neighbours are sourced from RIPEstat RIS data and may be directional observations rather than contractual peer/upstream/customer records.
