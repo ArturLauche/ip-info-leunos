@@ -25,17 +25,17 @@ function RelationChip({
   const powerPct = maxPower > 0 ? Math.min(100, Math.max(5, ((relation.power || 0) / maxPower) * 100)) : 0;
 
   return (
-    <div className="group flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 transition-colors hover:border-primary/40 hover:bg-muted/40">
+    <div className="group flex flex-col gap-2 border-b py-3 transition-colors last:border-b-0 hover:bg-muted/40">
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/asn/${relation.asn}`}
-          className="inline-flex items-center gap-1 font-mono text-sm font-semibold text-foreground transition-colors hover:text-primary"
+          className="inline-flex items-center gap-1 rounded-md font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
         >
           {relation.asn}
-          <ArrowUpRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+          <ArrowUpRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100" />
         </Link>
         {relation.source && (
-          <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+          <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground/70">
             {relation.source}
           </span>
         )}
@@ -43,7 +43,7 @@ function RelationChip({
 
       {relation.power !== null && relation.power !== undefined && (
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between text-[10px]">
+          <div className="flex items-center justify-between text-[11px]">
             <span className="flex items-center gap-1 font-medium text-muted-foreground">
               <Zap className="size-3 text-primary" />
               {t.asnRelationPower}
@@ -64,13 +64,13 @@ function RelationChip({
       {(relation.v4Peers || relation.v6Peers) && (
         <div className="flex items-center gap-2">
           {relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0 && (
-            <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
               <span className="size-1.5 rounded-full bg-foreground/70" />
               v4: {formatNumber(relation.v4Peers, locale)}
             </span>
           )}
           {relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0 && (
-            <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
               <span className="size-1.5 rounded-full bg-foreground/35" />
               v6: {formatNumber(relation.v6Peers, locale)}
             </span>
@@ -145,7 +145,7 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
         <p className="text-xs leading-normal text-muted-foreground">{t.asnRoutingDescription}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <RelationColumn
           title={t.asnRelationPeers}
           relations={result.peers}

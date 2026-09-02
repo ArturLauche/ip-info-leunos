@@ -46,7 +46,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/85 px-4 backdrop-blur-xl lg:hidden">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background px-4 lg:hidden">
       <Link
         href="/"
         className="flex items-center gap-2.5 rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -62,7 +62,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
         <ModeToggle labels={themeLabels} />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={toolT.navMenu}>
+            <Button type="button" variant="ghost" size="icon" aria-label={toolT.navMenu}>
               <Menu className="size-5" aria-hidden="true" />
             </Button>
           </SheetTrigger>

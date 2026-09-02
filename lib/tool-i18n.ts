@@ -40,7 +40,6 @@ type ToolTranslation = {
   errorTitle: string;
   errorDescription: string;
   errorRetry: string;
-  reputationStatusHeader: string;
   asnRpkiValid: string;
   asnRpkiInvalid: string;
   asnRpkiStatus: string;
@@ -284,6 +283,13 @@ type ToolTranslation = {
   reputationGeneratedAt: string;
   reputationNoThreatEvidence: string;
   reputationNoMailEvidence: string;
+  reputationFilterAll: string;
+  reputationNoEvidence: string;
+  reputationFactChecked: string;
+  reputationFactMatched: string;
+  reputationFactUnavailable: string;
+  reputationFactCheckedAt: string;
+  reputationScoreCapped: string;
   reputationConnectionLabel: string;
   reputationReverseLabel: string;
   reputationFieldSource: string;
@@ -303,7 +309,8 @@ type ToolTranslation = {
   reputationSourceDescriptions: Record<string, string>;
   reputationGeoLabel: string;
   reputationNetworkLabel: string;
-  reputationDisclaimer: string;
+  reputationShowHiddenSources: string;
+  reputationHideHiddenSources: string;
 };
 
 const en: ToolTranslation = {
@@ -346,7 +353,6 @@ const en: ToolTranslation = {
   errorDescription:
     "This page could not be loaded. Try again — if it keeps failing, the cause is on our side.",
   errorRetry: "Try again",
-  reputationStatusHeader: "Status",
   asnRpkiValid: "RPKI valid",
   asnRpkiInvalid: "RPKI invalid",
   asnRpkiStatus: "RPKI {status}",
@@ -596,6 +602,13 @@ const en: ToolTranslation = {
   reputationNoThreatEvidence:
     "No direct malicious observations were found in the sources that could be checked.",
   reputationNoMailEvidence: "No email reputation listings were found in the checked sources.",
+  reputationFilterAll: "All",
+  reputationNoEvidence: "No evidence in this group from the sources that could be checked.",
+  reputationFactChecked: "Checked",
+  reputationFactMatched: "With threat evidence",
+  reputationFactUnavailable: "Unavailable",
+  reputationFactCheckedAt: "Checked at",
+  reputationScoreCapped: "Capped from {count} raw points",
   reputationConnectionLabel: "Connection",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Source",
@@ -744,8 +757,8 @@ const en: ToolTranslation = {
   },
   reputationGeoLabel: "Geolocation",
   reputationNetworkLabel: "ASN / Provider",
-  reputationDisclaimer:
-    "Aggregated from public sources; results are indicative hints, not a definitive verdict. A listing does not automatically mean the current user of an address did anything wrong.",
+  reputationShowHiddenSources: "Show unconfigured sources ({count})",
+  reputationHideHiddenSources: "Hide unconfigured sources",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -794,7 +807,6 @@ const de: Partial<ToolTranslation> = {
   errorDescription:
     "Diese Seite konnte nicht geladen werden. Bitte versuche es erneut — wiederholt sich der Fehler, liegt die Ursache bei uns.",
   errorRetry: "Erneut versuchen",
-  reputationStatusHeader: "Status",
   asnRpkiValid: "RPKI gültig",
   asnRpkiInvalid: "RPKI ungültig",
   asnRpkiStatus: "RPKI {status}",
@@ -1038,6 +1050,13 @@ const de: Partial<ToolTranslation> = {
   reputationNoThreatEvidence:
     "In den prüfbaren Quellen wurden keine direkten bösartigen Beobachtungen gefunden.",
   reputationNoMailEvidence: "In den geprüften Quellen wurden keine Mail-Reputations-Einträge gefunden.",
+  reputationFilterAll: "Alle",
+  reputationNoEvidence: "Keine Evidenz in dieser Gruppe aus den prüfbaren Quellen.",
+  reputationFactChecked: "Geprüft",
+  reputationFactMatched: "Mit Bedrohungsevidenz",
+  reputationFactUnavailable: "Nicht verfügbar",
+  reputationFactCheckedAt: "Geprüft am",
+  reputationScoreCapped: "Von {count} Rohpunkten begrenzt",
   reputationConnectionLabel: "Verbindung",
   reputationReverseLabel: "Reverse DNS",
   reputationFieldSource: "Quelle",
@@ -1186,8 +1205,8 @@ const de: Partial<ToolTranslation> = {
   },
   reputationGeoLabel: "Geolokalisierung",
   reputationNetworkLabel: "ASN / Provider",
-  reputationDisclaimer:
-    "Aus öffentlichen Quellen aggregiert; Ergebnisse sind Hinweise, kein endgültiges Urteil. Ein Listeneintrag bedeutet nicht automatisch, dass die aktuelle Nutzung der Adresse etwas falsch gemacht hat.",
+  reputationShowHiddenSources: "Nicht konfigurierte Quellen anzeigen ({count})",
+  reputationHideHiddenSources: "Nicht konfigurierte Quellen ausblenden",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {

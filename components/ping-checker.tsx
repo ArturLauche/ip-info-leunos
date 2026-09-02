@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useRouter } from "next/navigation";
@@ -113,6 +114,13 @@ export function PingChecker({
   const [result, setResult] = useState<PingResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const requestSeq = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
   // Values we last pushed into the URL ourselves via router.replace on submit.
   // Lets the sync effect distinguish our own URL update (which must not cancel
   // the in-flight request) from external navigation (command palette, links).
@@ -138,6 +146,9 @@ export function PingChecker({
       return;
     }
 
+    // External navigation: abort the obsolete request before invalidating
+    // its sequence guard so it stops consuming server time after discard.
+    abortRef.current?.abort();
     setTarget(initialTarget);
     setPort(initialPort);
     setMode(initialMode);
@@ -200,6 +211,9 @@ export function PingChecker({
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
@@ -216,6 +230,7 @@ export function PingChecker({
       const response = await fetch("/api/ping", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           mode,
           target,
@@ -234,6 +249,9 @@ export function PingChecker({
       const data = unwrapApiResponse<PingResult>(await response.json());
       if (seq === requestSeq.current) setResult(data);
     } catch (checkError) {
+      if (checkError instanceof DOMException && checkError.name === "AbortError") {
+        return;
+      }
       if (seq === requestSeq.current) {
         // Map by error code like every other checker, so rate limits and
         // validation failures show translated messages instead of the raw
@@ -329,8 +347,11 @@ export function PingChecker({
 
             <ModeExpand open={isDatabase}>
               <div className="pt-5">
-                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-muted/30 px-4 py-3">
-                  <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
+                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                  <Label
+                    htmlFor="ping-use-auth"
+                    className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-foreground"
+                  >
                     <LockKeyhole
                       className={cn(
                         "size-4 transition-colors duration-200 ease-[var(--ease-smooth)]",
@@ -338,9 +359,13 @@ export function PingChecker({
                       )}
                     />
                     {t.pingUseAuth}
-                  </span>
-                  <Switch checked={useAuth} onCheckedChange={setUseAuth} />
-                </label>
+                  </Label>
+                  <Switch
+                    id="ping-use-auth"
+                    checked={useAuth}
+                    onCheckedChange={setUseAuth}
+                  />
+                </div>
                 <ModeExpand open={useAuth}>
                   <div className="grid gap-4 pt-5 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
@@ -396,7 +421,7 @@ export function PingChecker({
             <Button
               type="submit"
               disabled={loading}
-              className="w-full shrink-0 sm:w-auto sm:min-w-44"
+              className="h-11 w-full shrink-0 sm:w-auto sm:min-w-36"
             >
               {loading ? (
                 <>
@@ -417,6 +442,13 @@ export function PingChecker({
           title={t.pingEmptyTitle}
           description={t.pingEmptyDescription}
         />
+      )}
+
+      {loading && !result && (
+        <div role="status" aria-busy="true">
+          <span className="sr-only">{t.pingRunning}</span>
+          <Skeleton className="h-40 rounded-xl" aria-hidden="true" />
+        </div>
       )}
 
       {error && <ErrorPanel message={error} />}
@@ -444,32 +476,32 @@ export function PingChecker({
           <div className="flex flex-col gap-4 p-5">
             <p className="text-sm leading-relaxed text-foreground">{result.message}</p>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border bg-muted/30 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.pingModeLabel}
-                </p>
-                <p className="mt-1 font-mono text-sm text-foreground uppercase">
+                </dt>
+                <dd className="mt-1 font-mono text-sm text-foreground uppercase">
                   {result.mode === "database" ? t.pingModeDatabase : result.mode}
-                </p>
+                </dd>
               </div>
-              <div className="rounded-lg border bg-muted/30 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.pingLatencyLabel}
-                </p>
-                <p className="mt-1 font-mono text-sm text-foreground tabular-nums">
+                </dt>
+                <dd className="mt-1 font-mono text-sm text-foreground tabular-nums">
                   {result.latencyMs} ms
-                </p>
+                </dd>
               </div>
-              <div className="rounded-lg border bg-muted/30 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.pingTargetLabel}
-                </p>
-                <p className="mt-1 font-mono text-sm break-all text-foreground">
+                </dt>
+                <dd className="mt-1 font-mono text-sm break-all text-foreground">
                   {result.target}:{result.port}
-                </p>
+                </dd>
               </div>
-            </div>
+            </dl>
 
             {result.details && (
               <>
@@ -547,13 +579,13 @@ function PingModeTabs({
           data-slide={view.slide ? "true" : undefined}
           aria-hidden
         />
-        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+        <TabsList className="grid h-auto w-full grid-cols-4">
           {PING_MODES.map((value) => (
             <TabsTrigger
               key={value}
               value={value}
               className={cn(
-                "relative z-10 py-1.5 transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
+                "relative z-10 min-h-9 truncate px-1 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)] sm:text-sm",
                 view.visible &&
                   "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
               )}
@@ -563,7 +595,7 @@ function PingModeTabs({
           ))}
         </TabsList>
       </div>
-      <div className="grid">
+      <div className="grid min-h-8">
         {PING_MODES.map((value) => (
           <p
             key={value}

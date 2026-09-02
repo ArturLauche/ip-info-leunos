@@ -8,7 +8,8 @@ import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EmptyState } from "@/components/empty-state";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
-import { normalizeAsnInput, type AsnProfile } from "@/lib/asn";
+import { normalizeAsnInput } from "@/lib/asn-id";
+import type { AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { FacilitySection } from "./facility-section";
@@ -92,7 +93,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         />
       )}
 
-      {loading && <LoadingSkeleton />}
+      {loading && <LoadingSkeleton label={t.lookupInProgress} />}
 
       {error && <ErrorPanel message={error} />}
 

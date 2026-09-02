@@ -121,9 +121,10 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
       )}
 
       {loading && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3" role="status" aria-busy="true">
+          <span className="sr-only">{t.cdnAnalyzing}</span>
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" />
+            <Skeleton key={index} className="h-24 rounded-xl" aria-hidden="true" />
           ))}
         </div>
       )}
@@ -151,7 +152,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           </Card>
 
           {!result.usesCdn && result.resolvedIps.length > 0 && (
-            <Card className="gap-2 border-primary/30 bg-primary/5 py-5">
+            <Card className="gap-2 border bg-muted/30 py-5">
               <p className="px-5 text-sm font-medium text-foreground">
                 {t.cdnNoProviderMatch}
               </p>
@@ -163,7 +164,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                   <Link
                     key={ip}
                     href={`/check?ip=${encodeURIComponent(ip)}`}
-                    className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                    className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-muted/40"
                   >
                     {ip}
                     <ExternalLink className="size-3" />

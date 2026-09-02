@@ -14,13 +14,33 @@ const cdnQuerySchema = z.object({
   target: z.string().trim().min(1).max(2048),
 });
 
+const RESOLVE_TIMEOUT_MS = 2_000;
+
+function raceCdnResolve<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("DNS query timed out.")), RESOLVE_TIMEOUT_MS);
+    timer.unref?.();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function resolveCnameChain(hostname: string) {
   const cnames: string[] = [];
   let current = hostname;
 
   for (let i = 0; i < 5; i += 1) {
     try {
-      const records = await dns.resolveCname(current);
+      // Bounded per hop: a hanging CNAME must not hold the route open.
+      const records = await raceCdnResolve(dns.resolveCname(current));
       if (!records.length) break;
 
       const next = records[0].toLowerCase();
@@ -38,8 +58,8 @@ async function resolveCnameChain(hostname: string) {
 
 async function resolveIpAddresses(hostname: string) {
   const [v4Result, v6Result] = await Promise.allSettled([
-    dns.resolve4(hostname),
-    dns.resolve6(hostname),
+    raceCdnResolve(dns.resolve4(hostname)),
+    raceCdnResolve(dns.resolve6(hostname)),
   ]);
 
   const ipv4 = v4Result.status === "fulfilled" ? v4Result.value : [];

@@ -8,7 +8,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: siteConfig.description,
     start_url: '/',
     display: 'standalone',
-    // Mirrors the dark --background from app/globals.css.
+    // Mirrors the dark --background from app/globals.css. A single static
+    // manifest cannot express both color schemes; dark is correct here
+    // because ThemeProvider defaults to dark (see app/layout.tsx).
     background_color: '#0a0a0a',
     theme_color: '#0a0a0a',
     lang: 'de-DE',

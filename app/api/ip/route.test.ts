@@ -9,6 +9,7 @@ vi.mock("@/lib/providers/ip-api", () => ({
   lookupIpApi: lookupIpApiMock,
 }));
 
+import { clearIpLookupCacheForTests } from "@/lib/ip-lookup-cache";
 import { GET } from "./route";
 
 const ipApiResult = {
@@ -99,6 +100,7 @@ describe("IP route proxy hints", () => {
   beforeEach(() => {
     lookupIpApiMock.mockReset();
     lookupIpApiMock.mockResolvedValue(ipApiResult);
+    clearIpLookupCacheForTests();
   });
 
   it("omits requester proxy hints for explicit target lookups", async () => {
@@ -112,6 +114,47 @@ describe("IP route proxy hints", () => {
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.data).not.toHaveProperty("proxyHints");
+  });
+
+  it("memoizes successful explicit lookups", async () => {
+    const first = await GET(new Request("http://localhost/api/ip?ip=8.8.8.8"));
+    const second = await GET(new Request("http://localhost/api/ip?ip=8.8.8.8"));
+
+    expect(first.status).toBe(200);
+    expect(await second.json()).toEqual(await first.json());
+    expect(lookupIpApiMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not memoize upstream failures", async () => {
+    lookupIpApiMock.mockResolvedValue(null);
+
+    await GET(new Request("http://localhost/api/ip?ip=8.8.8.8"));
+    const retry = await GET(new Request("http://localhost/api/ip?ip=8.8.8.8"));
+    const body = await retry.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.data.country).toBe("");
+    expect(lookupIpApiMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares one upstream fetch between concurrent identical lookups", async () => {
+    let release!: (value: typeof ipApiResult) => void;
+    lookupIpApiMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+
+    const pending = [
+      GET(new Request("http://localhost/api/ip?ip=8.8.8.8")),
+      GET(new Request("http://localhost/api/ip?ip=8.8.8.8")),
+    ];
+    release(ipApiResult);
+    const [first, second] = await Promise.all(pending);
+
+    expect(first.status).toBe(200);
+    expect(await second.json()).toEqual(await first.json());
+    expect(lookupIpApiMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns request hints for automatic lookup even when metadata is unavailable", async () => {

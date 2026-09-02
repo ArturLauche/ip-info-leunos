@@ -12,6 +12,12 @@ import {
 import { assessRequestProxyHints, normalizeForwardedIp } from "@/lib/request-proxy-hints";
 import { lookupIpApi, type IpApiData } from "@/lib/providers/ip-api";
 import {
+  getCachedLookup,
+  getInflightLookup,
+  setCachedLookup,
+  trackInflightLookup,
+} from "@/lib/ip-lookup-cache";
+import {
   assertPublicIpAddress,
   assertPublicTarget,
   isIPv4Address,
@@ -20,6 +26,12 @@ import {
 } from "@/lib/network/target";
 
 export const runtime = "nodejs";
+
+// Short server-side memo for explicit ?ip= lookups (upstream ip-api.com quota
+// protection; see lib/ip-lookup-cache.ts). The header-derived auto-detect
+// branch is never cached: it depends on per-request forwarding headers and
+// must not leak one visitor's addresses to another. The response header stays
+// no-store; this only avoids repeated upstream fetches for popular lookups.
 
 const ipQuerySchema = z.object({
   ip: z.string().trim().min(1).max(253).optional(),
@@ -225,9 +237,20 @@ export async function GET(request: Request) {
       return apiError("invalid_target", "Please provide a valid public IP address or domain.", 400);
     }
 
-    const data = await lookupIpApi(ip, { language });
+    const cacheKey = `${ip}:${language}`;
+    const cachedPayload = getCachedLookup(cacheKey);
+    if (cachedPayload) {
+      return apiOk(cachedPayload);
+    }
+
+    let shared = getInflightLookup(cacheKey);
+    if (!shared) {
+      shared = trackInflightLookup(cacheKey, lookupIpApi(ip, { language }));
+    }
+    const data = await shared;
 
     if (!data) {
+      // Upstream failure: never memoized, so the next request retries live.
       return apiOk({
         ipv4: isIPv4Address(ip) ? ip : null,
         ipv6: isIPv6Address(ip) ? ip : null,
@@ -241,7 +264,9 @@ export async function GET(request: Request) {
       });
     }
 
-    return apiOk(toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null));
+    const payload = toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null);
+    setCachedLookup(cacheKey, payload);
+    return apiOk(payload);
   }
 
   // Auto-detect from request headers. Vercel's forwarding headers are normal

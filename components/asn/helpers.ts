@@ -1,5 +1,5 @@
 import { ApiClientError } from "@/lib/api/client";
-import { AsnValidationError, MAX_ASN_NUMBER } from "@/lib/asn";
+import { AsnValidationError, MAX_ASN_NUMBER } from "@/lib/asn-id";
 import type { SourceCacheStatus, SourceStatus } from "@/lib/asn";
 import { formatNumber, formatTemplate } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";

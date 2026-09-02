@@ -142,14 +142,14 @@ export function IxPresenceSection({
                   {entry.name}
                 </span>
                 {entry.isRsPeer === true && (
-                  <Badge variant="success" className="text-[0.65rem]">
+                  <Badge variant="success" className="text-[11px]">
                     {t.asnLabelRsPeer}
                   </Badge>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelSpeed}
                   </span>
                   <div className="mt-1 flex flex-col gap-1">
@@ -158,7 +158,7 @@ export function IxPresenceSection({
                   </div>
                 </div>
                 <div>
-                  <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelRsPeer}
                   </span>
                   <span className="mt-1 block font-medium text-foreground/80">
@@ -166,13 +166,13 @@ export function IxPresenceSection({
                   </span>
                 </div>
                 <div className="col-span-2">
-                  <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelIpv4}
                   </span>
                   <span className="font-mono text-xs break-all text-foreground">{valueOrDash(entry.ipaddr4)}</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                     {t.asnLabelIpv6}
                   </span>
                   <span className="font-mono text-xs break-all text-foreground">{valueOrDash(entry.ipaddr6)}</span>

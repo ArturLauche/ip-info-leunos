@@ -11,8 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { CountryFlag } from "@/components/country-flag";
+import { ErrorPanel } from "@/components/error-panel";
 import { unwrapApiResponse } from "@/lib/api/client";
-import { normalizeAsnInput } from "@/lib/asn";
+import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
 import {
   discoverClientIp,
@@ -129,7 +130,7 @@ function CopyButton({
     <Button
       type="button"
       variant="ghost"
-      size="icon-sm"
+      size="icon"
       onClick={handleCopy}
       aria-label={label}
       className="shrink-0 text-muted-foreground hover:text-foreground"
@@ -234,30 +235,28 @@ function FingerprintRow({
       <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
         <span>{label}</span>
         {ready && value ? (
-          <span className="shrink-0 font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+          <span className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
             {FINGERPRINT_HASH_ALGORITHM}
           </span>
         ) : null}
       </dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-18 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
         ) : value ? (
-          <div className="relative rounded-lg border bg-muted/40">
+          <div className="flex items-start gap-2">
             <code
               title={value}
-              className="block w-full whitespace-pre-wrap px-3.5 py-3 pr-12 font-mono text-xs font-medium leading-6 tracking-[0.04em] text-foreground select-all"
+              className="block min-w-0 flex-1 rounded-lg border bg-muted/40 px-3.5 py-3 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-all text-foreground select-all"
             >
               {formatFingerprint(value)}
             </code>
-            <div className="absolute right-1.5 top-1.5">
-              <CopyButton
-                text={value}
-                label={copyLabel}
-                copiedLabel={copiedLabel}
-                failedLabel={failedLabel}
-              />
-            </div>
+            <CopyButton
+              text={value}
+              label={copyLabel}
+              copiedLabel={copiedLabel}
+              failedLabel={failedLabel}
+            />
           </div>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
@@ -480,12 +479,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
   }
 
   if (error || !data) {
-    return (
-      <Card className="items-center gap-3 p-10 text-center">
-        <ShieldAlert className="size-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{error || t.ipInfoError}</p>
-      </Card>
-    );
+    return <ErrorPanel message={error || t.ipInfoError} />;
   }
 
   const ConnectionIcon = data.mobile
@@ -541,16 +535,16 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
         <div className="grid lg:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
           <div className="flex flex-col gap-4 p-6 lg:p-7">
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <Badge
                 variant={displayIpv4 ? "outline" : "secondary"}
-                className="font-mono"
+                className="mt-1 font-mono"
               >
                 IPv4
               </Badge>
               {displayIpv4 ? (
                 <>
-                  <span className="min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                  <span className="min-w-0 flex-1 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                     {displayIpv4}
                   </span>
                   <CopyButton
@@ -576,7 +570,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
               </Badge>
               {displayIpv6 ? (
                 <>
-                  <span className="min-w-0 flex-1 font-mono text-sm font-semibold tracking-tight break-all text-foreground sm:text-lg">
+                  <span className="min-w-0 flex-1 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl">
                     {displayIpv6}
                   </span>
                   <CopyButton
@@ -629,11 +623,9 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
             )}
 
             {displayedProxyHints?.detected && (
-              <div className="rounded-lg border border-border/70 bg-background/60 p-3">
+              <div className="border-t border-border/60 pt-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-warning/10 text-warning">
-                    <ShieldAlert className="size-3.5" />
-                  </span>
+                  <ShieldAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
                   <p className="text-xs font-semibold text-foreground">
                     {t.additionalProxyHint}
                   </p>

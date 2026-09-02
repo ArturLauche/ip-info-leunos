@@ -97,19 +97,19 @@ export function FacilitySection({
             <span className="border-b pb-2 text-sm font-semibold text-foreground">{entry.name}</span>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {t.asnLabelCity}
                 </span>
                 <span className="font-medium text-foreground">{valueOrDash(entry.city)}</span>
               </div>
               <div>
-                <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {t.asnLabelCountry}
                 </span>
                 <span className="font-medium uppercase text-foreground">{valueOrDash(entry.country)}</span>
               </div>
               <div className="col-span-2">
-                <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {t.asnLabelLocalAsn}
                 </span>
                 <span className="font-mono text-foreground">{valueOrDash(entry.localAsn)}</span>

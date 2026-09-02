@@ -130,6 +130,7 @@ function udpPing(target: string, port: number, timeoutMs: number): Promise<PingR
         note: "UDP is connectionless; success means packet dispatch without immediate error.",
       });
     }, timeoutMs);
+    timer.unref?.();
 
     socket.once("error", (error) => {
       clearTimeout(timer);

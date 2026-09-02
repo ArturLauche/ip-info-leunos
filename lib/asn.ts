@@ -1,6 +1,11 @@
-export const MAX_ASN_NUMBER = 4_294_967_295;
+import {
+  AsnValidationError,
+  MAX_ASN_NUMBER,
+  normalizeAsnInput,
+  type NormalizedAsn,
+} from "./asn-id";
 
-const ASN_PATTERN = /^(?:AS)?([0-9]+)$/i;
+export { AsnValidationError, MAX_ASN_NUMBER, normalizeAsnInput, type NormalizedAsn };
 
 export type SourceStatus = "available" | "unavailable" | "not_configured" | "error";
 export type AsnSource = "ipinfo" | "peeringdb" | "ripestat";
@@ -12,11 +17,6 @@ export interface SourceDiagnostic {
   durationMs: number;
   cache: SourceCacheStatus;
   warnings: number;
-}
-
-export interface NormalizedAsn {
-  asn: string;
-  asnNumber: number;
 }
 
 export interface AsnPrefix {
@@ -148,34 +148,6 @@ export interface AsnProfile {
   };
   warnings: string[];
   sourceDiagnostics?: SourceDiagnostic[];
-}
-
-export class AsnValidationError extends Error {
-  constructor(message = "Please provide a valid ASN.") {
-    super(message);
-    this.name = "AsnValidationError";
-  }
-}
-
-export function normalizeAsnInput(input: string): NormalizedAsn {
-  const trimmed = input.trim();
-  const match = trimmed.match(ASN_PATTERN);
-
-  if (!match) {
-    throw new AsnValidationError("Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.");
-  }
-
-  const digits = match[1].replace(/^0+/, "") || "0";
-  const asnNumber = Number(digits);
-
-  if (!Number.isSafeInteger(asnNumber) || asnNumber < 1 || asnNumber > MAX_ASN_NUMBER) {
-    throw new AsnValidationError(`ASN must be between 1 and ${MAX_ASN_NUMBER}.`);
-  }
-
-  return {
-    asn: `AS${asnNumber}`,
-    asnNumber,
-  };
 }
 
 export function createEmptyAsnProfile(
