@@ -289,6 +289,53 @@ type ToolTranslation = {
   reputationGeoLabel: string;
   reputationNetworkLabel: string;
   reputationDisclaimer: string;
+  reputationVerdictLabel: string;
+  reputationConfidenceScore: string;
+  reputationCategoryMailPolicy: string;
+  reputationCategoryMailReputation: string;
+  reputationCategorySpamObserved: string;
+  reputationCategoryScanner: string;
+  reputationCategoryBruteforce: string;
+  reputationCategoryBotnet: string;
+  reputationCategoryMalware: string;
+  reputationContextResidential: string;
+  reputationContextBusiness: string;
+  reputationContextMobile: string;
+  reputationContextHosting: string;
+  reputationContextVpn: string;
+  reputationContextProxy: string;
+  reputationContextTor: string;
+  reputationContextUnknown: string;
+  reputationStatusClean: string;
+  reputationStatusMatched: string;
+  reputationStatusPolicy: string;
+  reputationStatusResolverBlocked: string;
+  reputationStatusUnsupported: string;
+  reputationStatusNotConfigured: string;
+  reputationStatusRateLimited: string;
+  reputationStatusUnavailable: string;
+  reputationSectionSummary: string;
+  reputationSectionThreatEvidence: string;
+  reputationSectionMailPolicy: string;
+  reputationSectionNetworkContext: string;
+  reputationSectionSources: string;
+  reputationCoverageSummary: string;
+  reputationSourceTypeLabel: string;
+  reputationSourceStatusLabel: string;
+  reputationSourceDetailsLabel: string;
+  reputationSeverityLabel: string;
+  reputationConfidenceLabel: string;
+  reputationFirstSeenLabel: string;
+  reputationLastSeenLabel: string;
+  reputationReportsLabel: string;
+  reputationTargetSubnetLabel: string;
+  reputationPolicyExplainer: string;
+  reputationPolicyExplainerText: string;
+  reputationMailReputationExplainer: string;
+  reputationMailReputationExplainerText: string;
+  reputationNetworkExplainer: string;
+  reputationNetworkExplainerText: string;
+  reputationNoEvidence: string;
 };
 
 const en: ToolTranslation = {
@@ -584,6 +631,53 @@ const en: ToolTranslation = {
   reputationGeoLabel: "Geolocation",
   reputationNetworkLabel: "ASN / Provider",
   reputationDisclaimer: "Aggregated from public sources; results are indicative, not a definitive verdict.",
+  reputationVerdictLabel: "Assessment",
+  reputationConfidenceScore: "Confidence score",
+  reputationCategoryMailPolicy: "Mail Policy (PBL)",
+  reputationCategoryMailReputation: "Mail Reputation",
+  reputationCategorySpamObserved: "Spam Observed",
+  reputationCategoryScanner: "Port / Vulnerability Scanner",
+  reputationCategoryBruteforce: "Brute-Force Activity",
+  reputationCategoryBotnet: "Botnet / C2",
+  reputationCategoryMalware: "Malware / Criminal Net",
+  reputationContextResidential: "Residential Broadband",
+  reputationContextBusiness: "Business Network",
+  reputationContextMobile: "Mobile Carrier",
+  reputationContextHosting: "Hosting / Datacenter",
+  reputationContextVpn: "VPN Exit",
+  reputationContextProxy: "Public Proxy",
+  reputationContextTor: "Tor Exit Relay",
+  reputationContextUnknown: "Standard Network",
+  reputationStatusClean: "Clean",
+  reputationStatusMatched: "Threat Detected",
+  reputationStatusPolicy: "Policy Listing",
+  reputationStatusResolverBlocked: "Resolver Blocked",
+  reputationStatusUnsupported: "Unsupported",
+  reputationStatusNotConfigured: "Key Required",
+  reputationStatusRateLimited: "Rate Limited",
+  reputationStatusUnavailable: "Unavailable",
+  reputationSectionSummary: "Reputation Summary",
+  reputationSectionThreatEvidence: "Threat Evidence",
+  reputationSectionMailPolicy: "Mail Reputation & Policy",
+  reputationSectionNetworkContext: "Network Classification",
+  reputationSectionSources: "Security Feeds & Threat Lists",
+  reputationCoverageSummary: "{checked} of {total} checked • {threats} threats • {policies} policy",
+  reputationSourceTypeLabel: "Type",
+  reputationSourceStatusLabel: "Status",
+  reputationSourceDetailsLabel: "Details & Indicators",
+  reputationSeverityLabel: "Severity",
+  reputationConfidenceLabel: "Confidence",
+  reputationFirstSeenLabel: "First seen",
+  reputationLastSeenLabel: "Last seen",
+  reputationReportsLabel: "Reports",
+  reputationTargetSubnetLabel: "Target Subnet",
+  reputationPolicyExplainer: "Why are residential IPs listed on Spamhaus PBL?",
+  reputationPolicyExplainerText: "The Policy Block List (PBL) is not a blacklist of spammers. It records consumer dynamic/residential IP blocks that should use their ISP's designated mail relay rather than sending unauthenticated mail directly to destination MTAs. Presence here is standard, expected, and zero-threat for consumer connections.",
+  reputationMailReputationExplainer: "What does an email reputation listing mean?",
+  reputationMailReputationExplainerText: "Feeds like Barracuda BRBL or SpamCop track spam-trap hits and volume changes. On dynamic pools, listings can reflect earlier leaseholders rather than the current subscriber.",
+  reputationNetworkExplainer: "Network classification vs. security threat",
+  reputationNetworkExplainerText: "Attributes like cloud hosting, VPN tunnels, or residential ISP assignation describe topology. They do not constitute malicious threat activity on their own.",
+  reputationNoEvidence: "No threat indicators or malicious activity detected across checked feeds.",
 };
 
 const de: Partial<ToolTranslation> = {
@@ -879,6 +973,53 @@ const de: Partial<ToolTranslation> = {
   reputationGeoLabel: "Geolokalisierung",
   reputationNetworkLabel: "ASN / Provider",
   reputationDisclaimer: "Aus öffentlichen Quellen aggregiert; Ergebnisse sind Hinweise, kein endgültiges Urteil.",
+  reputationVerdictLabel: "Bewertung",
+  reputationConfidenceScore: "Konfidenzwert",
+  reputationCategoryMailPolicy: "E-Mail-Richtlinie (PBL)",
+  reputationCategoryMailReputation: "E-Mail-Reputation",
+  reputationCategorySpamObserved: "Spam-Aktivität beobachtet",
+  reputationCategoryScanner: "Port- / Schwachstellen-Scanner",
+  reputationCategoryBruteforce: "Brute-Force-Angriffe",
+  reputationCategoryBotnet: "Botnetz / C2-Server",
+  reputationCategoryMalware: "Malware / Kriminelles Netz",
+  reputationContextResidential: "Privatkunden-Breitband",
+  reputationContextBusiness: "Geschäftskundenanschluss",
+  reputationContextMobile: "Mobilfunknetz",
+  reputationContextHosting: "Hosting / Rechenzentrum",
+  reputationContextVpn: "VPN-Endpunkt",
+  reputationContextProxy: "Öffentlicher Proxy",
+  reputationContextTor: "Tor-Exit-Knoten",
+  reputationContextUnknown: "Standard-Netzwerk",
+  reputationStatusClean: "Sauber",
+  reputationStatusMatched: "Bedrohung erkannt",
+  reputationStatusPolicy: "Richtlinien-Eintrag",
+  reputationStatusResolverBlocked: "Resolver blockiert",
+  reputationStatusUnsupported: "Nicht unterstützt",
+  reputationStatusNotConfigured: "Schlüssel erforderlich",
+  reputationStatusRateLimited: "Rate-Limit erreicht",
+  reputationStatusUnavailable: "Nicht verfügbar",
+  reputationSectionSummary: "Reputationsübersicht",
+  reputationSectionThreatEvidence: "Bedrohungsnachweise",
+  reputationSectionMailPolicy: "E-Mail-Reputation & Richtlinien",
+  reputationSectionNetworkContext: "Netzwerk-Klassifizierung",
+  reputationSectionSources: "Sicherheitsquellen & Threat-Feeds",
+  reputationCoverageSummary: "{checked} von {total} geprüft • {threats} Bedrohungen • {policies} Richtlinie",
+  reputationSourceTypeLabel: "Typ",
+  reputationSourceStatusLabel: "Status",
+  reputationSourceDetailsLabel: "Details & Indikatoren",
+  reputationSeverityLabel: "Schweregrad",
+  reputationConfidenceLabel: "Konfidenz",
+  reputationFirstSeenLabel: "Zuerst gesehen",
+  reputationLastSeenLabel: "Zuletzt gesehen",
+  reputationReportsLabel: "Meldungen",
+  reputationTargetSubnetLabel: "Betroffenes Subnetz",
+  reputationPolicyExplainer: "Warum stehen Privatkunden-IPs auf der Spamhaus PBL?",
+  reputationPolicyExplainerText: "Die Policy Block List (PBL) ist keine Spam-Blacklist. Sie führt dynamische und private IP-Bereiche auf, die ausgehende E-Mails über den authentifizierten SMTP-Server ihres Internetanbieters versenden sollen, statt direkte Verbindungen zu fremden Mailservern aufzubauen. Ein PBL-Eintrag ist für Privatkundenanschlüsse völlig normal, erwartet und stellt kein Sicherheitsrisiko dar.",
+  reputationMailReputationExplainer: "Was bedeutet ein E-Mail-Reputationseintrag?",
+  reputationMailReputationExplainerText: "Listen wie Barracuda BRBL oder SpamCop erfassen Spam-Trap-Treffer und Mailserver-Volumen. Da IP-Adressen von Privatkunden dynamisch neu vergeben werden, bedeutet ein Eintrag nicht, dass der aktuelle Nutzer Spam versendet hat.",
+  reputationNetworkExplainer: "Netzwerk-Klassifizierung vs. Sicherheitsbedrohung",
+  reputationNetworkExplainerText: "Merkmale wie Cloud-Hosting, VPN-Tunnel oder ein privater Breitbandanschluss beschreiben die Netzanbindung. Sie stellen für sich allein genommen keine bösartige Bedrohung dar.",
+  reputationNoEvidence: "Keine Bedrohungsindikatoren oder bösartigen Aktivitäten in den abgefragten Quellen festgestellt.",
 };
 
 const toolTranslations: Record<Locale, ToolTranslation> = {
