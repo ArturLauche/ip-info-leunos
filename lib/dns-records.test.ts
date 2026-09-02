@@ -18,6 +18,10 @@ describe("formatDnsRecordValue", () => {
     );
   });
 
+  it("renders RFC 7505 null MX with the root dot", () => {
+    expect(formatDnsRecordValue({ type: "MX", value: { priority: 0, exchange: "" } })).toBe("0 .");
+  });
+
   it("formats SRV records in zone-file order", () => {
     expect(
       formatDnsRecordValue({

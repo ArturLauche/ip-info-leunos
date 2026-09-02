@@ -22,8 +22,11 @@ export function formatDnsRecordValue(record: DnsRecord): string {
   const fields = value as Record<string, unknown>;
 
   switch (record.type) {
-    case "MX":
-      return `${fields.priority} ${fields.exchange}`;
+    case "MX": {
+      const exchange = typeof fields.exchange === "string" ? fields.exchange.trim() : "";
+      // RFC 7505 null MX: empty exchange means "no mail service", written as ".".
+      return exchange ? `${fields.priority} ${exchange}` : `${fields.priority} .`;
+    }
     case "SRV":
       return `${fields.priority} ${fields.weight} ${fields.port} ${fields.name}`;
     case "SOA":

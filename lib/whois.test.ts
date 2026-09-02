@@ -60,4 +60,30 @@ describe("summarizeWhois", () => {
     expect(summary.status).toEqual(["clientDeleteProhibited", "clientTransferProhibited"]);
     expect(summary.nameservers).toEqual(["A.IANA-SERVERS.NET", "B.IANA-SERVERS.NET"]);
   });
+
+  it("parses indented registry responses and strips status explainer URLs", () => {
+    // VeriSign (.com/.net/.edu) indents every field and appends an ICANN
+    // explainer URL to each EPP status code.
+    const raw = [
+      "   Domain Name: GOOGLE.COM",
+      "   Registrar WHOIS Server: whois.markmonitor.com",
+      "   Registrar URL: http://www.markmonitor.com",
+      "   Updated Date: 2019-09-09T15:39:04Z",
+      "   Creation Date: 1997-09-15T04:00:00Z",
+      "   Registry Expiry Date: 2028-09-14T04:00:00Z",
+      "   Registrar: MarkMonitor Inc.",
+      "   Domain Status: clientDeleteProhibited https://icann.org/epp#clientDeleteProhibited",
+      "   Domain Status: serverTransferProhibited https://icann.org/epp#serverTransferProhibited",
+      "   Name Server: NS1.GOOGLE.COM",
+      "   Name Server: NS2.GOOGLE.COM",
+    ].join("\r\n");
+
+    const summary = summarizeWhois(raw);
+    expect(summary.registrar).toBe("MarkMonitor Inc.");
+    expect(summary.created).toBe("1997-09-15T04:00:00Z");
+    expect(summary.updated).toBe("2019-09-09T15:39:04Z");
+    expect(summary.expires).toBe("2028-09-14T04:00:00Z");
+    expect(summary.status).toEqual(["clientDeleteProhibited", "serverTransferProhibited"]);
+    expect(summary.nameservers).toEqual(["NS1.GOOGLE.COM", "NS2.GOOGLE.COM"]);
+  });
 });
