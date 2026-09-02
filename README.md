@@ -11,7 +11,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Query WHOIS/RDAP data at `/whois`.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
-- Check IP reputation against DNS blacklists, malware and botnet feeds (Spamhaus ZEN, SpamCop, Barracuda BRBL, DroneBL, blocklist.de, abuse.ch Feodo Tracker, Spamhaus DROP, Project Honey Pot), network topology context, and optional AbuseIPDB reports at `/reputation`. Uses an evidence-based model that separates policy restrictions (such as residential dynamic IP rules) from genuine malicious threat activity.
+- Check IP reputation against DNS blacklists, proxy/hosting heuristics, and optional AbuseIPDB reports at `/reputation`.
 - Jump between tools or deep-link a typed IP, domain, or ASN into the right tool from a Spotlight-style command palette (⌘K / Ctrl+K, or `/`).
 
 ## Public-Site Safety Model
@@ -93,9 +93,7 @@ This app is not purely static because the tools use server-side API routes. Depl
 - `api64.ipify.org` for primary client-side IPv6 discovery
 - `checkip.amazonaws.com` as a client-side IP discovery fallback
 - `rdap.org` as WHOIS fallback
-- `zen.spamhaus.org` (SBL/XBL/PBL), `bl.spamcop.net`, `b.barracudacentral.org`, `dnsbl.dronebl.org`, `bl.blocklist.de`, and `dnsbl.httpbl.org` DNSBLs for IP reputation and abuse history
-- `feodotracker.abuse.ch` (abuse.ch) for active botnet C2 address tracking
-- `spamhaus.org/drop` (Spamhaus DROP / eDROP) for cybercrime and hijacked subnet identification
+- `zen.spamhaus.org`, `bl.spamcop.net`, and `b.barracudacentral.org` DNSBLs for IP reputation
 - `api.abuseipdb.com` for abuse confidence scores and report counts (optional key)
 
 PeeringDB data is public and user-maintained, so it may be incomplete when a network does not maintain a PeeringDB profile. IPinfo ASN details may require an appropriate IPinfo plan for the configured token.
