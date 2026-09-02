@@ -47,7 +47,10 @@ function firstValue(raw: string, labels: string[]) {
   const lines = raw.split(/\r?\n/);
 
   for (const label of labels) {
-    const match = lines.find((line) => line.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+    const match = lines.find((line) =>
+      // Registries like VeriSign indent every field; compare without leading whitespace.
+      line.trim().toLowerCase().startsWith(`${label.toLowerCase()}:`),
+    );
     if (match) return match.split(":").slice(1).join(":").trim();
   }
 
@@ -59,7 +62,7 @@ function allValues(raw: string, labels: string[]) {
 
   for (const line of raw.split(/\r?\n/)) {
     for (const label of labels) {
-      if (line.toLowerCase().startsWith(`${label.toLowerCase()}:`)) {
+      if (line.trim().toLowerCase().startsWith(`${label.toLowerCase()}:`)) {
         const value = line.split(":").slice(1).join(":").trim();
         if (value) values.add(value);
       }
@@ -75,7 +78,10 @@ export function summarizeWhois(raw: string): WhoisSummary {
     created: firstValue(raw, ["Creation Date", "Created", "created"]),
     expires: firstValue(raw, ["Registry Expiry Date", "Expiration Date", "expires"]),
     updated: firstValue(raw, ["Updated Date", "Last Updated", "updated"]),
-    status: allValues(raw, ["Domain Status", "Status"]),
+    // Thin registries append an ICANN explainer URL to every EPP status code.
+    status: allValues(raw, ["Domain Status", "Status"]).map((value) =>
+      value.replace(/\s*https?:\/\/\S+$/i, ""),
+    ),
     nameservers: allValues(raw, ["Name Server", "Nameserver", "nserver"]),
   };
 }
