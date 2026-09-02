@@ -399,8 +399,8 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       {result && evidenceGroups && (
         <div className="tool-reveal flex flex-col gap-6">
           {/* Verdict */}
-          <Card className="gap-3 py-5">
-            <div className="flex flex-wrap items-center gap-3 px-5">
+          <Card className="gap-0 overflow-hidden py-0">
+            <div className="flex flex-wrap items-center gap-3 px-5 py-5">
               <RiskIcon level={result.level} />
               <p className="font-mono text-lg font-semibold break-all text-foreground">
                 {result.ip}
@@ -409,42 +409,57 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                 {headlineLabel(result, t)}
               </Badge>
             </div>
-            <div className="flex flex-col gap-1.5 px-5">
-              {result.contextCategories.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {result.contextCategories.map((category) => categoryLabel(category, t)).join(" · ")}
-                </p>
-              )}
-              <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground tabular-nums">
-                  {t.reputationScoreLabel}: {result.score}/100
-                </span>
-                <span>
-                  {formatTemplate(t.reputationCoverageChecked, {
-                    count: result.coverage.checkedCount,
-                  })}
-                </span>
-                {result.coverage.matchedCount > 0 && (
-                  <span>
-                    {formatTemplate(t.reputationCoverageMatched, {
-                      count: result.coverage.matchedCount,
-                    })}
-                  </span>
-                )}
-                {result.coverage.unavailableCount > 0 && (
-                  <span>
-                    {formatTemplate(t.reputationCoverageUnavailable, {
-                      count: result.coverage.unavailableCount,
-                    })}
-                  </span>
-                )}
-                <span>
-                  {formatTemplate(t.reputationGeneratedAt, {
-                    time: formatDateTime(result.checkedAt, locale) ?? result.checkedAt,
-                  })}
-                </span>
+            {result.contextCategories.length > 0 && (
+              <p className="px-5 pb-5 text-sm text-muted-foreground">
+                {result.contextCategories.map((category) => categoryLabel(category, t)).join(" · ")}
               </p>
-            </div>
+            )}
+            <dl className="grid grid-cols-2 gap-4 border-t bg-muted/30 px-5 py-4 sm:grid-cols-3 lg:grid-cols-5">
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.reputationScoreLabel}
+                </dt>
+                <dd className="mt-1 text-base font-semibold text-foreground tabular-nums">
+                  {result.score}/100
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.reputationFactChecked}
+                </dt>
+                <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
+                  {formatNumber(result.coverage.checkedCount, locale)}
+                </dd>
+              </div>
+              {result.coverage.matchedCount > 0 && (
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t.reputationFactMatched}
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
+                    {formatNumber(result.coverage.matchedCount, locale)}
+                  </dd>
+                </div>
+              )}
+              {result.coverage.unavailableCount > 0 && (
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t.reputationFactUnavailable}
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
+                    {formatNumber(result.coverage.unavailableCount, locale)}
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.reputationFactCheckedAt}
+                </dt>
+                <dd className="mt-1 text-sm font-semibold break-words text-foreground">
+                  {formatDateTime(result.checkedAt, locale) ?? result.checkedAt}
+                </dd>
+              </div>
+            </dl>
           </Card>
 
           {/* Context */}
