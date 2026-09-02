@@ -8,11 +8,19 @@ import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "IP Reputation Check mit Blacklist-Prüfung",
+  title: "IP Reputation Check – evidenzbasierte Risikoanalyse",
   description:
-    "Prüfe öffentliche IP-Adressen gegen ausgewählte DNS-Blacklists, Proxy- und Hosting-Heuristiken sowie optional verfügbare AbuseIPDB-Meldedaten.",
+    "Prüfe öffentliche IP-Adressen gegen unabhängige Reputations- und Threat-Intelligence-Quellen: DNS-Blocklisten, Abuse-Meldungen, Botnet-C2-Tracker und Netzwerk-Klassifizierung – mit nachvollziehbarer Risikobewertung.",
   path: "/reputation",
-  keywords: ["IP Reputation", "Blacklist Check", "Spamhaus", "AbuseIPDB", "RBL"],
+  keywords: [
+    "IP Reputation",
+    "Blacklist Check",
+    "DNSBL",
+    "Spamhaus",
+    "AbuseIPDB",
+    "Botnet C2",
+    "Threat Intelligence",
+  ],
 });
 
 interface ReputationPageProps {

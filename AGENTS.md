@@ -58,7 +58,11 @@ lib/
   whois.ts              WHOIS-Parsing, Referral-Normalisierung
   format.ts             formatTemplate, formatNumber, valueOrDash
   utils.ts              cn() (clsx + tailwind-merge) für shadcn-Komponenten
-  i18n.ts, tool-i18n.ts, seo.ts, asn.ts, reputation.ts, client-ip-discovery.ts
+  i18n.ts, tool-i18n.ts, seo.ts, asn.ts, client-ip-discovery.ts
+  reputation/            Evidenz-basiertes Reputationsmodell: model (Typen/Quellen-Registry),
+                        dnsbl (Zonen-Interpretation), feeds (Feodo/DROP-Cache), providers
+                        (HTTP-Normalisierung), scoring (deterministische Bewertung),
+                        query (Server-Orchestrierung), index (Re-Exports)
 app/not-found.tsx       Lokalisierte 404-Seite (noindex) innerhalb der App-Shell
 app/error.tsx           Route-Error-Boundary (Client, Retry + digest)
 public/                 Icons, Verifikation, llms.txt, og-image.png (1200×630)
@@ -239,7 +243,7 @@ Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehn
 | DNS-Formatierung | `lib/dns-records.test.ts` |
 | WHOIS-Parsing | `lib/whois.test.ts` |
 | ASN-Normalisierung | `lib/asn.test.ts`, `app/api/asn/[asn]/route.test.ts` |
-| Reputation | `lib/reputation.test.ts` |
+| Reputation (Scoring/DNSBL/Feeds/Route) | `lib/reputation/*.test.ts`, `app/api/reputation/route.test.ts` |
 | Client-IP | `lib/client-ip-discovery.test.ts` |
 | DB-Probes | `lib/network/database-probes.test.ts` |
 | Command-Palette (Query-Klassifizierung/Deep-Links) | `lib/command.test.ts` |
@@ -257,6 +261,9 @@ Bei Sicherheitsänderungen: Tests in `target.test.ts` erweitern oder Route-Tests
 |----------|---------|
 | `IPINFO_TOKEN` | Optional: aktiviert IPinfo-ASN-Daten auf `/api/asn` |
 | `ABUSEIPDB_API_KEY` | Optional: aktiviert AbuseIPDB-Meldungen auf `/api/reputation` |
+| `GREYNOISE_API_KEY` | Optional: GreyNoise Community-Schlüssel (höhere Limits, sonst unauthentifiziert ~10 Lookups/Tag) |
+| `HTTPBL_ACCESS_KEY` | Optional: Project Honey Pot Access Key für http:BL auf `/api/reputation` |
+| `THREATFOX_AUTH_KEY` | Optional: abuse.ch Auth-Key für ThreatFox-IOC-Abfragen auf `/api/reputation` |
 | `PUBLIC_ALLOWED_PING_PORTS` | Optional: erlaubte Ports für Ping (kommagetrennt) |
 | `NODE_ENV` | Production im Docker-Runner |
 | `PORT` | Default `3000` im Dockerfile |
@@ -279,6 +286,11 @@ Keine API-Keys im Repo. Keine `.env` committen.
 | Dienst | Verwendung |
 |--------|------------|
 | ip-api.com | IP-Metadaten (gemeinsamer Client: `lib/providers/ip-api.ts`) |
+| zen.spamhaus.org (SBL/CSS/XBL/PBL/BCL) + drop_v4/drop_v6.json | DNSBL + gecachte DROP-Feeds (max. stündlich) für `/api/reputation` |
+| bl.spamcop.net, b.barracudacentral.org, dnsbl.dronebl.org | Mail-/Missbrauchs-DNSBLs für `/api/reputation` |
+| bl.blocklist.de + api.blocklist.de | Angriffsmeldungen (SSH-Brute-Force etc.) für `/api/reputation` |
+| feodotracker.abuse.ch | Botnet-C2-IP-Feed (serverseitig gecacht, 15 min; geprüfte IP wird nicht übermittelt) |
+| api.greynoise.io (Community) | Internet-Scanner-Kontext (per-IP-Cache 24 h) |
 | ipinfo.io | Optionale ASN-Daten (`IPINFO_TOKEN`) |
 | stat.ripe.net | ASN-Holder, Prefixe, RIS-Routing-Nachbarn |
 | peeringdb.com | ASN-Netzwerkprofile, IX-Präsenz, Standorte |
@@ -286,8 +298,9 @@ Keine API-Keys im Repo. Keine `.env` committen.
 | checkip.amazonaws.com | Fallback Client-IP |
 | whois.iana.org:43 | WHOIS mit RDAP-Fallback (`rdap.org`) |
 | Node `dns` / `net` | DNS (inkl. PTR/SOA/CAA), TCP/UDP, DB-Probes |
-| zen.spamhaus.org, bl.spamcop.net, b.barracudacentral.org | DNSBLs für IP-Reputation |
-| api.abuseipdb.com | Abuse-Confidence-Score und Meldungen (optional) |
+| api.abuseipdb.com | Abuse-Confidence-Score und Meldungen (optional, `ABUSEIPDB_API_KEY`) |
+| dnsbl.httpbl.org (Project Honey Pot) | Web-Abuse-DNSBL (optional, `HTTPBL_ACCESS_KEY`) |
+| threatfox-api.abuse.ch | ThreatFox-IOC-Abfragen (optional, `THREATFOX_AUTH_KEY`) |
 
 Upstream-Ausfälle: graceful degradation (z. B. leere Felder bei IP-API; CDN `reachable: false`; ASN-Provider-Cache mit Stale-Fallback).
 
