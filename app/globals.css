@@ -309,6 +309,7 @@
       transform var(--motion-slow) var(--ease-fluid),
       width var(--motion-slow) var(--ease-fluid),
       height var(--motion-slow) var(--ease-fluid),
+      border-radius var(--motion-slow) var(--ease-fluid),
       opacity var(--motion-base) var(--ease-smooth);
   }
 

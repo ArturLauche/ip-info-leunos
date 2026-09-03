@@ -12,6 +12,7 @@ import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
+import { cn } from "@/lib/utils";
 import { unwrapApiResponse } from "@/lib/api/client";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
@@ -103,11 +104,13 @@ function CopyButton({
   label,
   copiedLabel,
   failedLabel,
+  className,
 }: {
   text: string;
   label: string;
   copiedLabel: string;
   failedLabel: string;
+  className?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -133,7 +136,7 @@ function CopyButton({
       size="icon"
       onClick={handleCopy}
       aria-label={label}
-      className="shrink-0 text-muted-foreground hover:text-foreground"
+      className={cn("shrink-0 text-muted-foreground hover:text-foreground", className)}
     >
       {copied ? (
         <Check className="size-4 text-success" aria-hidden="true" />
@@ -212,7 +215,8 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint on its own row so the value can wrap at even group lines. */
+/** Hex fingerprint as a self-contained panel: algorithm badge and copy action
+ *  live in the panel header, the hash wraps at group boundaries in the body. */
 function FingerprintRow({
   label,
   value,
@@ -232,31 +236,33 @@ function FingerprintRow({
 }) {
   return (
     <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>{label}</span>
-        {ready && value ? (
-          <span className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            {FINGERPRINT_HASH_ALGORITHM}
-          </span>
-        ) : null}
-      </dt>
+      <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-28 w-full rounded-lg" />
         ) : value ? (
-          <div className="flex items-start gap-2">
+          <div className="overflow-hidden rounded-lg border bg-muted/40">
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 py-1 pr-1 pl-3.5">
+              <Badge
+                variant="secondary"
+                className="font-mono text-[11px] tracking-wider uppercase"
+              >
+                {FINGERPRINT_HASH_ALGORITHM}
+              </Badge>
+              <CopyButton
+                text={value}
+                label={copyLabel}
+                copiedLabel={copiedLabel}
+                failedLabel={failedLabel}
+                className="size-7 [&_svg]:size-3.5"
+              />
+            </div>
             <code
               title={value}
-              className="block min-w-0 flex-1 rounded-lg border bg-muted/40 px-3.5 py-3 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-all text-foreground select-all"
+              className="block px-3.5 py-3 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words whitespace-pre-wrap text-foreground select-all"
             >
               {formatFingerprint(value)}
             </code>
-            <CopyButton
-              text={value}
-              label={copyLabel}
-              copiedLabel={copiedLabel}
-              failedLabel={failedLabel}
-            />
           </div>
         ) : (
           <span className="text-sm font-medium text-foreground">{unknownLabel}</span>

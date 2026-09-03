@@ -2,7 +2,9 @@
 
 import { type Locale } from "@/lib/i18n";
 import { unwrapApiResponse } from "@/lib/api/client";
-import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
+import { formatTemplate } from "@/lib/format";
+import type { PingMessageKey, PingMessageParams } from "@/lib/network/database-probes";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
@@ -23,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useRouter } from "next/navigation";
-import { FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   CircleCheck,
   Loader2,
@@ -43,7 +45,61 @@ interface PingResult {
   port: number;
   latencyMs: number;
   message: string;
+  messageKey?: PingMessageKey;
+  messageParams?: PingMessageParams;
   details?: Record<string, unknown>;
+}
+
+function formatPingMessage(result: PingResult, t: ToolTranslation): string {
+  const params = result.messageParams ?? {};
+  switch (result.messageKey) {
+    case "tcp_ok":
+      return t.pingResultTcpOk;
+    case "tcp_timeout":
+      return formatTemplate(t.pingResultTcpTimeout, { timeoutMs: params.timeoutMs ?? "" });
+    case "tcp_failed":
+      return formatTemplate(t.pingResultTcpFailed, { error: params.error ?? "" });
+    case "udp_sent":
+      return formatTemplate(t.pingResultUdpSent, { timeoutMs: params.timeoutMs ?? "" });
+    case "udp_response":
+      return formatTemplate(t.pingResultUdpResponse, {
+        from: params.from ?? "",
+        bytes: params.bytes ?? "",
+      });
+    case "udp_failed":
+      return formatTemplate(t.pingResultUdpFailed, { error: params.error ?? "" });
+    case "eb_http_ok":
+      return formatTemplate(t.pingResultEbHttpOk, {
+        scheme: params.scheme ?? "",
+        status: params.status ?? "",
+      });
+    case "eb_no_http":
+      return t.pingResultEbNoHttp;
+    case "eb_tcp_failed":
+      return formatTemplate(t.pingResultEbTcpFailed, { error: params.error ?? "" });
+    case "db_connect_failed":
+      return formatTemplate(t.pingResultDbConnectFailed, {
+        database: params.database ?? "",
+        error: params.error ?? "",
+      });
+    case "db_protocol_ok":
+      return formatTemplate(t.pingResultDbProtocolOk, { database: params.database ?? "" });
+    case "db_protocol_failed":
+      return formatTemplate(t.pingResultDbProtocolFailed, {
+        database: params.database ?? "",
+        error: params.error ?? "",
+      });
+    case "db_tcp_ok":
+      return formatTemplate(t.pingResultDbTcpOk, { database: params.database ?? "" });
+    case "db_auth_unsupported":
+      return formatTemplate(t.pingResultDbAuthUnsupported, { database: params.database ?? "" });
+    case "db_auth_ok":
+      return t.pingResultDbAuthOk;
+    case "db_auth_failed":
+      return formatTemplate(t.pingResultDbAuthFailed, { error: params.error ?? "" });
+    default:
+      return result.message;
+  }
 }
 
 const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
@@ -172,9 +228,6 @@ export function PingChecker({
     database: t.pingModeHelperDatabase,
   };
 
-  const selectedDatabase =
-    DATABASE_OPTIONS.find((option) => option.value === databaseType) ?? DATABASE_OPTIONS[0];
-
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
 
@@ -198,15 +251,6 @@ export function PingChecker({
       if (nextPort) setPort(String(nextPort));
     }
   };
-
-  const effectiveSummary = useMemo(() => {
-    if (mode === "tcp") return `${t.pingCurrentPlanTcp} ${target}:${port}`;
-    if (mode === "udp") return `${t.pingCurrentPlanUdp} ${target}:${port}`;
-    if (mode === "eb") return `${t.pingCurrentPlanEb} ${target}:${port}`;
-    return useAuth
-      ? `${selectedDatabase.label} ${t.pingCurrentPlanDbAuth} ${target}:${port}`
-      : `${selectedDatabase.label} ${t.pingCurrentPlanDbProtocol} ${target}:${port}`;
-  }, [mode, port, selectedDatabase.label, target, t, useAuth]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -408,20 +452,11 @@ export function PingChecker({
             </ModeExpand>
           </div>
 
-          <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="min-w-0 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{t.pingPlan}:</span>{" "}
-              <span
-                key={effectiveSummary}
-                className="break-all motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
-              >
-                {effectiveSummary}
-              </span>
-            </p>
+          <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-end">
             <Button
               type="submit"
               disabled={loading}
-              className="h-11 w-full shrink-0 sm:w-auto sm:min-w-36"
+              className="h-11 w-full shrink-0 sm:w-auto sm:min-w-44"
             >
               {loading ? (
                 <>
@@ -474,7 +509,12 @@ export function PingChecker({
           </div>
 
           <div className="flex flex-col gap-4 p-5">
-            <p className="text-sm leading-relaxed text-foreground">{result.message}</p>
+            <p
+              key={`${result.messageKey ?? "legacy"}-${result.message}`}
+              className="text-sm leading-relaxed text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+            >
+              {formatPingMessage(result, t)}
+            </p>
 
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
@@ -558,7 +598,7 @@ function PingModeTabs({
   helpers: Record<PingMode, string>;
   onModeChange: (mode: PingMode) => void;
 }) {
-  const { containerRef, view, canAnimate } = useSegmentHighlight(mode);
+  const { containerRef, view, canAnimate, radius } = useSegmentHighlight(mode);
 
   return (
     <Tabs
@@ -574,6 +614,7 @@ function PingModeTabs({
             width: view.box.width,
             height: view.box.height,
             opacity: view.visible ? 1 : 0,
+            borderRadius: radius || undefined,
           }}
           data-animate={canAnimate ? "true" : undefined}
           data-slide={view.slide ? "true" : undefined}

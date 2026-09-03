@@ -40,11 +40,11 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-0.5 border-b py-2 last:border-b-0 sm:grid-cols-[140px_1fr] sm:gap-4">
-      <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 sm:grid-cols-[190px_1fr] sm:gap-6">
+      <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
-      <dd className="font-mono text-sm break-all text-foreground">
+      <dd className="min-w-0 font-mono text-sm break-all text-foreground">
         {value}
       </dd>
     </div>
@@ -96,19 +96,19 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
 
       {result && (
         <ResultPanel title={`${t.whoisFor} ${result.target}`}>
-          <dl className="border-b pb-2">
-            <div className="grid grid-cols-1 gap-0.5 border-b py-2 last:border-b-0 sm:grid-cols-[140px_1fr] sm:gap-4">
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <dl className="divide-y divide-border">
+            <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
+              <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
                 {t.queriedServer}
               </dt>
-              <dd className="font-mono text-sm break-all text-foreground">{result.server}</dd>
+              <dd className="min-w-0 font-mono text-sm break-all text-foreground">{result.server}</dd>
             </div>
             {result.refer && (
-              <div className="grid grid-cols-1 gap-0.5 border-b py-2 last:border-b-0 sm:grid-cols-[140px_1fr] sm:gap-4">
-                <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
+                <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
                   {t.referralSource}
                 </dt>
-                <dd className="font-mono text-sm break-all text-foreground">{result.refer}</dd>
+                <dd className="min-w-0 font-mono text-sm break-all text-foreground">{result.refer}</dd>
               </div>
             )}
             {result.summary && (
@@ -127,7 +127,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
           {result.summary &&
             (result.summary.status.length > 0 ||
               result.summary.nameservers.length > 0) && (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-6 border-t pt-4 md:grid-cols-2">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {t.whoisStatusLabel}

@@ -9,12 +9,47 @@ export interface DatabaseAuth {
   database?: string;
 }
 
+export type PingMessageKey =
+  | "tcp_ok"
+  | "tcp_timeout"
+  | "tcp_failed"
+  | "udp_sent"
+  | "udp_response"
+  | "udp_failed"
+  | "eb_http_ok"
+  | "eb_no_http"
+  | "eb_tcp_failed"
+  | "db_connect_failed"
+  | "db_protocol_ok"
+  | "db_protocol_failed"
+  | "db_tcp_ok"
+  | "db_auth_unsupported"
+  | "db_auth_ok"
+  | "db_auth_failed";
+
+export type PingMessageParams = Record<string, string | number>;
+
 export type DatabaseProbeResult = {
   ok: boolean;
   latencyMs: number;
   message: string;
+  messageKey?: PingMessageKey;
+  messageParams?: PingMessageParams;
   details?: Record<string, unknown>;
 };
+
+const DB_DISPLAY_NAMES: Record<DatabaseType, string> = {
+  postgres: "PostgreSQL",
+  mysql: "MySQL",
+  redis: "Redis",
+  mongodb: "MongoDB",
+  mssql: "MS SQL Server",
+  generic: "Generic",
+};
+
+export function databaseDisplayName(databaseType: DatabaseType): string {
+  return DB_DISPLAY_NAMES[databaseType] ?? databaseType;
+}
 
 export const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
   postgres: 5432,
@@ -58,67 +93,84 @@ export async function probeDatabase({
     return {
       ...base,
       latencyMs: Date.now() - started,
-      message: `${databaseType} connectivity failed: ${base.message}`,
+      message: `${databaseDisplayName(databaseType)} connectivity failed: ${base.message}`,
+      messageKey: "db_connect_failed",
+      messageParams: { database: databaseDisplayName(databaseType), error: base.message },
       details: { databaseType, stage: "tcp", ...(base.details || {}) },
     };
   }
 
   if (databaseType === "postgres") {
     const probe = await postgresProbe(target, port, timeoutMs);
+    const database = databaseDisplayName(databaseType);
     return {
       ok: probe.ok,
       latencyMs: Date.now() - started,
       message: probe.ok
         ? "PostgreSQL server responded to a pre-auth handshake probe."
         : `PostgreSQL probe failed: ${probe.message}`,
+      messageKey: probe.ok ? "db_protocol_ok" : "db_protocol_failed",
+      messageParams: probe.ok ? { database } : { database, error: probe.message },
       details: { databaseType, stage: "protocol", ...(probe.details || {}) },
     };
   }
 
   if (databaseType === "mysql") {
     const probe = await mysqlProbe(target, port, timeoutMs);
+    const database = databaseDisplayName(databaseType);
     return {
       ok: probe.ok,
       latencyMs: Date.now() - started,
       message: probe.ok
         ? "MySQL server sent a pre-auth handshake packet."
         : `MySQL probe failed: ${probe.message}`,
+      messageKey: probe.ok ? "db_protocol_ok" : "db_protocol_failed",
+      messageParams: probe.ok ? { database } : { database, error: probe.message },
       details: { databaseType, stage: "protocol", ...(probe.details || {}) },
     };
   }
 
   if (databaseType === "redis") {
     const probe = await redisProbe(target, port, timeoutMs);
+    const database = databaseDisplayName(databaseType);
     return {
       ok: probe.ok,
       latencyMs: Date.now() - started,
       message: probe.ok
         ? "Redis responded to a PING probe (no authentication credentials used)."
         : `Redis probe failed: ${probe.message}`,
+      messageKey: probe.ok ? "db_protocol_ok" : "db_protocol_failed",
+      messageParams: probe.ok ? { database } : { database, error: probe.message },
       details: { databaseType, stage: "protocol", ...(probe.details || {}) },
     };
   }
 
   if (databaseType === "mongodb") {
     const probe = await mongodbProbe(target, port, timeoutMs);
+    const database = databaseDisplayName(databaseType);
     return {
       ok: probe.ok,
       latencyMs: Date.now() - started,
       message: probe.ok
         ? "MongoDB server responded to a hello probe."
         : `MongoDB probe failed: ${probe.message}`,
+      messageKey: probe.ok ? "db_protocol_ok" : "db_protocol_failed",
+      messageParams: probe.ok ? { database } : { database, error: probe.message },
       details: { databaseType, stage: "protocol", ...(probe.details || {}) },
     };
   }
 
   if (databaseType === "mssql") {
     const probe = await mssqlProbe(target, port, timeoutMs);
+    const database = databaseDisplayName(databaseType);
     return {
       ok: probe.ok,
       latencyMs: Date.now() - started,
       message: probe.ok
         ? "MS SQL Server responded to a TDS pre-login probe."
         : `MS SQL Server probe failed: ${probe.message}`,
+      messageKey: probe.ok ? "db_protocol_ok" : "db_protocol_failed",
+      messageParams: probe.ok ? { database } : { database, error: probe.message },
       details: { databaseType, stage: "protocol", ...(probe.details || {}) },
     };
   }
@@ -126,7 +178,9 @@ export async function probeDatabase({
   return {
     ...base,
     latencyMs: Date.now() - started,
-    message: `${databaseType} TCP port is reachable. Protocol-level pre-auth probe is not implemented for this type.`,
+    message: `${databaseDisplayName(databaseType)} TCP port is reachable. Protocol-level pre-auth probe is not implemented for this type.`,
+    messageKey: "db_tcp_ok",
+    messageParams: { database: databaseDisplayName(databaseType) },
     details: {
       databaseType,
       stage: "tcp",
@@ -365,6 +419,8 @@ function databaseAuthProbe(
       ok: probe.ok,
       latencyMs: Date.now() - started,
       message: probe.message,
+      messageKey: probe.ok ? ("db_auth_ok" as const) : ("db_auth_failed" as const),
+      messageParams: probe.ok ? undefined : { error: probe.message },
       details: { databaseType, ...(probe.details || {}) },
     }));
   }
@@ -374,6 +430,8 @@ function databaseAuthProbe(
     latencyMs: Date.now() - started,
     message:
       "Authenticated checks are currently implemented for Redis only in this environment. Use unauthenticated protocol check for other database types.",
+    messageKey: "db_auth_unsupported",
+    messageParams: { database: databaseDisplayName(databaseType) },
     details: { databaseType, stage: "auth" },
   };
 }
