@@ -14,6 +14,8 @@ import {
   probeDatabase,
   type DatabaseAuth,
   type DatabaseType,
+  type PingMessageKey,
+  type PingMessageParams,
 } from "@/lib/network/database-probes";
 
 export const runtime = "nodejs";
@@ -52,6 +54,8 @@ interface PingResult {
   port: number;
   latencyMs: number;
   message: string;
+  messageKey: PingMessageKey;
+  messageParams?: PingMessageParams;
   details?: Record<string, unknown>;
 }
 
@@ -92,18 +96,37 @@ function tcpPing(target: string, port: number, timeoutMs: number): Promise<PingR
     const socket = new net.Socket();
     let settled = false;
 
-    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
+    const finish = (
+      ok: boolean,
+      message: string,
+      messageKey: PingMessageKey,
+      messageParams: PingMessageParams | undefined,
+      details?: Record<string, unknown>,
+    ) => {
       if (settled) return;
       settled = true;
       socket.destroy();
-      resolve({ ok, mode: "tcp", target, port, latencyMs: Date.now() - started, message, details });
+      resolve({
+        ok,
+        mode: "tcp",
+        target,
+        port,
+        latencyMs: Date.now() - started,
+        message,
+        messageKey,
+        messageParams,
+        details,
+      });
     };
 
     socket.setTimeout(timeoutMs);
-    socket.once("connect", () => finish(true, "TCP connection established."));
-    socket.once("timeout", () => finish(false, `TCP timeout after ${timeoutMs}ms.`));
+    socket.once("connect", () => finish(true, "TCP connection established.", "tcp_ok", undefined));
+    socket.once("timeout", () =>
+      finish(false, `TCP timeout after ${timeoutMs}ms.`, "tcp_timeout", { timeoutMs }),
+    );
     socket.once("error", (error) => {
-      finish(false, `TCP connection failed: ${error.message}`, {
+      const detail = (error as Error).message;
+      finish(false, `TCP connection failed: ${detail}`, "tcp_failed", { error: detail }, {
         code: (error as NodeJS.ErrnoException).code || "UNKNOWN",
       });
     });
@@ -118,39 +141,70 @@ function udpPing(target: string, port: number, timeoutMs: number): Promise<PingR
     const socket = dgram.createSocket(isIPv6Address(target) ? "udp6" : "udp4");
     let settled = false;
 
-    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
+    const finish = (
+      ok: boolean,
+      message: string,
+      messageKey: PingMessageKey,
+      messageParams: PingMessageParams | undefined,
+      details?: Record<string, unknown>,
+    ) => {
       if (settled) return;
       settled = true;
       socket.close();
-      resolve({ ok, mode: "udp", target, port, latencyMs: Date.now() - started, message, details });
+      resolve({
+        ok,
+        mode: "udp",
+        target,
+        port,
+        latencyMs: Date.now() - started,
+        message,
+        messageKey,
+        messageParams,
+        details,
+      });
     };
 
     const timer = setTimeout(() => {
-      finish(true, "UDP packet sent. No ICMP error observed within timeout.", {
-        note: "UDP is connectionless; success means packet dispatch without immediate error.",
-      });
+      finish(
+        true,
+        `UDP packet sent. No ICMP error observed within ${timeoutMs}ms.`,
+        "udp_sent",
+        { timeoutMs },
+        {
+          note: "UDP is connectionless; success means packet dispatch without immediate error.",
+        },
+      );
     }, timeoutMs);
     timer.unref?.();
 
     socket.once("error", (error) => {
       clearTimeout(timer);
-      finish(false, `UDP probe failed: ${error.message}`, {
+      const detail = (error as Error).message;
+      finish(false, `UDP probe failed: ${detail}`, "udp_failed", { error: detail }, {
         code: (error as NodeJS.ErrnoException).code || "UNKNOWN",
       });
     });
 
     socket.once("message", (message, remote) => {
       clearTimeout(timer);
-      finish(true, "UDP response received.", {
-        bytes: message.length,
-        from: `${remote.address}:${remote.port}`,
-      });
+      const from = `${remote.address}:${remote.port}`;
+      finish(
+        true,
+        `UDP response received from ${from} (${message.length} bytes).`,
+        "udp_response",
+        { from, bytes: message.length },
+        {
+          bytes: message.length,
+          from,
+        },
+      );
     });
 
     socket.send(Buffer.from("ping"), port, target, (error) => {
       if (error) {
         clearTimeout(timer);
-        finish(false, `UDP send failed: ${error.message}`);
+        const detail = (error as Error).message;
+        finish(false, `UDP send failed: ${detail}`, "udp_failed", { error: detail });
       }
     });
   });
@@ -164,6 +218,8 @@ async function ebPing(displayTarget: string, connectionTarget: string, port: num
       mode: "eb",
       target: displayTarget,
       message: `EB check failed at TCP stage: ${tcpResult.message}`,
+      messageKey: "eb_tcp_failed",
+      messageParams: { error: tcpResult.message },
       details: { stage: "tcp", ...(tcpResult.details || {}) },
     };
   }
@@ -190,6 +246,8 @@ async function ebPing(displayTarget: string, connectionTarget: string, port: num
         port,
         latencyMs: Date.now() - started,
         message: `Endpoint reachable via ${scheme.toUpperCase()} (status ${response.status}).`,
+        messageKey: "eb_http_ok",
+        messageParams: { scheme: scheme.toUpperCase(), status: response.status },
         details: { stage: "http", scheme, status: response.status },
       };
     } catch {
@@ -204,6 +262,7 @@ async function ebPing(displayTarget: string, connectionTarget: string, port: num
     port,
     latencyMs: Date.now() - started,
     message: "TCP open, but no HTTP(S) response detected on this endpoint.",
+    messageKey: "eb_no_http",
     details: { stage: "http", status: "no-response" },
   };
 }

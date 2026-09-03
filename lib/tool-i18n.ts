@@ -202,7 +202,6 @@ type ToolTranslation = {
   whoisNameservers: string;
   whoisShowRaw: string;
   whoisHideRaw: string;
-  pingPlan: string;
   pingTestMode: string;
   pingModeHelperTcp: string;
   pingModeHelperUdp: string;
@@ -224,17 +223,28 @@ type ToolTranslation = {
   pingLatencyLabel: string;
   pingTargetLabel: string;
   pingDetailsLabel: string;
-  pingCurrentPlanTcp: string;
-  pingCurrentPlanUdp: string;
-  pingCurrentPlanEb: string;
-  pingCurrentPlanDbAuth: string;
-  pingCurrentPlanDbProtocol: string;
   pingEmptyTitle: string;
   pingEmptyDescription: string;
   pingStatusSuccess: string;
   pingStatusFailed: string;
   pingShowDetails: string;
   pingHideDetails: string;
+  pingResultTcpOk: string;
+  pingResultTcpTimeout: string;
+  pingResultTcpFailed: string;
+  pingResultUdpSent: string;
+  pingResultUdpResponse: string;
+  pingResultUdpFailed: string;
+  pingResultEbHttpOk: string;
+  pingResultEbNoHttp: string;
+  pingResultEbTcpFailed: string;
+  pingResultDbConnectFailed: string;
+  pingResultDbProtocolOk: string;
+  pingResultDbProtocolFailed: string;
+  pingResultDbTcpOk: string;
+  pingResultDbAuthUnsupported: string;
+  pingResultDbAuthOk: string;
+  pingResultDbAuthFailed: string;
   cdnAnalyzeButton: string;
   cdnAnalyzing: string;
   cdnNetworkError: string;
@@ -518,7 +528,6 @@ const en: ToolTranslation = {
   whoisNameservers: "Nameservers",
   whoisShowRaw: "Show raw output",
   whoisHideRaw: "Hide raw output",
-  pingPlan: "Current test plan",
   pingTestMode: "Test mode",
   pingModeHelperTcp: "Verifies whether the TCP port accepts a connection.",
   pingModeHelperUdp: "Sends a UDP probe and reports immediate response/error behavior.",
@@ -540,17 +549,28 @@ const en: ToolTranslation = {
   pingLatencyLabel: "Latency",
   pingTargetLabel: "Target",
   pingDetailsLabel: "Details",
-  pingCurrentPlanTcp: "TCP check against",
-  pingCurrentPlanUdp: "UDP check against",
-  pingCurrentPlanEb: "EB check against",
-  pingCurrentPlanDbAuth: "authenticated check against",
-  pingCurrentPlanDbProtocol: "protocol check against",
   pingEmptyTitle: "No test run yet",
   pingEmptyDescription: "Pick a test mode, enter a host and port, then run the check to measure reachability and latency.",
   pingStatusSuccess: "Target reachable",
   pingStatusFailed: "Check failed",
   pingShowDetails: "Show technical details",
   pingHideDetails: "Hide technical details",
+  pingResultTcpOk: "TCP connection established.",
+  pingResultTcpTimeout: "TCP timeout after {timeoutMs} ms.",
+  pingResultTcpFailed: "TCP connection failed: {error}",
+  pingResultUdpSent: "UDP packet sent. No ICMP error observed within {timeoutMs} ms.",
+  pingResultUdpResponse: "UDP response received from {from} ({bytes} bytes).",
+  pingResultUdpFailed: "UDP probe failed: {error}",
+  pingResultEbHttpOk: "Endpoint reachable via {scheme} (status {status}).",
+  pingResultEbNoHttp: "TCP open, but no HTTP(S) response detected on this endpoint.",
+  pingResultEbTcpFailed: "EB check failed at TCP stage: {error}",
+  pingResultDbConnectFailed: "{database} connectivity failed: {error}",
+  pingResultDbProtocolOk: "{database} server responded to a pre-auth handshake probe.",
+  pingResultDbProtocolFailed: "{database} probe failed: {error}",
+  pingResultDbTcpOk: "{database} TCP port is reachable. No protocol-level pre-auth probe for this type.",
+  pingResultDbAuthUnsupported: "Authenticated checks are only implemented for Redis. Use the protocol check for {database}.",
+  pingResultDbAuthOk: "Authenticated Redis connection succeeded.",
+  pingResultDbAuthFailed: "Redis authentication check failed: {error}",
   cdnAnalyzeButton: "Check CDN",
   cdnAnalyzing: "Analyzing...",
   cdnNetworkError: "Network error while contacting the CDN checker.",
@@ -967,7 +987,6 @@ const de: Partial<ToolTranslation> = {
   whoisNameservers: "Nameserver",
   whoisShowRaw: "Rohausgabe anzeigen",
   whoisHideRaw: "Rohausgabe ausblenden",
-  pingPlan: "Aktueller Testplan",
   pingTestMode: "Testmodus",
   pingModeHelperTcp: "Prüft, ob der TCP-Port eine Verbindung akzeptiert.",
   pingModeHelperUdp: "Sendet eine UDP-Probe und meldet unmittelbare Antworten/Fehler.",
@@ -989,17 +1008,28 @@ const de: Partial<ToolTranslation> = {
   pingLatencyLabel: "Latenz",
   pingTargetLabel: "Ziel",
   pingDetailsLabel: "Details",
-  pingCurrentPlanTcp: "TCP-Prüfung gegen",
-  pingCurrentPlanUdp: "UDP-Prüfung gegen",
-  pingCurrentPlanEb: "EB-Prüfung gegen",
-  pingCurrentPlanDbAuth: "Authentifizierte Prüfung gegen",
-  pingCurrentPlanDbProtocol: "Protokoll-Prüfung gegen",
   pingEmptyTitle: "Noch kein Test ausgeführt",
   pingEmptyDescription: "Testmodus wählen, Host und Port eingeben und die Prüfung starten, um Erreichbarkeit und Latenz zu messen.",
   pingStatusSuccess: "Ziel erreichbar",
   pingStatusFailed: "Prüfung fehlgeschlagen",
   pingShowDetails: "Technische Details anzeigen",
   pingHideDetails: "Technische Details ausblenden",
+  pingResultTcpOk: "TCP-Verbindung hergestellt.",
+  pingResultTcpTimeout: "TCP-Zeitüberschreitung nach {timeoutMs} ms.",
+  pingResultTcpFailed: "TCP-Verbindung fehlgeschlagen: {error}",
+  pingResultUdpSent: "UDP-Paket gesendet. Kein ICMP-Fehler innerhalb von {timeoutMs} ms beobachtet.",
+  pingResultUdpResponse: "UDP-Antwort von {from} erhalten ({bytes} Bytes).",
+  pingResultUdpFailed: "UDP-Probe fehlgeschlagen: {error}",
+  pingResultEbHttpOk: "Endpunkt über {scheme} erreichbar (Status {status}).",
+  pingResultEbNoHttp: "TCP offen, aber keine HTTP(S)-Antwort auf diesem Endpunkt erkannt.",
+  pingResultEbTcpFailed: "EB-Prüfung in der TCP-Phase fehlgeschlagen: {error}",
+  pingResultDbConnectFailed: "{database}-Verbindung fehlgeschlagen: {error}",
+  pingResultDbProtocolOk: "{database}-Server hat auf die Pre-Auth-Handshake-Probe geantwortet.",
+  pingResultDbProtocolFailed: "{database}-Probe fehlgeschlagen: {error}",
+  pingResultDbTcpOk: "{database}-TCP-Port ist erreichbar. Für diesen Typ gibt es keine Protokoll-Probe vor Authentifizierung.",
+  pingResultDbAuthUnsupported: "Authentifizierte Prüfungen sind nur für Redis umgesetzt. Nutze für {database} die Protokoll-Prüfung.",
+  pingResultDbAuthOk: "Authentifizierte Redis-Verbindung erfolgreich.",
+  pingResultDbAuthFailed: "Redis-Authentifizierungsprüfung fehlgeschlagen: {error}",
   cdnAnalyzeButton: "CDN prüfen",
   cdnAnalyzing: "Analyse läuft...",
   cdnNetworkError: "Netzwerkfehler beim CDN-Prüfer.",

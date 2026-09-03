@@ -19,7 +19,8 @@ function roundBox(box: SegmentHighlightBox): SegmentHighlightBox {
 /**
  * Measures the active segmented-control item and returns a sliding-frame view.
  * Position comes from the DOM so wrapping (2×2 on small screens) and locale
- * labels cannot desync the indicator.
+ * labels cannot desync the indicator. Supports both Tabs (`data-state="active"`)
+ * and ToggleGroup (`data-state="on"`) primitives.
  */
 export function useSegmentHighlight(selected: string) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,7 +30,9 @@ export function useSegmentHighlight(selected: string) {
 
   const measure = useCallback(() => {
     const container = containerRef.current;
-    const active = container?.querySelector<HTMLElement>('[data-state="active"]');
+    const active = container?.querySelector<HTMLElement>(
+      '[data-state="active"], [data-state="on"]',
+    );
     let measured: SegmentHighlightBox | null = null;
 
     if (container && active && active.offsetWidth > 0) {
@@ -72,7 +75,9 @@ export function useSegmentHighlight(selected: string) {
 
     const observer = new ResizeObserver(() => measure());
     observer.observe(container);
-    for (const item of container.querySelectorAll('[data-slot="tabs-trigger"]')) {
+    for (const item of container.querySelectorAll(
+      '[data-slot="tabs-trigger"], [data-slot="toggle-group-item"]',
+    )) {
       observer.observe(item);
     }
 
