@@ -598,7 +598,7 @@ function PingModeTabs({
   helpers: Record<PingMode, string>;
   onModeChange: (mode: PingMode) => void;
 }) {
-  const { containerRef, view, canAnimate } = useSegmentHighlight(mode);
+  const { containerRef, view, canAnimate, radius } = useSegmentHighlight(mode);
 
   return (
     <Tabs
@@ -614,6 +614,7 @@ function PingModeTabs({
             width: view.box.width,
             height: view.box.height,
             opacity: view.visible ? 1 : 0,
+            borderRadius: radius || undefined,
           }}
           data-animate={canAnimate ? "true" : undefined}
           data-slide={view.slide ? "true" : undefined}

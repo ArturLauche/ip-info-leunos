@@ -223,7 +223,7 @@ function DnsTypeFilter({
   selectedType: string;
   onSelect: (type: string) => void;
 }) {
-  const { containerRef, view, canAnimate } = useSegmentHighlight(selectedType);
+  const { containerRef, view, canAnimate, radius } = useSegmentHighlight(selectedType);
 
   return (
     <div ref={containerRef} className="relative isolate w-fit max-w-full">
@@ -234,6 +234,7 @@ function DnsTypeFilter({
           width: view.box.width,
           height: view.box.height,
           opacity: view.visible ? 1 : 0,
+          borderRadius: radius || undefined,
         }}
         data-animate={canAnimate ? "true" : undefined}
         data-slide={view.slide ? "true" : undefined}
