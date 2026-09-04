@@ -46,8 +46,11 @@ export default async function AsnDeepLinkPage({ params }: AsnDeepLinkPageProps) 
   // shares the metadata template, so a static shell title would put thousands
   // of distinct pages behind one identical headline.
   let displayTitle = t.asnTitle;
+  let canonicalPath = "/asn";
   try {
-    displayTitle = `${normalizeAsnInput(asn).asn} – ${t.asnTitle}`;
+    const normalized = normalizeAsnInput(asn);
+    displayTitle = `${normalized.asn} – ${t.asnTitle}`;
+    canonicalPath = `/asn/${normalized.asn}`;
   } catch {
     // Invalid input keeps the generic title; the checker surfaces the
     // translated validation error.
@@ -60,6 +63,7 @@ export default async function AsnDeepLinkPage({ params }: AsnDeepLinkPageProps) 
       icon={Waypoints}
       title={displayTitle}
       subtitle={t.asnSubtitle}
+      path={canonicalPath}
     >
       <AsnChecker locale={locale} initialAsn={asn} />
     </ToolPageShell>

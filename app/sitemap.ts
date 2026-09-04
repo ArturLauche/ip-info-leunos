@@ -15,8 +15,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/terms-of-use', changeFrequency: 'monthly' as const, priority: 0.3 },
   ]
 
+  // lastModified is the build time: tool pages are evergreen shells around
+  // live lookups, so there is no per-page content date to report. Emitting
+  // one uniform timestamp keeps crawlers from inferring false freshness
+  // differences between tools.
+  const lastModified = new Date();
+
   return routes.map((route) => ({
     url: canonicalUrl(route.path),
+    lastModified,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }))

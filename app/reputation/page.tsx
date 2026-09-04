@@ -10,7 +10,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "IP Reputation Check – evidenzbasierte Risikoanalyse",
   description:
-    "Prüfe öffentliche IP-Adressen gegen unabhängige Reputations- und Threat-Intelligence-Quellen: DNS-Blocklisten, Abuse-Meldungen, Botnet-C2-Tracker und Netzwerk-Klassifizierung – mit nachvollziehbarer Risikobewertung.",
+    "Prüfe öffentliche IPs gegen DNS-Blocklisten, Abuse-Meldungen und Botnet-Tracker – mit nachvollziehbarer Risikobewertung.",
   path: "/reputation",
   keywords: [
     "IP Reputation",

@@ -18,6 +18,12 @@ interface ToolPageShellProps {
   title: string;
   subtitle: string;
   children: ReactNode;
+  /**
+   * Canonical path for structured data. Defaults to the active tool's nav
+   * href. Deep links (e.g. `/asn/AS123`) pass their own path so JSON-LD
+   * `url`/`@id` values match `<link rel="canonical">`.
+   */
+  path?: string;
 }
 
 export function ToolPageShell({
@@ -27,6 +33,7 @@ export function ToolPageShell({
   title,
   subtitle,
   children,
+  path,
 }: ToolPageShellProps) {
   const group = navGroups.find((entry) =>
     entry.items.some((item) => item.key === active),
@@ -43,6 +50,7 @@ export function ToolPageShell({
           locale={locale}
           name={title}
           description={subtitle}
+          path={path}
         />
       )}
       <header

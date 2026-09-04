@@ -49,6 +49,21 @@ describe("createPageMetadata", () => {
       siteName: siteConfig.name,
     });
   });
+
+  it("emits an absolute og:image URL so scrapers without metadataBase resolution still render cards", () => {
+    const metadata = createPageMetadata({
+      title: "DNS Lookup für A, AAAA, MX, TXT und mehr",
+      description: "Prüfe öffentliche DNS-Daten.",
+      path: "/dns",
+    });
+
+    expect(metadata.openGraph).toMatchObject({
+      locale: "de_DE",
+      alternateLocale: expect.arrayContaining(["en_US"]),
+    });
+    const images = (metadata.openGraph as { images?: Array<{ url?: string }> })?.images;
+    expect(images?.[0]?.url).toBe(`${siteConfig.url}/og-image.png`);
+  });
 });
 
 describe("schemaInLanguage", () => {

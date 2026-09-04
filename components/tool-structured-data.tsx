@@ -43,33 +43,74 @@ interface ToolStructuredDataProps {
   locale: Locale;
   name: string;
   description: string;
+  /**
+   * Canonical path of the rendered page. Defaults to the tool's nav href.
+   * Deep links (e.g. `/asn/AS123`) must pass their own path so the
+   * WebApplication `url`/`@id` and the BreadcrumbList agree with the
+   * page's `<link rel="canonical">`.
+   */
+  path?: string;
 }
 
-export function ToolStructuredData({ tool, locale, name, description }: ToolStructuredDataProps) {
-  const path = navGroups.flatMap((group) => group.items).find((item) => item.key === tool)?.href ?? "/";
-  const url = canonicalUrl(path);
+export function ToolStructuredData({ tool, locale, name, description, path }: ToolStructuredDataProps) {
+  const navPath = navGroups.flatMap((group) => group.items).find((item) => item.key === tool)?.href ?? "/";
+  const url = canonicalUrl(path ?? navPath);
   const language = locale === "de" ? "de-DE" : locale;
   const features = locale === "de" ? featureLists[tool].de : featureLists[tool].en;
+
+  const homeUrl = canonicalUrl("/");
 
   return (
     <StructuredData
       data={{
         "@context": "https://schema.org",
-        "@type": ["WebApplication", "SoftwareApplication"],
-        "@id": `${url}#web-application`,
-        name,
-        url,
-        description,
-        applicationCategory: "UtilitiesApplication",
-        applicationSubCategory: "Internet and network information tool",
-        operatingSystem: "Any system with a modern web browser",
-        browserRequirements: "Requires JavaScript for interactive lookups",
-        featureList: features,
-        isAccessibleForFree: true,
-        inLanguage: language,
-        offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
-        provider: { "@id": `${siteConfig.url}/#organization` },
-        isPartOf: { "@id": `${siteConfig.url}/#website` },
+        "@graph": [
+          {
+            "@type": ["WebApplication", "SoftwareApplication"],
+            "@id": `${url}#web-application`,
+            name,
+            url,
+            description,
+            applicationCategory: "UtilitiesApplication",
+            applicationSubCategory: "Internet and network information tool",
+            operatingSystem: "Any system with a modern web browser",
+            browserRequirements: "Requires JavaScript for interactive lookups",
+            featureList: features,
+            isAccessibleForFree: true,
+            inLanguage: language,
+            offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
+            provider: { "@id": `${siteConfig.url}/#organization` },
+            isPartOf: { "@id": `${siteConfig.url}/#website` },
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": `${url}#breadcrumb`,
+            itemListElement:
+              url === homeUrl
+                ? [
+                    {
+                      "@type": "ListItem",
+                      position: 1,
+                      name: siteConfig.name,
+                      item: homeUrl,
+                    },
+                  ]
+                : [
+                    {
+                      "@type": "ListItem",
+                      position: 1,
+                      name: siteConfig.name,
+                      item: homeUrl,
+                    },
+                    {
+                      "@type": "ListItem",
+                      position: 2,
+                      name,
+                      item: url,
+                    },
+                  ],
+          },
+        ],
       }}
     />
   );
