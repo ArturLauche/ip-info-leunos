@@ -16,6 +16,12 @@ interface ToolSearchFormProps {
   onSubmit: (value: string) => void;
 }
 
+/**
+ * Shared single-field search form for the tool pages. The label stays
+ * screen-reader-only (the visible placeholder carries the example); the
+ * opaque card background keeps the input's hairline corner from blending
+ * into the page background as a stray pixel.
+ */
 export function ToolSearchForm({
   initialValue = "",
   placeholder,
@@ -57,7 +63,7 @@ export function ToolSearchForm({
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
-          className="h-11 pl-10 text-sm"
+          className="h-11 bg-card pl-10 text-sm dark:bg-card"
         />
       </div>
       <Button

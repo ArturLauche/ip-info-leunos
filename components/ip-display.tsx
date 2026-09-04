@@ -36,13 +36,12 @@ import {
 import {
   buildFingerprintMaterial,
   collectBrowserDeviceHints,
-  FINGERPRINT_HASH_ALGORITHM,
   formatBrowserVersion,
-  formatFingerprint,
   formatOsLabel,
   hashFingerprintMaterial,
   readUserAgentClientHints,
   resolveVisitorBrowserInfo,
+  splitFingerprintGroups,
   type DetectedBrowserInfo,
 } from "@/lib/browser-info";
 import {
@@ -215,8 +214,8 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint as a self-contained panel: algorithm badge and copy action
- *  live in the panel header, the hash wraps at group boundaries in the body. */
+/** Hex fingerprint value block: the groups wrap naturally with the panel
+ *  width (no hard line breaks) and the copy action floats top-right over it. */
 function FingerprintRow({
   label,
   value,
@@ -239,29 +238,21 @@ function FingerprintRow({
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-28 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg sm:h-20" />
         ) : value ? (
-          <div className="overflow-hidden rounded-lg border bg-muted/40">
-            <div className="flex items-center justify-between gap-2 border-b border-border/60 py-1 pr-1 pl-3.5">
-              <Badge
-                variant="secondary"
-                className="font-mono text-[11px] tracking-wider uppercase"
-              >
-                {FINGERPRINT_HASH_ALGORITHM}
-              </Badge>
-              <CopyButton
-                text={value}
-                label={copyLabel}
-                copiedLabel={copiedLabel}
-                failedLabel={failedLabel}
-                className="size-7 [&_svg]:size-3.5"
-              />
-            </div>
+          <div className="relative overflow-hidden rounded-lg border bg-muted/40">
+            <CopyButton
+              text={value}
+              label={copyLabel}
+              copiedLabel={copiedLabel}
+              failedLabel={failedLabel}
+              className="absolute top-1 right-1 size-7 bg-muted/40 [&_svg]:size-3.5"
+            />
             <code
               title={value}
-              className="block px-3.5 py-3 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words whitespace-pre-wrap text-foreground select-all"
+              className="block px-3.5 py-3 pr-11 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words text-foreground select-all"
             >
-              {formatFingerprint(value)}
+              {splitFingerprintGroups(value).join(" ")}
             </code>
           </div>
         ) : (
