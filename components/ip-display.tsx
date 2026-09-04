@@ -37,11 +37,11 @@ import {
   buildFingerprintMaterial,
   collectBrowserDeviceHints,
   formatBrowserVersion,
-  formatFingerprint,
   formatOsLabel,
   hashFingerprintMaterial,
   readUserAgentClientHints,
   resolveVisitorBrowserInfo,
+  splitFingerprintGroups,
   type DetectedBrowserInfo,
 } from "@/lib/browser-info";
 import {
@@ -214,8 +214,8 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-/** Hex fingerprint value block: the hash wraps at group boundaries and
- *  scales with the panel width; the copy action floats top-right over it. */
+/** Hex fingerprint value block: the groups wrap naturally with the panel
+ *  width (no hard line breaks) and the copy action floats top-right over it. */
 function FingerprintRow({
   label,
   value,
@@ -238,7 +238,7 @@ function FingerprintRow({
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="mt-2 min-w-0">
         {!ready ? (
-          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg sm:h-20" />
         ) : value ? (
           <div className="relative overflow-hidden rounded-lg border bg-muted/40">
             <CopyButton
@@ -250,9 +250,9 @@ function FingerprintRow({
             />
             <code
               title={value}
-              className="block px-3.5 py-3 pr-11 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words whitespace-pre-wrap text-foreground select-all"
+              className="block px-3.5 py-3 pr-11 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words text-foreground select-all"
             >
-              {formatFingerprint(value)}
+              {splitFingerprintGroups(value).join(" ")}
             </code>
           </div>
         ) : (
