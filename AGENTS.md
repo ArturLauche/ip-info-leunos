@@ -1,354 +1,107 @@
 # AGENTS.md — ip-info-leunos
 
-Leitfaden für KI-Agenten und Entwickler, die an **IP Auskunft** arbeiten. Dieses Projekt ist eine öffentlich deploybare Next.js-Netzwerk-Toolbox: IP-Metadaten und begrenzte Checks gegen **nur öffentliche** Internet-Ziele.
+Public-site-safe Next.js network toolbox for inspecting public IP/ASN/DNS/WHOIS/CDN/reputation data and running bounded checks against public internet targets only.
 
-**Produktions-URL:** `https://ip-info.leunos.com` (siehe `lib/seo.ts` → `siteConfig.url`)
+## Stack
 
----
+- Package manager: **pnpm 10** (`pnpm-lock.yaml`, lockfile v9). Node: **20** (`Dockerfile: node:20-alpine`, CI: `setup-node node-version: 20`).
+- `next 16.3.4`, `react 19.2.8`, `react-dom 19.2.8`, `typescript 5.9.3`
+- `tailwindcss ^4.3.3` + `@tailwindcss/postcss ^4.3.3`, `zod ^3.24.1`, `vitest ^3.2.7`
+- `eslint ^9.39.5` + `eslint-config-next 16.3.4`, `next-themes ^0.4.6`, `geist ^1.5.1`, `lucide-react ^1.39.0`, `sonner ^2.0.8`
+- Import alias: `@/*` → repo root (`tsconfig.json` paths). Build is offline-safe (self-hosted Geist, no `next/font/google`).
 
-## Schnellstart
+## Commands (run from repo root)
 
 ```bash
-pnpm install
-pnpm dev          # http://localhost:3000
-pnpm lint
-pnpm typecheck    # next typegen && tsc --noEmit — Build ignoriert TS-Fehler nicht
-pnpm test         # vitest run (Node-Umgebung)
-pnpm build        # funktioniert offline (Fonts self-hosted via geist-Paket)
+pnpm install --frozen-lockfile  # CI install; local: pnpm install
+pnpm dev                        # next dev → http://localhost:3000
+pnpm lint                       # eslint .
+pnpm typecheck                  # next typegen && tsc --noEmit
+pnpm test                       # vitest run (node env, **/*.test.ts)
+pnpm build                      # next build && node scripts/strip-client-maps.mjs
+pnpm start                      # next start (PORT=3000)
 ```
 
-Paketmanager: **pnpm**. Import-Alias: `@/*` → Projektroot (`tsconfig.json`).
+CI (`.github/workflows/ci.yml`, on PR + push to `main`): install → lint → typecheck → test → build → fail if any `.map` remains under `.next/static`.
 
----
+## Setup & test
 
-## Was dieses Repo ist (und was nicht)
+1. `pnpm install --frozen-lockfile`, then `pnpm dev`.
+2. No `.env` required to run; optional keys only enable extra providers: `IPINFO_TOKEN`, `ABUSEIPDB_API_KEY`, `GREYNOISE_API_KEY`, `HTTPBL_ACCESS_KEY`, `THREATFOX_AUTH_KEY`, `PUBLIC_ALLOWED_PING_PORTS=80,443,…`, `PRIVACY_CONTACT_EMAIL`, `PRIVACY_CONTROLLER_NAME`.
+3. Before pushing: `pnpm lint && pnpm typecheck && pnpm test` (same order as CI). `pnpm build` does not ignore TS errors.
+4. Tests are unit-only (`vitest.config.ts`: `environment: "node"`); colocate as `*.test.ts` next to the module (e.g. `lib/network/target.test.ts`, `app/api/ping/route.test.ts`).
 
-| Ja | Nein |
-|----|------|
-| Server-seitige API-Routes mit Zod, Rate-Limits, Timeouts | Statischer Export (`next export`) |
-| Öffentliche IPs/Domains/URLs als Ziele | Scans gegen private/interne Netze |
-| Eigenständiges ASN-Tool (`/asn`, `/asn/AS8881`) + AS-Feld im IP-Lookup | — |
-| shadcn/ui-Design-System (Radix-Primitive in `components/ui/`) + Sidebar-Shell | Ad-hoc-Styling, das die Design-Tokens umgeht |
-| Light/Dark-Themes über `next-themes` (Default `dark`) | Hartkodierte Hex-Farben statt semantischer Tokens |
-| Locale über `Accept-Language` (Server) | Locale-Prefix-Routen (`/de/...`) |
+## Code style (follow this pattern)
 
-Vor netzwerkbezogenen Änderungen: **`README.md` (Safety Model)** und **`lib/network/target.ts`** lesen.
-
----
-
-## Architektur (Überblick)
-
-```
-app/                    Seiten (Server Components) + API-Routes
-components/             Feature-UI: Checker, Shells, Panels
-  ui/                   shadcn/ui-Primitive (Button, Card, Table, Dialog, ...)
-  shell/               App-Shell: Sidebar, Mobile-Nav, Nav-Config, Brand-Mark
-  asn/                  ASN-Checker, in Sektions-Komponenten aufgeteilt
-  theme-provider.tsx    next-themes-Wrapper; mode-toggle.tsx Theme-Umschalter
-hooks/
-  use-tool-lookup.ts    Gemeinsame Checker-State-Machine (Loading/Error/
-                        Result, URL-Sync, Stale-Response-Guard)
-lib/
-  api/                  response.ts, rate-limit.ts, client.ts (ApiClientError)
-  network/              target.ts (SSRF-Schutz), database-probes.ts
-  providers/            ip-api.ts (gemeinsamer ip-api.com-Client)
-  cdn-detection.ts      CDN-Signaturen + detectCdn (pur, von /api/cdn genutzt)
-  connection-type.ts    Verbindungstyp-Codes + Proxy-Heuristik (pur, getestet)
-  dns-records.ts        DNS-Record-Werte lesbar formatieren
-  whois.ts              WHOIS-Parsing, Referral-Normalisierung
-  format.ts             formatTemplate, formatNumber, valueOrDash
-  utils.ts              cn() (clsx + tailwind-merge) für shadcn-Komponenten
-  i18n.ts, tool-i18n.ts, seo.ts, asn.ts, client-ip-discovery.ts
-  reputation/            Evidenz-basiertes Reputationsmodell: model (Typen/Quellen-Registry),
-                        dnsbl (Zonen-Interpretation), feeds (Feodo/DROP-Cache), providers
-                        (HTTP-Normalisierung), scoring (deterministische Bewertung),
-                        query (Server-Orchestrierung), index (Re-Exports)
-app/not-found.tsx       Lokalisierte 404-Seite (noindex) innerhalb der App-Shell
-app/error.tsx           Route-Error-Boundary (Client, Retry + digest)
-public/                 Icons, Verifikation, llms.txt, og-image.png (1200×630)
-app/globals.css         Design-Tokens (Tailwind 4, OKLCH, Light `:root` + `.dark`)
-components.json         shadcn-Konfiguration (New York, Tokens, Aliases)
-```
-
-**Seitenmuster** (alle Tool-Seiten außer `/`):
-
-1. `headers()` → `resolveLocale(accept-language)`
-2. `createPageMetadata({ title, description, path, keywords })`
-3. `ToolPageShell` mit `locale`, `active`, Icon, Titel/Untertitel
-4. Client-Checker als Kind
-
-**Checker-Muster** (`"use client"`):
-
-- `useToolLookup<T>({ buildApiUrl, buildHref, mapError, initialQuery, onStart })` aus `hooks/use-tool-lookup.ts`
-- Fehler-Mapping über **Error-Codes**: `getApiErrorMessage(error, t, fallback)` aus `lib/tool-i18n.ts` bzw. `ApiClientError.code` — **niemals** auf englische Message-Strings matchen
-- Fehler → `ErrorPanel`
-- Deep-Links: der Hook ruft `router.replace(buildHref(query), { scroll: false })`
-
----
-
-## Routen
-
-### Seiten
-
-| Pfad | Komponente | Query-Parameter |
-|------|------------|-----------------|
-| `/` | `IpDisplay` | — (eigene IP aus Headers) |
-| `/check` | `IpLookup` → `IpDisplay` | `ip`, `q` |
-| `/asn`, `/asn/[asn]` | `AsnChecker` (`components/asn/`) | `asn`, `q`, `source-info` |
-| `/ping` | `PingChecker` | `target`, `port`, `mode` |
-| `/dns` | `DnsChecker` | `target` |
-| `/whois` | `WhoisChecker` | `target` |
-| `/cdn` | `CdnChecker` | `target` |
-| `/reputation` | `ReputationChecker` | `ip` |
-
-Navigation und `ToolKey`: `components/shell/nav-config.ts` — `home | check | asn | ping | dns | whois | cdn | reputation` (gerendert von `ToolPageShell` über Sidebar/Mobile-Nav).
-
-### API
-
-| Route | Methode | Rate-Limit | Runtime |
-|-------|---------|------------|---------|
-| `/api/ip` | GET | 80/min | Node (implizit) |
-| `/api/asn/[asn]` | GET | 30/min | `nodejs` |
-| `/api/dns` | GET | 40/min | `nodejs` |
-| `/api/whois` | GET | 20/min | `nodejs` |
-| `/api/cdn` | GET | 20/min | Node |
-| `/api/ping` | POST (JSON) | 20/min | `nodejs` |
-| `/api/reputation` | GET | 20/min | `nodejs` |
-| `/api/flag/[code]` | GET | — (immutable, `force-cache`) | `nodejs` |
-
-Jede Route beginnt mit `enforceRateLimit(request, routeKey, { limit, windowMs })` aus `lib/api/rate-limit.ts` (Ausnahme: `/api/flag` — cachet unveränderliche SVG-Flaggen same-origin von flagcdn.com, 2-Buchstaben-Code via zod-artiger Regex-Prüfung validiert).
-
-`/api/ip` liefert `connectionType` als **Code** (`datacenter`, `fiber`, `dsl`, ... — siehe `lib/connection-type.ts`); die Übersetzung passiert im Client über `t.connectionTypes`. Unbekannte Felder sind **leere Strings**, niemals server-seitig übersetzte Platzhalter.
-
----
-
-## Sicherheitsmodell (Pflicht)
-
-Dieses Projekt ist für **öffentliches Hosting** gedacht. Jede neue Netzwerk-Interaktion muss durch die bestehenden Helfer laufen.
-
-### Ziel-Validierung (`lib/network/target.ts`)
-
-| Funktion | Verwendung |
-|----------|------------|
-| `assertPublicTarget(input)` | Domains/IPs vor DNS-Lookups und Sockets |
-| `assertPublicIpAddress(ip)` | Einzelne aufgelöste Adressen |
-| `assertPublicUrl(url)` / `fetchPublicUrl()` | HTTP-Fetches mit Redirect- und Größenlimits |
-| `normalizeLookupTarget()` / `normalizeWebUrl()` | Normalisierung; lehnt Credentials in URLs ab |
-
-Fehler: `TargetValidationError` mit `code`: `invalid_target` | `target_blocked` | `timeout` | `network_error` → in Routes als `apiError(error.code, ...)`.
-
-**Blockiert u. a.:** `localhost`, `*.local`, `*.internal`, `10/8`, `127/8`, `172.16/12`, `192.168/16`, `169.254/16`, `::1`, `fc00::/7`, `fe80::/10`, Dokumentations- und Multicast-Bereiche (vollständige Listen in `target.ts`).
-
-### Rate Limiting (`lib/api/rate-limit.ts`)
-
-- In-Memory Token-Bucket pro `routeKey:clientIp`
-- Client-IP aus `cf-connecting-ip` / `forwarded` / `x-forwarded-for` / `x-real-ip` / Fallback
-- Bei Limit: `apiError("rate_limited", ..., 429)` mit `retry-after`, `x-ratelimit-*`
-
-### Ping-spezifisch
-
-- Optional: `PUBLIC_ALLOWED_PING_PORTS` (kommagetrennt, z. B. `80,443,5432`) in `app/api/ping/route.ts`
-- DB-Probes: `lib/network/database-probes.ts` — Auth nur für Redis
-
-### Request-Validierung
-
-- **zod** `safeParse` auf allen Eingaben
-- `apiValidationError(zodError)` aus `lib/api/response.ts`
-
----
-
-## API-Antwortformat
-
-Einheitlich in `lib/api/response.ts`:
+All API routes guard in this order — rate-limit → zod `safeParse` → public-target assert → `apiOk`/`apiError` (real code from `app/api/dns/route.ts:9-137`):
 
 ```ts
-// Erfolg
-{ ok: true, data: T }
+export const runtime = "nodejs";
 
-// Fehler
-{ ok: false, error: { code: ApiErrorCode, message: string, details?: unknown } }
+export async function GET(request: Request) {
+  const limited = enforceRateLimit(request, "dns", { limit: 40, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const parsedQuery = dnsQuerySchema.safeParse({ target: searchParams.get("target") });
+  if (!parsedQuery.success) return apiValidationError(parsedQuery.error);
+
+  try {
+    const target = await assertPublicTarget(parsedQuery.data.target);
+    hostname = target.hostname;
+  } catch (error) {
+    if (error instanceof TargetValidationError) {
+      return apiError(error.code, error.message, error.status, error.details);
+    }
+    return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
+  }
+  return apiOk(payload);
+}
 ```
 
-Helfer: `apiOk()`, `apiError()`, `apiValidationError()`. Standard-Header: `cache-control: no-store` — nicht ohne Grund überschreiben.
+Related conventions (repo-specific, not generic):
 
-Client: `unwrapApiResponse<T>()` wirft bei `ok: false` einen **`ApiClientError`** mit `code`, `message`, `details`. UI-Fehlermeldungen werden über den Code aufgelöst (`getApiErrorMessage`), nie über den Message-Text.
+- Response envelope is always `{ ok: true, data }` / `{ ok: false, error: { code, message, details? } }` (`lib/api/response.ts`); default header `cache-control: no-store`.
+- Client maps errors by `ApiClientError.code` via `getApiErrorMessage()` (`lib/tool-i18n.ts`) — never match English message strings.
+- Checkers are `"use client"` + `useToolLookup<T>({ buildApiUrl, buildHref, mapError, initialQuery })` (`hooks/use-tool-lookup.ts`); API returns codes/empty strings, UI translates (`lib/i18n.ts`, `lib/tool-i18n.ts`).
+- Styling via shadcn/Radix in `components/ui/` + `cn()` (`lib/utils.ts`) and semantic tokens in `app/globals.css` (`:root` / `.dark`); no hardcoded hex for status colors.
 
-**Fehlercodes:** `bad_request`, `invalid_target`, `target_blocked`, `rate_limited`, `upstream_error`, `timeout`, `network_error`.
+## Structure
 
----
+```text
+app/                  pages (Server Components) + API routes (/api/ip, /api/asn/[asn], /api/dns, /api/whois, /api/cdn, /api/ping POST, /api/reputation, /api/flag/[code])
+app/<tool>/page.tsx   headers() → resolveLocale() → createPageMetadata() → ToolPageShell + Checker
+components/           *-checker.tsx, shell/ (sidebar/nav/command-palette), ui/ (shadcn), asn/
+hooks/use-tool-lookup.ts  shared checker state machine (loading/error/result, URL sync, stale-guard)
+lib/                  api/ (response, rate-limit, client), network/ (target SSRF-guard, database-probes), reputation/, providers/ip-api.ts, cdn-detection.ts, connection-type.ts, dns-records.ts, whois.ts, asn.ts, command.ts, seo.ts, i18n.ts, tool-i18n.ts
+scripts/              strip-client-maps.mjs (runs in build), generate-icons.mjs
+```
 
-## Neues Tool hinzufügen (Checkliste)
+Entry points for common tasks: new route → `app/api/dns/route.ts` + `lib/network/target.ts`; new checker → `components/dns-checker.tsx`; nav → `components/shell/nav-config.ts`; SEO → `lib/seo.ts` + `app/sitemap.ts`.
 
-1. **Sicherheit:** Route nutzt `assertPublicTarget` / `assertPublicUrl` / `fetchPublicUrl` — nie rohes `fetch()` oder `socket.connect()` auf User-Input.
-2. **API:** `enforceRateLimit` + zod-Schema + `apiOk`/`apiError`; bei Node-Sockets: `export const runtime = "nodejs"`.
-3. **Seite:** `app/<tool>/page.tsx` mit Metadata + `ToolPageShell`.
-4. **Checker:** `components/<tool>-checker.tsx` (`"use client"`) auf Basis von `useToolLookup`; mit shadcn-Komponenten aus `components/ui/` (Card, Button, Badge, Table, ...) und gemeinsamen Panels (`ResultPanel`, `ErrorPanel`, `ToolSearchForm`) bauen.
-5. **Navigation:** `ToolKey` und Links in `components/shell/nav-config.ts` erweitern.
-6. **i18n:** Strings in `lib/tool-i18n.ts` (Englisch-Basis; `de` als Merge; andere Locales → Englisch-Fallback). Fehler über die generischen `error*`-Keys mappen.
-7. **SEO:** `createPageMetadata` + Eintrag in `app/sitemap.ts`.
-8. **Tests:** Vitest für Logik/Sicherheit (`*.test.ts` neben Modul oder unter `app/api/...`).
+## Git & PR workflow
 
----
+- Branch: `main` is deployable. Create `fix/<slug>`, `feat/<slug>`, `chore/<slug>`, or `polish/<slug>` from `main`.
+- Commits use prefix style seen in history: `fix(scope): …`, `feat(scope): …`, `chore(deps): …` (e.g. `fix(dns,ip-display): …`).
+- Open PR to `main`; CI must pass (lint, typecheck, test, build, no client maps). Keep diffs minimal, no drive-by refactors.
+- Commit + push only when asked.
 
-## Internationalisierung
+## Boundaries
 
-| Datei | Inhalt |
-|-------|--------|
-| `lib/i18n.ts` | Home/Check/IP-Display inkl. `connectionTypes`-Codes; `SUPPORTED_LOCALES`, `resolveLocale()`, `getTranslation()` — 8 Locales vollständig |
-| `lib/tool-i18n.ts` | Alle Tools + generische `error*`-Keys; `getToolTranslation()`, `getApiErrorMessage()` — `en` vollständig, `de` als Merge, Rest → `en` |
+Always do:
 
-- Server: Locale aus `Accept-Language` (Aliase wie `de-de` → `de`, Default `en`).
-- Client-Checker erhalten `locale` als Prop — **kein** React Context, **kein** next-intl.
-- API-Routes liefern **keine** übersetzten Texte; Daten sind Codes oder leere Strings, die UI übersetzt.
-- `<html lang>` in `app/layout.tsx` folgt der aufgelösten Locale (`<html lang={locale}>`), damit die deklarierte Dokumentsprache immer zur gerenderten UI-Sprache passt.
+- Route every user-supplied host/IP/URL through `assertPublicTarget` / `assertPublicUrl` / `fetchPublicUrl` (`lib/network/target.ts`) and start every public route with `enforceRateLimit`.
+- Validate all inputs with zod `safeParse` → `apiValidationError`; return `apiError` with the existing `ApiErrorCode` set.
+- Keep `cache-control: no-store` on API responses and `export const runtime = "nodejs"` on Node-socket routes.
 
-Neue UI-Strings: beide Dateien konsistent pflegen; Deutsch in `tool-i18n` per Spread über Englisch (`de: { ...en, ...de }`).
+Ask first:
 
----
+- Adding dependencies, env vars, external providers, or new public endpoints/tools.
+- Changing rate limits, SSRF blocklists, timeouts, redirect/size caps, or caching behavior.
+- Touching `Dockerfile`, `nixpacks.toml`, `next.config.mjs`, security headers, or SEO/robots/sitemap behavior.
 
-## SEO
+Never do:
 
-- `lib/seo.ts`: `siteConfig`, `createPageMetadata()`
-- `app/sitemap.ts`, `app/robots.ts`, `app/manifest.ts` (Farben spiegeln `app/globals.css`)
-- JSON-LD `WebSite` in `app/layout.tsx` (`inLanguage: de-DE`)
-
-Bei neuen Seiten: canonical URL, OpenGraph, Keywords an bestehende Seiten anlehnen.
-
----
-
-## Frontend & Styling
-
-- **Design-System:** shadcn/ui (New York) auf Radix-Primitiven in `components/ui/`; Konfiguration in `components.json`. Klassen immer über `cn()` aus `lib/utils.ts` zusammenführen.
-- **Tokens:** `app/globals.css` (Tailwind 4, OKLCH). Light unter `:root`, Dark unter `.dark`, gemappt im `@theme inline`-Block. Semantik: `background/foreground`, `card`, `muted`, `secondary`, `primary`, `border`, `ring`, Status `success/warning/info/destructive` und `sidebar-*`. Für Status **keine** rohen Hex-/Palettenfarben — Tokens nutzen (bewusst kategoriale Farben wie ASN-Typen als `*-600 dark:*-300`-Paare).
-- **Theming:** `next-themes` (`attribute="class"`, Default `dark`) via `ThemeProvider` in `app/layout.tsx`; Umschalter `components/mode-toggle.tsx`. `<html>` trägt `suppressHydrationWarning`. `app/manifest.ts`/`viewport.themeColor` spiegeln die Token-Hintergründe.
-- **Shell:** `ToolPageShell` rendert Desktop-Sidebar (`components/shell/app-sidebar.tsx`) + Mobile-Sheet (`mobile-nav.tsx`); Navigation/Labels aus `components/shell/nav-config.ts`.
-- **Fonts:** Geist Sans/Mono **self-hosted** über das `geist`-Paket (kein Google-Fonts-Fetch beim Build).
-- **Icons:** Lucide React. **Toasts:** `sonner` (`<Toaster>` im Layout).
-- **Wiederverwendbar:** `ToolSearchForm`, `ResultPanel`, `ErrorPanel`, `EmptyState`, `components/country-flag.tsx` (Länderflaggen als SVG-Bild statt Emoji — rendert plattformübergreifend), `components/asn/show-more-button.tsx`.
-- **Command-Palette (⌘K / Strg+K, auch `/`):** Spotlight-artige Suche/Destination-Bar. `components/shell/command-menu.tsx` (Provider + Kontext + Trigger, in `ToolPageShell` montiert), `components/shell/command-palette.tsx` (Dialog-UI auf dem Radix-Dialog-Primitiv); Query-Klassifizierung + Deep-Link-Aktionen rein und getestet in `lib/command.ts`. Tippt der Nutzer eine IP/Domain/ASN, schlägt die Palette Deep-Links in die passenden Tools vor (gleiche Query-Parameter wie unter „Routen").
-- **`Frontend-Skill.md`:** externes kreatives Design-Skill — nicht mit Projekt-Konventionen verwechseln; die Tool-UI folgt dem shadcn-Design-System.
-
----
-
-## Tests
-
-- **Runner:** Vitest 3, `environment: "node"` (`vitest.config.ts`)
-- **Konvention:** `*.test.ts` neben Quellcode
-
-| Bereich | Testdateien |
-|---------|-------------|
-| SSRF/Ziele | `lib/network/target.test.ts` |
-| API-Helfer | `lib/api/response.test.ts`, `rate-limit.test.ts` |
-| Verbindungstyp/Proxy | `lib/connection-type.test.ts` |
-| DNS-Formatierung | `lib/dns-records.test.ts` |
-| WHOIS-Parsing | `lib/whois.test.ts` |
-| ASN-Normalisierung | `lib/asn.test.ts`, `app/api/asn/[asn]/route.test.ts` |
-| Reputation (Scoring/DNSBL/Feeds/Route) | `lib/reputation/*.test.ts`, `app/api/reputation/route.test.ts` |
-| Client-IP | `lib/client-ip-discovery.test.ts` |
-| DB-Probes | `lib/network/database-probes.test.ts` |
-| Command-Palette (Query-Klassifizierung/Deep-Links) | `lib/command.test.ts` |
-| Routes / CDN-Erkennung | `app/api/ping/route.test.ts`, `lib/cdn-detection.test.ts` |
-
-**Nicht vorhanden:** Komponenten-E2E, jsdom, Integrationstests für `/api/ip`, `/api/dns`, `/api/whois`.
-
-Bei Sicherheitsänderungen: Tests in `target.test.ts` erweitern oder Route-Tests mit blockierten Zielen (`localhost`, private IPs).
-
----
-
-## Umgebungsvariablen
-
-| Variable | Wirkung |
-|----------|---------|
-| `IPINFO_TOKEN` | Optional: aktiviert IPinfo-ASN-Daten auf `/api/asn` |
-| `ABUSEIPDB_API_KEY` | Optional: aktiviert AbuseIPDB-Meldungen auf `/api/reputation` |
-| `GREYNOISE_API_KEY` | Optional: GreyNoise Community-Schlüssel (höhere Limits, sonst unauthentifiziert ~10 Lookups/Tag) |
-| `HTTPBL_ACCESS_KEY` | Optional: Project Honey Pot Access Key für http:BL auf `/api/reputation` |
-| `THREATFOX_AUTH_KEY` | Optional: abuse.ch Auth-Key für ThreatFox-IOC-Abfragen auf `/api/reputation` |
-| `PUBLIC_ALLOWED_PING_PORTS` | Optional: erlaubte Ports für Ping (kommagetrennt) |
-| `NODE_ENV` | Production im Docker-Runner |
-| `PORT` | Default `3000` im Dockerfile |
-
-Keine API-Keys im Repo. Keine `.env` committen.
-
----
-
-## Deployment
-
-- **Nicht statisch** — API-Routes brauchen Node (Vercel, Railway, Render, Fly, Docker/VPS).
-- `Dockerfile`: Multi-Stage, Node 20 Alpine, `pnpm start`
-- `nixpacks.toml`: Node 20 + pnpm
-- `next.config.mjs`: `images.unoptimized: true`
-
----
-
-## Externe Dienste
-
-| Dienst | Verwendung |
-|--------|------------|
-| ip-api.com | IP-Metadaten (gemeinsamer Client: `lib/providers/ip-api.ts`) |
-| zen.spamhaus.org (SBL/CSS/XBL/PBL/BCL) + drop_v4/drop_v6.json | DNSBL + gecachte DROP-Feeds (max. stündlich) für `/api/reputation` |
-| bl.spamcop.net, b.barracudacentral.org, dnsbl.dronebl.org | Mail-/Missbrauchs-DNSBLs für `/api/reputation` |
-| bl.blocklist.de + api.blocklist.de | Angriffsmeldungen (SSH-Brute-Force etc.) für `/api/reputation` |
-| feodotracker.abuse.ch | Botnet-C2-IP-Feed (serverseitig gecacht, 15 min; geprüfte IP wird nicht übermittelt) |
-| api.greynoise.io (Community) | Internet-Scanner-Kontext (per-IP-Cache 24 h) |
-| ipinfo.io | Optionale ASN-Daten (`IPINFO_TOKEN`) |
-| stat.ripe.net | ASN-Holder, Prefixe, RIS-Routing-Nachbarn |
-| peeringdb.com | ASN-Netzwerkprofile, IX-Präsenz, Standorte |
-| api64.ipify.org | Client-seitige IPv6-Erkennung |
-| checkip.amazonaws.com | Fallback Client-IP |
-| whois.iana.org:43 | WHOIS mit RDAP-Fallback (`rdap.org`) |
-| Node `dns` / `net` | DNS (inkl. PTR/SOA/CAA), TCP/UDP, DB-Probes |
-| api.abuseipdb.com | Abuse-Confidence-Score und Meldungen (optional, `ABUSEIPDB_API_KEY`) |
-| dnsbl.httpbl.org (Project Honey Pot) | Web-Abuse-DNSBL (optional, `HTTPBL_ACCESS_KEY`) |
-| threatfox-api.abuse.ch | ThreatFox-IOC-Abfragen (optional, `THREATFOX_AUTH_KEY`) |
-
-Upstream-Ausfälle: graceful degradation (z. B. leere Felder bei IP-API; CDN `reachable: false`; ASN-Provider-Cache mit Stale-Fallback).
-
----
-
-## Häufige Aufgaben → Dateien
-
-| Aufgabe | Zuerst lesen |
-|---------|----------------|
-| Neue API-Route | `app/api/dns/route.ts` oder `app/api/ping/route.ts`, `lib/network/target.ts`, `lib/api/response.ts` |
-| SSRF / neue Zieltypen | `lib/network/target.ts`, `lib/network/target.test.ts` |
-| Neues Tool in Navigation | `components/shell/nav-config.ts`, `app/sitemap.ts` |
-| Neuer Checker | `hooks/use-tool-lookup.ts`, `components/dns-checker.tsx` als Vorlage |
-| IP-Anzeige erweitern | `components/ip-display.tsx`, `app/api/ip/route.ts`, `lib/connection-type.ts` |
-| ASN-UI ändern | `components/asn/` (Sektions-Komponenten) |
-| Übersetzungen | `lib/i18n.ts`, `lib/tool-i18n.ts` |
-| Fehlertexte | `getApiErrorMessage` in `lib/tool-i18n.ts` |
-| Metadaten / SEO | `lib/seo.ts`, bestehende `app/*/page.tsx` |
-
----
-
-## Anti-Patterns (nicht tun)
-
-1. User-Targets ohne `assertPublicTarget` / `assertPublicUrl` ansprechen.
-2. Neue öffentliche Endpoints ohne `enforceRateLimit`.
-3. Credentials in URLs oder Lookup-Strings zulassen.
-4. API-Responses cachen (`no-store` beibehalten).
-5. Client-seitig auf englische Server-Message-Strings matchen — immer `ApiClientError.code` verwenden.
-6. Übersetzte Texte oder Locale-abhängige Daten aus API-Routes liefern (Codes/leere Strings zurückgeben, UI übersetzt).
-7. Locale-Routing (`/de/ping`) einführen ohne Architektur-Entscheidung.
-8. DB-Auth außer Redis in Ping-Probes.
-9. TypeScript-Fehler ignorieren oder Build-Checks umgehen.
-10. Große Response-Bodies von User-Zielen ohne bestehende Limits.
-11. Status-/Akzentfarben hartkodieren (rohe Hex- oder Tailwind-Palettenwerte) statt der semantischen Tokens — bricht den Light-Mode; Tokens (`success`, `warning`, `info`, `destructive`, ...) verwenden.
-12. `next/font/google` verwenden (bricht Offline-Builds) — Fonts kommen aus dem `geist`-Paket.
-
----
-
-## Scope & Commits
-
-- **Minimale Diffs:** Nur angeforderte Änderungen; keine Drive-by-Refactors.
-- **Commits:** Nur auf ausdrückliche Anfrage; keine Secrets committen.
-- **Sprache:** Nutzer-Kommunikation oft Deutsch; Code und Identifiers auf Englisch (bestehende Konvention).
-
----
-
-## Verwandte Dokumentation
-
-- `README.md` — Features, Safety Model, Tech Stack
-- `design-principles.md` — Design-System: Tokens, Farb-/Theming-Regeln, Komponenten- und State-Muster
-- `Frontend-Skill.md` — optionales kreatives UI-Skill (nicht Projektstandard für Tools)
+- Commit secrets, tokens, or `.env` files (keys stay in env only; no key is hardcoded).
+- Bypass target validation, rate limiting, or zod validation for network input; allow credentials in URLs.
+- Edit generated output: `.next/`, `node_modules/`, `tsconfig.tsbuildinfo`, `next-env.d.ts`, `*.map`.
+- Translate in API routes, match on English error messages client-side, add `/de/...` locale routes, use `next/font/google`, or hardcode status colors instead of tokens.
