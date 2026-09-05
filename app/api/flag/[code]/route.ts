@@ -6,6 +6,8 @@
 // behind a strict CSP or a network/privacy blocker. Here only the server talks
 // to the upstream, and the result is cached aggressively (flags are immutable).
 
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+
 export const runtime = "nodejs";
 
 const UPSTREAM_TIMEOUT_MS = 5_000;
@@ -47,7 +49,10 @@ interface RouteContext {
   params: Promise<{ code: string }>;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
+  const limited = enforceRateLimit(request, "flag", { limit: 120, windowMs: 60_000 });
+  if (limited) return limited;
+
   const { code } = await context.params;
   const normalized = code?.trim().toLowerCase();
 

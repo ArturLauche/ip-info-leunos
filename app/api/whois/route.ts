@@ -9,6 +9,7 @@ import {
   normalizeLookupTarget,
   TargetValidationError,
 } from "@/lib/network/target";
+import { readBoundedJson } from "@/lib/network/bounded-body";
 
 export const runtime = "nodejs";
 
@@ -85,13 +86,20 @@ async function lookupViaRdap(target: string) {
     const response = await fetch(`https://rdap.org/${path}`, {
       cache: "no-store",
       signal: controller.signal,
+      headers: {
+        "user-agent": "ip-info-leunos-whois-check/1.2",
+        accept: "application/json",
+      },
     });
 
     if (!response.ok) {
       throw new Error(`RDAP request failed with status ${response.status}.`);
     }
 
-    const data = await response.json();
+    // Streamed read with a hard byte cap: RDAP JSON is small, so anything
+    // larger is anomalous and must not be fully buffered (unlike
+    // response.text(), this cancels the stream once the cap is crossed).
+    const data = await readBoundedJson(response, MAX_WHOIS_RESPONSE_BYTES);
     return {
       raw: JSON.stringify(data, null, 2),
       rdap: data,

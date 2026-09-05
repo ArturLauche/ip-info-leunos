@@ -21,11 +21,19 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Run as non-root for production hardening.
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+RUN chown -R appuser:appgroup /app
+USER appuser
 
 EXPOSE 3000
-CMD ["pnpm", "start"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/ > /dev/null 2>&1 || exit 1
+# Launch Next directly: `pnpm start` would go through the Corepack shim, which
+# under this fresh appuser HOME could try to download a pnpm release at boot.
+CMD ["./node_modules/.bin/next", "start"]
