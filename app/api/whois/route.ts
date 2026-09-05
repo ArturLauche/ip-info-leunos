@@ -9,6 +9,7 @@ import {
   normalizeLookupTarget,
   TargetValidationError,
 } from "@/lib/network/target";
+import { readBoundedJson } from "@/lib/network/bounded-body";
 
 export const runtime = "nodejs";
 
@@ -95,13 +96,10 @@ async function lookupViaRdap(target: string) {
       throw new Error(`RDAP request failed with status ${response.status}.`);
     }
 
-    // Bound the RDAP body: upstream JSON is small; anything larger is anomalous.
-    const text = await response.text();
-    if (text.length > MAX_WHOIS_RESPONSE_BYTES) {
-      throw new Error("RDAP response exceeded the public response size limit.");
-    }
-
-    const data = JSON.parse(text);
+    // Streamed read with a hard byte cap: RDAP JSON is small, so anything
+    // larger is anomalous and must not be fully buffered (unlike
+    // response.text(), this cancels the stream once the cap is crossed).
+    const data = await readBoundedJson(response, MAX_WHOIS_RESPONSE_BYTES);
     return {
       raw: JSON.stringify(data, null, 2),
       rdap: data,

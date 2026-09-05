@@ -39,3 +39,30 @@ jobs:
             printf '%s\n' "$maps"
             exit 1
           fi
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build -t ip-info-leunos:ci .
+
+      - name: Boot container and smoke-test
+        run: |
+          docker run -d --name ip-info-ci -p 3100:3000 ip-info-leunos:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3100/ > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3100/ > /dev/null
+          curl -fsS http://127.0.0.1:3100/api/flag/de > /dev/null
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs ip-info-ci || true
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f ip-info-ci || true

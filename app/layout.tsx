@@ -118,14 +118,6 @@ export default async function RootLayout({
     // lang follows the negotiated locale so the declared document language
     // always matches the UI language the shell and checkers render.
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        {/* Early-connection hints for client-side IP discovery (api64.ipify.org
-            primary, checkip.amazonaws.com fallback). Hints only — no request is
-            issued until the homepage checker fetches, so no functionality change. */}
-        <link rel="preconnect" href="https://api64.ipify.org" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://api64.ipify.org" />
-        <link rel="dns-prefetch" href="https://checkip.amazonaws.com" />
-      </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <StructuredData data={jsonLd} />
         <ThemeProvider
