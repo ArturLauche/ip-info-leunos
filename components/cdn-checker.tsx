@@ -61,21 +61,23 @@ function confidenceVariant(
   return "secondary";
 }
 
-interface DetailCardProps {
+interface DetailCellProps {
   icon: typeof Globe;
   label: string;
   value: string;
 }
 
-function DetailCard({ icon: Icon, label, value }: DetailCardProps) {
+// Single definition-list row cell: target, status and provider share one
+// card so the summary reads as one fact sheet instead of three boxes.
+function DetailCell({ icon: Icon, label, value }: DetailCellProps) {
   return (
-    <Card className="gap-2 py-4">
-      <div className="flex items-center gap-2 px-5 text-muted-foreground">
-        <Icon className="size-4 text-primary" />
-        <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
-      </div>
-      <p className="px-5 text-sm font-semibold break-all text-foreground">{value}</p>
-    </Card>
+    <div className="flex flex-col gap-1.5 px-5 py-4">
+      <dt className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="size-4 text-primary" aria-hidden="true" />
+        <span className="text-xs font-semibold uppercase tracking-wider">{label}</span>
+      </dt>
+      <dd className="text-sm font-semibold break-all text-foreground">{value}</dd>
+    </div>
   );
 }
 
@@ -121,11 +123,10 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
       )}
 
       {loading && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3" role="status" aria-busy="true">
+        <div className="flex flex-col gap-4" role="status" aria-busy="true">
           <span className="sr-only">{t.cdnAnalyzing}</span>
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" aria-hidden="true" />
-          ))}
+          <Skeleton className="h-28 rounded-xl" aria-hidden="true" />
+          <Skeleton className="h-24 rounded-xl" aria-hidden="true" />
         </div>
       )}
 
@@ -136,9 +137,9 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           <Card className="gap-3 py-5">
             <div className="flex flex-wrap items-center gap-3 px-5">
               {result.usesCdn ? (
-                <CircleCheck className="size-5 text-success" />
+                <CircleCheck className="size-5 text-success" aria-hidden="true" />
               ) : (
-                <Shield className="size-5 text-muted-foreground" />
+                <Shield className="size-5 text-muted-foreground" aria-hidden="true" />
               )}
               <p className="text-lg font-semibold text-foreground">{summary}</p>
               <Badge
@@ -167,30 +168,32 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                     className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-muted/40"
                   >
                     {ip}
-                    <ExternalLink className="size-3" />
+                    <ExternalLink className="size-3" aria-hidden="true" />
                   </Link>
                 ))}
               </div>
             </Card>
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <DetailCard icon={Globe} label={t.cdnTargetLabel} value={result.target} />
-            <DetailCard
-              icon={Activity}
-              label={t.cdnHttpStatusLabel}
-              value={result.status ? String(result.status) : t.cdnConfidenceNa}
-            />
-            <DetailCard
-              icon={Sparkles}
-              label={t.cdnProviderLabel}
-              value={result.detectedCdn || t.cdnUnknown}
-            />
-          </div>
+          <Card className="gap-0 overflow-hidden py-0">
+            <dl className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
+              <DetailCell icon={Globe} label={t.cdnTargetLabel} value={result.target} />
+              <DetailCell
+                icon={Activity}
+                label={t.cdnHttpStatusLabel}
+                value={result.status ? String(result.status) : t.cdnConfidenceNa}
+              />
+              <DetailCell
+                icon={Sparkles}
+                label={t.cdnProviderLabel}
+                value={result.detectedCdn || t.cdnUnknown}
+              />
+            </dl>
+          </Card>
 
           <Card className="gap-3 py-5">
             <p className="flex items-center gap-2 px-5 text-sm font-medium text-foreground">
-              <Binary className="size-4 text-primary" />
+              <Binary className="size-4 text-primary" aria-hidden="true" />
               {t.cdnMatchedSignals}
             </p>
             {result.matchedSignals.length > 0 ? (
@@ -209,7 +212,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card className="gap-3 py-5">
               <p className="flex items-center gap-2 px-5 text-sm font-medium text-foreground">
-                <Waypoints className="size-4 text-primary" />
+                <Waypoints className="size-4 text-primary" aria-hidden="true" />
                 {t.cdnCnameChain}
               </p>
               {result.cnameChain.length > 0 ? (

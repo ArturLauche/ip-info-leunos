@@ -21,16 +21,28 @@ export function formatDnsRecordValue(record: DnsRecord): string {
 
   const fields = value as Record<string, unknown>;
 
+  // Shape guard: Node resolver output is typed loosely, so coerce every
+  // interpolated field instead of rendering literal "undefined" strings.
+  const field = (key: string): string => {
+    const entry = fields[key];
+    if (typeof entry === "string") return entry;
+    if (typeof entry === "number" || typeof entry === "boolean") return String(entry);
+    return "";
+  };
+
   switch (record.type) {
     case "MX": {
-      const exchange = typeof fields.exchange === "string" ? fields.exchange.trim() : "";
+      const exchange = field("exchange").trim();
+      const priority = field("priority");
       // RFC 7505 null MX: empty exchange means "no mail service", written as ".".
-      return exchange ? `${fields.priority} ${exchange}` : `${fields.priority} .`;
+      return exchange ? `${priority} ${exchange}`.trim() : `${priority} .`.trim();
     }
-    case "SRV":
-      return `${fields.priority} ${fields.weight} ${fields.port} ${fields.name}`;
+    case "SRV": {
+      const line = `${field("priority")} ${field("weight")} ${field("port")} ${field("name")}`;
+      return line.replace(/\s+/g, " ").trim();
+    }
     case "SOA":
-      return `${fields.nsname} ${fields.hostmaster} (serial ${fields.serial}, refresh ${fields.refresh}, retry ${fields.retry}, expire ${fields.expire}, minttl ${fields.minttl})`;
+      return `${field("nsname")} ${field("hostmaster")} (serial ${field("serial")}, refresh ${field("refresh")}, retry ${field("retry")}, expire ${field("expire")}, minttl ${field("minttl")})`;
     case "CAA": {
       const tag = ["issue", "issuewild", "iodef", "contactemail", "contactphone"].find(
         (key) => typeof fields[key] === "string",

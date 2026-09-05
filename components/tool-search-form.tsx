@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Search } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,9 @@ export function ToolSearchForm({
   onSubmit,
 }: ToolSearchFormProps) {
   const [value, setValue] = useState(initialValue);
+  // Unique per instance: duplicate `id`s break label association when two
+  // search forms share a page (e.g. command-palette previews, tests).
+  const inputId = useId();
 
   useEffect(() => {
     setValue(initialValue);
@@ -50,11 +53,11 @@ export function ToolSearchForm({
     >
       <div className="relative flex-1">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Label htmlFor="tool-query" className="sr-only">
+        <Label htmlFor={inputId} className="sr-only">
           {placeholder}
         </Label>
         <Input
-          id="tool-query"
+          id={inputId}
           name="q"
           type="text"
           value={value}

@@ -447,7 +447,13 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col gap-6">
+      <div
+        className="flex w-full flex-col gap-6"
+        role="status"
+        aria-busy="true"
+        aria-label={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
+      >
+        <span className="sr-only">{targetIp ? t.queriedIpAddress : t.yourIpAddresses}</span>
         <Card className="gap-0 overflow-hidden p-0">
           <CardTitleBar
             icon={Globe}

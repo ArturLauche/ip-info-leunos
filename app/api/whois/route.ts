@@ -15,6 +15,7 @@ export const runtime = "nodejs";
 const WHOIS_PORT = 43;
 const SOCKET_TIMEOUT_MS = 6000;
 const MAX_WHOIS_RESPONSE_BYTES = 256_000;
+const MAX_RDAP_RESPONSE_BYTES = 1_000_000;
 
 const whoisQuerySchema = z.object({
   target: z.string().trim().min(1).max(253),
@@ -35,7 +36,11 @@ function validateWhoisTarget(input: string) {
 }
 
 async function queryWhois(server: string, query: string): Promise<string> {
-  await assertPublicTarget(server);
+  // Validate then dial the validated IP, not the hostname: this closes the
+  // DNS-rebinding window between the SSRF check and socket.connect, and is
+  // safe for WHOIS (port 43 has no virtual-hosting/Host semantics).
+  const target = await assertPublicTarget(server);
+  const dialHost = target.addresses[0] ?? target.hostname;
 
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
@@ -57,7 +62,7 @@ async function queryWhois(server: string, query: string): Promise<string> {
       finish(new Error(`WHOIS request timed out after ${SOCKET_TIMEOUT_MS}ms.`));
     });
 
-    socket.connect(WHOIS_PORT, server, () => {
+    socket.connect(WHOIS_PORT, dialHost, () => {
       socket.write(`${query}\r\n`);
     });
 
@@ -91,7 +96,42 @@ async function lookupViaRdap(target: string) {
       throw new Error(`RDAP request failed with status ${response.status}.`);
     }
 
-    const data = await response.json();
+    // Bounded read: never let an unbounded upstream JSON body exhaust memory.
+    const declaredLength = response.headers.get("content-length");
+    if (declaredLength && Number(declaredLength) > MAX_RDAP_RESPONSE_BYTES) {
+      throw new Error("RDAP response exceeded the public response size limit.");
+    }
+
+    const body = response.body;
+    if (!body) {
+      throw new Error("RDAP response had no body.");
+    }
+    const reader = body.getReader();
+    const chunks: Uint8Array[] = [];
+    let receivedBytes = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      receivedBytes += value.byteLength;
+      if (receivedBytes > MAX_RDAP_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => {});
+        throw new Error("RDAP response exceeded the public response size limit.");
+      }
+      chunks.push(value);
+    }
+    const merged = new Uint8Array(receivedBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const text = new TextDecoder().decode(merged);
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("RDAP response was not valid JSON.");
+    }
     return {
       raw: JSON.stringify(data, null, 2),
       rdap: data,

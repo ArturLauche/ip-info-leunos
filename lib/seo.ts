@@ -124,13 +124,12 @@ export function createPageMetadata({
       card: "summary_large_image",
       title,
       description,
+      // Next.js TwitterImage only supports url + alt; width/height/type are
+      // Open Graph fields and are ignored here.
       images: [
         {
           url: defaultOpenGraphImage,
-          width: openGraphImageWidth,
-          height: openGraphImageHeight,
           alt: openGraphImageAlt,
-          type: "image/png",
         },
       ],
     },

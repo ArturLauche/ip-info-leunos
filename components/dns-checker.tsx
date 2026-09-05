@@ -246,6 +246,7 @@ function DnsTypeFilter({
         onValueChange={(value) => value && onSelect(value)}
         variant="outline"
         size="default"
+        aria-label="DNS record type"
         className="relative z-10 flex-wrap gap-0 border-0 bg-transparent p-0 shadow-none"
       >
         {types.map((type) => (

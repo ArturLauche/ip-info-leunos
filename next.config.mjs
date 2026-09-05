@@ -4,6 +4,11 @@ const nextConfig = {
     unoptimized: true,
   },
   poweredByHeader: false,
+  // Barrel import (`from "lucide-react"`) used across ~20 client components;
+  // let Next rewrite it to per-icon imports so routes only bundle what they use.
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   // Client maps are also stripped after build (scripts/strip-client-maps.mjs)
   // because Turbopack still emits the nomodule-polyfill map (Next.js #89894).
   productionBrowserSourceMaps: false,

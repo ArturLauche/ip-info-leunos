@@ -8,6 +8,8 @@
 
 export const runtime = "nodejs";
 
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+
 const UPSTREAM_TIMEOUT_MS = 5_000;
 // Flag SVGs are a few kilobytes; anything larger is an upstream anomaly.
 const MAX_FLAG_BYTES = 64_000;
@@ -47,7 +49,10 @@ interface RouteContext {
   params: Promise<{ code: string }>;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
+  const limited = enforceRateLimit(request, "flag", { limit: 120, windowMs: 60_000 });
+  if (limited) return limited;
+
   const { code } = await context.params;
   const normalized = code?.trim().toLowerCase();
 
