@@ -181,8 +181,8 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        {/* Plain dim scrim without blur; the surface below is opaque. */}
-        <DialogOverlay className="bg-black/30 backdrop-blur-none" />
+        {/* Dim scrim shared with dialog/sheet surfaces. */}
+        <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
         <DialogPrimitive.Content
           className={cn(
             "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden border bg-popover shadow-lg sm:max-w-xl",

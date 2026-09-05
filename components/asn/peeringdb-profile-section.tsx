@@ -12,7 +12,7 @@ function ProfileField({ label, value }: { label: string; value: string | number 
 
   return (
     <div className="min-w-0 border-b py-2 last:border-b-0">
-      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">{label}</dt>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">{label}</dt>
       <dd className="mt-1 text-sm font-semibold break-all text-foreground">
         {isUrl ? (
           <a
@@ -22,7 +22,7 @@ function ProfileField({ label, value }: { label: string; value: string | number 
             className="inline-flex items-center gap-1 text-primary hover:underline"
           >
             {value.replace(/^https?:\/\/(www\.)?/, "")}
-            <ExternalLink className="size-3" />
+            <ExternalLink className="size-3" aria-hidden="true" />
           </a>
         ) : (
           val
@@ -66,7 +66,7 @@ export function PeeringDbProfileSection({ profile, t }: { profile: PeeringDbProf
   return (
     <Card className="gap-4 py-5">
       <div className="border-b px-5 pb-3">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <Globe className="size-5 text-primary" />
           {t.asnPeeringDb}
         </h3>

@@ -85,13 +85,23 @@ async function lookupViaRdap(target: string) {
     const response = await fetch(`https://rdap.org/${path}`, {
       cache: "no-store",
       signal: controller.signal,
+      headers: {
+        "user-agent": "ip-info-leunos-whois-check/1.2",
+        accept: "application/json",
+      },
     });
 
     if (!response.ok) {
       throw new Error(`RDAP request failed with status ${response.status}.`);
     }
 
-    const data = await response.json();
+    // Bound the RDAP body: upstream JSON is small; anything larger is anomalous.
+    const text = await response.text();
+    if (text.length > MAX_WHOIS_RESPONSE_BYTES) {
+      throw new Error("RDAP response exceeded the public response size limit.");
+    }
+
+    const data = JSON.parse(text);
     return {
       raw: JSON.stringify(data, null, 2),
       rdap: data,

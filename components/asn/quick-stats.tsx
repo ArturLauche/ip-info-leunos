@@ -42,21 +42,21 @@ export function QuickStats({ result, t, locale }: { result: AsnProfile; t: ToolT
         return (
           <Card
             key={stat.label}
-            className="group gap-0 py-0 transition-colors hover:border-primary/40"
+            className="gap-0 py-0"
           >
             <div className="flex flex-col gap-1 p-5">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {stat.label}
                 </p>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-                  <Icon className="size-4" />
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                  <Icon className="size-4" aria-hidden="true" />
                 </span>
               </div>
               <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-foreground">
                 {stat.value}
               </p>
-              <p className="mt-1.5 text-[11px] leading-normal text-muted-foreground">
+              <p className="mt-1.5 text-xs leading-normal text-muted-foreground">
                 {stat.detail}
               </p>
             </div>
