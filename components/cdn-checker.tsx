@@ -176,7 +176,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           )}
 
           <Card className="gap-0 overflow-hidden py-0">
-            <dl className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
+            <dl className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
               <DetailCell icon={Globe} label={t.cdnTargetLabel} value={result.target} />
               <DetailCell
                 icon={Activity}
