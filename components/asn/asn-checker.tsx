@@ -6,7 +6,9 @@ import { AlertTriangle, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import type { AsnProfile } from "@/lib/asn";
@@ -106,8 +108,12 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       )}
 
       {result && result.found && (
-        <div className="tool-reveal flex flex-col gap-6">
-          <HeroHeader result={result} t={t} />
+        <div className="tool-reveal flex flex-col gap-4">
+          {/* Summary: identity + key figures in one card */}
+          <Card className="flex flex-col gap-5 p-5 sm:p-6">
+            <HeroHeader result={result} t={t} />
+            <QuickStats result={result} t={t} locale={locale} />
+          </Card>
 
           {showSourceInfo && result.warnings.length > 0 && (
             <Alert variant="warning">
@@ -123,17 +129,52 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
             </Alert>
           )}
 
-          <QuickStats result={result} t={t} locale={locale} />
-          <RoutingSection result={result} t={t} locale={locale} />
-          <IxPresenceSection result={result} t={t} locale={locale} />
-          <PrefixSection result={result} t={t} />
+          {/* Detail: tabbed instead of a stack of competing cards */}
+          <Card className="p-5 sm:p-6">
+            <Tabs defaultValue="routing">
+              <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
+                <TabsTrigger value="routing">{t.asnRouting}</TabsTrigger>
+                <TabsTrigger value="prefixes">{t.asnPrefixes}</TabsTrigger>
+                <TabsTrigger value="peering">{t.asnPeeringDb}</TabsTrigger>
+                {showSourceInfo && (
+                  <TabsTrigger value="sources">{t.asnSourceDiagnostics}</TabsTrigger>
+                )}
+              </TabsList>
 
-          {result.peeringdb && <PeeringDbProfileSection profile={result.peeringdb} t={t} />}
-          {result.peeringdb && (
-            <FacilitySection facilities={result.peeringdb.facilities} total={result.peeringdb.facilitiesTotal} t={t} />
-          )}
+              <TabsContent value="routing" className="pt-4">
+                <RoutingSection result={result} t={t} locale={locale} />
+              </TabsContent>
 
-          {showSourceInfo && <SourceDiagnosticsSection result={result} t={t} locale={locale} />}
+              <TabsContent value="prefixes" className="pt-4">
+                <PrefixSection result={result} t={t} locale={locale} />
+              </TabsContent>
+
+              <TabsContent value="peering" className="pt-4">
+                <div className="flex flex-col gap-8">
+                  {result.peeringdb ? (
+                    <PeeringDbProfileSection profile={result.peeringdb} t={t} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t.asnWarningNoPeeringDbProfile}
+                    </p>
+                  )}
+                  <IxPresenceSection result={result} t={t} locale={locale} />
+                  <FacilitySection
+                    facilities={result.peeringdb?.facilities ?? []}
+                    total={result.peeringdb?.facilitiesTotal ?? 0}
+                    t={t}
+                    locale={locale}
+                  />
+                </div>
+              </TabsContent>
+
+              {showSourceInfo && (
+                <TabsContent value="sources" className="pt-4">
+                  <SourceDiagnosticsSection result={result} t={t} locale={locale} />
+                </TabsContent>
+              )}
+            </Tabs>
+          </Card>
         </div>
       )}
     </div>

@@ -1,56 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { Network } from "lucide-react";
 import type { AsnPrefix, AsnProfile } from "@/lib/asn";
-import { formatTemplate } from "@/lib/format";
+import { formatNumber, formatTemplate } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { ShowMoreButton } from "./show-more-button";
 
-function PrefixItem({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
+function RpkiBadge({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
   const rpki = prefix.rpkiStatus?.toLowerCase().trim();
-  let rpkiBadge = null;
-
   if (rpki === "valid") {
-    rpkiBadge = (
-      <Badge variant="success" className="text-[11px] uppercase">
-        {t.asnRpkiValid}
-      </Badge>
-    );
-  } else if (rpki === "invalid") {
-    rpkiBadge = (
-      <Badge variant="destructive" className="text-[11px] uppercase">
-        {t.asnRpkiInvalid}
-      </Badge>
-    );
-  } else if (prefix.rpkiStatus) {
-    rpkiBadge = (
-      <Badge variant="secondary" className="text-[11px] uppercase">
+    return <Badge variant="success">{t.asnRpkiValid}</Badge>;
+  }
+  if (rpki === "invalid") {
+    return <Badge variant="destructive">{t.asnRpkiInvalid}</Badge>;
+  }
+  if (prefix.rpkiStatus) {
+    return (
+      <Badge variant="secondary">
         {formatTemplate(t.asnRpkiStatus, { status: prefix.rpkiStatus })}
       </Badge>
     );
   }
+  return null;
+}
 
-  const details = [
-    prefix.name,
-    prefix.country,
-    prefix.status,
-    prefix.size ? `${prefix.size} ${t.asnPrefixIpCount}` : "",
-  ]
+function PrefixItem({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
+  const details = [prefix.name, prefix.country, prefix.status, prefix.size ? `${prefix.size} ${t.asnPrefixIpCount}` : ""]
     .filter(Boolean)
-    .join(" • ");
+    .join(" · ");
 
   return (
-    <li className="flex flex-col gap-1.5 border-b pb-3 last:border-b-0">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-sm font-semibold text-foreground/95 select-all">
-          {prefix.netblock}
-        </span>
-        {rpkiBadge}
-      </div>
-      {details && <p className="text-[11px] text-muted-foreground">{details}</p>}
+    <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b py-2.5 last:border-b-0">
+      <span className="font-mono text-sm font-semibold text-foreground/95 select-all">
+        {prefix.netblock}
+      </span>
+      <RpkiBadge prefix={prefix} t={t} />
+      {details && (
+        <span className="w-full text-[11px] text-muted-foreground">{details}</span>
+      )}
     </li>
   );
 }
@@ -60,12 +49,14 @@ function PrefixColumn({
   prefixes,
   total,
   emptyText,
+  locale,
   t,
 }: {
   title: string;
   prefixes: AsnPrefix[];
   total: number;
   emptyText: string;
+  locale: Locale;
   t: ToolTranslation;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -73,48 +64,48 @@ function PrefixColumn({
   const visible = expanded ? prefixes : prefixes.slice(0, limit);
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border bg-muted/20 p-5">
-      <div className="flex items-center justify-between border-b pb-2.5">
+    <section aria-label={title} className="flex min-w-0 flex-col">
+      <p className="flex items-baseline justify-between gap-2 border-b pb-2">
         <span className="font-mono text-sm font-semibold text-foreground">{title}</span>
-        <Badge variant="secondary" className="font-mono tabular-nums">
-          {total}
-        </Badge>
-      </div>
+        <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatNumber(total, locale)}</span>
+      </p>
 
       {visible.length > 0 ? (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col">
           {visible.map((prefix, idx) => (
             <PrefixItem key={`${prefix.netblock}-${idx}`} prefix={prefix} t={t} />
           ))}
         </ul>
       ) : (
-        <p className="py-4 text-center text-xs text-muted-foreground">{emptyText}</p>
+        <p className="py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
       )}
 
       {prefixes.length > limit && (
-        <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={prefixes.length} t={t} />
+        <div className="pt-2">
+          <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={prefixes.length} t={t} />
+        </div>
       )}
-    </div>
+    </section>
   );
 }
 
-export function PrefixSection({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
+export function PrefixSection({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
   return (
-    <Card className="gap-4 py-5">
-      <div className="flex flex-col gap-1 border-b px-5 pb-3">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
-          <Network className="size-5 text-primary" />
+    <section aria-label={t.asnPrefixes} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnPrefixes}
         </h3>
-        <p className="text-xs leading-normal text-muted-foreground">{t.asnPrefixesDescription}</p>
+        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnPrefixesDescription}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 px-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-5">
         <PrefixColumn
           title={t.asnLabelIpv4}
           prefixes={result.prefixes4}
           total={result.prefixes4Total}
           emptyText={t.asnNoPrefixes}
+          locale={locale}
           t={t}
         />
         <PrefixColumn
@@ -122,9 +113,10 @@ export function PrefixSection({ result, t }: { result: AsnProfile; t: ToolTransl
           prefixes={result.prefixes6}
           total={result.prefixes6Total}
           emptyText={t.asnNoPrefixes}
+          locale={locale}
           t={t}
         />
       </div>
-    </Card>
+    </section>
   );
 }
