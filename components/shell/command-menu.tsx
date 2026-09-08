@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
   createContext,
   useContext,
@@ -15,7 +16,13 @@ import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 
-import { CommandPalette } from "./command-palette";
+// The palette (Radix dialog + full nav index) is only needed once the user
+// opens it: split it out of the initial shell bundle and mount it lazily.
+// Functionality is unchanged — the ⌘K shortcut still opens it on demand.
+const CommandPalette = dynamic(
+  () => import("./command-palette").then((module) => module.CommandPalette),
+  { ssr: false },
+);
 
 interface CommandMenuContextValue {
   open: boolean;
@@ -74,7 +81,7 @@ export function CommandMenuProvider({ locale, children }: CommandMenuProviderPro
   return (
     <CommandMenuContext.Provider value={value}>
       {children}
-      <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />
+      {open && <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />}
     </CommandMenuContext.Provider>
   );
 }

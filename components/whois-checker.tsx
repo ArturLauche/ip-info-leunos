@@ -3,12 +3,18 @@
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
+import {
+  CopyButton,
+  CopyLinkButton,
+  DownloadJsonButton,
+  ExampleQueries,
+} from "@/components/checker-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
-import { type Locale } from "@/lib/i18n";
+import { getTranslation, type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { Activity } from "lucide-react";
 import { useState } from "react";
@@ -53,7 +59,9 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
 
 export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) {
   const [showRaw, setShowRaw] = useState(false);
+  const [lastQuery, setLastQuery] = useState(initialTarget);
   const t = getToolTranslation(locale);
+  const bt = getTranslation(locale);
 
   const { loading, error, result, run } = useToolLookup<WhoisResult>({
     buildApiUrl: (target) => `/api/whois?target=${encodeURIComponent(target)}`,
@@ -63,6 +71,11 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
     onStart: () => setShowRaw(false),
   });
 
+  const handleRun = (query: string) => {
+    setLastQuery(query);
+    run(query);
+  };
+
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
@@ -71,7 +84,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
-        onSubmit={run}
+        onSubmit={handleRun}
       />
 
       {!loading && !error && !result && (
@@ -79,7 +92,13 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
           icon={Activity}
           title={t.whoisEmptyTitle}
           description={t.whoisEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["example.com", "google.com", "8.8.8.8"]}
+            onSelect={handleRun}
+            label={t.tryExample}
+          />
+        </EmptyState>
       )}
 
       {loading && (
@@ -92,10 +111,29 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={lastQuery.trim() ? () => handleRun(lastQuery) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && (
         <ResultPanel title={`${t.whoisFor} ${result.target}`}>
+          <div className="flex flex-wrap gap-2">
+            <CopyLinkButton
+              href={`/whois?target=${encodeURIComponent(result.target)}`}
+              label={t.copyLink}
+              copiedLabel={bt.copiedToClipboard}
+              failedLabel={bt.copyFailed}
+            />
+            <DownloadJsonButton
+              data={result}
+              filename={`whois-${result.target}.json`}
+              label={t.downloadJson}
+            />
+          </div>
           <dl className="divide-y divide-border">
             <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
               <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
@@ -163,15 +201,25 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
               </div>
             )}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            onClick={() => setShowRaw((value) => !value)}
-          >
-            {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={() => setShowRaw((value) => !value)}
+            >
+              {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
+            </Button>
+            {result.raw && (
+              <CopyButton
+                text={result.raw}
+                label={t.copyValue}
+                copiedLabel={bt.copiedToClipboard}
+                failedLabel={bt.copyFailed}
+              />
+            )}
+          </div>
 
           {showRaw && (
             <pre className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground">

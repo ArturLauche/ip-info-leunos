@@ -3,6 +3,8 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { createTtlCache } from "@/lib/cache/ttl-cache";
+import { raceResolve } from "@/lib/network/race-timeout";
 import { assertPublicTarget, isIpAddress, TargetValidationError } from "@/lib/network/target";
 import { isCacheableDnsResult } from "@/lib/dns-cache";
 
@@ -27,25 +29,17 @@ const dnsQuerySchema = z.object({
 const DNS_CACHE_TTL_MS = 120_000;
 const DNS_CACHE_MAX_ENTRIES = 512;
 
-const dnsCache = new Map<string, { storedAt: number; payload: unknown }>();
+const dnsCache = createTtlCache<unknown>({
+  ttlMs: DNS_CACHE_TTL_MS,
+  maxEntries: DNS_CACHE_MAX_ENTRIES,
+});
 
 function getCachedDns(hostname: string): unknown | null {
-  const cached = dnsCache.get(hostname);
-  if (!cached) return null;
-  if (Date.now() - cached.storedAt >= DNS_CACHE_TTL_MS) {
-    dnsCache.delete(hostname);
-    return null;
-  }
-  return cached.payload;
+  return dnsCache.get(hostname);
 }
 
 function setCachedDns(hostname: string, payload: unknown) {
-  dnsCache.set(hostname, { storedAt: Date.now(), payload });
-  while (dnsCache.size > DNS_CACHE_MAX_ENTRIES) {
-    const oldest = dnsCache.keys().next().value;
-    if (oldest === undefined) break;
-    dnsCache.delete(oldest);
-  }
+  dnsCache.set(hostname, payload);
 }
 
 type DnsRecordValue = string | number | boolean | null | DnsRecordValue[] | { [key: string]: DnsRecordValue };
@@ -66,23 +60,7 @@ function errorCode(error: unknown) {
 }
 
 function raceResolveTimeout<T>(promise: Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("DNS query timed out.")),
-      RESOLVE_TIMEOUT_MS,
-    );
-    timer.unref?.();
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
+  return raceResolve(promise, RESOLVE_TIMEOUT_MS);
 }
 
 async function resolveByType(hostname: string, type: (typeof RECORD_TYPES)[number]): Promise<ResolveResult> {

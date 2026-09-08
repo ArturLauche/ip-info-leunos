@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useRouter } from "next/navigation";
-import { FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleCheck,
   Loader2,
@@ -136,10 +136,10 @@ const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "generic", label: "Generic TCP DB" },
 ];
 
-const getDatabaseOptionDetail = (value: DatabaseType, locale: Locale) => {
+const getDatabaseOptionDetail = (value: DatabaseType, customPortLabel: string) => {
   const defaultPort = DB_DEFAULT_PORTS[value];
   if (defaultPort) return `${defaultPort} / TCP`;
-  return locale === "de" ? "Manueller Port" : "Custom port";
+  return customPortLabel;
 };
 
 interface PingCheckerProps {
@@ -214,19 +214,25 @@ export function PingChecker({
     setResult(null);
   }, [initialTarget, initialPort, initialMode]);
 
-  const modeLabels: Record<PingMode, string> = {
-    tcp: "TCP",
-    udp: "UDP",
-    eb: "EB",
-    database: t.pingModeDatabase,
-  };
+  const modeLabels: Record<PingMode, string> = useMemo(
+    () => ({
+      tcp: "TCP",
+      udp: "UDP",
+      eb: "EB",
+      database: t.pingModeDatabase,
+    }),
+    [t.pingModeDatabase],
+  );
 
-  const modeHelpers: Record<PingMode, string> = {
-    tcp: t.pingModeHelperTcp,
-    udp: t.pingModeHelperUdp,
-    eb: t.pingModeHelperEb,
-    database: t.pingModeHelperDatabase,
-  };
+  const modeHelpers: Record<PingMode, string> = useMemo(
+    () => ({
+      tcp: t.pingModeHelperTcp,
+      udp: t.pingModeHelperUdp,
+      eb: t.pingModeHelperEb,
+      database: t.pingModeHelperDatabase,
+    }),
+    [t.pingModeHelperTcp, t.pingModeHelperUdp, t.pingModeHelperEb, t.pingModeHelperDatabase],
+  );
 
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
@@ -338,7 +344,7 @@ export function PingChecker({
                           <SelectItem key={option.value} value={option.value}>
                             <span className="font-medium">{option.label}</span>
                             <span className="text-muted-foreground">
-                              {getDatabaseOptionDetail(option.value, locale)}
+                              {getDatabaseOptionDetail(option.value, t.databaseCustomPort)}
                             </span>
                           </SelectItem>
                         ))}

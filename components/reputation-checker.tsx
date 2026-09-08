@@ -6,6 +6,7 @@ import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { ExampleQueries } from "@/components/checker-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -343,6 +344,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
   const baseT = getTranslation(locale);
   const [filter, setFilter] = useState<EvidenceFilter>("all");
   const [showHiddenSources, setShowHiddenSources] = useState(false);
+  const [lastQuery, setLastQuery] = useState(initialIp);
 
   const { loading, error, result, run } = useToolLookup<ReputationSummary>({
     buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
@@ -354,6 +356,11 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
       setShowHiddenSources(false);
     },
   });
+
+  const handleRun = (ip: string) => {
+    setLastQuery(ip);
+    run(ip);
+  };
 
   const evidenceGroups = useMemo(() => {
     if (!result) return null;
@@ -396,7 +403,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}
         loading={loading}
-        onSubmit={run}
+        onSubmit={handleRun}
       />
 
       {!loading && !error && !result && (
@@ -404,7 +411,13 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
           icon={ShieldAlert}
           title={t.reputationEmptyTitle}
           description={t.reputationEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["8.8.8.8", "1.1.1.1"]}
+            onSelect={handleRun}
+            label={t.tryExample}
+          />
+        </EmptyState>
       )}
 
       {loading && (
@@ -421,7 +434,13 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={lastQuery.trim() ? () => handleRun(lastQuery) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && evidenceGroups && (
         <div className="tool-reveal flex flex-col gap-6">

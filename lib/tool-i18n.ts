@@ -26,6 +26,9 @@ type ToolTranslation = {
   sidebarLabel: string;
   navClose: string;
   copyValue: string;
+  copyLink: string;
+  downloadJson: string;
+  tryExample: string;
   commandTriggerLabel: string;
   commandPlaceholder: string;
   commandGroupActions: string;
@@ -208,6 +211,7 @@ type ToolTranslation = {
   pingModeHelperEb: string;
   pingModeHelperDatabase: string;
   pingModeDatabase: string;
+  databaseCustomPort: string;
   pingDatabaseType: string;
   pingTargetHost: string;
   pingPort: string;
@@ -347,6 +351,9 @@ const en: ToolTranslation = {
   sidebarLabel: "Site navigation",
   navClose: "Close menu",
   copyValue: "Copy",
+  copyLink: "Copy link",
+  downloadJson: "Download JSON",
+  tryExample: "Try an example",
   commandTriggerLabel: "Search…",
   commandPlaceholder: "Search tools, or enter an IP, domain or ASN…",
   commandGroupActions: "Actions",
@@ -534,6 +541,7 @@ const en: ToolTranslation = {
   pingModeHelperEb: "Checks TCP first, then tries HTTP/HTTPS endpoint reachability.",
   pingModeHelperDatabase: "Runs pre-auth protocol checks and optional authenticated checks.",
   pingModeDatabase: "Database",
+  databaseCustomPort: "Custom port",
   pingDatabaseType: "Database type",
   pingTargetHost: "Target host / IP",
   pingPort: "Port",
@@ -811,6 +819,9 @@ const de: Partial<ToolTranslation> = {
   sidebarLabel: "Seitennavigation",
   navClose: "Menü schließen",
   copyValue: "Kopieren",
+  copyLink: "Link kopieren",
+  downloadJson: "JSON herunterladen",
+  tryExample: "Beispiel ausprobieren",
   commandTriggerLabel: "Suchen…",
   commandPlaceholder: "Tools suchen oder IP, Domain oder ASN eingeben…",
   commandGroupActions: "Aktionen",
@@ -993,6 +1004,7 @@ const de: Partial<ToolTranslation> = {
   pingModeHelperEb: "Prüft zuerst TCP und danach die Erreichbarkeit von HTTP/HTTPS-Endpunkten.",
   pingModeHelperDatabase: "Führt Protokoll-Prüfungen vor Authentifizierung und optionale Auth-Checks aus.",
   pingModeDatabase: "Datenbank",
+  databaseCustomPort: "Manueller Port",
   pingDatabaseType: "Datenbanktyp",
   pingTargetHost: "Ziel-Host / IP",
   pingPort: "Port",

@@ -14,36 +14,24 @@
  * exceed the upstream budget on its own.
  */
 
+import { createTtlCache } from "./cache/ttl-cache";
 import type { IpApiData } from "./providers/ip-api";
 
 const LOOKUP_CACHE_TTL_MS = 60_000;
 const LOOKUP_CACHE_MAX_ENTRIES = 512;
 
-interface LookupCacheEntry {
-  storedAt: number;
-  payload: unknown;
-}
-
-const lookupCache = new Map<string, LookupCacheEntry>();
+const lookupCache = createTtlCache<unknown>({
+  ttlMs: LOOKUP_CACHE_TTL_MS,
+  maxEntries: LOOKUP_CACHE_MAX_ENTRIES,
+});
 const inflightLookups = new Map<string, Promise<IpApiData | null>>();
 
 export function getCachedLookup(key: string): unknown | null {
-  const cached = lookupCache.get(key);
-  if (!cached) return null;
-  if (Date.now() - cached.storedAt >= LOOKUP_CACHE_TTL_MS) {
-    lookupCache.delete(key);
-    return null;
-  }
-  return cached.payload;
+  return lookupCache.get(key);
 }
 
 export function setCachedLookup(key: string, payload: unknown) {
-  lookupCache.set(key, { storedAt: Date.now(), payload });
-  while (lookupCache.size > LOOKUP_CACHE_MAX_ENTRIES) {
-    const oldest = lookupCache.keys().next().value;
-    if (oldest === undefined) break;
-    lookupCache.delete(oldest);
-  }
+  lookupCache.set(key, payload);
 }
 
 export function getInflightLookup(key: string): Promise<IpApiData | null> | undefined {

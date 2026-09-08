@@ -4,8 +4,16 @@
 import { readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
+let removed = 0;
+
 async function walk(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
   await Promise.all(
     entries.map(async (entry) => {
       const path = join(dir, entry.name);
@@ -15,9 +23,11 @@ async function walk(dir) {
       }
       if (entry.name.endsWith(".map")) {
         await unlink(path);
+        removed += 1;
       }
     }),
   );
 }
 
 await walk(join(process.cwd(), ".next/static"));
+if (removed > 0) console.log(`Stripped ${removed} client source map(s).`);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
+import { ExampleQueries } from "@/components/checker-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
@@ -33,6 +34,7 @@ interface AsnCheckerProps {
 export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   const t = getToolTranslation(locale);
   const [showSourceInfo, setShowSourceInfo] = useState(false);
+  const [lastInput, setLastInput] = useState(initialAsn);
   const searchParams = useSearchParams();
 
   // Deep links may carry arbitrary input; pass it through so the API can
@@ -58,6 +60,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
   const submit = useCallback(
     (value: string) => {
+      setLastInput(value);
       try {
         run(normalizeAsnInput(value).asn);
       } catch (validationError) {
@@ -92,12 +95,24 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
           icon={Waypoints}
           title={t.asnEmptyTitle}
           description={t.asnEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["AS8881", "AS15169", "AS13335"]}
+            onSelect={submit}
+            label={t.tryExample}
+          />
+        </EmptyState>
       )}
 
       {loading && <LoadingSkeleton label={t.lookupInProgress} />}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={lastInput.trim() ? () => submit(lastInput) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && !result.found && (
         <Alert variant="warning">
