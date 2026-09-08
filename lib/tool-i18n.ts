@@ -95,6 +95,18 @@ type ToolTranslation = {
   asnPrefixesDescription: string;
   asnPeeringDbDescription: string;
   asnFacilitiesDescription: string;
+  asnInterconnection: string;
+  asnInterconnectionDescription: string;
+  asnProfileAndSources: string;
+  asnProfileAndSourcesDescription: string;
+  asnTryExample: string;
+  asnFilterPlaceholder: string;
+  asnNoFilterResults: string;
+  asnSourcesLabel: string;
+  asnOpenInRipestat: string;
+  asnOpenInPeeringDb: string;
+  asnTotalPrefixes: string;
+  asnTotalNeighbours: string;
   asnProfileIdentityHeading: string;
   asnProfileInterconnectionHeading: string;
   asnProfilePolicyHeading: string;
@@ -421,6 +433,20 @@ const en: ToolTranslation = {
   asnPeeringDbDescription:
     "Interconnection profile and routing policies declared in the public PeeringDB database.",
   asnFacilitiesDescription: "Physical data centers and colocation facilities where this network is present.",
+  asnInterconnection: "Interconnection",
+  asnInterconnectionDescription:
+    "Where this network interconnects: internet exchanges with port speeds and physical facilities.",
+  asnProfileAndSources: "Profile & sources",
+  asnProfileAndSourcesDescription:
+    "Declared PeeringDB profile, data-source coverage, and any provider warnings.",
+  asnTryExample: "Try an example:",
+  asnFilterPlaceholder: "Filter entries…",
+  asnNoFilterResults: "No entries match this filter.",
+  asnSourcesLabel: "Sources",
+  asnOpenInRipestat: "Open in RIPEstat",
+  asnOpenInPeeringDb: "Open in PeeringDB",
+  asnTotalPrefixes: "Announced prefixes",
+  asnTotalNeighbours: "BGP neighbours",
   asnProfileIdentityHeading: "Identity & status",
   asnProfileInterconnectionHeading: "Interconnection details",
   asnProfilePolicyHeading: "Peering policy",
@@ -882,6 +908,20 @@ const de: Partial<ToolTranslation> = {
   asnPeeringDbDescription:
     "Interconnection-Profil und Routing-Richtlinien aus der öffentlichen PeeringDB-Datenbank.",
   asnFacilitiesDescription: "Physische Rechenzentren und Colocation-Standorte, an denen dieses Netzwerk präsent ist.",
+  asnInterconnection: "Interconnection",
+  asnInterconnectionDescription:
+    "Wo dieses Netzwerk zusammengeschaltet ist: Internet-Exchanges mit Port-Geschwindigkeit und physische Standorte.",
+  asnProfileAndSources: "Profil & Quellen",
+  asnProfileAndSourcesDescription:
+    "Deklariertes PeeringDB-Profil, Datenquellen-Abdeckung und eventuelle Anbieterwarnungen.",
+  asnTryExample: "Beispiel ausprobieren:",
+  asnFilterPlaceholder: "Einträge filtern…",
+  asnNoFilterResults: "Keine Einträge passen zu diesem Filter.",
+  asnSourcesLabel: "Quellen",
+  asnOpenInRipestat: "In RIPEstat öffnen",
+  asnOpenInPeeringDb: "In PeeringDB öffnen",
+  asnTotalPrefixes: "Angekündigte Prefixe",
+  asnTotalNeighbours: "BGP-Nachbarn",
   asnProfileIdentityHeading: "Identität & Status",
   asnProfileInterconnectionHeading: "Interconnection-Details",
   asnProfilePolicyHeading: "Peering-Richtlinie",
