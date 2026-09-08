@@ -5,8 +5,10 @@ import type { AsnProfile } from "@/lib/asn";
 import { CountryFlag } from "@/components/country-flag";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 
+// Identity block rendered inside the summary card: mono ASN + name, a quiet
+// plain-text metadata line (country, type, registry, allocation, domain),
+// and a single semantic data-quality badge.
 export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
   const isPartial =
     result.sources.ipinfo !== "available" ||
@@ -14,75 +16,69 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
     result.sources.ripestat !== "available" ||
     result.warnings.length > 0;
 
+  const meta: string[] = [];
+  if (result.type) meta.push(result.type);
+  if (result.registry) meta.push(result.registry);
+  if (result.allocated) meta.push(`${t.asnLabelAllocated} ${result.allocated}`);
+
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-5 py-3.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Waypoints className="size-4" aria-hidden />
           </span>
-          <span className="font-mono text-sm font-semibold text-foreground">
-            {result.asn}
-          </span>
-          {result.country && (
-            <Badge variant="secondary">
-              <CountryFlag countryCode={result.country} />
-              {result.country}
-            </Badge>
-          )}
-          {result.type && (
-            <Badge variant="secondary" className="capitalize">
-              {result.type}
-            </Badge>
-          )}
-          {result.registry && (
-            <Badge variant="secondary" className="text-muted-foreground">
-              {result.registry}
-            </Badge>
-          )}
+          <h2 className="min-w-0 text-xl font-semibold tracking-tight break-words text-foreground">
+            <span className="mr-2 font-mono">{result.asn}</span>
+            <span className="text-foreground/90">{result.name || t.asnUnnamed}</span>
+          </h2>
         </div>
 
-        {isPartial ? (
-          <Badge variant="warning">
-            <AlertTriangle className="size-3.5" />
-            {t.asnPartialData}
-          </Badge>
-        ) : (
-          <Badge variant="success">
-            <CircleCheck className="size-3.5" />
-            {t.asnCompleteData}
-          </Badge>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-3 p-6">
-        <h2 className="text-xl font-semibold tracking-tight break-words text-foreground">
-          <span className="mr-2 font-mono">{result.asn}</span>
-          <span className="text-foreground/90">{result.name || t.asnUnnamed}</span>
-        </h2>
-
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          {result.domain && (
-            <a
-              href={`https://${result.domain}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-primary transition-colors hover:underline"
-            >
-              <Globe className="size-3.5" />
-              {result.domain}
-            </a>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-[2.75rem] text-xs text-muted-foreground">
+          {result.country && (
+            <span className="inline-flex items-center gap-1 font-medium">
+              <CountryFlag countryCode={result.country} />
+              {result.country}
+            </span>
           )}
-          {result.allocated && (
-            <span className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {t.asnLabelAllocated}:
+          {meta.map((entry) => (
+            <span key={entry} className="inline-flex items-center gap-2">
+              <span aria-hidden="true" className="text-muted-foreground/50">
+                ·
               </span>
-              <span className="text-foreground/80">{result.allocated}</span>
+              <span className="break-words">{entry}</span>
+            </span>
+          ))}
+          {result.domain && (
+            <span className="inline-flex items-center gap-2">
+              <span aria-hidden="true" className="text-muted-foreground/50">
+                ·
+              </span>
+              <a
+                href={`https://${result.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-sm font-medium text-primary outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
+              >
+                <Globe className="size-3.5" aria-hidden />
+                {result.domain}
+              </a>
             </span>
           )}
         </div>
       </div>
-    </Card>
+
+      {isPartial ? (
+        <Badge variant="warning" className="shrink-0">
+          <AlertTriangle className="size-3.5" />
+          {t.asnPartialData}
+        </Badge>
+      ) : (
+        <Badge variant="success" className="shrink-0">
+          <CircleCheck className="size-3.5" />
+          {t.asnCompleteData}
+        </Badge>
+      )}
+    </div>
   );
 }

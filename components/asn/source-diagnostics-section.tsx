@@ -1,11 +1,9 @@
 "use client";
 
-import { Binary } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatCacheStatus, formatStatus, sourceBadgeClass } from "./helpers";
 
@@ -19,55 +17,50 @@ export function SourceDiagnosticsSection({
   locale: Locale;
 }) {
   return (
-    <Card className="gap-4 py-5">
-      <h3 className="flex items-center gap-2 px-5 text-lg font-bold text-foreground">
-        <Binary className="size-5 text-primary" />
+    <section aria-label={t.asnSourceDiagnostics} className="flex flex-col gap-3">
+      <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
         {t.asnSourceDiagnostics}
       </h3>
 
-      <div className="flex flex-wrap gap-2 px-5">
+      <ul className="flex flex-col">
         {Object.entries(result.sources).map(([source, status]) => (
-          <span
+          <li
             key={source}
-            className={cn(
-              "rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider",
-              sourceBadgeClass(status),
-            )}
+            className="flex items-center justify-between gap-3 border-b py-2 text-xs last:border-b-0"
           >
-            {source}: {formatStatus(status, t)}
-          </span>
+            <span className="font-mono font-medium text-foreground/80">{source}</span>
+            <span
+              className={cn(
+                "rounded border px-1.5 py-0.5 text-[11px] font-medium",
+                sourceBadgeClass(status),
+              )}
+            >
+              {formatStatus(status, t)}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {result.sourceDiagnostics && result.sourceDiagnostics.length > 0 && (
-        <div className="flex flex-col gap-3 px-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+        <div className="flex flex-col gap-2">
+          <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
             {t.asnDetailedDiagnostics}
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <ul className="flex flex-col">
             {result.sourceDiagnostics.map((diagnostic) => (
-              <div
+              <li
                 key={diagnostic.source}
-                className="flex flex-col gap-1.5 rounded-lg border bg-muted/20 p-4 text-xs"
+                className="flex items-baseline justify-between gap-3 border-b py-2 text-xs last:border-b-0"
               >
-                <p className="font-bold uppercase tracking-wider text-foreground">{diagnostic.source}</p>
-                <p className="leading-normal text-muted-foreground">
-                  {t.asnDiagnosticDuration}:{" "}
-                  <span className="font-semibold text-foreground">
-                    {formatNumber(diagnostic.durationMs, locale)} ms
-                  </span>
-                </p>
-                <p className="leading-normal text-muted-foreground">
-                  {t.asnDiagnosticCache}:{" "}
-                  <span className="font-semibold text-foreground">
-                    {formatCacheStatus(diagnostic.cache, t)}
-                  </span>
-                </p>
-              </div>
+                <span className="font-mono font-medium text-foreground/80">{diagnostic.source}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {formatNumber(diagnostic.durationMs, locale)} ms · {formatCacheStatus(diagnostic.cache, t)}
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
-    </Card>
+    </section>
   );
 }

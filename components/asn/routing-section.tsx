@@ -2,82 +2,73 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, Route, Waypoints, Zap } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { AsnProfile, AsnRelation } from "@/lib/asn";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { ShowMoreButton } from "./show-more-button";
 
-function RelationChip({
+function RelationRow({
   relation,
   maxPower,
+  showPower,
   locale,
-  t,
+  powerLabel,
 }: {
   relation: AsnRelation;
   maxPower: number;
+  showPower: boolean;
   locale: Locale;
-  t: ToolTranslation;
+  powerLabel: string;
 }) {
   const powerPct = maxPower > 0 ? Math.min(100, Math.max(5, ((relation.power || 0) / maxPower) * 100)) : 0;
+  const peerParts: string[] = [];
+  if (relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0) {
+    peerParts.push(`v4 ${formatNumber(relation.v4Peers, locale)}`);
+  }
+  if (relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0) {
+    peerParts.push(`v6 ${formatNumber(relation.v6Peers, locale)}`);
+  }
 
   return (
-    <div className="group flex flex-col gap-2 border-b py-3 transition-colors last:border-b-0 hover:bg-muted/40">
-      <div className="flex items-center justify-between gap-2">
-        <Link
-          href={`/asn/${relation.asn}`}
-          className="inline-flex items-center gap-1 rounded-md font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
-        >
-          {relation.asn}
-          <ArrowUpRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100" />
-        </Link>
+    <li className="group flex items-center gap-3 border-b py-2.5 last:border-b-0">
+      <Link
+        href={`/asn/${relation.asn}`}
+        className="shrink-0 rounded-sm font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
+      >
+        {relation.asn}
+      </Link>
+      <ArrowUpRight
+        className="size-3.5 shrink-0 text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        aria-hidden
+      />
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        {peerParts.length > 0 && (
+          <span className="truncate font-mono text-[11px] text-muted-foreground tabular-nums">
+            {peerParts.join(" · ")}
+          </span>
+        )}
         {relation.source && (
-          <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground/70">
+          <span className="hidden shrink-0 text-[11px] text-muted-foreground/70 sm:inline">
             {relation.source}
           </span>
         )}
-      </div>
-
-      {relation.power !== null && relation.power !== undefined && (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="flex items-center gap-1 font-medium text-muted-foreground">
-              <Zap className="size-3 text-primary" />
-              {t.asnRelationPower}
+        {showPower && relation.power !== null && relation.power !== undefined && (
+          <span className="flex shrink-0 items-center gap-1.5" title={powerLabel}>
+            <span className="h-1 w-12 overflow-hidden rounded-full bg-secondary sm:w-16" aria-hidden>
+              <span
+                className="block h-full rounded-full bg-foreground/70"
+                style={{ width: `${powerPct}%` }}
+              />
             </span>
-            <span className="font-mono font-bold text-foreground/90">
+            <span className="font-mono text-[11px] font-semibold text-foreground/80 tabular-nums">
               {formatNumber(relation.power, locale)}
             </span>
-          </div>
-          <div className="h-1 w-full overflow-hidden rounded-full bg-secondary">
-            <div
-              className="h-full rounded-full bg-foreground/80 transition-all duration-500"
-              style={{ width: `${powerPct}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {(relation.v4Peers || relation.v6Peers) && (
-        <div className="flex items-center gap-2">
-          {relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0 && (
-            <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-foreground/70" />
-              v4: {formatNumber(relation.v4Peers, locale)}
-            </span>
-          )}
-          {relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0 && (
-            <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-foreground/35" />
-              v6: {formatNumber(relation.v6Peers, locale)}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+          </span>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -100,37 +91,38 @@ function RelationColumn({
   const limit = 8;
   const visible = expanded ? relations : relations.slice(0, limit);
   const maxPower = useMemo(() => Math.max(...relations.map((r) => r.power || 0), 0), [relations]);
+  const showPower = relations.some((r) => r.power !== null && r.power !== undefined);
 
   return (
-    <Card className="gap-4 py-5">
-      <div className="flex items-center justify-between border-b px-5 pb-3">
-        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Route className="size-4 text-primary" />
-          {title}
-        </p>
-        <Badge variant="secondary" className="tabular-nums">
-          {total}
-        </Badge>
-      </div>
+    <section aria-label={title} className="flex min-w-0 flex-col">
+      <p className="flex items-baseline justify-between gap-2 border-b pb-2">
+        <span className="text-xs font-semibold tracking-wide text-foreground uppercase">{title}</span>
+        <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatNumber(total, locale)}</span>
+      </p>
 
       {visible.length > 0 ? (
-        <div className="flex flex-col gap-3 px-5">
+        <ul className="flex flex-col">
           {visible.map((relation) => (
-            <RelationChip key={relation.asn} relation={relation} maxPower={maxPower} locale={locale} t={t} />
+            <RelationRow
+              key={relation.asn}
+              relation={relation}
+              maxPower={maxPower}
+              showPower={showPower}
+              locale={locale}
+              powerLabel={t.asnRelationPower}
+            />
           ))}
-        </div>
+        </ul>
       ) : (
-        <div className="px-5 py-6 text-center">
-          <p className="text-xs text-muted-foreground">{emptyText}</p>
-        </div>
+        <p className="py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
       )}
 
       {relations.length > limit && (
-        <div className="px-5">
+        <div className="pt-2">
           <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={relations.length} t={t} />
         </div>
       )}
-    </Card>
+    </section>
   );
 }
 
@@ -138,14 +130,13 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
-          <Waypoints className="size-5 text-primary" />
+        <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnRouting}
         </h3>
-        <p className="text-xs leading-normal text-muted-foreground">{t.asnRoutingDescription}</p>
+        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnRoutingDescription}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-5">
         <RelationColumn
           title={t.asnRelationPeers}
           relations={result.peers}

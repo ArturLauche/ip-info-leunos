@@ -1,28 +1,27 @@
 "use client";
 
-import { ExternalLink, Globe } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import type { PeeringDbProfile } from "@/lib/asn";
 import { valueOrDash } from "@/lib/format";
 import type { ToolTranslation } from "@/lib/tool-i18n";
-import { Card } from "@/components/ui/card";
 
 function ProfileField({ label, value }: { label: string; value: string | number | null | undefined }) {
   const val = valueOrDash(value);
   const isUrl = typeof value === "string" && (value.startsWith("http://") || value.startsWith("https://"));
 
   return (
-    <div className="min-w-0 border-b py-2 last:border-b-0">
-      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">{label}</dt>
-      <dd className="mt-1 text-sm font-semibold break-all text-foreground">
+    <div className="flex items-baseline justify-between gap-4 border-b py-2 last:border-b-0">
+      <dt className="shrink-0 text-xs text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-right text-sm font-medium break-all text-foreground">
         {isUrl ? (
           <a
             href={value}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
+            className="inline-flex items-center gap-1 rounded-sm text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             {value.replace(/^https?:\/\/(www\.)?/, "")}
-            <ExternalLink className="size-3" />
+            <ExternalLink className="size-3" aria-hidden />
           </a>
         ) : (
           val
@@ -64,19 +63,18 @@ export function PeeringDbProfileSection({ profile, t }: { profile: PeeringDbProf
   ];
 
   return (
-    <Card className="gap-4 py-5">
-      <div className="border-b px-5 pb-3">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
-          <Globe className="size-5 text-primary" />
+    <section aria-label={t.asnPeeringDb} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnPeeringDb}
         </h3>
-        <p className="text-xs leading-normal text-muted-foreground">{t.asnPeeringDbDescription}</p>
+        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnPeeringDbDescription}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 px-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-5">
         {groups.map((group) => (
-          <div key={group.heading} className="flex flex-col gap-3">
-            <p className="border-b pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <div key={group.heading} className="flex min-w-0 flex-col gap-1">
+            <p className="border-b pb-2 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
               {group.heading}
             </p>
             <dl className="flex flex-col">
@@ -87,6 +85,6 @@ export function PeeringDbProfileSection({ profile, t }: { profile: PeeringDbProf
           </div>
         ))}
       </div>
-    </Card>
+    </section>
   );
 }
