@@ -5,7 +5,6 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 interface ToolSearchFormProps {
   initialValue?: string;
@@ -17,9 +16,8 @@ interface ToolSearchFormProps {
 }
 
 /**
- * Shared single-field search form for the tool pages. Clip the hidden label
- * completely so fractional Firefox zoom cannot paint a stray text pixel
- * beside the input, while keeping its accessible name intact.
+ * Shared single-field search form for the tool pages. Name the input directly
+ * to avoid a clipped one-pixel label box painting beside it at reduced zoom.
  */
 export function ToolSearchForm({
   initialValue = "",
@@ -49,9 +47,6 @@ export function ToolSearchForm({
     >
       <div className="relative flex-1">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Label htmlFor="tool-query" className="sr-only [clip-path:inset(50%)]">
-          {placeholder}
-        </Label>
         <Input
           id="tool-query"
           name="q"
@@ -59,6 +54,7 @@ export function ToolSearchForm({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
+          aria-label={placeholder}
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
