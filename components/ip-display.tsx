@@ -532,16 +532,16 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
         <div className="grid lg:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
           <div className="flex flex-col gap-4 p-6 lg:p-7">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <Badge
                 variant={displayIpv4 ? "outline" : "secondary"}
-                className="mt-1 font-mono"
+                className="shrink-0 font-mono"
               >
                 IPv4
               </Badge>
               {displayIpv4 ? (
-                <>
-                  <span className="min-w-0 flex-1 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                     {displayIpv4}
                   </span>
                   <CopyButton
@@ -549,8 +549,9 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
                     label={t.copyIpLabel}
                     copiedLabel={t.copiedToClipboard}
                     failedLabel={t.copyFailed}
+                    className="size-8"
                   />
-                </>
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground">
                   {t.notAvailable}
@@ -558,16 +559,16 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
               )}
             </div>
 
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <Badge
                 variant={displayIpv6 ? "outline" : "secondary"}
-                className="mt-0.5 font-mono"
+                className="shrink-0 font-mono"
               >
                 IPv6
               </Badge>
               {displayIpv6 ? (
-                <>
-                  <span className="min-w-0 flex-1 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl">
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="min-w-0 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl">
                     {displayIpv6}
                   </span>
                   <CopyButton
@@ -575,8 +576,9 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
                     label={t.copyIpLabel}
                     copiedLabel={t.copiedToClipboard}
                     failedLabel={t.copyFailed}
+                    className="size-8"
                   />
-                </>
+                </div>
               ) : !targetIp && ipv6Loading ? (
                 <Skeleton className="h-5 w-48" />
               ) : (
