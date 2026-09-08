@@ -93,8 +93,8 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
       {loading && (
         <div className="flex flex-col gap-4" role="status" aria-busy="true">
           <span className="sr-only">{t.lookupInProgress}</span>
-          <Skeleton className="h-20 rounded-lg" aria-hidden="true" />
-          <Skeleton className="h-56 rounded-lg" aria-hidden="true" />
+          <Skeleton className="h-20 rounded-xl" aria-hidden="true" />
+          <Skeleton className="h-56 rounded-xl" aria-hidden="true" />
         </div>
       )}
 
@@ -111,7 +111,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
                 result.addresses.map((address) => (
                   <li
                     key={`${address.address}-${address.family}`}
-                    className="min-w-0 font-mono text-xs break-all text-foreground"
+                    className="min-w-0 font-mono text-xs break-all tabular-nums text-foreground"
                   >
                     {address.address}
                     <span className="ml-1.5 text-muted-foreground">IPv{address.family}</span>
@@ -246,6 +246,7 @@ function DnsTypeFilter({
         onValueChange={(value) => value && onSelect(value)}
         variant="outline"
         size="default"
+        aria-label="DNS record type filter"
         className="relative z-10 flex-wrap gap-0 border-0 bg-transparent p-0 shadow-none"
       >
         {types.map((type) => (

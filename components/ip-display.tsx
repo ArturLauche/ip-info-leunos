@@ -561,7 +561,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
             <div className="flex items-start gap-3">
               <Badge
                 variant={displayIpv6 ? "outline" : "secondary"}
-                className="mt-0.5 font-mono"
+                className="mt-1 font-mono"
               >
                 IPv6
               </Badge>
@@ -690,10 +690,10 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
             {asnHref ? (
               <Link
                 href={asnHref}
-                className="inline-flex items-center gap-1 font-mono text-foreground transition-colors hover:text-primary"
+                className="inline-flex items-center gap-1 font-mono text-primary hover:underline"
               >
                 <span className="break-all">{data.as}</span>
-                <ExternalLink className="size-3.5 shrink-0" />
+                <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
               </Link>
             ) : (
               <span className="font-mono">{orUnknown(data.as)}</span>

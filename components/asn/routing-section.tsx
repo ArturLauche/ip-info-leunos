@@ -138,7 +138,7 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <Waypoints className="size-5 text-primary" />
           {t.asnRouting}
         </h3>

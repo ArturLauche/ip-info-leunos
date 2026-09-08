@@ -102,7 +102,7 @@ export function PrefixSection({ result, t }: { result: AsnProfile; t: ToolTransl
   return (
     <Card className="gap-4 py-5">
       <div className="flex flex-col gap-1 border-b px-5 pb-3">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <Network className="size-5 text-primary" />
           {t.asnPrefixes}
         </h3>

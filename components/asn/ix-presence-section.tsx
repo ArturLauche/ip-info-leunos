@@ -51,7 +51,7 @@ export function IxPresenceSection({
   if (!ixlan.length) {
     return (
       <Card className="gap-3 py-5">
-        <h3 className="flex items-center gap-2 px-5 text-lg font-bold text-foreground">
+        <h3 className="flex items-center gap-2 px-5 text-lg font-semibold text-foreground">
           <Waypoints className="size-5 text-primary" />
           {t.asnIxPresence}
         </h3>
@@ -64,7 +64,7 @@ export function IxPresenceSection({
     <Card className="gap-4 py-5">
       <div className="flex items-start justify-between gap-3 border-b px-5 pb-3">
         <div className="flex flex-col gap-1">
-          <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <Server className="size-5 text-primary" />
             {t.asnIxPresence}
           </h3>

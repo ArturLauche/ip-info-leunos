@@ -85,10 +85,10 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
       {loading && (
         <div className="grid gap-4 md:grid-cols-2" role="status" aria-busy="true">
           <span className="sr-only">{t.lookupInProgress}</span>
-          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
-          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
-          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
-          <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-xl" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-xl" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-xl" aria-hidden="true" />
+          <Skeleton className="h-28 rounded-xl" aria-hidden="true" />
         </div>
       )}
 

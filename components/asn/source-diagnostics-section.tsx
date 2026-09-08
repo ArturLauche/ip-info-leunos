@@ -20,7 +20,7 @@ export function SourceDiagnosticsSection({
 }) {
   return (
     <Card className="gap-4 py-5">
-      <h3 className="flex items-center gap-2 px-5 text-lg font-bold text-foreground">
+      <h3 className="flex items-center gap-2 px-5 text-lg font-semibold text-foreground">
         <Binary className="size-5 text-primary" />
         {t.asnSourceDiagnostics}
       </h3>

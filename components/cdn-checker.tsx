@@ -71,10 +71,10 @@ function DetailCard({ icon: Icon, label, value }: DetailCardProps) {
   return (
     <Card className="gap-2 py-4">
       <div className="flex items-center gap-2 px-5 text-muted-foreground">
-        <Icon className="size-4 text-primary" />
+        <Icon className="size-4 text-primary" aria-hidden="true" />
         <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
       </div>
-      <p className="px-5 text-sm font-semibold break-all text-foreground">{value}</p>
+      <p className="px-5 text-sm font-semibold break-all tabular-nums text-foreground">{value}</p>
     </Card>
   );
 }
@@ -136,9 +136,9 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           <Card className="gap-3 py-5">
             <div className="flex flex-wrap items-center gap-3 px-5">
               {result.usesCdn ? (
-                <CircleCheck className="size-5 text-success" />
+                <CircleCheck className="size-5 text-success" aria-hidden="true" />
               ) : (
-                <Shield className="size-5 text-muted-foreground" />
+                <Shield className="size-5 text-muted-foreground" aria-hidden="true" />
               )}
               <p className="text-lg font-semibold text-foreground">{summary}</p>
               <Badge
@@ -167,7 +167,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                     className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-muted/40"
                   >
                     {ip}
-                    <ExternalLink className="size-3" />
+                    <ExternalLink className="size-3" aria-hidden="true" />
                   </Link>
                 ))}
               </div>
@@ -190,7 +190,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
 
           <Card className="gap-3 py-5">
             <p className="flex items-center gap-2 px-5 text-sm font-medium text-foreground">
-              <Binary className="size-4 text-primary" />
+              <Binary className="size-4 text-primary" aria-hidden="true" />
               {t.cdnMatchedSignals}
             </p>
             {result.matchedSignals.length > 0 ? (
@@ -209,7 +209,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card className="gap-3 py-5">
               <p className="flex items-center gap-2 px-5 text-sm font-medium text-foreground">
-                <Waypoints className="size-4 text-primary" />
+                <Waypoints className="size-4 text-primary" aria-hidden="true" />
                 {t.cdnCnameChain}
               </p>
               {result.cnameChain.length > 0 ? (

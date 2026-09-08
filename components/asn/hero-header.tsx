@@ -44,19 +44,19 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
 
         {isPartial ? (
           <Badge variant="warning">
-            <AlertTriangle className="size-3.5" />
+            <AlertTriangle className="size-3.5" aria-hidden="true" />
             {t.asnPartialData}
           </Badge>
         ) : (
           <Badge variant="success">
-            <CircleCheck className="size-3.5" />
+            <CircleCheck className="size-3.5" aria-hidden="true" />
             {t.asnCompleteData}
           </Badge>
         )}
       </div>
 
       <div className="flex flex-col gap-3 p-6">
-        <h2 className="text-xl font-semibold tracking-tight break-words text-foreground">
+        <h2 className="text-lg font-semibold tracking-tight break-words text-foreground sm:text-xl">
           <span className="mr-2 font-mono">{result.asn}</span>
           <span className="text-foreground/90">{result.name || t.asnUnnamed}</span>
         </h2>
@@ -69,7 +69,7 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-primary transition-colors hover:underline"
             >
-              <Globe className="size-3.5" />
+              <Globe className="size-3.5" aria-hidden="true" />
               {result.domain}
             </a>
           )}

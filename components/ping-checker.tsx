@@ -456,7 +456,7 @@ export function PingChecker({
             <Button
               type="submit"
               disabled={loading}
-              className="h-11 w-full shrink-0 sm:w-auto sm:min-w-44"
+              className="h-11 w-full shrink-0 sm:w-auto sm:min-w-36"
             >
               {loading ? (
                 <>
