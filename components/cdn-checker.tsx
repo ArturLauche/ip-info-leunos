@@ -1,16 +1,21 @@
 "use client";
 
-import { type Locale } from "@/lib/i18n";
+import { getTranslation, type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import {
+  CopyLinkButton,
+  DownloadJsonButton,
+  ExampleQueries,
+} from "@/components/checker-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CircleCheck,
   Shield,
@@ -86,6 +91,8 @@ interface CdnCheckerProps {
 
 export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
   const t = getToolTranslation(locale);
+  const bt = getTranslation(locale);
+  const [lastQuery, setLastQuery] = useState(initialTarget);
 
   const { loading, error, result, run } = useToolLookup<CdnResult>({
     buildApiUrl: (target) => `/api/cdn?target=${encodeURIComponent(target)}`,
@@ -93,6 +100,11 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
     mapError: (checkError) => getApiErrorMessage(checkError, t, t.cdnNetworkError),
     initialQuery: initialTarget,
   });
+
+  const handleRun = (query: string) => {
+    setLastQuery(query);
+    run(query);
+  };
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -109,7 +121,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
         submitLabel={t.cdnAnalyzeButton}
         loadingLabel={t.cdnAnalyzing}
         loading={loading}
-        onSubmit={run}
+        onSubmit={handleRun}
       />
 
       {!loading && !error && !result && (
@@ -117,7 +129,13 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           icon={ShieldCheck}
           title={t.cdnEmptyTitle}
           description={t.cdnEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["example.com", "google.com", "github.com"]}
+            onSelect={handleRun}
+            label={t.tryExample}
+          />
+        </EmptyState>
       )}
 
       {loading && (
@@ -129,10 +147,29 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={lastQuery.trim() ? () => handleRun(lastQuery) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && (
         <div className="tool-reveal flex flex-col gap-4">
+          <div className="flex flex-wrap gap-2">
+            <CopyLinkButton
+              href={`/cdn?target=${encodeURIComponent(result.target)}`}
+              label={t.copyLink}
+              copiedLabel={bt.copiedToClipboard}
+              failedLabel={bt.copyFailed}
+            />
+            <DownloadJsonButton
+              data={result}
+              filename={`cdn-${result.target}.json`}
+              label={t.downloadJson}
+            />
+          </div>
           <Card className="gap-3 py-5">
             <div className="flex flex-wrap items-center gap-3 px-5">
               {result.usesCdn ? (

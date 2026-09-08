@@ -41,12 +41,14 @@ const brandTile = ({ bg, fg, border }) => `
 
 /** A solid rounded brand tile carrying the glyph. */
 function makeSvg({ bg, fg, border }, { fullBleed = false } = {}) {
+  // brandTile already embeds the glyph; only the full-bleed rect needs it
+  // appended. Appending unconditionally duplicates every path/circle.
   const tile = fullBleed
     ? `<rect width="64" height="64" fill="${bg}"/>`
     : brandTile({ bg, fg, border });
 
   return `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Auskunft">
-    ${tile}${glyph(fg)}
+    ${tile}${fullBleed ? glyph(fg) : ""}
   </svg>`;
 }
 

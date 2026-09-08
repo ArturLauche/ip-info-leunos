@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { createTtlCache } from "@/lib/cache/ttl-cache";
 import {
   assertPublicIpAddress,
   isIPv4Address,
@@ -21,11 +22,13 @@ const reputationQuerySchema = z.object({
 });
 
 interface CacheEntry {
-  storedAt: number;
   summary: ReputationSummary;
 }
 
-const responseCache = new Map<string, CacheEntry>();
+const responseCache = createTtlCache<CacheEntry>({
+  ttlMs: RESPONSE_CACHE_TTL_MS,
+  maxEntries: RESPONSE_CACHE_MAX_ENTRIES,
+});
 
 const CHECKED_STATUSES: ReadonlySet<SourceStatus> = new Set([
   "clean",
@@ -79,10 +82,9 @@ export async function GET(request: Request) {
   const cacheKey = `${ip}:${configFingerprint()}`;
 
   const cached = responseCache.get(cacheKey);
-  if (cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
+  if (cached) {
     return apiOk(cached.summary);
   }
-  responseCache.delete(cacheKey);
 
   const { sources, evidence, geo, network, networkContext } = await collectReputation(ip, family);
 
@@ -123,12 +125,7 @@ export async function GET(request: Request) {
     checkedAt: new Date().toISOString(),
   };
 
-  responseCache.set(cacheKey, { storedAt: Date.now(), summary });
-  while (responseCache.size > RESPONSE_CACHE_MAX_ENTRIES) {
-    const oldest = responseCache.keys().next().value;
-    if (oldest === undefined) break;
-    responseCache.delete(oldest);
-  }
+  responseCache.set(cacheKey, { summary });
 
   return apiOk(summary);
 }

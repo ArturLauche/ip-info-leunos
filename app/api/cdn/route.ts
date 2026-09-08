@@ -3,12 +3,15 @@ import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { detectCdn } from "@/lib/cdn-detection";
+import { raceResolve } from "@/lib/network/race-timeout";
 import {
   assertPublicUrl,
   fetchPublicUrl,
   normalizeWebUrl,
   TargetValidationError,
 } from "@/lib/network/target";
+
+export const runtime = "nodejs";
 
 const cdnQuerySchema = z.object({
   target: z.string().trim().min(1).max(2048),
@@ -17,20 +20,7 @@ const cdnQuerySchema = z.object({
 const RESOLVE_TIMEOUT_MS = 2_000;
 
 function raceCdnResolve<T>(promise: Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("DNS query timed out.")), RESOLVE_TIMEOUT_MS);
-    timer.unref?.();
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
+  return raceResolve(promise, RESOLVE_TIMEOUT_MS);
 }
 
 async function resolveCnameChain(hostname: string) {
