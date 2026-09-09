@@ -3,6 +3,7 @@
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
+import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ interface WhoisResult {
   raw: string;
   summary?: WhoisSummary;
   refer?: string;
-  note?: string;
+  noteCode?: "iana_only" | "rdap_fallback";
 }
 
 interface WhoisCheckerProps {
@@ -55,7 +56,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const { loading, error, result, run } = useToolLookup<WhoisResult>({
+  const { loading, error, result, run, cancel } = useToolLookup<WhoisResult>({
     buildApiUrl: (target) => `/api/whois?target=${encodeURIComponent(target)}`,
     buildHref: (target) => `/whois?target=${encodeURIComponent(target)}`,
     mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.whoisLookupError),
@@ -71,6 +72,8 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
+        onCancel={cancel}
+        cancelLabel={t.cancelLookup}
         onSubmit={run}
       />
 
@@ -120,8 +123,10 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
               </>
             )}
           </dl>
-          {result.note && (
-            <p className="text-xs text-muted-foreground">{result.note}</p>
+          {result.noteCode && (
+            <p className="text-xs text-muted-foreground">
+              {result.noteCode === "iana_only" ? t.whoisNoteIana : t.whoisNoteRdap}
+            </p>
           )}
 
           {result.summary &&
@@ -151,7 +156,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
                   <ul className="mt-2.5 space-y-1 text-sm text-muted-foreground">
                     {result.summary.nameservers.length > 0 ? (
                       result.summary.nameservers.map((nameserver) => (
-                        <li key={nameserver} className="font-mono text-foreground">
+                        <li key={nameserver} className="font-mono break-all text-foreground">
                           {nameserver}
                         </li>
                       ))
@@ -168,16 +173,19 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
             variant="outline"
             size="sm"
             className="w-fit"
+            aria-expanded={showRaw}
+            aria-controls="whois-raw-result"
             onClick={() => setShowRaw((value) => !value)}
           >
             {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
           </Button>
 
           {showRaw && (
-            <pre className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground">
+            <pre id="whois-raw-result" className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground" tabIndex={0}>
               {result.raw || t.noWhoisData}
             </pre>
           )}
+          <ResultActions locale={locale} data={result} copyText={result.raw} filename={`whois-${result.target}`} />
         </ResultPanel>
       )}
     </div>

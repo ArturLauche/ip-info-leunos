@@ -3,6 +3,7 @@ import { ToolPageShell } from "@/components/tool-page-shell";
 import { getTranslation, resolveLocale } from "@/lib/i18n";
 import { Search } from "lucide-react";
 import { headers } from "next/headers";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -15,8 +16,8 @@ export const metadata: Metadata = createPageMetadata({
 
 interface CheckPageProps {
   searchParams: Promise<{
-    ip?: string;
-    q?: string;
+    ip?: SearchParamValue;
+    q?: SearchParamValue;
   }>;
 }
 
@@ -25,7 +26,7 @@ export default async function CheckPage({ searchParams }: CheckPageProps) {
   const locale = resolveLocale(headersList.get("accept-language"));
   const t = getTranslation(locale);
   const params = await searchParams;
-  const initialQuery = params.ip || params.q || "";
+  const initialQuery = firstSearchParam(params.ip) || firstSearchParam(params.q);
 
   return (
     <ToolPageShell

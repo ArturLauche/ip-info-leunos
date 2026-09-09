@@ -1,11 +1,12 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { CornerDownLeft, Search } from "lucide-react";
+import { CornerDownLeft, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Button } from "@/components/ui/button";
 import { preparePageTransition } from "@/components/page-transition";
 import {
   Dialog,
@@ -121,6 +122,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return;
     if (items.length === 0) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -146,7 +148,9 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
         aria-selected={isActive}
         data-index={index}
         onClick={() => select(item)}
-        onMouseEnter={() => setActiveIndex(index)}
+        // A stationary pointer must not change the keyboard selection when
+        // suggestions appear beneath it as the user opens or types.
+        onMouseMove={() => setActiveIndex(index)}
         className={cn(
           "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors",
           isActive
@@ -185,8 +189,8 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
         <DialogOverlay className="bg-black/30 backdrop-blur-none" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-[50%] top-[12vh] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] overflow-hidden border bg-popover shadow-lg sm:max-w-xl",
-            "max-h-[76vh] rounded-xl duration-200",
+            "fixed left-[50%] top-[12dvh] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden border bg-popover shadow-lg sm:max-w-xl",
+            "max-h-[76dvh] rounded-xl duration-200 motion-reduce:animate-none",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
@@ -204,6 +208,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             onKeyDown={handleKeyDown}
             placeholder={t.commandPlaceholder}
             role="combobox"
+            aria-label={t.commandPlaceholder}
             aria-expanded="true"
             aria-haspopup="listbox"
             aria-autocomplete="list"
@@ -215,8 +220,13 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            className="h-12 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-12 min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
+          <DialogPrimitive.Close asChild>
+            <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0" aria-label={t.commandHintClose}>
+              <X aria-hidden="true" />
+            </Button>
+          </DialogPrimitive.Close>
         </div>
 
         <div
@@ -224,7 +234,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
           ref={listRef}
           role="listbox"
           aria-label={t.commandPlaceholder}
-          className="max-h-[min(60vh,24rem)] overflow-y-auto p-2"
+          className="min-h-0 max-h-[min(60dvh,24rem)] overflow-y-auto p-2"
         >
           {items.length > 0 && (
             <>

@@ -6,6 +6,7 @@ import { extractReferralServer, summarizeRdap, summarizeWhois } from "@/lib/whoi
 import {
   assertPublicIpAddress,
   assertPublicTarget,
+  fetchPublicUrl,
   normalizeLookupTarget,
   TargetValidationError,
 } from "@/lib/network/target";
@@ -35,7 +36,7 @@ function validateWhoisTarget(input: string) {
 }
 
 async function queryWhois(server: string, query: string): Promise<string> {
-  await assertPublicTarget(server);
+  const publicServer = await assertPublicTarget(server);
 
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
@@ -57,7 +58,7 @@ async function queryWhois(server: string, query: string): Promise<string> {
       finish(new Error(`WHOIS request timed out after ${SOCKET_TIMEOUT_MS}ms.`));
     });
 
-    socket.connect(WHOIS_PORT, server, () => {
+    socket.connect(WHOIS_PORT, publicServer.addresses[0], () => {
       socket.write(`${query}\r\n`);
     });
 
@@ -82,9 +83,12 @@ async function lookupViaRdap(target: string) {
   timer.unref?.();
 
   try {
-    const response = await fetch(`https://rdap.org/${path}`, {
+    const response = await fetchPublicUrl(`https://rdap.org/${path}`, {
       cache: "no-store",
       signal: controller.signal,
+      timeoutMs: SOCKET_TIMEOUT_MS,
+      maxRedirects: 3,
+      maxContentLengthBytes: MAX_WHOIS_RESPONSE_BYTES,
     });
 
     if (!response.ok) {
@@ -137,7 +141,7 @@ export async function GET(request: Request) {
         server: "whois.iana.org",
         raw: ianaResponse,
         summary: summarizeWhois(ianaResponse),
-        note: "No referral server found. Showing IANA WHOIS response.",
+        noteCode: "iana_only",
       });
     }
 
@@ -160,7 +164,7 @@ export async function GET(request: Request) {
         raw: rdap.raw,
         rdap: rdap.rdap,
         summary: rdap.summary,
-        note: "WHOIS port lookup unavailable; returned RDAP data instead.",
+        noteCode: "rdap_fallback",
       });
     } catch (rdapError) {
       // Locale-neutral message (the UI translates by code); upstream details

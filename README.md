@@ -9,6 +9,8 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Look up ASN profiles at `/asn` and `/asn/AS8881`, combining optional IPinfo ASN data, public RIPEstat routing data, and public PeeringDB peering data.
 - Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) at `/dns`, including reverse (PTR) lookups for IP addresses.
 - Query WHOIS/RDAP data at `/whois`.
+- Copy DNS/WHOIS results or download JSON; DNS exports follow the selected record filter.
+- Cancel pending lookups and retry the same target without reloading the page.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
 - Check IP reputation at `/reputation` against independent DNS blocklists (Spamhaus ZEN, SpamCop, Barracuda, DroneBL, blocklist.de), botnet C2 feeds (abuse.ch Feodo Tracker, Spamhaus DROP), GreyNoise scanner intelligence, and optional AbuseIPDB, Project Honey Pot http:BL, and ThreatFox data — with an evidence-based risk score that separates policy listings and network context from actual threat evidence.
@@ -17,6 +19,8 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 ## Public-Site Safety Model
 
 The API routes are designed for public deployment. They validate inputs with `zod`, rate-limit requests in memory, enforce timeouts, and block targets that resolve to private, loopback, link-local, multicast, reserved, documentation, and cloud-metadata address ranges.
+
+User-target HTTP connections and WHOIS referrals connect to validated IP addresses, while HTTPS keeps normal hostname and certificate checks. Each HTTP redirect is validated again. HTTP response limits cover both streamed and decompressed bytes, and deadlines remain active while reading the body. RDAP fallback allows up to three redirects and 256,000 response bytes within its six-second overall deadline.
 
 Blocked examples include:
 
@@ -62,6 +66,8 @@ The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, 
 
 ## Local Development
 
+Use Node 20 and pnpm 10, matching CI.
+
 ```bash
 pnpm install
 pnpm dev
@@ -87,6 +93,25 @@ pnpm build
 ```
 
 The build does not ignore TypeScript errors, and fonts are self-hosted via the `geist` package, so production builds work without network access.
+
+The browser regression suite uses Chromium and deterministic API fixtures. Install its tooling outside the repository:
+
+```bash
+npm install --prefix /tmp/ip-info-browser-tools agent-browser@0.37.1
+export PATH="/tmp/ip-info-browser-tools/node_modules/.bin:$PATH"
+agent-browser install --with-deps
+```
+
+Start the production build in another terminal with `PORT=3001 pnpm start`, then run:
+
+```bash
+node scripts/verify-browser.mjs http://localhost:3001
+node scripts/measure-client-js.mjs http://localhost:3001/dns
+```
+
+Browser checks cover lookup cancellation/races, request counts, navigation/history, repeated query parameters, clipboard/downloads, Ping credentials/ports, localization, keyboard controls, and narrow layouts. Screenshots, downloads, and results are saved to a temporary directory printed by the script. These fixtures verify the UI; API unit tests and live smoke checks exercise the server separately. The measurement script reports initial script sizes and a reproducible gzip estimate, excluding deferred code until requested.
+
+See [the codebase audit](docs/codebase-audit.md) for the implementation plan, findings, measurements, and remaining deployment decisions.
 
 ## Deployment
 

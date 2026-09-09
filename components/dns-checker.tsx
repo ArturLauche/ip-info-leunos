@@ -3,6 +3,7 @@
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
+import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const { loading, error, result, run } = useToolLookup<DnsResult>({
+  const { loading, error, result, run, cancel } = useToolLookup<DnsResult>({
     buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
     buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
     mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.dnsLookupError),
@@ -79,6 +80,8 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
+        onCancel={cancel}
+        cancelLabel={t.cancelLookup}
         onSubmit={run}
       />
 
@@ -128,6 +131,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
           {recordTypes.length > 0 && (
             <DnsTypeFilter
               types={["ALL", ...recordTypes]}
+              label={t.dnsTableType}
               selectedType={selectedType}
               onSelect={setSelectedType}
             />
@@ -181,6 +185,8 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
               variant="outline"
               size="sm"
               className="w-fit"
+              aria-expanded={showRaw}
+              aria-controls="dns-raw-result"
               onClick={() => setShowRaw((value) => !value)}
             >
               {showRaw ? t.dnsHideRaw : t.dnsShowRaw}
@@ -188,9 +194,18 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
           )}
 
           {showRaw && (
-            <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground">
+            <pre id="dns-raw-result" className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground" tabIndex={0}>
               {JSON.stringify(visibleRecords, null, 2)}
             </pre>
+          )}
+
+          {visibleRecords.length > 0 && (
+            <ResultActions
+              locale={locale}
+              data={{ ...result, records: visibleRecords }}
+              copyText={visibleRecords.map((record) => `${record.type}\t${formatDnsRecordValue(record)}`).join("\n")}
+              filename={`dns-${result.target}-${selectedType.toLowerCase()}`}
+            />
           )}
 
           {result.recordErrors && result.recordErrors.length > 0 && (
@@ -216,10 +231,12 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
 function DnsTypeFilter({
   types,
+  label,
   selectedType,
   onSelect,
 }: {
   types: string[];
+  label: string;
   selectedType: string;
   onSelect: (type: string) => void;
 }) {
@@ -241,6 +258,7 @@ function DnsTypeFilter({
         aria-hidden
       />
       <ToggleGroup
+        aria-label={label}
         type="single"
         value={selectedType}
         onValueChange={(value) => value && onSelect(value)}

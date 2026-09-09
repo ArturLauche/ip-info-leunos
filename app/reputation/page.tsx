@@ -4,6 +4,7 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { ShieldAlert } from "lucide-react";
 import { headers } from "next/headers";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -24,7 +25,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface ReputationPageProps {
-  searchParams: Promise<{ ip?: string }>;
+  searchParams: Promise<{ ip?: SearchParamValue }>;
 }
 
 export default async function ReputationPage({ searchParams }: ReputationPageProps) {
@@ -41,7 +42,7 @@ export default async function ReputationPage({ searchParams }: ReputationPagePro
       title={t.reputationTitle}
       subtitle={t.reputationSubtitle}
     >
-      <ReputationChecker locale={locale} initialIp={params.ip || ""} />
+      <ReputationChecker locale={locale} initialIp={firstSearchParam(params.ip)} />
     </ToolPageShell>
   );
 }

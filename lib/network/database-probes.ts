@@ -1,6 +1,6 @@
 import net from "node:net";
-
-export type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
+import type { DatabaseType } from "@/lib/ping";
+export { DB_DEFAULT_PORTS, type DatabaseType } from "@/lib/ping";
 
 export interface DatabaseAuth {
   enabled?: boolean;
@@ -50,15 +50,6 @@ const DB_DISPLAY_NAMES: Record<DatabaseType, string> = {
 export function databaseDisplayName(databaseType: DatabaseType): string {
   return DB_DISPLAY_NAMES[databaseType] ?? databaseType;
 }
-
-export const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
-  postgres: 5432,
-  mysql: 3306,
-  redis: 6379,
-  mongodb: 27017,
-  mssql: 1433,
-  generic: 0,
-};
 
 type SocketValidation = {
   ok: boolean;

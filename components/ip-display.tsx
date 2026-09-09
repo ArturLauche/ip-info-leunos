@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,8 +11,8 @@ import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
-import { cn } from "@/lib/utils";
-import { unwrapApiResponse } from "@/lib/api/client";
+import { readApiResponse } from "@/lib/api/client";
+import { CopyButton } from "@/components/copy-button";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
 import {
@@ -46,8 +45,6 @@ import {
 } from "@/lib/browser-info";
 import {
   MapPin,
-  Copy,
-  Check,
   Cable,
   Smartphone,
   Shield,
@@ -96,54 +93,6 @@ interface IpDisplayProps {
   locale: Locale;
   /** Notifies the host tool (e.g. IpLookup) so its search form can spin. */
   onLoadingChange?: (loading: boolean) => void;
-}
-
-function CopyButton({
-  text,
-  label,
-  copiedLabel,
-  failedLabel,
-  className,
-}: {
-  text: string;
-  label: string;
-  copiedLabel: string;
-  failedLabel: string;
-  className?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  useEffect(() => () => clearTimeout(resetTimer.current), []);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      toast.success(copiedLabel);
-      clearTimeout(resetTimer.current);
-      resetTimer.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error(failedLabel);
-    }
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      onClick={handleCopy}
-      aria-label={label}
-      className={cn("shrink-0 text-muted-foreground hover:text-foreground", className)}
-    >
-      {copied ? (
-        <Check className="size-4 text-success" aria-hidden="true" />
-      ) : (
-        <Copy className="size-4" aria-hidden="true" />
-      )}
-    </Button>
-  );
 }
 
 /** Tinted title row shared by the IP hero and the detail cards. */
@@ -347,9 +296,10 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
       : "/api/ip";
 
     fetch(url, { signal: controller.signal })
-      .then((res) => res.json())
-      .then((json) => {
-        setData(unwrapApiResponse<IpData>(json));
+      .then(readApiResponse<IpData>)
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setData(data);
         reportLoading(false);
       })
       .catch((cause: unknown) => {
@@ -447,7 +397,8 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col gap-6">
+      <div className="flex w-full flex-col gap-6" role="status" aria-busy="true">
+        <span className="sr-only">{toolT.lookupInProgress}</span>
         <Card className="gap-0 overflow-hidden p-0">
           <CardTitleBar
             icon={Globe}
@@ -455,7 +406,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
           />
           <div className="grid lg:grid-cols-[1.5fr_1fr]">
             <div className="flex flex-col gap-4 p-6 lg:p-7">
-              <Skeleton className="h-9 w-64" />
+              <Skeleton className="h-9 w-64 max-w-full" />
               <Skeleton className="h-6 w-80 max-w-full" />
               <Skeleton className="h-4 w-48" />
             </div>

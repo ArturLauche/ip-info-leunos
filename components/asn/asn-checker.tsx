@@ -47,7 +47,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     }
   }, [initialAsn]);
 
-  const { loading, error, result, run, showError } = useToolLookup<AsnProfile>({
+  const { loading, error, result, run, showError, cancel } = useToolLookup<AsnProfile>({
     buildApiUrl: (asn) =>
       `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
     buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
@@ -84,6 +84,8 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         submitLabel={t.asnLookupButton}
         loadingLabel={t.asnLookingUp}
         loading={loading}
+        onCancel={cancel}
+        cancelLabel={t.cancelLookup}
         onSubmit={submit}
       />
 

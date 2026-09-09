@@ -242,6 +242,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   const captureSnapshot = useCallback(
     (nextPathname: string) => {
       if (nextPathname === committedPathname.current) return;
+      if (readEnvironment().reducedMotion) return;
 
       const source = currentRef.current;
       const layer = snapshotLayerRef.current;
@@ -367,6 +368,10 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   }, [cancelAnimation, pathname, removeSnapshot]);
 
   useEffect(() => {
+    if (readEnvironment().reducedMotion) {
+      fallbackSnapshot.current = null;
+      return;
+    }
     const frame = requestAnimationFrame(() => {
       const current = currentRef.current;
       if (current && committedPathname.current === pathname) {
