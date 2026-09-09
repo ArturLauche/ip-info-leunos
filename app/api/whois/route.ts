@@ -2,10 +2,12 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { createPinnedLookup } from "@/lib/network/pinned-lookup";
 import { extractReferralServer, summarizeRdap, summarizeWhois } from "@/lib/whois";
 import {
   assertPublicIpAddress,
   assertPublicTarget,
+  fetchPublicUrl,
   normalizeLookupTarget,
   TargetValidationError,
 } from "@/lib/network/target";
@@ -35,7 +37,7 @@ function validateWhoisTarget(input: string) {
 }
 
 async function queryWhois(server: string, query: string): Promise<string> {
-  await assertPublicTarget(server);
+  const publicServer = await assertPublicTarget(server);
 
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
@@ -46,18 +48,26 @@ async function queryWhois(server: string, query: string): Promise<string> {
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       socket.destroy();
       if (error) reject(error);
       else resolve(Buffer.concat(chunks).toString("utf8"));
     };
 
-    socket.setTimeout(SOCKET_TIMEOUT_MS);
-    socket.once("error", (error) => finish(error));
-    socket.once("timeout", () => {
+    // One budget covers every address attempt and the response body. Socket
+    // inactivity timers alone can restart as connection attempts advance.
+    const timer = setTimeout(() => {
       finish(new Error(`WHOIS request timed out after ${SOCKET_TIMEOUT_MS}ms.`));
-    });
+    }, SOCKET_TIMEOUT_MS);
+    timer.unref?.();
+    socket.once("error", (error) => finish(error));
 
-    socket.connect(WHOIS_PORT, server, () => {
+    socket.connect({
+      port: WHOIS_PORT,
+      host: publicServer.hostname,
+      lookup: createPinnedLookup(publicServer.addresses),
+      autoSelectFamily: true,
+    }, () => {
       socket.write(`${query}\r\n`);
     });
 
@@ -82,9 +92,12 @@ async function lookupViaRdap(target: string) {
   timer.unref?.();
 
   try {
-    const response = await fetch(`https://rdap.org/${path}`, {
+    const response = await fetchPublicUrl(`https://rdap.org/${path}`, {
       cache: "no-store",
       signal: controller.signal,
+      timeoutMs: SOCKET_TIMEOUT_MS,
+      maxRedirects: 3,
+      maxContentLengthBytes: MAX_WHOIS_RESPONSE_BYTES,
     });
 
     if (!response.ok) {
@@ -137,7 +150,7 @@ export async function GET(request: Request) {
         server: "whois.iana.org",
         raw: ianaResponse,
         summary: summarizeWhois(ianaResponse),
-        note: "No referral server found. Showing IANA WHOIS response.",
+        noteCode: "iana_only",
       });
     }
 
@@ -160,7 +173,7 @@ export async function GET(request: Request) {
         raw: rdap.raw,
         rdap: rdap.rdap,
         summary: rdap.summary,
-        note: "WHOIS port lookup unavailable; returned RDAP data instead.",
+        noteCode: "rdap_fallback",
       });
     } catch (rdapError) {
       // Locale-neutral message (the UI translates by code); upstream details

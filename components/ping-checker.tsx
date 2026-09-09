@@ -1,11 +1,12 @@
 "use client";
 
 import { type Locale } from "@/lib/i18n";
-import { unwrapApiResponse } from "@/lib/api/client";
+import { readApiResponse } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
 import { formatTemplate } from "@/lib/format";
 import type { PingMessageKey, PingMessageParams } from "@/lib/network/database-probes";
 import { cn } from "@/lib/utils";
+import { buildPingRequest, defaultPingPort, DB_DEFAULT_PORTS, type DatabaseType, type PingMode } from "@/lib/ping";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +35,6 @@ import {
   ServerCrash,
   Timer,
 } from "lucide-react";
-
-type PingMode = "tcp" | "udp" | "eb" | "database";
-type DatabaseType = "postgres" | "mysql" | "redis" | "mongodb" | "mssql" | "generic";
 
 interface PingResult {
   ok: boolean;
@@ -102,29 +100,6 @@ function formatPingMessage(result: PingResult, t: ToolTranslation): string {
   }
 }
 
-const DB_DEFAULT_PORTS: Record<DatabaseType, number> = {
-  postgres: 5432,
-  mysql: 3306,
-  redis: 6379,
-  mongodb: 27017,
-  mssql: 1433,
-  generic: 0,
-};
-
-const MODE_DEFAULT_PORTS: Record<Exclude<PingMode, "database">, number> = {
-  tcp: 80,
-  udp: 53,
-  eb: 443,
-};
-
-// Any port that a mode/database preset could have filled in automatically.
-// If the current port is one of these, we assume the user has not customised
-// it and it is safe to swap when the mode or database type changes.
-const AUTO_FILLED_PORTS = new Set<number>([
-  ...Object.values(MODE_DEFAULT_PORTS),
-  ...Object.values(DB_DEFAULT_PORTS).filter((value) => value > 0),
-]);
-
 const PING_MODES: PingMode[] = ["tcp", "udp", "eb", "database"];
 
 const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
@@ -160,6 +135,7 @@ export function PingChecker({
   const [databaseType, setDatabaseType] = useState<DatabaseType>("postgres");
   const [target, setTarget] = useState(initialTarget);
   const [port, setPort] = useState(initialPort);
+  const portEdited = useRef(initialPort !== defaultPingPort(initialMode));
   const [timeoutMs, setTimeoutMs] = useState("3000");
   const [useAuth, setUseAuth] = useState(false);
   const [username, setUsername] = useState("");
@@ -174,6 +150,7 @@ export function PingChecker({
 
   useEffect(() => {
     return () => {
+      requestSeq.current += 1;
       abortRef.current?.abort();
     };
   }, []);
@@ -207,6 +184,7 @@ export function PingChecker({
     abortRef.current?.abort();
     setTarget(initialTarget);
     setPort(initialPort);
+    portEdited.current = initialPort !== defaultPingPort(initialMode);
     setMode(initialMode);
     requestSeq.current += 1;
     setLoading(false);
@@ -231,29 +209,32 @@ export function PingChecker({
   const onModeChange = (nextMode: PingMode) => {
     setMode(nextMode);
 
-    const portIsAutoFilled = AUTO_FILLED_PORTS.has(Number(port)) || port.trim() === "";
-
-    if (nextMode === "database") {
-      if (portIsAutoFilled) setPort(String(DB_DEFAULT_PORTS[databaseType]));
-      return;
+    if (!portEdited.current || !port.trim()) {
+      setPort(defaultPingPort(nextMode, databaseType));
+      portEdited.current = false;
     }
-
-    setUseAuth(false);
-    if (portIsAutoFilled) {
-      setPort(String(MODE_DEFAULT_PORTS[nextMode]));
-    }
+    if (nextMode !== "database") setUseAuth(false);
   };
 
   const onDatabaseTypeChange = (nextType: DatabaseType) => {
     setDatabaseType(nextType);
-    if (mode === "database" && (AUTO_FILLED_PORTS.has(Number(port)) || port.trim() === "")) {
-      const nextPort = DB_DEFAULT_PORTS[nextType];
-      if (nextPort) setPort(String(nextPort));
+    if (mode === "database" && (!portEdited.current || !port.trim())) {
+      setPort(defaultPingPort("database", nextType));
+      portEdited.current = false;
     }
+  };
+
+  const cancel = () => {
+    requestSeq.current += 1;
+    abortRef.current?.abort();
+    setLoading(false);
+    setError(null);
+    setResult(null);
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (loading) return;
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -275,25 +256,15 @@ export function PingChecker({
         method: "POST",
         headers: { "content-type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({
-          mode,
-          target,
-          port: Number(port),
-          timeoutMs: Number(timeoutMs),
-          databaseType,
-          auth: {
-            enabled: mode === "database" && useAuth,
-            username,
-            password,
-            database,
-          },
-        }),
+        body: JSON.stringify(buildPingRequest({
+          mode, target, port, timeoutMs, databaseType, useAuth, username, password, database,
+        })),
       });
 
-      const data = unwrapApiResponse<PingResult>(await response.json());
-      if (seq === requestSeq.current) setResult(data);
+      const data = await readApiResponse<PingResult>(response);
+      if (!controller.signal.aborted && seq === requestSeq.current) setResult(data);
     } catch (checkError) {
-      if (checkError instanceof DOMException && checkError.name === "AbortError") {
+      if (controller.signal.aborted) {
         return;
       }
       if (seq === requestSeq.current) {
@@ -354,6 +325,9 @@ export function PingChecker({
                   <Input
                     id="ping-target"
                     name="target"
+                    required
+                    maxLength={253}
+                    autoCapitalize="off"
                     value={target}
                     onChange={(event) => setTarget(event.target.value)}
                     placeholder="example.com"
@@ -367,8 +341,16 @@ export function PingChecker({
                   <Input
                     id="ping-port"
                     name="port"
+                    type="number"
+                    min={1}
+                    max={65535}
+                    step={1}
+                    required
                     value={port}
-                    onChange={(event) => setPort(event.target.value)}
+                    onChange={(event) => {
+                      portEdited.current = true;
+                      setPort(event.target.value);
+                    }}
                     placeholder="443"
                     inputMode="numeric"
                     className="font-mono"
@@ -379,6 +361,11 @@ export function PingChecker({
                   <Input
                     id="ping-timeout"
                     name="timeoutMs"
+                    type="number"
+                    min={500}
+                    max={10000}
+                    step={1}
+                    required
                     value={timeoutMs}
                     onChange={(event) => setTimeoutMs(event.target.value)}
                     placeholder="3000"
@@ -453,6 +440,7 @@ export function PingChecker({
           </div>
 
           <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-end">
+            {loading && <Button type="button" variant="outline" className="h-11" onClick={cancel}>{t.cancelLookup}</Button>}
             <Button
               type="submit"
               disabled={loading}
@@ -460,7 +448,7 @@ export function PingChecker({
             >
               {loading ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                   {t.pingRunning}
                 </>
               ) : (
@@ -550,12 +538,14 @@ export function PingChecker({
                   variant="outline"
                   size="sm"
                   className="w-fit"
+                  aria-expanded={showDetails}
+                  aria-controls="ping-details"
                   onClick={() => setShowDetails((value) => !value)}
                 >
                   {showDetails ? t.pingHideDetails : t.pingShowDetails}
                 </Button>
                 {showDetails && (
-                  <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground">
+                  <pre id="ping-details" tabIndex={0} className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground">
                     {JSON.stringify(result.details, null, 2)}
                   </pre>
                 )}

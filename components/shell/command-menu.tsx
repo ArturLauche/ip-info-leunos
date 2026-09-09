@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
   createContext,
   useContext,
@@ -15,7 +16,10 @@ import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 
-import { CommandPalette } from "./command-palette";
+const CommandPalette = dynamic(
+  () => import("./command-palette").then((module) => module.CommandPalette),
+  { ssr: false },
+);
 
 interface CommandMenuContextValue {
   open: boolean;
@@ -45,6 +49,11 @@ interface CommandMenuProviderProps {
  */
 export function CommandMenuProvider({ locale, children }: CommandMenuProviderProps) {
   const [open, setOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
+
+  useEffect(() => {
+    if (open) setHasOpened(true);
+  }, [open]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -74,7 +83,7 @@ export function CommandMenuProvider({ locale, children }: CommandMenuProviderPro
   return (
     <CommandMenuContext.Provider value={value}>
       {children}
-      <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />
+      {(open || hasOpened) && <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />}
     </CommandMenuContext.Provider>
   );
 }

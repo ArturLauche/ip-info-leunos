@@ -4,6 +4,7 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Activity } from "lucide-react";
 import { headers } from "next/headers";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface WhoisPageProps {
-  searchParams: Promise<{ target?: string }>;
+  searchParams: Promise<{ target?: SearchParamValue }>;
 }
 
 export default async function WhoisPage({ searchParams }: WhoisPageProps) {
@@ -32,7 +33,7 @@ export default async function WhoisPage({ searchParams }: WhoisPageProps) {
       title={t.whoisTitle}
       subtitle={t.whoisSubtitle}
     >
-      <WhoisChecker locale={locale} initialTarget={params.target || ""} />
+      <WhoisChecker locale={locale} initialTarget={firstSearchParam(params.target)} />
     </ToolPageShell>
   );
 }

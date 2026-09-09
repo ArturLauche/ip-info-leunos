@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiClientError, unwrapApiResponse } from "@/lib/api/client";
+import { readApiResponse } from "@/lib/api/client";
+import { useToolQuery } from "@/hooks/use-tool-query";
 
 interface ToolLookupOptions {
   /** Builds the API URL for a submitted query. */
@@ -30,6 +31,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   const [result, setResult] = useState<T | null>(null);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const { querySync, markSubmitted } = useToolQuery(options.initialQuery);
 
   const optionsRef = useRef(options);
   useEffect(() => {
@@ -40,6 +42,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   // navigations don't waste server egress after the UI is gone.
   useEffect(() => {
     return () => {
+      requestSeq.current += 1;
       abortRef.current?.abort();
     };
   }, []);
@@ -50,6 +53,14 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       if (!trimmed) return;
 
       const { buildApiUrl, buildHref, mapError, onStart } = optionsRef.current;
+      const href = updateUrl ? buildHref?.(trimmed) : null;
+      if (href && new URL(href, window.location.href).pathname !== window.location.pathname) {
+        // A pathname change mounts a new checker (notably /asn → /asn/AS…).
+        // Let that destination own the request instead of starting one here
+        // that will immediately be aborted and repeated after navigation.
+        router.replace(href, { scroll: false });
+        return;
+      }
       // Supersede the previous lookup: abort its fetch (saves egress) and
       // bump the sequence guard so a late response can never overwrite this one.
       abortRef.current?.abort();
@@ -61,54 +72,35 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       setResult(null);
       onStart?.();
 
-      if (updateUrl && buildHref) {
-        const href = buildHref(trimmed);
-        if (href) router.replace(href, { scroll: false });
-      }
-
       try {
+        if (href) {
+          markSubmitted(trimmed);
+          router.replace(href, { scroll: false });
+        }
         const response = await fetch(buildApiUrl(trimmed), {
           signal: controller.signal,
         });
-        const contentType = response.headers.get("content-type") || "";
-        if (!response.ok || !contentType.includes("application/json")) {
-          // Non-JSON or error status: still try to surface a structured API
-          // error (with its machine-readable code) before falling back.
-          try {
-            const payload = await response.json();
-            const unwrapped = unwrapApiResponse<T>(payload);
-            if (seq === requestSeq.current) setResult(unwrapped);
-            return;
-          } catch (parseError) {
-            // Preserve structured API errors so mapError can match on code.
-            if (parseError instanceof ApiClientError) throw parseError;
-            if (parseError instanceof DOMException && parseError.name === "AbortError") {
-              throw parseError;
-            }
-            throw new ApiClientError(
-              "unknown",
-              `Request failed with status ${response.status}.`,
-            );
-          }
-        }
-        const data = unwrapApiResponse<T>(await response.json());
-        if (seq === requestSeq.current) setResult(data);
+        const data = await readApiResponse<T>(response);
+        if (!controller.signal.aborted && seq === requestSeq.current) setResult(data);
       } catch (lookupError) {
         // An abort is always superseded by a newer run (or unmount): never
         // surface it as an error state.
-        if (
-          lookupError instanceof DOMException &&
-          lookupError.name === "AbortError"
-        ) {
-          return;
-        }
+        if (controller.signal.aborted) return;
         if (seq === requestSeq.current) setError(mapError(lookupError));
       } finally {
         if (seq === requestSeq.current) setLoading(false);
       }
     },
-    [router],
+    [router, markSubmitted],
   );
+
+  const cancel = useCallback(() => {
+    requestSeq.current += 1;
+    abortRef.current?.abort();
+    setLoading(false);
+    setError(null);
+    setResult(null);
+  }, []);
 
   /** Shows a message (e.g. client-side validation) without running a lookup. */
   const showError = useCallback((message: string) => {
@@ -119,10 +111,9 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
     setError(message);
   }, []);
 
-  const initialQuery = options.initialQuery ?? "";
   useEffect(() => {
-    if (initialQuery.trim()) {
-      run(initialQuery, false);
+    if (querySync.query) {
+      run(querySync.query, false);
     } else {
       // The deep-linked query was removed (e.g. the command palette navigating
       // to the bare tool route): abort any in-flight lookup, invalidate its
@@ -134,7 +125,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       setError(null);
       setResult(null);
     }
-  }, [initialQuery, run]);
+  }, [querySync, run]);
 
-  return { loading, error, result, run, showError };
+  return { loading, error, result, run, showError, cancel, querySync };
 }

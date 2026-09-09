@@ -1,22 +1,10 @@
 import dns from "node:dns/promises";
 import net from "node:net";
 import { domainToASCII } from "node:url";
+import { TargetValidationError } from "./errors";
+import { requestPublicHttp, type PublicHttpOptions } from "./public-http";
 
-export type TargetErrorCode = "invalid_target" | "target_blocked" | "timeout" | "network_error";
-
-export class TargetValidationError extends Error {
-  code: TargetErrorCode;
-  status: number;
-  details?: unknown;
-
-  constructor(code: TargetErrorCode, message: string, status = 400, details?: unknown) {
-    super(message);
-    this.name = "TargetValidationError";
-    this.code = code;
-    this.status = status;
-    this.details = details;
-  }
-}
+export { TargetValidationError, type TargetErrorCode } from "./errors";
 
 export type PublicTarget = {
   input: string;
@@ -320,9 +308,22 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, createError: () 
   });
 }
 
+/** Stop waiting when a caller's overall deadline expires, including during DNS. */
+function withAbort<T>(promise: Promise<T>, signal?: AbortSignal | null): Promise<T> {
+  if (!signal) return promise;
+  let onAbort: () => void;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(signal.reason);
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+  });
+  return Promise.race([promise, aborted]).finally(() => signal.removeEventListener("abort", onAbort));
+}
+
 export async function fetchPublicUrl(
   input: string | URL,
-  init: RequestInit & {
+  init: Pick<PublicHttpOptions, "method" | "headers" | "signal"> & {
+    cache?: "no-store";
     maxRedirects?: number;
     timeoutMs?: number;
     maxContentLengthBytes?: number;
@@ -331,46 +332,39 @@ export async function fetchPublicUrl(
   const maxRedirects = init.maxRedirects ?? 3;
   const timeoutMs = init.timeoutMs ?? 5_000;
   const maxContentLengthBytes = init.maxContentLengthBytes ?? 1_000_000;
+  const headers = new Headers(init.headers);
   let current = typeof input === "string" ? normalizeWebUrl(input) : input;
 
   for (let redirect = 0; redirect <= maxRedirects; redirect += 1) {
-    await assertPublicUrl(current);
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    init.signal?.throwIfAborted();
+    const target = await withAbort(assertPublicUrl(current), init.signal);
 
     try {
-      const response = await fetch(current, {
+      const response = await requestPublicHttp(target, {
         ...init,
-        redirect: "manual",
-        signal: controller.signal,
+        headers,
+        timeoutMs,
+        maxContentLengthBytes,
       });
-      clearTimeout(timer);
 
-      const contentLength = Number(response.headers.get("content-length") || 0);
-      if (contentLength > maxContentLengthBytes) {
-        await response.body?.cancel();
-        throw new TargetValidationError(
-          "target_blocked",
-          "The target response is too large for this public checker.",
-          413,
-          { contentLength, maxContentLengthBytes },
-        );
-      }
-
-      if (response.status >= 300 && response.status < 400) {
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
         const location = response.headers.get("location");
-        await response.body?.cancel();
-
         if (!location) return response;
-        current = new URL(location, current);
+        await response.body?.cancel();
+        const next = new URL(location, current);
+        if (next.origin !== new URL(target.url).origin) {
+          headers.delete("authorization");
+          headers.delete("proxy-authorization");
+          headers.delete("cookie");
+        }
+        current = next;
         continue;
       }
 
       return response;
     } catch (error) {
-      clearTimeout(timer);
       if (error instanceof TargetValidationError) throw error;
+      if (init.signal?.aborted) throw error;
       if ((error as Error).name === "AbortError") {
         throw new TargetValidationError("timeout", "The target request timed out.", 408);
       }

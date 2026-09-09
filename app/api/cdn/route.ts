@@ -10,6 +10,8 @@ import {
   TargetValidationError,
 } from "@/lib/network/target";
 
+export const runtime = "nodejs";
+
 const cdnQuerySchema = z.object({
   target: z.string().trim().min(1).max(2048),
 });

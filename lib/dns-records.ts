@@ -16,6 +16,8 @@ export function formatDnsRecordValue(record: DnsRecord): string {
 
   // TXT records arrive as arrays of character-string chunks.
   if (Array.isArray(value)) {
+    // TXT character-strings are chunks of one record, not separate words.
+    if (record.type === "TXT") return value.flat().map(String).join("");
     return value.map((entry) => (Array.isArray(entry) ? entry.join("") : String(entry))).join(" ");
   }
 

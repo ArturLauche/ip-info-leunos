@@ -4,6 +4,7 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { ShieldCheck } from "lucide-react";
 import { headers } from "next/headers";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface CdnPageProps {
-  searchParams: Promise<{ target?: string }>;
+  searchParams: Promise<{ target?: SearchParamValue }>;
 }
 
 export default async function CdnPage({ searchParams }: CdnPageProps) {
@@ -32,7 +33,7 @@ export default async function CdnPage({ searchParams }: CdnPageProps) {
       title={t.cdnTitle}
       subtitle={t.cdnSubtitle}
     >
-      <CdnChecker locale={locale} initialTarget={params.target || ""} />
+      <CdnChecker locale={locale} initialTarget={firstSearchParam(params.target)} />
     </ToolPageShell>
   );
 }

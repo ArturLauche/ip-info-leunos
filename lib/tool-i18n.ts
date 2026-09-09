@@ -26,6 +26,10 @@ type ToolTranslation = {
   sidebarLabel: string;
   navClose: string;
   copyValue: string;
+  downloadJson: string;
+  cancelLookup: string;
+  whoisNoteIana: string;
+  whoisNoteRdap: string;
   commandTriggerLabel: string;
   commandPlaceholder: string;
   commandGroupActions: string;
@@ -347,6 +351,10 @@ const en: ToolTranslation = {
   sidebarLabel: "Site navigation",
   navClose: "Close menu",
   copyValue: "Copy",
+  downloadJson: "Download JSON",
+  cancelLookup: "Cancel",
+  whoisNoteIana: "No referral server was found. Showing the IANA WHOIS response.",
+  whoisNoteRdap: "WHOIS was unavailable. Showing RDAP registration data instead.",
   commandTriggerLabel: "Search…",
   commandPlaceholder: "Search tools, or enter an IP, domain or ASN…",
   commandGroupActions: "Actions",
@@ -811,6 +819,10 @@ const de: Partial<ToolTranslation> = {
   sidebarLabel: "Seitennavigation",
   navClose: "Menü schließen",
   copyValue: "Kopieren",
+  downloadJson: "JSON herunterladen",
+  cancelLookup: "Abbrechen",
+  whoisNoteIana: "Kein Verweisserver gefunden. Die IANA-WHOIS-Antwort wird angezeigt.",
+  whoisNoteRdap: "WHOIS war nicht verfügbar. Stattdessen werden RDAP-Registrierungsdaten angezeigt.",
   commandTriggerLabel: "Suchen…",
   commandPlaceholder: "Tools suchen oder IP, Domain oder ASN eingeben…",
   commandGroupActions: "Aktionen",

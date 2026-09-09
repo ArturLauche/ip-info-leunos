@@ -4,8 +4,10 @@ import { resolveLocale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Radar } from "lucide-react";
 import { headers } from "next/headers";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
+import { defaultPingPort, type PingMode } from "@/lib/ping";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Ping- und Port-Test für öffentliche Hosts",
@@ -14,10 +16,8 @@ export const metadata: Metadata = createPageMetadata({
   keywords: ['Ping Test', 'Port Check', 'Latenz'],
 });
 
-type PingMode = "tcp" | "udp" | "eb" | "database";
-
 interface PingPageProps {
-  searchParams: Promise<{ target?: string; port?: string; mode?: string }>;
+  searchParams: Promise<{ target?: SearchParamValue; port?: SearchParamValue; mode?: SearchParamValue }>;
 }
 
 function normalizeMode(value: string | undefined): PingMode {
@@ -40,9 +40,9 @@ export default async function PingPage({ searchParams }: PingPageProps) {
     >
       <PingChecker
         locale={locale}
-        initialTarget={params.target || "example.com"}
-        initialPort={params.port || "80"}
-        initialMode={normalizeMode(params.mode)}
+        initialTarget={firstSearchParam(params.target) || "example.com"}
+        initialPort={firstSearchParam(params.port) || defaultPingPort(normalizeMode(firstSearchParam(params.mode)))}
+        initialMode={normalizeMode(firstSearchParam(params.mode))}
       />
     </ToolPageShell>
   );

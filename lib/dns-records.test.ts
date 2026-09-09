@@ -9,7 +9,8 @@ describe("formatDnsRecordValue", () => {
 
   it("joins TXT chunk arrays", () => {
     expect(formatDnsRecordValue({ type: "TXT", value: [["v=spf1 ", "-all"]] })).toBe("v=spf1 -all");
-    expect(formatDnsRecordValue({ type: "TXT", value: ["a", "b"] })).toBe("a b");
+    expect(formatDnsRecordValue({ type: "TXT", value: ["a", "b"] })).toBe("ab");
+    expect(formatDnsRecordValue({ type: "TXT", value: ["v=DKIM1; p=MIIB", "IjANBg"] })).toBe("v=DKIM1; p=MIIBIjANBg");
   });
 
   it("formats MX records as priority exchange", () => {

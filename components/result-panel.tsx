@@ -13,7 +13,7 @@ export function ResultPanel({ title, children }: ResultPanelProps) {
     <Card className="tool-reveal gap-0 overflow-hidden py-0">
       <div className="flex items-center gap-2 border-b bg-muted/30 px-5 py-3.5">
         <CircleCheck aria-hidden="true" className="size-4 shrink-0 text-success" />
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="min-w-0 text-sm font-semibold break-words [overflow-wrap:anywhere] text-foreground">{title}</h2>
       </div>
       <div className="space-y-4 p-5">{children}</div>
     </Card>

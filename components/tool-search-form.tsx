@@ -8,11 +8,15 @@ import { Input } from "@/components/ui/input";
 
 interface ToolSearchFormProps {
   initialValue?: string;
+  /** Changes only for external navigation, including a reset to the same value. */
+  syncKey?: number;
   placeholder: string;
   submitLabel: string;
   loadingLabel?: string;
   loading?: boolean;
   onSubmit: (value: string) => void;
+  onCancel?: () => void;
+  cancelLabel?: string;
 }
 
 /**
@@ -21,22 +25,25 @@ interface ToolSearchFormProps {
  */
 export function ToolSearchForm({
   initialValue = "",
+  syncKey = 0,
   placeholder,
   submitLabel,
   loadingLabel,
   loading = false,
   onSubmit,
+  onCancel,
+  cancelLabel,
 }: ToolSearchFormProps) {
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
     setValue(initialValue);
-  }, [initialValue]);
+  }, [initialValue, syncKey]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = value.trim();
-    if (!trimmed) return;
+    if (!trimmed || loading) return;
     onSubmit(trimmed);
   };
 
@@ -44,6 +51,7 @@ export function ToolSearchForm({
     <form
       onSubmit={handleSubmit}
       className="flex w-full flex-col gap-2.5 sm:flex-row"
+      aria-busy={loading}
     >
       <div className="relative flex-1">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -57,6 +65,7 @@ export function ToolSearchForm({
           aria-label={placeholder}
           autoComplete="off"
           autoCapitalize="off"
+          enterKeyHint="search"
           spellCheck={false}
           className="h-11 bg-card pl-10 text-sm dark:bg-card"
         />
@@ -64,18 +73,23 @@ export function ToolSearchForm({
       <Button
         type="submit"
         size="lg"
-        disabled={loading}
+        disabled={loading || !value.trim()}
         className="h-11 shrink-0 sm:min-w-36"
       >
         {loading ? (
           <>
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             {loadingLabel || submitLabel}
           </>
         ) : (
           submitLabel
         )}
       </Button>
+      {loading && onCancel && cancelLabel && (
+        <Button type="button" variant="outline" onClick={onCancel} className="h-11 shrink-0">
+          {cancelLabel}
+        </Button>
+      )}
     </form>
   );
 }
