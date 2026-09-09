@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { readApiResponse } from "@/lib/api/client";
+import { useToolQuery } from "@/hooks/use-tool-query";
 
 interface ToolLookupOptions {
   /** Builds the API URL for a submitted query. */
@@ -30,7 +31,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   const [result, setResult] = useState<T | null>(null);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
-  const selfSubmitted = useRef<string | null>(null);
+  const { querySync, markSubmitted } = useToolQuery(options.initialQuery);
 
   const optionsRef = useRef(options);
   useEffect(() => {
@@ -73,7 +74,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
 
       try {
         if (href) {
-          selfSubmitted.current = trimmed;
+          markSubmitted(trimmed);
           router.replace(href, { scroll: false });
         }
         const response = await fetch(buildApiUrl(trimmed), {
@@ -90,7 +91,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
         if (seq === requestSeq.current) setLoading(false);
       }
     },
-    [router],
+    [router, markSubmitted],
   );
 
   const cancel = useCallback(() => {
@@ -110,15 +111,9 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
     setError(message);
   }, []);
 
-  const initialQuery = options.initialQuery?.trim() ?? "";
   useEffect(() => {
-    if (selfSubmitted.current === initialQuery) {
-      selfSubmitted.current = null;
-      return;
-    }
-    selfSubmitted.current = null;
-    if (initialQuery) {
-      run(initialQuery, false);
+    if (querySync.query) {
+      run(querySync.query, false);
     } else {
       // The deep-linked query was removed (e.g. the command palette navigating
       // to the bare tool route): abort any in-flight lookup, invalidate its
@@ -130,7 +125,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       setError(null);
       setResult(null);
     }
-  }, [initialQuery, run]);
+  }, [querySync, run]);
 
-  return { loading, error, result, run, showError, cancel };
+  return { loading, error, result, run, showError, cancel, querySync };
 }

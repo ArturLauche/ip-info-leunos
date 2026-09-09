@@ -224,6 +224,32 @@ try {
     assertHealthy();
   });
 
+  check("delayed DNS URL echoes preserve drafts; external navigation still resets them", () => {
+    open("/dns");
+    browser("snapshot", "-i");
+    installFixtures();
+    evaluate("window.__rscDelay=1500; window.__plan.push({delay:1800})");
+    submit("submitted.example.com");
+    clickRole("button", "Cancel");
+    browser("fill", "#tool-query", "draft.example.com");
+    browser("wait", "--url", "**/dns?target=submitted.example.com");
+    waitFor("window.__completed === window.__calls.length");
+    assert.equal(evaluate("document.querySelector('#tool-query').value"), "draft.example.com");
+    assert.equal(evaluate("window.__calls.length"), 1);
+    evaluate("window.__rscDelay=0");
+    browser("press", "Control+k");
+    waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
+    browser("fill", "[role=combobox]", "dns");
+    browser("press", "Enter");
+    browser("wait", "--url", "**/dns");
+    waitFor("document.querySelector('#tool-query')?.value === ''");
+    browser("back");
+    waitFor("document.querySelector('h2')?.textContent.includes('submitted.example.com')");
+    assert.equal(evaluate("document.querySelector('#tool-query').value"), "submitted.example.com");
+    assert.equal(evaluate("window.__calls.length"), 2);
+    assertHealthy();
+  });
+
   check("Ping preserves explicitly edited preset ports and omits disabled credentials", () => {
     open("/ping");
     browser("snapshot", "-i");
@@ -250,16 +276,18 @@ try {
     assert.equal(evaluate("document.querySelector('#ping-port').value"), "53");
   });
 
-  check("a delayed URL update cannot restart a cancelled IP lookup", () => {
+  check("a delayed URL update cannot restart a cancelled IP lookup or overwrite a draft", () => {
     open("/check");
     browser("snapshot", "-i");
     installFixtures();
-    evaluate("window.__rscDelay=400; window.__plan.push({delay:1000})");
+    evaluate("window.__rscDelay=1500; window.__plan.push({delay:1800})");
     submit("8.8.8.8");
     clickRole("button", "Cancel");
+    browser("fill", "#tool-query", "1.0.0.1");
     browser("wait", "--url", "**/check?q=8.8.8.8");
     waitFor("window.__completed === window.__calls.length");
     assert.equal(evaluate("window.__calls.length"), 1);
+    assert.equal(evaluate("document.querySelector('#tool-query').value"), "1.0.0.1");
     assert.equal(evaluate("document.body.innerText.includes('Queried IP address')"), false);
     assertHealthy();
   });

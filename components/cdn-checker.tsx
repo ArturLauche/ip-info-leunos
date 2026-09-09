@@ -87,7 +87,7 @@ interface CdnCheckerProps {
 export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
   const t = getToolTranslation(locale);
 
-  const { loading, error, result, run, cancel } = useToolLookup<CdnResult>({
+  const { loading, error, result, run, cancel, querySync } = useToolLookup<CdnResult>({
     buildApiUrl: (target) => `/api/cdn?target=${encodeURIComponent(target)}`,
     buildHref: (target) => `/cdn?target=${encodeURIComponent(target)}`,
     mapError: (checkError) => getApiErrorMessage(checkError, t, t.cdnNetworkError),
@@ -104,7 +104,8 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
-        initialValue={initialTarget}
+        initialValue={querySync.query}
+        syncKey={querySync.revision}
         placeholder={t.targetPlaceholder}
         submitLabel={t.cdnAnalyzeButton}
         loadingLabel={t.cdnAnalyzing}

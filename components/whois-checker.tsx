@@ -56,7 +56,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const { loading, error, result, run, cancel } = useToolLookup<WhoisResult>({
+  const { loading, error, result, run, cancel, querySync } = useToolLookup<WhoisResult>({
     buildApiUrl: (target) => `/api/whois?target=${encodeURIComponent(target)}`,
     buildHref: (target) => `/whois?target=${encodeURIComponent(target)}`,
     mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.whoisLookupError),
@@ -67,7 +67,8 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
-        initialValue={initialTarget}
+        initialValue={querySync.query}
+        syncKey={querySync.revision}
         placeholder={t.whoisPlaceholder}
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}

@@ -47,7 +47,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     }
   }, [initialAsn]);
 
-  const { loading, error, result, run, showError, cancel } = useToolLookup<AsnProfile>({
+  const { loading, error, result, run, showError, cancel, querySync } = useToolLookup<AsnProfile>({
     buildApiUrl: (asn) =>
       `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
     buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
@@ -79,7 +79,8 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
-        initialValue={initialAsn}
+        initialValue={querySync.query}
+        syncKey={querySync.revision}
         placeholder={t.asnPlaceholder}
         submitLabel={t.asnLookupButton}
         loadingLabel={t.asnLookingUp}

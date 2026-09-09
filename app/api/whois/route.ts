@@ -2,6 +2,7 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { createPinnedLookup } from "@/lib/network/pinned-lookup";
 import { extractReferralServer, summarizeRdap, summarizeWhois } from "@/lib/whois";
 import {
   assertPublicIpAddress,
@@ -47,18 +48,26 @@ async function queryWhois(server: string, query: string): Promise<string> {
     const finish = (error?: Error) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       socket.destroy();
       if (error) reject(error);
       else resolve(Buffer.concat(chunks).toString("utf8"));
     };
 
-    socket.setTimeout(SOCKET_TIMEOUT_MS);
-    socket.once("error", (error) => finish(error));
-    socket.once("timeout", () => {
+    // One budget covers every address attempt and the response body. Socket
+    // inactivity timers alone can restart as connection attempts advance.
+    const timer = setTimeout(() => {
       finish(new Error(`WHOIS request timed out after ${SOCKET_TIMEOUT_MS}ms.`));
-    });
+    }, SOCKET_TIMEOUT_MS);
+    timer.unref?.();
+    socket.once("error", (error) => finish(error));
 
-    socket.connect(WHOIS_PORT, publicServer.addresses[0], () => {
+    socket.connect({
+      port: WHOIS_PORT,
+      host: publicServer.hostname,
+      lookup: createPinnedLookup(publicServer.addresses),
+      autoSelectFamily: true,
+    }, () => {
       socket.write(`${query}\r\n`);
     });
 

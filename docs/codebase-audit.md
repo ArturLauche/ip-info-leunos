@@ -126,11 +126,15 @@ boundaries, with useful result actions and repeatable browser coverage.
   public-address policy, and redirect orchestration. A shared error module avoids
   a runtime circular dependency.
 - WHOIS sockets pin both IANA and referral connections. RDAP uses the guarded HTTP
-  transport with the approved limits. WHOIS notes use locale-neutral codes.
+  transport with the approved limits. A shared pinned lookup retains the full
+  validated address pool, and Node's family selection can try later addresses
+  within one six-second connection/body deadline. WHOIS notes use locale-neutral codes.
 - Every checker uses the shared API envelope/status reader. URL synchronization
   no longer duplicates requests; pathname navigation lets the destination own
   its lookup. Cancellation invalidates late results even when a transport ignores
-  abort. Repeated page query parameters use their first value consistently.
+  abort. `useToolQuery` synchronizes lookups and form fields only for external
+  navigation, preserving a locally edited draft when a submission's delayed URL
+  update arrives. Repeated page query parameters use their first value consistently.
 - DNS TXT chunks retain their original concatenation. DNS and WHOIS have reusable
   copy/download actions and accessible raw-data disclosures. Search cancellation,
   repeated IP submissions, long-result wrapping, and command-palette naming and
@@ -142,18 +146,29 @@ boundaries, with useful result actions and repeatable browser coverage.
   defaults, and disabled database credentials never enter the request body.
 - The palette loads on first use, reduced-motion navigation skips route cloning,
   and JSON serialization/Blob allocation occurs only when a download is requested.
+- Compatible lockfile updates refresh Browserslist to 4.28.9, brace-expansion 5.x
+  to 5.0.9, and baseline-browser-mapping to 2.11.21, with their required browser
+  datasets. Direct dependency declarations and unrelated optional peer resolutions
+  remain intact.
+
+The [WHOIS fallback review](https://github.com/ArturLauche/ip-info-leunos/pull/88#discussion_r3971549428)
+and [draft-preservation review](https://github.com/ArturLauche/ip-info-leunos/pull/88#discussion_r3971549436)
+are addressed. A real local socket test refuses the first pinned address and
+succeeds on the second; a separate route test verifies the shared deadline.
+Browser tests preserve drafts through delayed DNS/IP URL echoes and verify that
+clearing the query and navigating Back still restore the correct form state.
 
 ## Verification and measurements
 
 Verification ran under Node **20.20.2**, pnpm **10.34.5**, and Chromium **152**.
-Frozen installation, lint, typecheck, **327 tests across 37 files**, production
+Frozen installation, lint, typecheck, **330 tests across 38 files**, production
 build, and the absence of client source maps all passed. The baseline had 290
 tests across 34 files. New coverage exercises transport pinning, mixed DNS answers,
 redirect cleanup, declared/streamed/expanded size limits, slow bodies, cancellation
 during DNS/body reading, malformed API envelopes, Ping payloads, and repeated
 query parameters.
 
-The production browser suite passed all **16 checks**, covering empty forms, one-request submissions,
+The production browser suite passed all **17 checks**, covering empty forms, one-request submissions,
 same-target retry, late/cancelled responses, delayed URL updates, malformed gateway
 responses, navigation/history, ASN route changes, repeated IP parameters, Ping
 ports/auth, filtered DNS exports, German WHOIS exports, keyboard palette controls,
@@ -169,8 +184,8 @@ with HTTP 403 and retained `cache-control: no-store` across DNS/CDN/WHOIS/Ping.
 | --- | ---: | ---: | --- |
 | DNS API requests per form submission | 2 | 1 | 50% less duplicated API work for this flow. |
 | Route clones with reduced motion | Snapshot created, then discarded | 0 | Avoids cloning the result DOM for a disabled animation. |
-| Initial `/dns` script bytes | 876,740 | 876,893 | Essentially unchanged (+153 bytes). |
-| Initial `/dns` gzip estimate | 274,445 | 277,205 | +2,760 bytes (+1.01%); no bundle-size reduction claim. |
+| Initial `/dns` script bytes | 876,740 | 877,324 | Essentially unchanged (+584 bytes). |
+| Initial `/dns` gzip estimate | 274,445 | 277,384 | +2,939 bytes (+1.07%); no bundle-size reduction claim. |
 | Initial script chunks | 14 | 17 | More chunks after splitting; palette code is deferred. |
 
 The size comparison uses unique script URLs in production `/dns` HTML, reads their
@@ -195,3 +210,9 @@ request and reduced-motion improvements remain directly measured wins.
 - External providers can be unavailable, rate-limited, or return partial data.
   Existing source-state and fallback handling is retained. Deployment testing
   with optional credentials remains the operator's responsibility.
+- `pnpm audit` reports **zero high/critical findings and two moderate entries** for
+  the same [Vitest development-server advisory](https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9)
+  in `vitest` and `@vitest/mocker`. This repository uses Node-only `vitest run` and
+  does not enable the affected browser mode or standalone mocker/interceptor
+  plugins. A Vitest 4 migration remains a maintenance follow-up; these findings
+  are documented rather than suppressed.

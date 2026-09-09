@@ -50,7 +50,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const { loading, error, result, run, cancel } = useToolLookup<DnsResult>({
+  const { loading, error, result, run, cancel, querySync } = useToolLookup<DnsResult>({
     buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
     buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
     mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.dnsLookupError),
@@ -75,7 +75,8 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
-        initialValue={initialTarget}
+        initialValue={querySync.query}
+        syncKey={querySync.revision}
         placeholder={t.targetPlaceholder}
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}

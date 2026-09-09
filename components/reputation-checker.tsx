@@ -344,7 +344,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
   const [filter, setFilter] = useState<EvidenceFilter>("all");
   const [showHiddenSources, setShowHiddenSources] = useState(false);
 
-  const { loading, error, result, run, cancel } = useToolLookup<ReputationSummary>({
+  const { loading, error, result, run, cancel, querySync } = useToolLookup<ReputationSummary>({
     buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
     buildHref: (ip) => `/reputation?ip=${encodeURIComponent(ip)}`,
     mapError: (checkError) => errorMessage(checkError, t),
@@ -391,7 +391,8 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
-        initialValue={initialIp}
+        initialValue={querySync.query}
+        syncKey={querySync.revision}
         placeholder={t.reputationPlaceholder}
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}

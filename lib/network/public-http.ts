@@ -1,9 +1,9 @@
 import http, { type IncomingMessage } from "node:http";
 import https from "node:https";
-import { isIP, type LookupFunction } from "node:net";
 import type { Readable } from "node:stream";
 import { createBrotliDecompress, createUnzip } from "node:zlib";
 import { TargetValidationError } from "./errors";
+import { createPinnedLookup } from "./pinned-lookup";
 import type { PublicUrl } from "./target";
 
 export interface PublicHttpOptions {
@@ -23,18 +23,7 @@ export interface PublicHttpOptions {
 export async function requestPublicHttp(target: PublicUrl, options: PublicHttpOptions): Promise<Response> {
   options.signal?.throwIfAborted();
   const url = new URL(target.url);
-  const addresses = target.addresses.map((address) => ({ address, family: isIP(address) }));
-  const lookup: LookupFunction = (_hostname, lookupOptions, callback) => {
-    const family = lookupOptions.family;
-    const candidates = addresses.filter((entry) => !family || entry.family === Number(family));
-    if (!candidates.length) {
-      callback(Object.assign(new Error("No validated address for this family."), { code: "ENOTFOUND" }), "");
-    } else if (lookupOptions.all) {
-      callback(null, candidates);
-    } else {
-      callback(null, candidates[0].address, candidates[0].family);
-    }
-  };
+  const lookup = createPinnedLookup(target.addresses);
 
   return new Promise((resolve, reject) => {
     const headers = new Headers(options.headers);

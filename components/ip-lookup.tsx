@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -8,6 +8,7 @@ import { IpDisplay } from "@/components/ip-display";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { getTranslation, type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { useToolQuery } from "@/hooks/use-tool-query";
 
 interface IpLookupProps {
   locale: Locale;
@@ -22,7 +23,7 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
   );
   const [loading, setLoading] = useState(false);
   const [submission, setSubmission] = useState(0);
-  const selfSubmitted = useRef<string | null>(null);
+  const { querySync, markSubmitted } = useToolQuery(initialQuery);
   const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
 
@@ -30,22 +31,17 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
   // command palette navigating /check → /check?q=…), which keeps the existing
   // component mounted and would otherwise ignore the new prop.
   useEffect(() => {
-    // A delayed URL update must not remount a lookup the user just cancelled.
-    if (selfSubmitted.current === sanitizedInitial) {
-      selfSubmitted.current = null;
-      return;
-    }
-    selfSubmitted.current = null;
-    setSubmittedIp(sanitizedInitial || null);
+    setSubmittedIp(querySync.query || null);
     // A cleared deep link unmounts IpDisplay, whose loading callback can no
     // longer fire — reset the spinner so the form never stays stuck.
-    if (!sanitizedInitial) setLoading(false);
-  }, [sanitizedInitial]);
+    if (!querySync.query) setLoading(false);
+  }, [querySync]);
 
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
-        initialValue={sanitizedInitial}
+        initialValue={querySync.query}
+        syncKey={querySync.revision}
         placeholder={t.searchPlaceholder}
         submitLabel={t.searchButton}
         loadingLabel={toolT.lookupInProgress}
@@ -56,7 +52,7 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
           setLoading(false);
         }}
         onSubmit={(value) => {
-          selfSubmitted.current = value;
+          markSubmitted(value);
           setSubmission((previous) => previous + 1);
           setSubmittedIp(value);
           // Deep-link the query like useToolLookup does for the other tools

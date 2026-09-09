@@ -38,17 +38,21 @@ describe("GET /api/whois", () => {
     expect(body.error.code).toBe("target_blocked");
   });
 
-  it("connects both IANA and referral sockets to their validated IPs", async () => {
+  it("pins both IANA and referral sockets while enabling fallback across validated IPs", async () => {
     vi.spyOn(dns, "lookup")
-      .mockResolvedValueOnce([{ address: "1.1.1.1", family: 4 }] as never)
+      .mockResolvedValueOnce([{ address: "1.1.1.1", family: 4 }, { address: "1.0.0.1", family: 4 }] as never)
       .mockResolvedValueOnce([{ address: "8.8.8.8", family: 4 }] as never);
     const replies = ["refer: whois.registry.example\r\n", "Registrar: Example Registry\r\n"];
-    const connections: Array<{ port: number; host: string }> = [];
+    const connections: Array<{ port: number; host?: string; addresses: unknown }> = [];
     vi.spyOn(net, "Socket").mockImplementation(function () {
       const socket = Object.assign(new EventEmitter(), {
-        setTimeout: vi.fn(), destroy: vi.fn(), write: vi.fn(),
-        connect(port: number, host: string, callback: () => void) {
-          connections.push({ port, host });
+        destroy: vi.fn(), write: vi.fn(),
+        connect(options: net.TcpNetConnectOpts, callback: () => void) {
+          expect(options.autoSelectFamily).toBe(true);
+          const lookup = vi.fn();
+          options.lookup!(options.host!, { all: true }, lookup);
+          expect(lookup.mock.calls[0][0]).toBeNull();
+          connections.push({ port: options.port, host: options.host, addresses: lookup.mock.calls[0][1] });
           queueMicrotask(() => {
             callback();
             socket.emit("data", Buffer.from(replies.shift() ?? ""));
@@ -61,8 +65,29 @@ describe("GET /api/whois", () => {
     });
 
     const response = await GET(new Request("http://localhost/api/whois?target=example.com"));
-    expect(connections).toEqual([{ port: 43, host: "1.1.1.1" }, { port: 43, host: "8.8.8.8" }]);
+    expect(connections).toEqual([
+      { port: 43, host: "whois.iana.org", addresses: [{ address: "1.1.1.1", family: 4 }, { address: "1.0.0.1", family: 4 }] },
+      { port: 43, host: "whois.registry.example", addresses: [{ address: "8.8.8.8", family: 4 }] },
+    ]);
+    expect(dns.lookup).toHaveBeenCalledTimes(2);
     expect(await response.json()).toMatchObject({ ok: true, data: { server: "whois.registry.example", summary: { registrar: "Example Registry" } } });
+  });
+
+  it("bounds all WHOIS address attempts with one six-second deadline", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(dns, "lookup").mockResolvedValue([
+      { address: "1.1.1.1", family: 4 }, { address: "1.0.0.1", family: 4 },
+    ] as never);
+    const socket = Object.assign(new EventEmitter(), { destroy: vi.fn(), connect: vi.fn(), write: vi.fn() });
+    vi.spyOn(net, "Socket").mockImplementation(function () { return socket as unknown as net.Socket; });
+    const rdap = vi.spyOn(targets, "fetchPublicUrl").mockResolvedValue(Response.json({ status: ["active"] }));
+    const pending = GET(new Request("http://localhost/api/whois?target=example.com"));
+    await vi.advanceTimersByTimeAsync(5999);
+    expect(rdap).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await (await pending).json()).toMatchObject({ ok: true, data: { noteCode: "rdap_fallback" } });
+    expect(socket.destroy).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("uses the approved public HTTP policy for RDAP fallback and returns a note code", async () => {

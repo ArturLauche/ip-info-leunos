@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 
 interface ToolSearchFormProps {
   initialValue?: string;
+  /** Changes only for external navigation, including a reset to the same value. */
+  syncKey?: number;
   placeholder: string;
   submitLabel: string;
   loadingLabel?: string;
@@ -23,6 +25,7 @@ interface ToolSearchFormProps {
  */
 export function ToolSearchForm({
   initialValue = "",
+  syncKey = 0,
   placeholder,
   submitLabel,
   loadingLabel,
@@ -35,7 +38,7 @@ export function ToolSearchForm({
 
   useEffect(() => {
     setValue(initialValue);
-  }, [initialValue]);
+  }, [initialValue, syncKey]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
