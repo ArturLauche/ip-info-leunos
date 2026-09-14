@@ -82,12 +82,6 @@ export function useSegmentHighlight(selected: string) {
 
     const observer = new ResizeObserver(() => measure());
     observer.observe(container);
-    const items = container.querySelectorAll(
-      '[data-slot="tabs-trigger"], [data-slot="toggle-group-item"]',
-    );
-    for (const item of items) {
-      observer.observe(item);
-    }
 
     // Scrollable lists (e.g. tabs with overflow-x-auto) move the active item
     // relative to the container without resizing anything. Scroll events don't
