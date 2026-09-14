@@ -250,7 +250,7 @@ function AsnDetailTabs({
           ))}
         </TabsList>
       </div>
-      <div key={tab} className="pt-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+      <div key={tab} className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
         {children}
       </div>
     </Tabs>
