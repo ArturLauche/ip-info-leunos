@@ -92,9 +92,9 @@ export function useSegmentHighlight(selected: string) {
     // Scrollable lists (e.g. tabs with overflow-x-auto) move the active item
     // relative to the container without resizing anything. Scroll events don't
     // bubble, but a capture listener on the container sees descendant scrollers.
-    // Re-subscribing on selection change also picks up dynamically added
-    // triggers (ASN sources tab, DNS record-type filters); scroll remeasures
-    // are throttled to one per frame.
+    // A MutationObserver picks up dynamically added triggers (ASN sources tab,
+    // DNS record-type filters) even when the selection itself is unchanged;
+    // scroll remeasures are throttled to one per frame.
     let scrollRaf = 0;
     const handleScroll = () => {
       cancelAnimationFrame(scrollRaf);
@@ -102,12 +102,31 @@ export function useSegmentHighlight(selected: string) {
     };
     container.addEventListener("scroll", handleScroll, { passive: true, capture: true });
 
+    const observeItems = () => {
+      const items = container.querySelectorAll(
+        '[data-slot="tabs-trigger"], [data-slot="toggle-group-item"]',
+      );
+      for (const item of items) {
+        observer.observe(item);
+      }
+    };
+    observeItems();
+    // Attribute changes (e.g. Radix data-state flips on tab switch) don't
+    // alter layout by themselves — the layout effect remeasures those — so
+    // only watch for added/removed triggers here.
+    const mutations = new MutationObserver(() => {
+      observeItems();
+      measure();
+    });
+    mutations.observe(container, { childList: true, subtree: true });
+
     return () => {
       cancelAnimationFrame(scrollRaf);
+      mutations.disconnect();
       observer.disconnect();
       container.removeEventListener("scroll", handleScroll, { capture: true });
     };
-  }, [measure, selected]);
+  }, [measure]);
 
   return { containerRef, view, canAnimate, radius };
 }
