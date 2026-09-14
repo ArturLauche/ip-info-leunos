@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { PeeringDbFacility } from "@/lib/asn";
-import { formatNumber, valueOrDash } from "@/lib/format";
+import type { FacilitySortKey, SortState } from "@/lib/asn-sort";
+import { defaultFacilitySortDirection, nextHeaderSort, sortFacilities } from "@/lib/asn-sort";
+import { formatNumber, formatTemplate, valueOrDash } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import {
@@ -14,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ShowMoreButton } from "./show-more-button";
+import { SortableColumnHeader } from "./sortable-column-header";
 
 export function FacilitySection({
   facilities,
@@ -27,8 +30,30 @@ export function FacilitySection({
   locale: Locale;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [sort, setSort] = useState<SortState<FacilitySortKey>>({ key: null, direction: null });
   const limit = 8;
-  const visible = expanded ? facilities : facilities.slice(0, limit);
+
+  const sorted = useMemo(
+    () => sortFacilities(facilities, sort.key, sort.direction, locale),
+    [facilities, sort, locale],
+  );
+  const visible = expanded ? sorted : sorted.slice(0, limit);
+
+  const toggleSort = (key: FacilitySortKey) =>
+    setSort((prev) => nextHeaderSort(prev, key, defaultFacilitySortDirection()));
+
+  const headers: { key: FacilitySortKey; label: string; className?: string; align?: "left" | "right" }[] = [
+    { key: "name", label: t.asnLabelFacility },
+    { key: "city", label: t.asnLabelCity },
+    { key: "country", label: t.asnLabelCountry },
+    { key: "localAsn", label: t.asnLabelLocalAsn, className: "text-right", align: "right" },
+  ];
+
+  const sortLabel = (column: string, key: FacilitySortKey) => {
+    const state = sort.key === key && sort.direction ? sort.direction : null;
+    const order = state === "asc" ? t.asnSortAscending : state === "desc" ? t.asnSortDescending : t.asnSortNotSorted;
+    return `${formatTemplate(t.asnSortBy, { column })} (${order})`;
+  };
 
   return (
     <section aria-label={t.asnFacilities} className="flex flex-col gap-4">
@@ -48,13 +73,31 @@ export function FacilitySection({
         <>
           {/* Desktop: table */}
           <div className="hidden md:block">
-            <Table>
+            <Table aria-label={`${t.asnFacilities} (${t.asnSortTable.toLowerCase()})`}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>{t.asnLabelFacility}</TableHead>
-                  <TableHead>{t.asnLabelCity}</TableHead>
-                  <TableHead>{t.asnLabelCountry}</TableHead>
-                  <TableHead className="text-right">{t.asnLabelLocalAsn}</TableHead>
+                  {headers.map((header) => (
+                    <TableHead
+                      key={header.key}
+                      className={header.className}
+                      aria-sort={
+                        sort.key === header.key && sort.direction
+                          ? sort.direction === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                      }
+                    >
+                      <SortableColumnHeader
+                        label={header.label}
+                        active={sort.key === header.key && Boolean(sort.direction)}
+                        direction={sort.key === header.key ? sort.direction : null}
+                        onToggle={() => toggleSort(header.key)}
+                        ariaLabel={sortLabel(header.label, header.key)}
+                        align={header.align}
+                      />
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -93,8 +136,8 @@ export function FacilitySection({
             ))}
           </ul>
 
-          {facilities.length > limit && (
-            <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={facilities.length} t={t} />
+          {sorted.length > limit && (
+            <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={sorted.length} t={t} />
           )}
         </>
       )}
