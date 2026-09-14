@@ -20,7 +20,8 @@ function roundBox(box: SegmentHighlightBox): SegmentHighlightBox {
  * Measures the active segmented-control item and returns a sliding-frame view.
  * Position comes from the DOM so wrapping (2×2 on small screens) and locale
  * labels cannot desync the indicator. Supports both Tabs (`data-state="active"`)
- * and ToggleGroup (`data-state="on"`) primitives.
+ * and ToggleGroup (`data-state="on"`) primitives, and tracks inner scroll
+ * position so horizontally scrollable lists keep the indicator aligned.
  */
 export function useSegmentHighlight(selected: string) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,13 +82,23 @@ export function useSegmentHighlight(selected: string) {
 
     const observer = new ResizeObserver(() => measure());
     observer.observe(container);
-    for (const item of container.querySelectorAll(
+    const items = container.querySelectorAll(
       '[data-slot="tabs-trigger"], [data-slot="toggle-group-item"]',
-    )) {
+    );
+    for (const item of items) {
       observer.observe(item);
     }
 
-    return () => observer.disconnect();
+    // Scrollable lists (e.g. tabs with overflow-x-auto) move the active item
+    // relative to the container without resizing anything. Scroll events don't
+    // bubble, but a capture listener on the container sees descendant scrollers.
+    const handleScroll = () => measure();
+    container.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+
+    return () => {
+      observer.disconnect();
+      container.removeEventListener("scroll", handleScroll, { capture: true });
+    };
   }, [measure]);
 
   return { containerRef, view, canAnimate, radius };
