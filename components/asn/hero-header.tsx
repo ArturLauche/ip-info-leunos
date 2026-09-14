@@ -50,7 +50,7 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
             </span>
           ))}
           {result.domain && (
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex min-w-0 items-center gap-2">
               <span aria-hidden="true" className="text-muted-foreground/50">
                 ·
               </span>
@@ -58,7 +58,7 @@ export function HeroHeader({ result, t }: { result: AsnProfile; t: ToolTranslati
                 href={`https://${result.domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-sm font-medium text-primary outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
+                className="inline-flex min-w-0 items-center gap-1 rounded-sm font-medium break-all text-primary outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
               >
                 <Globe className="size-3.5" aria-hidden />
                 {result.domain}

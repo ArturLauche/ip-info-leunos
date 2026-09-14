@@ -135,12 +135,12 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
           {/* Detail: tabbed instead of a stack of competing cards */}
           <Card className="p-5 sm:p-6">
             <Tabs defaultValue="routing">
-              <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
-                <TabsTrigger value="routing">{t.asnRouting}</TabsTrigger>
-                <TabsTrigger value="prefixes">{t.asnPrefixes}</TabsTrigger>
-                <TabsTrigger value="peering">{t.asnPeeringDb}</TabsTrigger>
+              <TabsList className="h-auto min-h-12 w-full justify-start overflow-x-auto p-1 sm:w-fit">
+                <TabsTrigger value="routing" className="min-h-11 py-2">{t.asnRouting}</TabsTrigger>
+                <TabsTrigger value="prefixes" className="min-h-11 py-2">{t.asnPrefixes}</TabsTrigger>
+                <TabsTrigger value="peering" className="min-h-11 py-2">{t.asnPeeringDb}</TabsTrigger>
                 {showSourceInfo && (
-                  <TabsTrigger value="sources">{t.asnSourceDiagnostics}</TabsTrigger>
+                  <TabsTrigger value="sources" className="min-h-11 py-2">{t.asnSourceDiagnostics}</TabsTrigger>
                 )}
               </TabsList>
 
