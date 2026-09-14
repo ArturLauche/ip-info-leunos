@@ -23,39 +23,34 @@ function RelationRow({
   powerLabel: string;
 }) {
   const powerPct = maxPower > 0 ? Math.min(100, Math.max(5, ((relation.power || 0) / maxPower) * 100)) : 0;
-  const peerParts: string[] = [];
+  // Secondary metadata shares one quiet line so peer counts and provenance
+  // never truncate against the power cluster on narrow columns.
+  const metaParts: string[] = [];
   if (relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0) {
-    peerParts.push(`v4 ${formatNumber(relation.v4Peers, locale)}`);
+    metaParts.push(`v4 ${formatNumber(relation.v4Peers, locale)}`);
   }
   if (relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0) {
-    peerParts.push(`v6 ${formatNumber(relation.v6Peers, locale)}`);
+    metaParts.push(`v6 ${formatNumber(relation.v6Peers, locale)}`);
+  }
+  if (relation.source) {
+    metaParts.push(relation.source);
   }
 
   return (
-    <li className="group flex items-center gap-3 border-b py-2.5 last:border-b-0">
-      <Link
-        href={`/asn/${relation.asn}`}
-        className="shrink-0 rounded-sm font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
-      >
-        {relation.asn}
-      </Link>
-      <ArrowUpRight
-        className="size-3.5 shrink-0 text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-        aria-hidden
-      />
-      <div className="ml-auto flex min-w-0 items-center gap-2">
-        {peerParts.length > 0 && (
-          <span className="truncate font-mono text-[11px] text-muted-foreground tabular-nums">
-            {peerParts.join(" · ")}
-          </span>
-        )}
-        {relation.source && (
-          <span className="hidden shrink-0 text-[11px] text-muted-foreground/70 sm:inline">
-            {relation.source}
-          </span>
-        )}
+    <li className="group flex flex-col gap-1 border-b py-3 last:border-b-0">
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/asn/${relation.asn}`}
+          className="shrink-0 rounded-sm font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
+        >
+          {relation.asn}
+        </Link>
+        <ArrowUpRight
+          className="size-3.5 shrink-0 text-muted-foreground/60 opacity-40 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+          aria-hidden
+        />
         {showPower && relation.power !== null && relation.power !== undefined && (
-          <span className="flex shrink-0 items-center gap-1.5" title={powerLabel}>
+          <span className="ml-auto flex shrink-0 items-center gap-1.5" title={powerLabel}>
             <span className="h-1 w-12 overflow-hidden rounded-full bg-secondary sm:w-16" aria-hidden>
               <span
                 className="block h-full rounded-full bg-foreground/70"
@@ -68,6 +63,11 @@ function RelationRow({
           </span>
         )}
       </div>
+      {metaParts.length > 0 && (
+        <p className="min-w-0 font-mono break-words text-[11px] text-muted-foreground tabular-nums">
+          {metaParts.join(" · ")}
+        </p>
+      )}
     </li>
   );
 }

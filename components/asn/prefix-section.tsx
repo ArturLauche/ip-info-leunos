@@ -33,12 +33,12 @@ function PrefixItem({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
 
   return (
     <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b py-2.5 last:border-b-0">
-      <span className="font-mono text-sm font-semibold text-foreground/95 select-all">
+      <span className="min-w-0 font-mono text-sm font-semibold break-all text-foreground/95 select-all">
         {prefix.netblock}
       </span>
       <RpkiBadge prefix={prefix} t={t} />
       {details && (
-        <span className="w-full text-[11px] text-muted-foreground">{details}</span>
+        <span className="w-full text-[11px] break-words text-muted-foreground">{details}</span>
       )}
     </li>
   );

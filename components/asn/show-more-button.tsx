@@ -18,7 +18,8 @@ export function ShowMoreButton({ expanded, onToggle, count, t }: ShowMoreButtonP
       variant="outline"
       size="sm"
       onClick={onToggle}
-      className="w-full text-muted-foreground hover:text-primary"
+      aria-expanded={expanded}
+      className="min-h-11 w-full text-muted-foreground hover:text-primary"
     >
       {expanded ? (
         <>
