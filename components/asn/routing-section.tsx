@@ -64,7 +64,7 @@ function RelationRow({
         )}
       </div>
       {metaParts.length > 0 && (
-        <p className="truncate font-mono text-[11px] text-muted-foreground tabular-nums">
+        <p className="min-w-0 font-mono break-words text-[11px] text-muted-foreground tabular-nums">
           {metaParts.join(" · ")}
         </p>
       )}
