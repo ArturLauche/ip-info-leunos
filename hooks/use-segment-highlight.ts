@@ -28,6 +28,7 @@ export function useSegmentHighlight(selected: string) {
   const viewRef = useRef<SegmentHighlightView>(INITIAL_SEGMENT_HIGHLIGHT);
   const [view, setView] = useState<SegmentHighlightView>(INITIAL_SEGMENT_HIGHLIGHT);
   const [canAnimate, setCanAnimate] = useState(false);
+  const canAnimateRef = useRef(false);
   // Outline-style items (e.g. ToggleGroup) round only their outer corners, so
   // the travelling chip copies the active item's radius to sit exactly in frame.
   const [radius, setRadius] = useState("");
@@ -52,7 +53,7 @@ export function useSegmentHighlight(selected: string) {
       measuredRadius = getComputedStyle(active).borderRadius;
     }
 
-    const next = nextSegmentHighlight(viewRef.current, measured, canAnimate);
+    const next = nextSegmentHighlight(viewRef.current, measured, canAnimateRef.current);
     viewRef.current = next;
     setView((previous) =>
       previous.box.x === next.box.x &&
@@ -65,14 +66,17 @@ export function useSegmentHighlight(selected: string) {
         : next,
     );
     setRadius((previous) => (previous === measuredRadius ? previous : measuredRadius));
-  }, [canAnimate]);
+  }, []);
 
   useLayoutEffect(() => {
     measure();
   }, [measure, selected]);
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setCanAnimate(true));
+    const id = requestAnimationFrame(() => {
+      canAnimateRef.current = true;
+      setCanAnimate(true);
+    });
     return () => cancelAnimationFrame(id);
   }, []);
 
