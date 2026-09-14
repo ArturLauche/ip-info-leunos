@@ -92,14 +92,22 @@ export function useSegmentHighlight(selected: string) {
     // Scrollable lists (e.g. tabs with overflow-x-auto) move the active item
     // relative to the container without resizing anything. Scroll events don't
     // bubble, but a capture listener on the container sees descendant scrollers.
-    const handleScroll = () => measure();
+    // Re-subscribing on selection change also picks up dynamically added
+    // triggers (ASN sources tab, DNS record-type filters); scroll remeasures
+    // are throttled to one per frame.
+    let scrollRaf = 0;
+    const handleScroll = () => {
+      cancelAnimationFrame(scrollRaf);
+      scrollRaf = requestAnimationFrame(() => measure());
+    };
     container.addEventListener("scroll", handleScroll, { passive: true, capture: true });
 
     return () => {
+      cancelAnimationFrame(scrollRaf);
       observer.disconnect();
       container.removeEventListener("scroll", handleScroll, { capture: true });
     };
-  }, [measure]);
+  }, [measure, selected]);
 
   return { containerRef, view, canAnimate, radius };
 }
