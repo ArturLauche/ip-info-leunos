@@ -149,6 +149,11 @@ type ToolTranslation = {
   asnLabelFacility: string;
   asnLabelCity: string;
   asnLabelLocalAsn: string;
+  asnSortTable: string;
+  asnSortBy: string;
+  asnSortNotSorted: string;
+  asnSortAscending: string;
+  asnSortDescending: string;
   asnBooleanYes: string;
   asnBooleanNo: string;
   asnSpeedMbps: string;
@@ -479,6 +484,11 @@ const en: ToolTranslation = {
   asnLabelFacility: "Facility",
   asnLabelCity: "City",
   asnLabelLocalAsn: "Local ASN",
+  asnSortTable: "Sortable table",
+  asnSortBy: "Sort by {column}",
+  asnSortNotSorted: "not sorted",
+  asnSortAscending: "ascending",
+  asnSortDescending: "descending",
   asnBooleanYes: "yes",
   asnBooleanNo: "no",
   asnSpeedMbps: "Mbps",
@@ -944,6 +954,11 @@ const de: Partial<ToolTranslation> = {
   asnLabelFacility: "Standort",
   asnLabelCity: "Stadt",
   asnLabelLocalAsn: "Lokale ASN",
+  asnSortTable: "Sortierbare Tabelle",
+  asnSortBy: "Nach {column} sortieren",
+  asnSortNotSorted: "nicht sortiert",
+  asnSortAscending: "aufsteigend",
+  asnSortDescending: "absteigend",
   asnBooleanYes: "ja",
   asnBooleanNo: "nein",
   asnSpeedMbps: "Mbit/s",

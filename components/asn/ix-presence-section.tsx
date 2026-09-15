@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import type { AsnProfile } from "@/lib/asn";
+import type { IxSortKey, SortState } from "@/lib/asn-sort";
+import { defaultIxSortDirection, nextHeaderSort, sortIxlan } from "@/lib/asn-sort";
 import type { Locale } from "@/lib/i18n";
-import { formatNumber, valueOrDash } from "@/lib/format";
+import { formatNumber, formatTemplate, valueOrDash } from "@/lib/format";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import {
   Table,
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { formatSpeed } from "./helpers";
 import { ShowMoreButton } from "./show-more-button";
+import { SortableColumnHeader } from "./sortable-column-header";
 
 function SpeedBar({ pct }: { pct: number }) {
   return (
@@ -37,10 +40,33 @@ export function IxPresenceSection({
   const total = result.peeringdb?.ixlanTotal || 0;
 
   const [expanded, setExpanded] = useState(false);
+  const [sort, setSort] = useState<SortState<IxSortKey>>({ key: null, direction: null });
   const limit = 8;
-  const visible = expanded ? ixlan : ixlan.slice(0, limit);
+
+  const sorted = useMemo(
+    () => sortIxlan(ixlan, sort.key, sort.direction, locale),
+    [ixlan, sort, locale],
+  );
+  const visible = expanded ? sorted : sorted.slice(0, limit);
 
   const maxSpeed = useMemo(() => Math.max(...ixlan.map((x) => x.speed || 0), 1), [ixlan]);
+
+  const toggleSort = (key: IxSortKey) =>
+    setSort((prev) => nextHeaderSort(prev, key, defaultIxSortDirection(key)));
+
+  const headers: { key: IxSortKey; label: string; className?: string; align?: "left" | "right" }[] = [
+    { key: "name", label: t.asnLabelExchange },
+    { key: "speed", label: t.asnLabelSpeed },
+    { key: "ipv4", label: t.asnLabelIpv4 },
+    { key: "ipv6", label: t.asnLabelIpv6 },
+    { key: "rsPeer", label: t.asnLabelRsPeer, className: "text-right", align: "right" },
+  ];
+
+  const sortLabel = (column: string, key: IxSortKey) => {
+    const state = sort.key === key && sort.direction ? sort.direction : null;
+    const order = state === "asc" ? t.asnSortAscending : state === "desc" ? t.asnSortDescending : t.asnSortNotSorted;
+    return `${formatTemplate(t.asnSortBy, { column })} (${order})`;
+  };
 
   return (
     <section aria-label={t.asnIxPresence} className="flex flex-col gap-4">
@@ -60,14 +86,31 @@ export function IxPresenceSection({
         <>
           {/* Desktop: table */}
           <div className="hidden md:block">
-            <Table>
+            <Table aria-label={`${t.asnIxPresence} (${t.asnSortTable.toLowerCase()})`}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>{t.asnLabelExchange}</TableHead>
-                  <TableHead>{t.asnLabelSpeed}</TableHead>
-                  <TableHead>{t.asnLabelIpv4}</TableHead>
-                  <TableHead>{t.asnLabelIpv6}</TableHead>
-                  <TableHead className="text-right">{t.asnLabelRsPeer}</TableHead>
+                  {headers.map((header) => (
+                    <TableHead
+                      key={header.key}
+                      className={header.className}
+                      aria-sort={
+                        sort.key === header.key && sort.direction
+                          ? sort.direction === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                      }
+                    >
+                      <SortableColumnHeader
+                        label={header.label}
+                        active={sort.key === header.key && Boolean(sort.direction)}
+                        direction={sort.key === header.key ? sort.direction : null}
+                        onToggle={() => toggleSort(header.key)}
+                        ariaLabel={sortLabel(header.label, header.key)}
+                        align={header.align}
+                      />
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -129,8 +172,8 @@ export function IxPresenceSection({
             })}
           </ul>
 
-          {ixlan.length > limit && (
-            <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={ixlan.length} t={t} />
+          {sorted.length > limit && (
+            <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={sorted.length} t={t} />
           )}
         </>
       )}
