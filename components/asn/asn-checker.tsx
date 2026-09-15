@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
@@ -9,11 +9,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import type { AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { cn } from "@/lib/utils";
 import { FacilitySection } from "./facility-section";
 import { hasSourceInfoFlag, formatWarning, lookupErrorMessage, validationErrorMessage } from "./helpers";
 import { HeroHeader } from "./hero-header";
@@ -134,16 +136,13 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
           {/* Detail: tabbed instead of a stack of competing cards */}
           <Card className="p-5 sm:p-6">
-            <Tabs defaultValue="routing">
-              <TabsList className="h-auto min-h-12 w-full justify-start overflow-x-auto p-1 sm:w-fit">
-                <TabsTrigger value="routing" className="min-h-11 py-2">{t.asnRouting}</TabsTrigger>
-                <TabsTrigger value="prefixes" className="min-h-11 py-2">{t.asnPrefixes}</TabsTrigger>
-                <TabsTrigger value="peering" className="min-h-11 py-2">{t.asnPeeringDb}</TabsTrigger>
-                {showSourceInfo && (
-                  <TabsTrigger value="sources" className="min-h-11 py-2">{t.asnSourceDiagnostics}</TabsTrigger>
-                )}
-              </TabsList>
-
+            <AsnDetailTabs
+              routingLabel={t.asnRouting}
+              prefixesLabel={t.asnPrefixes}
+              peeringLabel={t.asnPeeringDb}
+              sourcesLabel={t.asnSourceDiagnostics}
+              showSources={showSourceInfo}
+            >
               <TabsContent value="routing" className="pt-4">
                 <RoutingSection result={result} t={t} locale={locale} />
               </TabsContent>
@@ -176,10 +175,84 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
                   <SourceDiagnosticsSection result={result} t={t} locale={locale} />
                 </TabsContent>
               )}
-            </Tabs>
+            </AsnDetailTabs>
           </Card>
         </div>
       )}
     </div>
+  );
+}
+
+function AsnDetailTabs({
+  routingLabel,
+  prefixesLabel,
+  peeringLabel,
+  sourcesLabel,
+  showSources,
+  children,
+}: {
+  routingLabel: string;
+  prefixesLabel: string;
+  peeringLabel: string;
+  sourcesLabel: string;
+  showSources: boolean;
+  children: ReactNode;
+}) {
+  const [tab, setTab] = useState("routing");
+  const { containerRef, view, canAnimate, radius } = useSegmentHighlight(tab);
+
+  // The sources tab only exists behind the source-info flag; fall back to
+  // routing if the flag disappears while sources is selected.
+  useEffect(() => {
+    if (!showSources) {
+      setTab((current) => (current === "sources" ? "routing" : current));
+    }
+  }, [showSources]);
+
+  const triggers: Array<{ value: string; label: string }> = [
+    { value: "routing", label: routingLabel },
+    { value: "prefixes", label: prefixesLabel },
+    { value: "peering", label: peeringLabel },
+  ];
+  if (showSources) {
+    triggers.push({ value: "sources", label: sourcesLabel });
+  }
+
+  return (
+    <Tabs value={tab} onValueChange={setTab}>
+      <div ref={containerRef} className="relative isolate">
+        <span
+          className="tool-segment-highlight"
+          style={{
+            transform: `translate3d(${view.box.x}px, ${view.box.y}px, 0)`,
+            width: view.box.width,
+            height: view.box.height,
+            opacity: view.visible ? 1 : 0,
+            borderRadius: radius || undefined,
+          }}
+          data-animate={canAnimate ? "true" : undefined}
+          data-slide={view.slide ? "true" : undefined}
+          aria-hidden
+        />
+        <TabsList className="h-auto min-h-12 w-full justify-start overflow-x-auto p-1 sm:w-fit">
+          {triggers.map((trigger) => (
+            <TabsTrigger
+              key={trigger.value}
+              value={trigger.value}
+              className={cn(
+                "relative z-10 min-h-11 shrink-0 py-2 transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
+                view.visible &&
+                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
+              )}
+            >
+              {trigger.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
+      <div key={tab} className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+        {children}
+      </div>
+    </Tabs>
   );
 }

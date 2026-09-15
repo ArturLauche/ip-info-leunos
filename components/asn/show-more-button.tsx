@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { cn } from "@/lib/utils";
 
 interface ShowMoreButtonProps {
   expanded: boolean;
@@ -21,17 +22,14 @@ export function ShowMoreButton({ expanded, onToggle, count, t }: ShowMoreButtonP
       aria-expanded={expanded}
       className="min-h-11 w-full text-muted-foreground hover:text-primary"
     >
-      {expanded ? (
-        <>
-          <ChevronUp className="size-3.5" />
-          {t.showLess}
-        </>
-      ) : (
-        <>
-          <ChevronDown className="size-3.5" />
-          {t.showAll} ({count})
-        </>
-      )}
+      <ChevronDown
+        className={cn(
+          "size-3.5 transition-transform duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
+          expanded && "rotate-180",
+        )}
+        aria-hidden
+      />
+      {expanded ? t.showLess : `${t.showAll} (${count})`}
     </Button>
   );
 }

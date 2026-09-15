@@ -20,13 +20,15 @@ function roundBox(box: SegmentHighlightBox): SegmentHighlightBox {
  * Measures the active segmented-control item and returns a sliding-frame view.
  * Position comes from the DOM so wrapping (2×2 on small screens) and locale
  * labels cannot desync the indicator. Supports both Tabs (`data-state="active"`)
- * and ToggleGroup (`data-state="on"`) primitives.
+ * and ToggleGroup (`data-state="on"`) primitives, and tracks inner scroll
+ * position so horizontally scrollable lists keep the indicator aligned.
  */
 export function useSegmentHighlight(selected: string) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<SegmentHighlightView>(INITIAL_SEGMENT_HIGHLIGHT);
   const [view, setView] = useState<SegmentHighlightView>(INITIAL_SEGMENT_HIGHLIGHT);
   const [canAnimate, setCanAnimate] = useState(false);
+  const canAnimateRef = useRef(false);
   // Outline-style items (e.g. ToggleGroup) round only their outer corners, so
   // the travelling chip copies the active item's radius to sit exactly in frame.
   const [radius, setRadius] = useState("");
@@ -51,7 +53,7 @@ export function useSegmentHighlight(selected: string) {
       measuredRadius = getComputedStyle(active).borderRadius;
     }
 
-    const next = nextSegmentHighlight(viewRef.current, measured, canAnimate);
+    const next = nextSegmentHighlight(viewRef.current, measured, canAnimateRef.current);
     viewRef.current = next;
     setView((previous) =>
       previous.box.x === next.box.x &&
@@ -64,14 +66,17 @@ export function useSegmentHighlight(selected: string) {
         : next,
     );
     setRadius((previous) => (previous === measuredRadius ? previous : measuredRadius));
-  }, [canAnimate]);
+  }, []);
 
   useLayoutEffect(() => {
     measure();
   }, [measure, selected]);
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setCanAnimate(true));
+    const id = requestAnimationFrame(() => {
+      canAnimateRef.current = true;
+      setCanAnimate(true);
+    });
     return () => cancelAnimationFrame(id);
   }, []);
 
@@ -81,13 +86,44 @@ export function useSegmentHighlight(selected: string) {
 
     const observer = new ResizeObserver(() => measure());
     observer.observe(container);
-    for (const item of container.querySelectorAll(
-      '[data-slot="tabs-trigger"], [data-slot="toggle-group-item"]',
-    )) {
-      observer.observe(item);
-    }
 
-    return () => observer.disconnect();
+    // Scrollable lists (e.g. tabs with overflow-x-auto) move the active item
+    // relative to the container without resizing anything. Scroll events don't
+    // bubble, but a capture listener on the container sees descendant scrollers.
+    // A MutationObserver picks up dynamically added triggers (ASN sources tab,
+    // DNS record-type filters) even when the selection itself is unchanged;
+    // scroll remeasures are throttled to one per frame.
+    let scrollRaf = 0;
+    const handleScroll = () => {
+      cancelAnimationFrame(scrollRaf);
+      scrollRaf = requestAnimationFrame(() => measure());
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+
+    const observeItems = () => {
+      const items = container.querySelectorAll(
+        '[data-slot="tabs-trigger"], [data-slot="toggle-group-item"]',
+      );
+      for (const item of items) {
+        observer.observe(item);
+      }
+    };
+    observeItems();
+    // Attribute changes (e.g. Radix data-state flips on tab switch) don't
+    // alter layout by themselves — the layout effect remeasures those — so
+    // only watch for added/removed triggers here.
+    const mutations = new MutationObserver(() => {
+      observeItems();
+      measure();
+    });
+    mutations.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      cancelAnimationFrame(scrollRaf);
+      mutations.disconnect();
+      observer.disconnect();
+      container.removeEventListener("scroll", handleScroll, { capture: true });
+    };
   }, [measure]);
 
   return { containerRef, view, canAnimate, radius };
