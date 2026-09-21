@@ -35,7 +35,7 @@ export function LoadingSkeleton({ label }: { label: string }) {
       </Card>
 
       <Card className="gap-5 p-5 sm:p-6" aria-hidden="true">
-        <Skeleton className="h-12 w-full max-w-md rounded-lg" />
+        <Skeleton className="h-10 w-full max-w-md rounded-lg" />
         <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0">

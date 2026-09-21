@@ -77,13 +77,13 @@ export function AsnDetailTabs({
           data-slide={view.slide ? "true" : undefined}
           aria-hidden
         />
-        <TabsList className="h-auto min-h-12 w-full justify-start overflow-x-auto p-1 sm:w-fit">
+        <TabsList className="h-auto w-full justify-start overflow-x-auto p-1 sm:w-fit">
           {triggers.map((trigger) => (
             <TabsTrigger
               key={trigger.value}
               value={trigger.value}
               className={cn(
-                "group relative z-10 min-h-11 shrink-0 py-2 transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
+                "group relative z-10 min-h-9 shrink-0 px-2.5 py-1 text-xs transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)] sm:text-sm",
                 view.visible &&
                   "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
               )}
@@ -98,7 +98,10 @@ export function AsnDetailTabs({
           ))}
         </TabsList>
       </div>
-      <div key={tab} className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+      {/* Content settles in with the shared section reveal (fade + small lift
+          on the soft-deceleration curve) so switching sections feels
+          continuous with the sliding chip. */}
+      <div key={tab} className="tool-section-reveal">
         {children}
       </div>
     </Tabs>
