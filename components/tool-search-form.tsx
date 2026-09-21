@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface ToolSearchFormProps {
   initialValue?: string;
@@ -17,6 +18,11 @@ interface ToolSearchFormProps {
   onSubmit: (value: string) => void;
   onCancel?: () => void;
   cancelLabel?: string;
+  /**
+   * Shrinks the control to a quiet toolbar once a result owns the screen
+   * (used by the ASN checker after a successful lookup).
+   */
+  compact?: boolean;
 }
 
 /**
@@ -33,6 +39,7 @@ export function ToolSearchForm({
   onSubmit,
   onCancel,
   cancelLabel,
+  compact = false,
 }: ToolSearchFormProps) {
   const [value, setValue] = useState(initialValue);
 
@@ -50,11 +57,17 @@ export function ToolSearchForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full flex-col gap-2.5 sm:flex-row"
+      className={cn("flex w-full flex-col gap-2.5 sm:flex-row", compact && "gap-2")}
       aria-busy={loading}
     >
       <div className="relative flex-1">
-        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <Search
+          className={cn(
+            "pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground",
+            compact && "left-3",
+          )}
+          aria-hidden="true"
+        />
         <Input
           id="tool-query"
           name="q"
@@ -67,14 +80,14 @@ export function ToolSearchForm({
           autoCapitalize="off"
           enterKeyHint="search"
           spellCheck={false}
-          className="h-11 bg-card pl-10 text-sm dark:bg-card"
+          className={cn("h-11 bg-card pl-10 text-sm dark:bg-card", compact && "h-9 pl-9 text-[13px]")}
         />
       </div>
       <Button
         type="submit"
-        size="lg"
+        size={compact ? "default" : "lg"}
         disabled={loading || !value.trim()}
-        className="h-11 shrink-0 sm:min-w-36"
+        className={cn("h-11 shrink-0 sm:min-w-36", compact && "h-9 sm:min-w-28")}
       >
         {loading ? (
           <>
@@ -86,7 +99,12 @@ export function ToolSearchForm({
         )}
       </Button>
       {loading && onCancel && cancelLabel && (
-        <Button type="button" variant="outline" onClick={onCancel} className="h-11 shrink-0">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className={cn("h-11 shrink-0", compact && "h-9")}
+        >
           {cancelLabel}
         </Button>
       )}

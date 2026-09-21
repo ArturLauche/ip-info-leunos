@@ -12,13 +12,6 @@ export function formatStatus(status: SourceStatus, t: ToolTranslation) {
   return t.asnSourceError;
 }
 
-export function sourceBadgeClass(status: SourceStatus) {
-  if (status === "available") return "border-success/40 bg-success/10 text-success";
-  if (status === "not_configured") return "border-info/40 bg-info/10 text-info";
-  if (status === "unavailable") return "border-warning/40 bg-warning/10 text-warning";
-  return "border-destructive/40 bg-destructive/10 text-destructive";
-}
-
 export function formatCacheStatus(status: SourceCacheStatus, t: ToolTranslation) {
   if (status === "fresh") return t.asnCacheFresh;
   if (status === "stale") return t.asnCacheStale;

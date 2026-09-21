@@ -7,6 +7,7 @@ import { defaultFacilitySortDirection, nextHeaderSort, sortFacilities } from "@/
 import { formatNumber, formatTemplate, valueOrDash } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { CountryFlag } from "@/components/country-flag";
 import {
   Table,
   TableBody,
@@ -17,6 +18,21 @@ import {
 } from "@/components/ui/table";
 import { ShowMoreButton } from "./show-more-button";
 import { SortableColumnHeader } from "./sortable-column-header";
+
+const ROW_LIMIT = 8;
+
+function CountryCell({ country }: { country: string }) {
+  if (!country) return <span className="text-muted-foreground/60">—</span>;
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <CountryFlag countryCode={country} />
+      <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {country}
+      </span>
+    </span>
+  );
+}
 
 export function FacilitySection({
   facilities,
@@ -31,13 +47,12 @@ export function FacilitySection({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [sort, setSort] = useState<SortState<FacilitySortKey>>({ key: null, direction: null });
-  const limit = 8;
 
   const sorted = useMemo(
     () => sortFacilities(facilities, sort.key, sort.direction, locale),
     [facilities, sort, locale],
   );
-  const visible = expanded ? sorted : sorted.slice(0, limit);
+  const visible = expanded ? sorted : sorted.slice(0, ROW_LIMIT);
 
   const toggleSort = (key: FacilitySortKey) =>
     setSort((prev) => nextHeaderSort(prev, key, defaultFacilitySortDirection()));
@@ -61,7 +76,9 @@ export function FacilitySection({
         <h3 className="flex items-baseline justify-between gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnFacilities}
           {facilities.length > 0 && (
-            <span className="font-mono font-normal normal-case tabular-nums">{formatNumber(total, locale)}</span>
+            <span className="font-mono text-xs font-normal normal-case tabular-nums">
+              {formatNumber(total, locale)}
+            </span>
           )}
         </h3>
         <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnFacilitiesDescription}</p>
@@ -71,14 +88,15 @@ export function FacilitySection({
         <p className="text-sm text-muted-foreground">{t.asnNoFacilityRecords}</p>
       ) : (
         <>
-          {/* Desktop: table */}
-          <div className="hidden md:block">
+          {/* Desktop: dense data table */}
+          <div className="hidden overflow-hidden rounded-lg border border-border/60 md:block">
             <Table aria-label={`${t.asnFacilities} (${t.asnSortTable.toLowerCase()})`}>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   {headers.map((header) => (
                     <TableHead
                       key={header.key}
+                      scope="col"
                       className={header.className}
                       aria-sort={
                         sort.key === header.key && sort.direction
@@ -104,16 +122,18 @@ export function FacilitySection({
                 {visible.map((entry, idx) => (
                   <TableRow key={`${entry.id}-${idx}`}>
                     <TableCell
-                      className="max-w-sm truncate font-medium text-foreground"
+                      className="max-w-[18rem] py-2 font-medium text-foreground"
                       title={entry.name}
                     >
-                      {entry.name}
+                      <span className="block truncate">{entry.name}</span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{valueOrDash(entry.city)}</TableCell>
-                    <TableCell className="text-xs font-semibold uppercase text-muted-foreground">
-                      {valueOrDash(entry.country)}
+                    <TableCell className="py-2 text-muted-foreground">
+                      {valueOrDash(entry.city)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-foreground/80">
+                    <TableCell className="py-2">
+                      <CountryCell country={entry.country} />
+                    </TableCell>
+                    <TableCell className="py-2 text-right font-mono text-xs text-foreground/80 tabular-nums">
                       {valueOrDash(entry.localAsn)}
                     </TableCell>
                   </TableRow>
@@ -122,21 +142,35 @@ export function FacilitySection({
             </Table>
           </div>
 
-          {/* Mobile: stacked rows */}
+          {/* Mobile: name with structured geography beneath */}
           <ul className="flex flex-col md:hidden">
             {visible.map((entry, idx) => (
-              <li key={`${entry.id}-${idx}`} className="flex items-baseline justify-between gap-3 border-b py-2.5 last:border-b-0">
-                <span className="min-w-0 truncate text-sm font-medium text-foreground" title={entry.name}>
-                  {entry.name}
-                </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {[entry.city, entry.country].filter(Boolean).join(" · ") || "—"}
+              <li
+                key={`${entry.id}-${idx}`}
+                className="flex flex-col gap-1 border-b border-border/60 py-2.5 first:pt-0 last:border-b-0"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 text-sm font-medium text-foreground" title={entry.name}>
+                    {entry.name}
+                  </span>
+                  <span className="shrink-0 font-mono text-xs text-foreground/80 tabular-nums">
+                    {valueOrDash(entry.localAsn)}
+                  </span>
+                </div>
+                <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                  {valueOrDash(entry.city)}
+                  {entry.city && entry.country && (
+                    <span aria-hidden="true" className="text-muted-foreground/40">
+                      ·
+                    </span>
+                  )}
+                  <CountryCell country={entry.country} />
                 </span>
               </li>
             ))}
           </ul>
 
-          {sorted.length > limit && (
+          {sorted.length > ROW_LIMIT && (
             <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={sorted.length} t={t} />
           )}
         </>
