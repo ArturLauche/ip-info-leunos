@@ -1,31 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, Waypoints } from "lucide-react";
+import { AlertTriangle, Building2, Waypoints } from "lucide-react";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
+import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import type { AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { cn } from "@/lib/utils";
+import { AsnDetailTabs } from "./detail-tabs";
 import { FacilitySection } from "./facility-section";
-import { hasSourceInfoFlag, formatWarning, lookupErrorMessage, validationErrorMessage } from "./helpers";
-import { HeroHeader } from "./hero-header";
+import { formatWarning, hasSourceInfoFlag, lookupErrorMessage, validationErrorMessage } from "./helpers";
 import { IxPresenceSection } from "./ix-presence-section";
 import { LoadingSkeleton } from "./loading-skeleton";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
 import { PrefixSection } from "./prefix-section";
-import { QuickStats } from "./quick-stats";
 import { RoutingSection } from "./routing-section";
 import { SourceDiagnosticsSection } from "./source-diagnostics-section";
+import { AsnSummaryCard } from "./summary-card";
 
 interface AsnCheckerProps {
   locale: Locale;
@@ -78,6 +76,17 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     setShowSourceInfo(sourceInfoInUrl || window.location.hash === "#source-info");
   }, [sourceInfoInUrl]);
 
+  // Once a profile is on screen the form steps back to a quiet toolbar so the
+  // result owns the visual hierarchy; empty/error states keep it prominent.
+  const hasResult = Boolean(result && result.found);
+
+  const routingCount = result
+    ? (result.peersTotal || 0) + (result.upstreamsTotal || 0) + (result.downstreamsTotal || 0)
+    : null;
+  const prefixesCount = result
+    ? (result.prefixes4Total || 0) + (result.prefixes6Total || 0)
+    : null;
+
   return (
     <div className="flex w-full flex-col gap-6">
       <ToolSearchForm
@@ -90,6 +99,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={submit}
+        compact={hasResult}
       />
 
       {!loading && !error && !result && (
@@ -115,10 +125,9 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       {result && result.found && (
         <div className="tool-reveal flex flex-col gap-4">
           {/* Summary: identity + key figures in one card */}
-          <Card className="flex flex-col gap-5 p-5 sm:p-6">
-            <HeroHeader result={result} t={t} />
-            <QuickStats result={result} t={t} locale={locale} />
-          </Card>
+          <section aria-label={`${result.asn} — ${t.asnTitle}`} className="flex flex-col">
+            <AsnSummaryCard result={result} t={t} locale={locale} />
+          </section>
 
           {showSourceInfo && result.warnings.length > 0 && (
             <Alert variant="warning">
@@ -138,10 +147,13 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
           <Card className="p-5 sm:p-6">
             <AsnDetailTabs
               routingLabel={t.asnRouting}
+              routingCount={routingCount}
               prefixesLabel={t.asnPrefixes}
+              prefixesCount={prefixesCount}
               peeringLabel={t.asnPeeringDb}
               sourcesLabel={t.asnSourceDiagnostics}
               showSources={showSourceInfo}
+              locale={locale}
             >
               <TabsContent value="routing" className="pt-4">
                 <RoutingSection result={result} t={t} locale={locale} />
@@ -152,22 +164,29 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
               </TabsContent>
 
               <TabsContent value="peering" className="pt-4">
-                <div className="flex flex-col gap-8">
-                  {result.peeringdb ? (
-                    <PeeringDbProfileSection profile={result.peeringdb} t={t} />
-                  ) : (
+                {result.peeringdb ? (
+                  <div className="flex flex-col gap-7">
+                    <PeeringDbProfileSection profile={result.peeringdb} t={t} locale={locale} />
+                    <div className="border-t border-border/60 pt-7">
+                      <IxPresenceSection result={result} t={t} locale={locale} />
+                    </div>
+                    <div className="border-t border-border/60 pt-7">
+                      <FacilitySection
+                        facilities={result.peeringdb.facilities}
+                        total={result.peeringdb.facilitiesTotal}
+                        t={t}
+                        locale={locale}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/70 px-6 py-10 text-center">
+                    <Building2 className="size-5 text-muted-foreground/50" aria-hidden />
                     <p className="text-sm text-muted-foreground">
                       {t.asnWarningNoPeeringDbProfile}
                     </p>
-                  )}
-                  <IxPresenceSection result={result} t={t} locale={locale} />
-                  <FacilitySection
-                    facilities={result.peeringdb?.facilities ?? []}
-                    total={result.peeringdb?.facilitiesTotal ?? 0}
-                    t={t}
-                    locale={locale}
-                  />
-                </div>
+                  </div>
+                )}
               </TabsContent>
 
               {showSourceInfo && (
@@ -180,79 +199,5 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         </div>
       )}
     </div>
-  );
-}
-
-function AsnDetailTabs({
-  routingLabel,
-  prefixesLabel,
-  peeringLabel,
-  sourcesLabel,
-  showSources,
-  children,
-}: {
-  routingLabel: string;
-  prefixesLabel: string;
-  peeringLabel: string;
-  sourcesLabel: string;
-  showSources: boolean;
-  children: ReactNode;
-}) {
-  const [tab, setTab] = useState("routing");
-  const { containerRef, view, canAnimate, radius } = useSegmentHighlight(tab);
-
-  // The sources tab only exists behind the source-info flag; fall back to
-  // routing if the flag disappears while sources is selected.
-  useEffect(() => {
-    if (!showSources) {
-      setTab((current) => (current === "sources" ? "routing" : current));
-    }
-  }, [showSources]);
-
-  const triggers: Array<{ value: string; label: string }> = [
-    { value: "routing", label: routingLabel },
-    { value: "prefixes", label: prefixesLabel },
-    { value: "peering", label: peeringLabel },
-  ];
-  if (showSources) {
-    triggers.push({ value: "sources", label: sourcesLabel });
-  }
-
-  return (
-    <Tabs value={tab} onValueChange={setTab}>
-      <div ref={containerRef} className="relative isolate">
-        <span
-          className="tool-segment-highlight"
-          style={{
-            transform: `translate3d(${view.box.x}px, ${view.box.y}px, 0)`,
-            width: view.box.width,
-            height: view.box.height,
-            opacity: view.visible ? 1 : 0,
-            borderRadius: radius || undefined,
-          }}
-          data-animate={canAnimate ? "true" : undefined}
-          data-slide={view.slide ? "true" : undefined}
-          aria-hidden
-        />
-        <TabsList className="h-auto min-h-12 w-full justify-start overflow-x-auto p-1 sm:w-fit">
-          {triggers.map((trigger) => (
-            <TabsTrigger
-              key={trigger.value}
-              value={trigger.value}
-              className={cn(
-                "relative z-10 min-h-11 shrink-0 py-2 transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
-                view.visible &&
-                  "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
-              )}
-            >
-              {trigger.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
-      <div key={tab} className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
-        {children}
-      </div>
-    </Tabs>
   );
 }

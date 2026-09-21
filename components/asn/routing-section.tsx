@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpRight } from "lucide-react";
 import type { AsnProfile, AsnRelation } from "@/lib/asn";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { DataColumn } from "./data-column";
 import { ShowMoreButton } from "./show-more-button";
+
+const ROW_LIMIT = 8;
 
 function RelationRow({
   relation,
@@ -22,7 +25,8 @@ function RelationRow({
   locale: Locale;
   powerLabel: string;
 }) {
-  const powerPct = maxPower > 0 ? Math.min(100, Math.max(5, ((relation.power || 0) / maxPower) * 100)) : 0;
+  const powerPct =
+    maxPower > 0 ? Math.min(100, Math.max(6, ((relation.power || 0) / maxPower) * 100)) : 0;
   // Secondary metadata shares one quiet line so peer counts and provenance
   // never truncate against the power cluster on narrow columns.
   const metaParts: string[] = [];
@@ -35,36 +39,40 @@ function RelationRow({
   if (relation.source) {
     metaParts.push(relation.source);
   }
+  const hasPower = showPower && relation.power !== null && relation.power !== undefined;
 
   return (
-    <li className="group flex flex-col gap-1 border-b py-3 last:border-b-0">
-      <div className="flex items-center gap-2">
+    <li className="border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/40">
+      <div className="flex items-center gap-2 py-2.5">
         <Link
           href={`/asn/${relation.asn}`}
-          className="shrink-0 rounded-sm font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="group/link flex min-w-0 items-center gap-1 rounded-sm font-mono text-sm font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
         >
           {relation.asn}
+          <ArrowUpRight
+            className="size-3.5 shrink-0 text-muted-foreground/50 transition-opacity group-hover/link:opacity-100"
+            aria-hidden
+          />
         </Link>
-        <ArrowUpRight
-          className="size-3.5 shrink-0 text-muted-foreground/60 opacity-40 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-          aria-hidden
-        />
-        {showPower && relation.power !== null && relation.power !== undefined && (
-          <span className="ml-auto flex shrink-0 items-center gap-1.5" title={powerLabel}>
-            <span className="h-1 w-12 overflow-hidden rounded-full bg-secondary sm:w-16" aria-hidden>
+        {hasPower && (
+          <span className="ml-auto flex shrink-0 items-center gap-2" title={powerLabel}>
+            <span
+              className="hidden h-1 w-14 overflow-hidden rounded-full bg-foreground/10 sm:block"
+              aria-hidden
+            >
               <span
-                className="block h-full rounded-full bg-foreground/70"
+                className="block h-full rounded-full bg-foreground/60"
                 style={{ width: `${powerPct}%` }}
               />
             </span>
-            <span className="font-mono text-[11px] font-semibold text-foreground/80 tabular-nums">
+            <span className="font-mono text-xs font-semibold text-foreground/80 tabular-nums">
               {formatNumber(relation.power, locale)}
             </span>
           </span>
         )}
       </div>
       {metaParts.length > 0 && (
-        <p className="min-w-0 font-mono break-words text-[11px] text-muted-foreground tabular-nums">
+        <p className="pb-2.5 font-mono text-[11px] text-muted-foreground tabular-nums">
           {metaParts.join(" · ")}
         </p>
       )}
@@ -74,6 +82,7 @@ function RelationRow({
 
 function RelationColumn({
   title,
+  icon,
   relations,
   total,
   emptyText,
@@ -81,6 +90,7 @@ function RelationColumn({
   t,
 }: {
   title: string;
+  icon: typeof ArrowUp;
   relations: AsnRelation[];
   total: number;
   emptyText: string;
@@ -88,18 +98,29 @@ function RelationColumn({
   t: ToolTranslation;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const limit = 8;
-  const visible = expanded ? relations : relations.slice(0, limit);
+  const visible = expanded ? relations : relations.slice(0, ROW_LIMIT);
   const maxPower = useMemo(() => Math.max(...relations.map((r) => r.power || 0), 0), [relations]);
   const showPower = relations.some((r) => r.power !== null && r.power !== undefined);
 
   return (
-    <section aria-label={title} className="flex min-w-0 flex-col">
-      <p className="flex items-baseline justify-between gap-2 border-b pb-2">
-        <span className="text-xs font-semibold tracking-wide text-foreground uppercase">{title}</span>
-        <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatNumber(total, locale)}</span>
-      </p>
-
+    <DataColumn
+      title={title}
+      icon={icon}
+      total={total}
+      locale={locale}
+      footer={
+        relations.length > ROW_LIMIT ? (
+          <div className="pt-3">
+            <ShowMoreButton
+              expanded={expanded}
+              onToggle={() => setExpanded(!expanded)}
+              count={relations.length}
+              t={t}
+            />
+          </div>
+        ) : undefined
+      }
+    >
       {visible.length > 0 ? (
         <ul className="flex flex-col">
           {visible.map((relation) => (
@@ -114,21 +135,17 @@ function RelationColumn({
           ))}
         </ul>
       ) : (
-        <p className="py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
-      )}
-
-      {relations.length > limit && (
-        <div className="pt-2">
-          <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={relations.length} t={t} />
+        <div className="mt-3 flex items-center justify-center rounded-lg border border-dashed border-border/70 px-4 py-7 text-center">
+          <p className="text-xs text-muted-foreground">{emptyText}</p>
         </div>
       )}
-    </section>
+    </DataColumn>
   );
 }
 
 export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
   return (
-    <div className="flex flex-col gap-4">
+    <section aria-label={t.asnRouting} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnRouting}
@@ -139,6 +156,7 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-5">
         <RelationColumn
           title={t.asnRelationPeers}
+          icon={ArrowLeftRight}
           relations={result.peers}
           total={result.peersTotal}
           emptyText={t.asnNoRelations}
@@ -147,6 +165,7 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
         />
         <RelationColumn
           title={t.asnRelationUpstreams}
+          icon={ArrowUp}
           relations={result.upstreams}
           total={result.upstreamsTotal}
           emptyText={t.asnNoRelations}
@@ -155,6 +174,7 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
         />
         <RelationColumn
           title={t.asnRelationDownstreams}
+          icon={ArrowDown}
           relations={result.downstreams}
           total={result.downstreamsTotal}
           emptyText={t.asnNoRelations}
@@ -162,6 +182,6 @@ export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: T
           t={t}
         />
       </div>
-    </div>
+    </section>
   );
 }

@@ -102,9 +102,15 @@ type ToolTranslation = {
   asnProfileIdentityHeading: string;
   asnProfileInterconnectionHeading: string;
   asnProfilePolicyHeading: string;
+  asnProfileExternalHeading: string;
+  asnProfilePrefixes4: string;
+  asnProfilePrefixes6: string;
   asnWarnings: string;
   asnDiagnosticDuration: string;
   asnDiagnosticCache: string;
+  asnDiagnosticWarnings: string;
+  asnDiagnosticSource: string;
+  asnSourceDiagnosticsDescription: string;
   asnCacheMiss: string;
   asnCacheFresh: string;
   asnCacheStale: string;
@@ -437,9 +443,16 @@ const en: ToolTranslation = {
   asnProfileIdentityHeading: "Identity & status",
   asnProfileInterconnectionHeading: "Interconnection details",
   asnProfilePolicyHeading: "Peering policy",
+  asnProfileExternalHeading: "External profiles",
+  asnProfilePrefixes4: "IPv4 prefixes",
+  asnProfilePrefixes6: "IPv6 prefixes",
   asnWarnings: "Warnings",
   asnDiagnosticDuration: "Duration",
   asnDiagnosticCache: "Cache",
+  asnDiagnosticWarnings: "Warnings",
+  asnDiagnosticSource: "Source",
+  asnSourceDiagnosticsDescription:
+    "Provider availability, request duration and cache state for this lookup.",
   asnCacheMiss: "miss",
   asnCacheFresh: "fresh",
   asnCacheStale: "stale",
@@ -907,9 +920,16 @@ const de: Partial<ToolTranslation> = {
   asnProfileIdentityHeading: "Identität & Status",
   asnProfileInterconnectionHeading: "Interconnection-Details",
   asnProfilePolicyHeading: "Peering-Richtlinie",
+  asnProfileExternalHeading: "Externe Profile",
+  asnProfilePrefixes4: "IPv4-Prefixe",
+  asnProfilePrefixes6: "IPv6-Prefixe",
   asnWarnings: "Warnungen",
   asnDiagnosticDuration: "Dauer",
   asnDiagnosticCache: "Cache",
+  asnDiagnosticWarnings: "Warnungen",
+  asnDiagnosticSource: "Quelle",
+  asnSourceDiagnosticsDescription:
+    "Verfügbarkeit der Quellen, Anfragedauer und Cache-Status für diese Abfrage.",
   asnCacheMiss: "nicht im Cache",
   asnCacheFresh: "frisch",
   asnCacheStale: "veraltet",

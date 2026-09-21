@@ -442,6 +442,16 @@
     overflow: hidden;
     min-height: 0;
   }
+
+  /*
+   * Tabbed section content (ASN routing / prefixes / peering / sources).
+   * The wrapper remounts on section change, so the reveal replays each time:
+   * a short fade plus a small lift on the shared soft-deceleration curve,
+   * matching the sliding segment chip beside it.
+   */
+  .tool-section-reveal {
+    animation: tool-section-reveal var(--motion-base) var(--ease-out-soft) both;
+  }
 }
 
 @keyframes tool-page-enter {
@@ -484,6 +494,18 @@
   }
 }
 
+@keyframes tool-section-reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.25rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -503,7 +525,8 @@
   .tool-page-snapshot[data-phase='exiting'],
   .tool-page-current > [data-transition-stage],
   .tool-reveal,
-  .tool-reveal > * {
+  .tool-reveal > *,
+  .tool-section-reveal {
     animation: none;
   }
 }

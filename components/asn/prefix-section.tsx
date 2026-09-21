@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import type { AsnPrefix, AsnProfile } from "@/lib/asn";
-import { formatNumber, formatTemplate } from "@/lib/format";
+import { formatTemplate } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { Badge } from "@/components/ui/badge";
+import { DataColumn } from "./data-column";
 import { ShowMoreButton } from "./show-more-button";
+
+const ROW_LIMIT = 8;
 
 function RpkiBadge({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
   const rpki = prefix.rpkiStatus?.toLowerCase().trim();
@@ -27,18 +30,25 @@ function RpkiBadge({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
 }
 
 function PrefixItem({ prefix, t }: { prefix: AsnPrefix; t: ToolTranslation }) {
-  const details = [prefix.name, prefix.country, prefix.status, prefix.size ? `${prefix.size} ${t.asnPrefixIpCount}` : ""]
+  const details = [
+    prefix.name,
+    prefix.country,
+    prefix.status,
+    prefix.size ? `${prefix.size} ${t.asnPrefixIpCount}` : "",
+  ]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <li className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b py-2.5 last:border-b-0">
+    <li className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-border/60 py-2.5 transition-colors last:border-b-0 hover:bg-muted/40">
       <span className="min-w-0 font-mono text-sm font-semibold break-all text-foreground/95 select-all">
         {prefix.netblock}
       </span>
       <RpkiBadge prefix={prefix} t={t} />
       {details && (
-        <span className="w-full text-[11px] break-words text-muted-foreground">{details}</span>
+        <span className="w-full text-[11px] leading-relaxed break-words text-muted-foreground">
+          {details}
+        </span>
       )}
     </li>
   );
@@ -60,16 +70,27 @@ function PrefixColumn({
   t: ToolTranslation;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const limit = 6;
-  const visible = expanded ? prefixes : prefixes.slice(0, limit);
+  const visible = expanded ? prefixes : prefixes.slice(0, ROW_LIMIT);
 
   return (
-    <section aria-label={title} className="flex min-w-0 flex-col">
-      <p className="flex items-baseline justify-between gap-2 border-b pb-2">
-        <span className="font-mono text-sm font-semibold text-foreground">{title}</span>
-        <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatNumber(total, locale)}</span>
-      </p>
-
+    <DataColumn
+      title={title}
+      monoTitle
+      total={total}
+      locale={locale}
+      footer={
+        prefixes.length > ROW_LIMIT ? (
+          <div className="pt-3">
+            <ShowMoreButton
+              expanded={expanded}
+              onToggle={() => setExpanded(!expanded)}
+              count={prefixes.length}
+              t={t}
+            />
+          </div>
+        ) : undefined
+      }
+    >
       {visible.length > 0 ? (
         <ul className="flex flex-col">
           {visible.map((prefix, idx) => (
@@ -77,15 +98,11 @@ function PrefixColumn({
           ))}
         </ul>
       ) : (
-        <p className="py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
-      )}
-
-      {prefixes.length > limit && (
-        <div className="pt-2">
-          <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={prefixes.length} t={t} />
+        <div className="mt-3 flex items-center justify-center rounded-lg border border-dashed border-border/70 px-4 py-7 text-center">
+          <p className="text-xs text-muted-foreground">{emptyText}</p>
         </div>
       )}
-    </section>
+    </DataColumn>
   );
 }
 
