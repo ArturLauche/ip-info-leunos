@@ -11,12 +11,17 @@ import { EmptyState } from "@/components/empty-state";
 import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput } from "@/lib/asn-id";
-import type { AsnProfile } from "@/lib/asn";
+import type { AsnProfile, AsnWarningDetail } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { AsnDetailTabs } from "./detail-tabs";
 import { FacilitySection } from "./facility-section";
-import { formatWarning, hasSourceInfoFlag, lookupErrorMessage, validationErrorMessage } from "./helpers";
+import {
+  formatWarning,
+  hasSourceInfoFlag,
+  lookupErrorMessage,
+  validationErrorMessage,
+} from "./helpers";
 import { IxPresenceSection } from "./ix-presence-section";
 import { LoadingSkeleton } from "./loading-skeleton";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
@@ -47,14 +52,16 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     }
   }, [initialAsn]);
 
-  const { loading, error, result, run, showError, cancel, querySync } = useToolLookup<AsnProfile>({
-    buildApiUrl: (asn) =>
-      `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
-    buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
-    mapError: (lookupError) => lookupErrorMessage(lookupError, t),
-    initialQuery,
-    onStart: () => setShowSourceInfo(hasSourceInfoFlag()),
-  });
+  const { loading, error, result, run, showError, cancel, querySync } =
+    useToolLookup<AsnProfile>({
+      buildApiUrl: (asn) =>
+        `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
+      buildHref: (asn) =>
+        `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
+      mapError: (lookupError) => lookupErrorMessage(lookupError, t),
+      initialQuery,
+      onStart: () => setShowSourceInfo(hasSourceInfoFlag()),
+    });
 
   const submit = useCallback(
     (value: string) => {
@@ -70,10 +77,13 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   // Re-sync the source-info flag whenever the URL changes under us. Reacting
   // to searchParams (not hashchange/popstate) also covers client-side
   // pushState navigations from the command palette or in-page links.
-  const sourceInfoInUrl = searchParams.has("source-info") || searchParams.has("sourceInfo");
+  const sourceInfoInUrl =
+    searchParams.has("source-info") || searchParams.has("sourceInfo");
 
   useEffect(() => {
-    setShowSourceInfo(sourceInfoInUrl || window.location.hash === "#source-info");
+    setShowSourceInfo(
+      sourceInfoInUrl || window.location.hash === "#source-info",
+    );
   }, [sourceInfoInUrl]);
 
   // Once a profile is on screen the form steps back to a quiet toolbar so the
@@ -81,7 +91,9 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   const hasResult = Boolean(result && result.found);
 
   const routingCount = result
-    ? (result.peersTotal || 0) + (result.upstreamsTotal || 0) + (result.downstreamsTotal || 0)
+    ? (result.peersTotal || 0) +
+      (result.upstreamsTotal || 0) +
+      (result.downstreamsTotal || 0)
     : null;
   const prefixesCount = result
     ? (result.prefixes4Total || 0) + (result.prefixes6Total || 0)
@@ -93,6 +105,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.asnPlaceholder}
+        ariaLabel={t.asnTitle}
         submitLabel={t.asnLookupButton}
         loadingLabel={t.asnLookingUp}
         loading={loading}
@@ -125,7 +138,10 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
       {result && result.found && (
         <div className="tool-reveal flex flex-col gap-4">
           {/* Summary: identity + key figures in one card */}
-          <section aria-label={`${result.asn} — ${t.asnTitle}`} className="flex flex-col">
+          <section
+            aria-label={`${result.asn} — ${t.asnTitle}`}
+            className="flex flex-col"
+          >
             <AsnSummaryCard result={result} t={t} locale={locale} />
           </section>
 
@@ -135,9 +151,21 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
               <AlertTitle>{t.asnWarnings}</AlertTitle>
               <AlertDescription>
                 <ul className="space-y-1">
-                  {result.warnings.map((warning) => (
-                    <li key={warning}>{formatWarning(warning, t, locale)}</li>
-                  ))}
+                  {result.warnings.map((warning, index) => {
+                    const detail: AsnWarningDetail | undefined =
+                      result.warningDetails?.[index];
+                    return (
+                      <li
+                        key={
+                          detail
+                            ? `${detail.code}-${index}`
+                            : `${warning}-${index}`
+                        }
+                      >
+                        {formatWarning(detail ?? warning, t, locale)}
+                      </li>
+                    );
+                  })}
                 </ul>
               </AlertDescription>
             </Alert>
@@ -166,9 +194,17 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
               <TabsContent value="peering" className="pt-4">
                 {result.peeringdb ? (
                   <div className="flex flex-col gap-7">
-                    <PeeringDbProfileSection profile={result.peeringdb} t={t} locale={locale} />
+                    <PeeringDbProfileSection
+                      profile={result.peeringdb}
+                      t={t}
+                      locale={locale}
+                    />
                     <div className="border-t border-border/60 pt-7">
-                      <IxPresenceSection result={result} t={t} locale={locale} />
+                      <IxPresenceSection
+                        result={result}
+                        t={t}
+                        locale={locale}
+                      />
                     </div>
                     <div className="border-t border-border/60 pt-7">
                       <FacilitySection
@@ -181,7 +217,10 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/70 px-6 py-10 text-center">
-                    <Building2 className="size-5 text-muted-foreground/50" aria-hidden />
+                    <Building2
+                      className="size-5 text-muted-foreground/50"
+                      aria-hidden
+                    />
                     <p className="text-sm text-muted-foreground">
                       {t.asnWarningNoPeeringDbProfile}
                     </p>
@@ -191,7 +230,11 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
               {showSourceInfo && (
                 <TabsContent value="sources" className="pt-4">
-                  <SourceDiagnosticsSection result={result} t={t} locale={locale} />
+                  <SourceDiagnosticsSection
+                    result={result}
+                    t={t}
+                    locale={locale}
+                  />
                 </TabsContent>
               )}
             </AsnDetailTabs>

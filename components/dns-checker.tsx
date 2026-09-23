@@ -23,6 +23,7 @@ import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import { Network, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -32,12 +33,35 @@ interface DnsAddress {
   family: number;
 }
 
+type DnsErrorCode = "timeout" | "not_found" | "temporary" | "unknown";
+
 interface DnsResult {
   target: string;
   addresses: DnsAddress[];
   records: DnsRecord[];
   lookupError?: string | null;
-  recordErrors?: Array<{ type: string; error?: string }>;
+  lookupErrorCode?: DnsErrorCode | null;
+  recordErrors?: Array<{
+    type: string;
+    error?: string;
+    errorCode?: DnsErrorCode;
+  }>;
+}
+
+function formatDnsError(
+  code: DnsErrorCode | null | undefined,
+  ui: ReturnType<typeof getUiCopy>,
+): string {
+  switch (code) {
+    case "timeout":
+      return ui.dnsErrorTimeout;
+    case "not_found":
+      return ui.dnsErrorNotFound;
+    case "temporary":
+      return ui.dnsErrorTemporary;
+    default:
+      return ui.dnsErrorUnknown;
+  }
 }
 
 interface DnsCheckerProps {
@@ -49,17 +73,20 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
   const [selectedType, setSelectedType] = useState("ALL");
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
+  const ui = getUiCopy(locale);
 
-  const { loading, error, result, run, cancel, querySync } = useToolLookup<DnsResult>({
-    buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
-    buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
-    mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.dnsLookupError),
-    initialQuery: initialTarget,
-    onStart: () => {
-      setSelectedType("ALL");
-      setShowRaw(false);
-    },
-  });
+  const { loading, error, result, run, cancel, querySync } =
+    useToolLookup<DnsResult>({
+      buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
+      buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
+      mapError: (lookupError) =>
+        getApiErrorMessage(lookupError, t, t.dnsLookupError),
+      initialQuery: initialTarget,
+      onStart: () => {
+        setSelectedType("ALL");
+        setShowRaw(false);
+      },
+    });
 
   const recordTypes = useMemo(() => {
     if (!result) return [];
@@ -78,6 +105,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.targetPlaceholder}
+        ariaLabel={t.dnsRecordsFor}
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
@@ -118,12 +146,16 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
                     className="min-w-0 font-mono text-xs break-all text-foreground"
                   >
                     {address.address}
-                    <span className="ml-1.5 text-muted-foreground">IPv{address.family}</span>
+                    <span className="ms-1.5 text-muted-foreground">
+                      IPv{address.family}
+                    </span>
                   </li>
                 ))
               ) : (
                 <li className="text-sm text-muted-foreground">
-                  {result.lookupError || t.noAddressResult}
+                  {result.lookupError
+                    ? formatDnsError(result.lookupErrorCode, ui)
+                    : t.noAddressResult}
                 </li>
               )}
             </ul>
@@ -133,6 +165,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
             <DnsTypeFilter
               types={["ALL", ...recordTypes]}
               label={t.dnsTableType}
+              allLabel={ui.dnsTypeAll}
               selectedType={selectedType}
               onSelect={setSelectedType}
             />
@@ -195,7 +228,11 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
           )}
 
           {showRaw && (
-            <pre id="dns-raw-result" className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground" tabIndex={0}>
+            <pre
+              id="dns-raw-result"
+              className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground"
+              tabIndex={0}
+            >
               {JSON.stringify(visibleRecords, null, 2)}
             </pre>
           )}
@@ -204,7 +241,11 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
             <ResultActions
               locale={locale}
               data={{ ...result, records: visibleRecords }}
-              copyText={visibleRecords.map((record) => `${record.type}\t${formatDnsRecordValue(record)}`).join("\n")}
+              copyText={visibleRecords
+                .map(
+                  (record) => `${record.type}\t${formatDnsRecordValue(record)}`,
+                )
+                .join("\n")}
               filename={`dns-${result.target}-${selectedType.toLowerCase()}`}
             />
           )}
@@ -217,7 +258,8 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
                 <ul className="space-y-1">
                   {result.recordErrors.map((entry) => (
                     <li key={`${entry.type}-${entry.error}`}>
-                      <span className="font-mono">{entry.type}</span>: {entry.error}
+                      <span className="font-mono">{entry.type}</span>:{" "}
+                      {formatDnsError(entry.errorCode, ui)}
                     </li>
                   ))}
                 </ul>
@@ -233,15 +275,18 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 function DnsTypeFilter({
   types,
   label,
+  allLabel,
   selectedType,
   onSelect,
 }: {
   types: string[];
   label: string;
+  allLabel: string;
   selectedType: string;
   onSelect: (type: string) => void;
 }) {
-  const { containerRef, view, canAnimate, radius } = useSegmentHighlight(selectedType);
+  const { containerRef, view, canAnimate, radius } =
+    useSegmentHighlight(selectedType);
 
   return (
     <div ref={containerRef} className="relative isolate w-fit max-w-full">
@@ -277,7 +322,7 @@ function DnsTypeFilter({
                 "data-[state=on]:border-transparent data-[state=on]:bg-transparent data-[state=on]:text-foreground data-[state=on]:shadow-none",
             )}
           >
-            {type}
+            {type === "ALL" ? allLabel : type}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>

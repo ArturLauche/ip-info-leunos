@@ -45,7 +45,7 @@ function makeSvg({ bg, fg, border }, { fullBleed = false } = {}) {
     ? `<rect width="64" height="64" fill="${bg}"/>`
     : brandTile({ bg, fg, border });
 
-  return `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Auskunft">
+  return `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Info">
     ${tile}${glyph(fg)}
   </svg>`;
 }
@@ -62,15 +62,15 @@ function makeOgSvg() {
   <rect width="1200" height="630" fill="#0A0A0A"/>
   <rect width="1200" height="630" fill="url(#grid)"/>
   <g transform="translate(96,88) scale(2.5)">${brandTile(DARK)}</g>
-  <text x="96" y="380" font-family="${SANS}" font-size="84" font-weight="700" letter-spacing="-2" fill="#FAFAFA">IP Auskunft</text>
-  <text x="96" y="436" font-family="${SANS}" font-size="34" font-weight="400" fill="#A3A3A3">Netzwerk- &amp; IP-Tools für öffentliche Ziele</text>
+  <text x="96" y="380" font-family="${SANS}" font-size="84" font-weight="700" letter-spacing="-2" fill="#FAFAFA">IP Info</text>
+  <text x="96" y="436" font-family="${SANS}" font-size="34" font-weight="400" fill="#A3A3A3">Network and IP tools for public targets</text>
   <text x="96" y="546" font-family="${SANS}" font-size="26" font-weight="500" letter-spacing="3" fill="#737373">ip-info.leunos.com</text>
 </svg>`;
 }
 
 /** Adaptive SVG favicon that inverts with the OS colour scheme. */
 function makeAdaptiveSvg() {
-  return `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Auskunft">
+  return `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP Info">
   <style>
     .tile { fill: ${DARK.bg}; }
     .bd { stroke: ${DARK.border}; }
@@ -98,7 +98,10 @@ function makeAdaptiveSvg() {
 
 const toPng = (svg, size) =>
   sharp(Buffer.from(svg), { density: 512 })
-    .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(size, size, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
 
@@ -137,19 +140,33 @@ async function main() {
 
   const icoSizes = [16, 32, 48];
   const icoEntries = await Promise.all(
-    icoSizes.map(async (size) => ({ size, buffer: await toPng(darkSvg, size) })),
+    icoSizes.map(async (size) => ({
+      size,
+      buffer: await toPng(darkSvg, size),
+    })),
   );
 
   await writeFile(join(publicDir, "icon.svg"), makeAdaptiveSvg());
   await writeFile(join(publicDir, "favicon.ico"), buildIco(icoEntries));
-  await writeFile(join(publicDir, "apple-icon.png"), await toPng(appleSvg, 180));
-  await writeFile(join(publicDir, "icon-light-32x32.png"), await toPng(darkSvg, 32));
-  await writeFile(join(publicDir, "icon-dark-32x32.png"), await toPng(lightSvg, 32));
+  await writeFile(
+    join(publicDir, "apple-icon.png"),
+    await toPng(appleSvg, 180),
+  );
+  await writeFile(
+    join(publicDir, "icon-light-32x32.png"),
+    await toPng(darkSvg, 32),
+  );
+  await writeFile(
+    join(publicDir, "icon-dark-32x32.png"),
+    await toPng(lightSvg, 32),
+  );
   await writeFile(join(publicDir, "icon-192.png"), await toPng(appleSvg, 192));
   await writeFile(join(publicDir, "icon-512.png"), await toPng(appleSvg, 512));
   await writeFile(
     join(publicDir, "og-image.png"),
-    await sharp(Buffer.from(makeOgSvg())).png({ compressionLevel: 9 }).toBuffer(),
+    await sharp(Buffer.from(makeOgSvg()))
+      .png({ compressionLevel: 9 })
+      .toBuffer(),
   );
 
   console.log(

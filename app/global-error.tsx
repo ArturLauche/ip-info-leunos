@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { resolveLocale, type Locale } from "@/lib/i18n";
+import {
+  DEFAULT_LOCALE,
+  getLocaleDirection,
+  resolveLocale,
+  type Locale,
+} from "@/lib/i18n";
+import { readClientLocalePreference } from "@/lib/locale-preference";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
 /**
@@ -20,10 +26,15 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const [locale, setLocale] = useState<Locale>("en");
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    setLocale(resolveLocale(navigator.languages?.join(",") ?? navigator.language ?? null));
+    setLocale(
+      readClientLocalePreference() ??
+        resolveLocale(
+          navigator.languages?.join(",") ?? navigator.language ?? null,
+        ),
+    );
   }, []);
 
   useEffect(() => {
@@ -33,8 +44,10 @@ export default function GlobalError({
   const t = getToolTranslation(locale);
 
   return (
-    <html lang={locale}>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
+    <html lang={locale} dir={getLocaleDirection(locale)}>
+      <body
+        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
+      >
         <main
           style={{
             display: "flex",
@@ -46,12 +59,28 @@ export default function GlobalError({
           }}
         >
           <div style={{ maxWidth: "28rem" }}>
-            <h1 style={{ fontSize: "1.125rem", fontWeight: 600 }}>{t.errorTitle}</h1>
-            <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", opacity: 0.7 }}>
+            <h1 style={{ fontSize: "1.125rem", fontWeight: 600 }}>
+              {t.errorTitle}
+            </h1>
+            <p
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.875rem",
+                opacity: 0.7,
+              }}
+            >
               {t.errorDescription}
             </p>
             {error.digest && (
-              <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", opacity: 0.5 }}>{error.digest}</p>
+              <p
+                style={{
+                  marginTop: "0.5rem",
+                  fontSize: "0.75rem",
+                  opacity: 0.5,
+                }}
+              >
+                {error.digest}
+              </p>
             )}
             <button
               type="button"

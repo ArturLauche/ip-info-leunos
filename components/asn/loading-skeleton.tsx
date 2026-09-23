@@ -21,7 +21,7 @@ export function LoadingSkeleton({ label }: { label: string }) {
             </div>
             <Skeleton className="h-5 w-24 rounded-md" />
           </div>
-          <Skeleton className="ml-12 h-4 w-2/3 max-w-md sm:ml-13" />
+          <Skeleton className="ms-12 h-4 w-2/3 max-w-md sm:ms-13" />
         </div>
         <div className="grid grid-cols-2 gap-px border-t border-border/60 bg-border/60 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -38,7 +38,10 @@ export function LoadingSkeleton({ label }: { label: string }) {
         <Skeleton className="h-10 w-full max-w-md rounded-lg" />
         <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0">
+            <div
+              key={i}
+              className="flex flex-col gap-2 border-b border-border/60 pb-3 last:border-b-0"
+            >
               <Skeleton className="h-4 w-2/3" />
               <Skeleton className="h-3 w-1/3" />
             </div>

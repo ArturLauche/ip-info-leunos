@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { SUPPORTED_LOCALES } from "./i18n";
+import {
+  getLocaleSchemaLanguage,
+  getLocaleOpenGraphLanguage,
+  SUPPORTED_LOCALES,
+} from "./i18n";
 import {
   canonicalUrl,
   createPageMetadata,
@@ -36,6 +40,18 @@ describe("createPageMetadata", () => {
     });
   });
 
+  it("uses the selected locale for Open Graph metadata", () => {
+    const metadata = createPageMetadata({
+      title: "Lookup",
+      description: "Description",
+      path: "/check",
+      locale: "pt-PT",
+    });
+    expect(metadata.openGraph).toMatchObject({
+      locale: getLocaleOpenGraphLanguage("pt-PT"),
+      title: "Lookup",
+    });
+  });
   it("keeps Open Graph titles brand-free because site_name is set separately", () => {
     const metadata = createPageMetadata({
       title: "DNS Lookup für A, AAAA, MX, TXT und mehr",
@@ -54,9 +70,13 @@ describe("createPageMetadata", () => {
 describe("schemaInLanguage", () => {
   it("is derived from every UI locale, with de published as de-DE", () => {
     expect(schemaInLanguage).toEqual(
-      SUPPORTED_LOCALES.map((locale) => (locale === "de" ? "de-DE" : locale)),
+      SUPPORTED_LOCALES.map((locale) => getLocaleSchemaLanguage(locale)),
     );
     expect(schemaInLanguage).toContain("de-DE");
+    expect(schemaInLanguage).toContain("pt-BR");
+    expect(schemaInLanguage).toContain("pt-PT");
+    expect(schemaInLanguage).toContain("zh-CN");
+    expect(schemaInLanguage).toContain("zh-TW");
     expect(schemaInLanguage).not.toContain("de");
   });
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
-import { resolveLocale } from "@/lib/i18n";
+import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import {
   assessNetworkProxyHints,
   assessProxyRisk,
@@ -9,7 +9,10 @@ import {
   mergeProxyHintAssessments,
   type ProxyHintAssessment,
 } from "@/lib/connection-type";
-import { assessRequestProxyHints, normalizeForwardedIp } from "@/lib/request-proxy-hints";
+import {
+  assessRequestProxyHints,
+  normalizeForwardedIp,
+} from "@/lib/request-proxy-hints";
 import { lookupIpApi, type IpApiData } from "@/lib/providers/ip-api";
 import {
   getCachedLookup,
@@ -163,12 +166,14 @@ function toResponsePayload(
       ipv4: responseIpv4
         ? isIPv4Address(resolvedQuery)
           ? "ip-api-query"
-          : localIpChecks.find((check) => check.ip === responseIpv4)?.source || "request-header"
+          : localIpChecks.find((check) => check.ip === responseIpv4)?.source ||
+            "request-header"
         : undefined,
       ipv6: responseIpv6
         ? isIPv6Address(resolvedQuery)
           ? "ip-api-query"
-          : localIpChecks.find((check) => check.ip === responseIpv6)?.source || "request-header"
+          : localIpChecks.find((check) => check.ip === responseIpv6)?.source ||
+            "request-header"
         : undefined,
     },
     localIpChecks,
@@ -206,7 +211,10 @@ function toResponsePayload(
 }
 
 export async function GET(request: Request) {
-  const limited = enforceRateLimit(request, "ip", { limit: 80, windowMs: 60_000 });
+  const limited = enforceRateLimit(request, "ip", {
+    limit: 80,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
@@ -220,7 +228,10 @@ export async function GET(request: Request) {
 
   const queryIp = parsedQuery.data.ip;
   // ip-api.com localizes country/region/city names for the supported locales.
-  const language = resolveLocale(request.headers.get("accept-language"));
+  const language = resolveLocale(
+    request.headers.get("accept-language"),
+    parseLocaleCookie(request.headers.get("cookie")),
+  );
 
   // If a specific IP was passed (from /check), just look it up
   if (queryIp) {
@@ -234,7 +245,11 @@ export async function GET(request: Request) {
         return apiError(error.code, error.message, error.status, error.details);
       }
 
-      return apiError("invalid_target", "Please provide a valid public IP address or domain.", 400);
+      return apiError(
+        "invalid_target",
+        "Please provide a valid public IP address or domain.",
+        400,
+      );
     }
 
     const cacheKey = `${ip}:${language}`;
@@ -264,7 +279,12 @@ export async function GET(request: Request) {
       });
     }
 
-    const payload = toResponsePayload(data, ip, isIPv4Address(ip) ? ip : null, isIPv6Address(ip) ? ip : null);
+    const payload = toResponsePayload(
+      data,
+      ip,
+      isIPv4Address(ip) ? ip : null,
+      isIPv6Address(ip) ? ip : null,
+    );
     setCachedLookup(cacheKey, payload);
     return apiOk(payload);
   }
@@ -294,10 +314,12 @@ export async function GET(request: Request) {
       ipVersion: ipv6 && !ipv4 ? 6 : 4,
       ipSources: {
         ipv4: ipv4
-          ? localIpChecks.find((check) => check.ip === ipv4)?.source || "request-header"
+          ? localIpChecks.find((check) => check.ip === ipv4)?.source ||
+            "request-header"
           : undefined,
         ipv6: ipv6
-          ? localIpChecks.find((check) => check.ip === ipv6)?.source || "request-header"
+          ? localIpChecks.find((check) => check.ip === ipv6)?.source ||
+            "request-header"
           : undefined,
       },
       localIpChecks,
@@ -307,6 +329,13 @@ export async function GET(request: Request) {
   }
 
   return apiOk(
-    toResponsePayload(data, primaryIp, ipv4, ipv6, localIpChecks, requestProxyHints),
+    toResponsePayload(
+      data,
+      primaryIp,
+      ipv4,
+      ipv6,
+      localIpChecks,
+      requestProxyHints,
+    ),
   );
 }

@@ -16,10 +16,18 @@ export interface NormalizedAsn {
   asnNumber: number;
 }
 
+export type AsnValidationErrorCode = "invalid_format" | "out_of_range";
+
 export class AsnValidationError extends Error {
-  constructor(message = "Please provide a valid ASN.") {
+  readonly code: AsnValidationErrorCode;
+
+  constructor(
+    message = "Please provide a valid ASN.",
+    code: AsnValidationErrorCode = "invalid_format",
+  ) {
     super(message);
     this.name = "AsnValidationError";
+    this.code = code;
   }
 }
 
@@ -28,14 +36,24 @@ export function normalizeAsnInput(input: string): NormalizedAsn {
   const match = trimmed.match(ASN_PATTERN);
 
   if (!match) {
-    throw new AsnValidationError("Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.");
+    throw new AsnValidationError(
+      "Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.",
+      "invalid_format",
+    );
   }
 
   const digits = match[1].replace(/^0+/, "") || "0";
   const asnNumber = Number(digits);
 
-  if (!Number.isSafeInteger(asnNumber) || asnNumber < 1 || asnNumber > MAX_ASN_NUMBER) {
-    throw new AsnValidationError(`ASN must be between 1 and ${MAX_ASN_NUMBER}.`);
+  if (
+    !Number.isSafeInteger(asnNumber) ||
+    asnNumber < 1 ||
+    asnNumber > MAX_ASN_NUMBER
+  ) {
+    throw new AsnValidationError(
+      `ASN must be between 1 and ${MAX_ASN_NUMBER}.`,
+      "out_of_range",
+    );
   }
 
   return {

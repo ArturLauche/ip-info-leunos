@@ -31,12 +31,12 @@ export function AppShell({ locale, children }: AppShellProps) {
       <div className="relative flex min-h-screen w-full">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring/60"
+          className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring/60"
         >
           {t.skipToContent}
         </a>
         <AppSidebar locale={locale} active={active} />
-        <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip lg:pl-64">
+        <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip lg:ps-64">
           <MobileNav locale={locale} active={active} />
           <PageTransition className="flex flex-1 flex-col">
             {children}

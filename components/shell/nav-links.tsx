@@ -29,10 +29,7 @@ export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
     setSelected(active);
   }, [active]);
 
-  function handleNavigate(
-    event: MouseEvent<HTMLAnchorElement>,
-    key: ToolKey,
-  ) {
+  function handleNavigate(event: MouseEvent<HTMLAnchorElement>, key: ToolKey) {
     const isPrimaryNavigation =
       event.button === 0 &&
       !event.metaKey &&
@@ -109,7 +106,7 @@ function NavGroupList({
             onClick={(event) => onNavigate(event, item.key)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative z-10 flex min-h-11 items-center gap-2.5 rounded-lg py-1 pr-3 pl-3.5 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
+              "group relative z-10 flex min-h-11 items-center gap-2.5 rounded-lg py-1 pe-3 ps-3.5 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
               isSelected
                 ? "text-foreground"
                 : "text-muted-foreground hover:bg-sidebar-accent/45 hover:text-foreground",
@@ -126,7 +123,9 @@ function NavGroupList({
             >
               <Icon className="size-3.5" aria-hidden />
             </span>
-            <span className="min-w-0 truncate">{getNavLabel(item.key, locale)}</span>
+            <span className="min-w-0 truncate">
+              {getNavLabel(item.key, locale)}
+            </span>
           </Link>
         );
       })}

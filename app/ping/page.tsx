@@ -1,32 +1,41 @@
 import { PingChecker } from "@/components/ping-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { resolveLocale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Radar } from "lucide-react";
-import { headers } from "next/headers";
 import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 import { defaultPingPort, type PingMode } from "@/lib/ping";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Ping- und Port-Test für öffentliche Hosts",
-  description: "Prüfe öffentliche Hosts, Ports, Endpoints und ausgewählte Dienste mit begrenzten serverseitigen TCP-, UDP- und Protokolltests auf Erreichbarkeit.",
-  path: "/ping",
-  keywords: ['Ping Test', 'Port Check', 'Latenz'],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getToolTranslation(locale);
+  return createPageMetadata({
+    title: t.pingTitle,
+    description: t.pingSubtitle,
+    path: "/ping",
+    keywords: [t.pingTitle, t.pingPort, t.pingLatencyLabel, "TCP", "UDP"],
+    locale,
+  });
+}
 
 interface PingPageProps {
-  searchParams: Promise<{ target?: SearchParamValue; port?: SearchParamValue; mode?: SearchParamValue }>;
+  searchParams: Promise<{
+    target?: SearchParamValue;
+    port?: SearchParamValue;
+    mode?: SearchParamValue;
+  }>;
 }
 
 function normalizeMode(value: string | undefined): PingMode {
-  return value === "udp" || value === "eb" || value === "database" ? value : "tcp";
+  return value === "udp" || value === "eb" || value === "database"
+    ? value
+    : "tcp";
 }
 
 export default async function PingPage({ searchParams }: PingPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
 
@@ -41,7 +50,10 @@ export default async function PingPage({ searchParams }: PingPageProps) {
       <PingChecker
         locale={locale}
         initialTarget={firstSearchParam(params.target) || "example.com"}
-        initialPort={firstSearchParam(params.port) || defaultPingPort(normalizeMode(firstSearchParam(params.mode)))}
+        initialPort={
+          firstSearchParam(params.port) ||
+          defaultPingPort(normalizeMode(firstSearchParam(params.mode)))
+        }
         initialMode={normalizeMode(firstSearchParam(params.mode))}
       />
     </ToolPageShell>

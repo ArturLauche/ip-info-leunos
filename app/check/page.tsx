@@ -1,18 +1,23 @@
 import { IpLookup } from "@/components/ip-lookup";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { getTranslation, resolveLocale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { Search } from "lucide-react";
-import { headers } from "next/headers";
 import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "IP Check für öffentliche IPs und Domains",
-  description: "Analysiere öffentliche IPv4-/IPv6-Adressen oder Domains mit verfügbaren Angaben zu Provider, ASN, Reverse DNS und ungefährer Geolokalisierung.",
-  path: "/check",
-  keywords: ['IP prüfen', 'Domain prüfen', 'IP Check'],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getTranslation(locale);
+  return createPageMetadata({
+    title: t.checkTitle,
+    description: t.checkSubtitle,
+    path: "/check",
+    keywords: [t.checkTitle, t.homeTitle, "ASN", "Reverse DNS"],
+    locale,
+  });
+}
 
 interface CheckPageProps {
   searchParams: Promise<{
@@ -22,11 +27,11 @@ interface CheckPageProps {
 }
 
 export default async function CheckPage({ searchParams }: CheckPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getTranslation(locale);
   const params = await searchParams;
-  const initialQuery = firstSearchParam(params.ip) || firstSearchParam(params.q);
+  const initialQuery =
+    firstSearchParam(params.ip) || firstSearchParam(params.q);
 
   return (
     <ToolPageShell

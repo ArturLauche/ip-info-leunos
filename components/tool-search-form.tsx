@@ -12,6 +12,7 @@ interface ToolSearchFormProps {
   /** Changes only for external navigation, including a reset to the same value. */
   syncKey?: number;
   placeholder: string;
+  ariaLabel?: string;
   submitLabel: string;
   loadingLabel?: string;
   loading?: boolean;
@@ -33,6 +34,7 @@ export function ToolSearchForm({
   initialValue = "",
   syncKey = 0,
   placeholder,
+  ariaLabel,
   submitLabel,
   loadingLabel,
   loading = false,
@@ -57,14 +59,17 @@ export function ToolSearchForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("flex w-full flex-col gap-2.5 sm:flex-row", compact && "gap-2")}
+      className={cn(
+        "flex w-full flex-col gap-2.5 sm:flex-row",
+        compact && "gap-2",
+      )}
       aria-busy={loading}
     >
       <div className="relative flex-1">
         <Search
           className={cn(
-            "pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground",
-            compact && "left-3",
+            "pointer-events-none absolute top-1/2 start-3.5 size-4 -translate-y-1/2 text-muted-foreground",
+            compact && "start-3",
           )}
           aria-hidden="true"
         />
@@ -75,19 +80,25 @@ export function ToolSearchForm({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
-          aria-label={placeholder}
+          aria-label={ariaLabel || placeholder}
           autoComplete="off"
           autoCapitalize="off"
           enterKeyHint="search"
           spellCheck={false}
-          className={cn("h-11 bg-card pl-10 text-sm dark:bg-card", compact && "h-9 pl-9 text-[13px]")}
+          className={cn(
+            "h-11 bg-card ps-10 text-sm dark:bg-card",
+            compact && "h-9 ps-9 text-[13px]",
+          )}
         />
       </div>
       <Button
         type="submit"
         size={compact ? "default" : "lg"}
         disabled={loading || !value.trim()}
-        className={cn("h-11 shrink-0 sm:min-w-36", compact && "h-9 sm:min-w-28")}
+        className={cn(
+          "h-11 shrink-0 sm:min-w-36",
+          compact && "h-9 sm:min-w-28",
+        )}
       >
         {loading ? (
           <>

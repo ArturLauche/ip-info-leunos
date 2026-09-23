@@ -29,7 +29,9 @@ import {
 
 /** Static map of tool key → icon, sourced from the navigation config. */
 const TOOL_ICONS = Object.fromEntries(
-  navGroups.flatMap((group) => group.items).map((item) => [item.key, item.icon]),
+  navGroups
+    .flatMap((group) => group.items)
+    .map((item) => [item.key, item.icon]),
 ) as Record<ToolKey, LucideIcon>;
 
 const ALL_DESTINATIONS = navGroups.flatMap((group) => group.items);
@@ -53,7 +55,11 @@ interface CommandPaletteProps {
  * query into smart deep links (IP / domain / ASN) and filters the tool pages as
  * navigation destinations. Built on the shared Radix dialog primitive.
  */
-export function CommandPalette({ locale, open, onOpenChange }: CommandPaletteProps) {
+export function CommandPalette({
+  locale,
+  open,
+  onOpenChange,
+}: CommandPaletteProps) {
   const t = getToolTranslation(locale);
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -152,7 +158,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
         // suggestions appear beneath it as the user opens or types.
         onMouseMove={() => setActiveIndex(index)}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors",
+          "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-start outline-none transition-colors",
           isActive
             ? "bg-accent text-accent-foreground"
             : "text-foreground hover:bg-accent/60",
@@ -194,98 +200,111 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
-        <DialogTitle className="sr-only">{t.commandTriggerLabel}</DialogTitle>
-        <DialogDescription className="sr-only">
-          {t.commandPlaceholder}
-        </DialogDescription>
+          <DialogTitle className="sr-only">{t.commandTriggerLabel}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t.commandPlaceholder}
+          </DialogDescription>
 
-        <div className="flex items-center gap-3 border-b border-border/50 px-4">
-          <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t.commandPlaceholder}
-            role="combobox"
+          <div className="flex items-center gap-3 border-b border-border/50 px-4">
+            <Search
+              className="size-4 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t.commandPlaceholder}
+              role="combobox"
+              aria-label={t.commandPlaceholder}
+              aria-expanded="true"
+              aria-haspopup="listbox"
+              aria-autocomplete="list"
+              aria-controls="command-list"
+              aria-activedescendant={
+                items.length > 0 ? `command-item-${activeIndex}` : undefined
+              }
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="h-12 min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+            <DialogPrimitive.Close asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-11 shrink-0"
+                aria-label={t.commandHintClose}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </DialogPrimitive.Close>
+          </div>
+
+          <div
+            id="command-list"
+            ref={listRef}
+            role="listbox"
             aria-label={t.commandPlaceholder}
-            aria-expanded="true"
-            aria-haspopup="listbox"
-            aria-autocomplete="list"
-            aria-controls="command-list"
-            aria-activedescendant={
-              items.length > 0 ? `command-item-${activeIndex}` : undefined
-            }
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="h-12 min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <DialogPrimitive.Close asChild>
-            <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0" aria-label={t.commandHintClose}>
-              <X aria-hidden="true" />
-            </Button>
-          </DialogPrimitive.Close>
-        </div>
-
-        <div
-          id="command-list"
-          ref={listRef}
-          role="listbox"
-          aria-label={t.commandPlaceholder}
-          className="min-h-0 max-h-[min(60dvh,24rem)] overflow-y-auto p-2"
-        >
-          {items.length > 0 && (
-            <>
-              {actionItems.length > 0 && (
-                <div role="group" aria-labelledby="command-group-actions" className="mb-1">
-                  <p
-                    id="command-group-actions"
-                    className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70"
+            className="min-h-0 max-h-[min(60dvh,24rem)] overflow-y-auto p-2"
+          >
+            {items.length > 0 && (
+              <>
+                {actionItems.length > 0 && (
+                  <div
+                    role="group"
+                    aria-labelledby="command-group-actions"
+                    className="mb-1"
                   >
-                    {t.commandGroupActions}
-                  </p>
-                  {actionItems.map((item, index) => renderItem(item, index))}
-                </div>
-              )}
-              {pageItems.length > 0 && (
-                <div role="group" aria-labelledby="command-group-pages">
-                  <p
-                    id="command-group-pages"
-                    className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70"
-                  >
-                    {t.commandGroupPages}
-                  </p>
-                  {pageItems.map((item, index) =>
-                    renderItem(item, actionItems.length + index),
-                  )}
-                </div>
-              )}
-            </>
+                    <p
+                      id="command-group-actions"
+                      className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70"
+                    >
+                      {t.commandGroupActions}
+                    </p>
+                    {actionItems.map((item, index) => renderItem(item, index))}
+                  </div>
+                )}
+                {pageItems.length > 0 && (
+                  <div role="group" aria-labelledby="command-group-pages">
+                    <p
+                      id="command-group-pages"
+                      className="px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70"
+                    >
+                      {t.commandGroupPages}
+                    </p>
+                    {pageItems.map((item, index) =>
+                      renderItem(item, actionItems.length + index),
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {items.length === 0 && (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+              {t.commandEmpty}
+            </p>
           )}
-        </div>
-        {items.length === 0 && (
-          <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-            {t.commandEmpty}
-          </p>
-        )}
 
-        <div className="hidden items-center gap-4 border-t border-border/50 px-4 py-2.5 text-xs text-muted-foreground sm:flex">
-          <span className="flex items-center gap-1.5">
-            <Kbd>↑</Kbd>
-            <Kbd>↓</Kbd>
-            {t.commandHintNavigate}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Kbd>↵</Kbd>
-            {t.commandHintSelect}
-          </span>
-          <span className="ml-auto flex items-center gap-1.5">
-            <Kbd>esc</Kbd>
-            {t.commandHintClose}
-          </span>
-        </div>
+          <div className="hidden items-center gap-4 border-t border-border/50 px-4 py-2.5 text-xs text-muted-foreground sm:flex">
+            <span className="flex items-center gap-1.5">
+              <Kbd>↑</Kbd>
+              <Kbd>↓</Kbd>
+              {t.commandHintNavigate}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Kbd>↵</Kbd>
+              {t.commandHintSelect}
+            </span>
+            <span className="ms-auto flex items-center gap-1.5">
+              <Kbd>esc</Kbd>
+              {t.commandHintClose}
+            </span>
+          </div>
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>

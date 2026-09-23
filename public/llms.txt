@@ -1,32 +1,36 @@
-# IP Auskunft
+# IP Info
 
-> Kostenlose, öffentliche Netzwerk-Toolbox unter https://ip-info.leunos.com. Zeigt die eigene öffentliche IP (IPv4/IPv6) und bietet Checks ausschließlich gegen öffentliche Internet-Ziele: IP-/Domain-Lookup, ASN, DNS, Whois, CDN-Erkennung, Ping/Port-Test und IP-Reputation. Oberflächensprache: Deutsch (de-DE).
+> Free, public network toolbox at https://ip-info.leunos.com. It shows your public IPv4/IPv6 address and provides bounded checks against public internet targets only: IP/domain lookup, ASN, DNS, WHOIS, CDN detection, ping/port checks, and IP reputation.
 
-Die Werkzeuge laufen serverseitig (Next.js API-Routes). Eingaben werden mit Zod validiert; Ziele werden vor jeder Netzwerkinteraktion gegen SSRF-Schutz geprüft (keine privaten/internen Netze wie 10/8, 127/8, 192.168/16, ::1, fc00::/7). Jede Route ist ratenlimitiert (In-Memory Token-Bucket pro Client-IP). Es gibt keine Authentifizierung; Anfragedaten werden nicht gespeichert.
+Supported interface languages: Deutsch, English, Español, Français, Italiano, Nederlands, Polski, Português (Brasil), Português (Portugal), 日本語, 한국어, Русский, Українська, 简体中文, 繁體中文, العربية, हिन्दी, Bahasa Indonesia, Čeština, Svenska, Dansk, Norsk bokmål, Suomi, Ελληνικά, Română, Türkçe.
 
-## Werkzeuge
+The tools run through server-side Next.js API routes. Inputs are validated with Zod and checked against SSRF protections before network access; private and internal targets are rejected. Public routes are rate-limited with an in-memory token bucket per client IP. The site has no user accounts and does not permanently store request data. A functional language cookie stores an explicit language choice; the theme preference is stored in browser local storage.
 
-- [Eigene IP anzeigen](https://ip-info.leunos.com/): Öffentliche IPv4/IPv6-Adresse inkl. Standort, Provider, ASN und Verbindungstyp.
-- [IP-/Domain-Check](https://ip-info.leunos.com/check): Prüft jede öffentliche IP-Adresse oder Domain inkl. Standort, ASN, Provider, Reverse DNS und Netzwerkdaten.
-- [ASN Lookup](https://ip-info.leunos.com/asn): ASN-Profile mit IPinfo-Daten, Prefixen, Routing-Beziehungen und PeeringDB-Interconnection-Daten; Deep-Link-Form `/asn/AS123`.
-- [Ping & Port Test](https://ip-info.leunos.com/ping): Erreichbarkeit und Latenz für Hosts, Ports und Dienste.
-- [DNS Lookup](https://ip-info.leunos.com/dns): DNS-Lookups für A, AAAA, MX, TXT, NS und weitere Records.
-- [Whois Lookup](https://ip-info.leunos.com/whois): Whois-Daten für Domains und IP-Adressräume inkl. Registrar, Inhaber und Ablauf.
-- [CDN Check](https://ip-info.leunos.com/cdn): Erkennt eingesetzte Content Delivery Networks und Edge-Anbieter für Domains.
-- [IP Reputation](https://ip-info.leunos.com/reputation): Evidenzbasierte Prüfung einer öffentlichen IP gegen unabhängige Quellen (Spamhaus ZEN/DROP, SpamCop, Barracuda, DroneBL, blocklist.de, Feodo Tracker, GreyNoise, optional AbuseIPDB/http:BL/ThreatFox) — trennt Richtlinien-Einträge (z. B. Spamhaus PBL) und Netzwerk-Kontext (Residential, Hosting, VPN, Tor) klar von echter Bedrohungsevidenz; Risiko-Score mit nachvollziehbaren Beiträgen je Quelle.
+## Tools
 
-## JSON-API (maschinenlesbar, ratenlimitiert)
+- [Show my IP](https://ip-info.leunos.com/): Public IPv4/IPv6 address with available location, provider, ASN, reverse DNS, and connection details.
+- [IP/domain lookup](https://ip-info.leunos.com/check): Public IP address or domain metadata.
+- [ASN lookup](https://ip-info.leunos.com/asn): ASN identity, announced prefixes, routing relationships, and public PeeringDB data; deep links use `/asn/AS123`.
+- [Ping & port test](https://ip-info.leunos.com/ping): Bounded TCP/UDP reachability, endpoint, and selected database checks.
+- [DNS lookup](https://ip-info.leunos.com/dns): A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA, and reverse PTR records.
+- [WHOIS lookup](https://ip-info.leunos.com/whois): WHOIS/RDAP registration, registrar, nameserver, and date fields.
+- [CDN check](https://ip-info.leunos.com/cdn): DNS, CNAME, HTTP, and provider signals for public domains.
+- [IP reputation](https://ip-info.leunos.com/reputation): Evidence-based risk and source analysis using independent reputation and threat-intelligence sources.
 
-- [Eigene IP](https://ip-info.leunos.com/api/ip): Metadaten zur anfragenden IP (80 Anfragen/min).
-- [ASN-Daten](https://ip-info.leunos.com/api/asn/{asn}): Holder, Prefixe, Routing-Nachbarn (30/min).
-- [DNS-Lookup](https://ip-info.leunos.com/api/dns): Records für eine Domain (40/min).
-- [Whois](https://ip-info.leunos.com/api/whois): Whois zu Domain/IP (20/min).
-- [CDN-Erkennung](https://ip-info.leunos.com/api/cdn): CDN-Anbieter einer Domain (20/min).
-- [Ping/Port-Test](https://ip-info.leunos.com/api/ping): TCP/UDP-Erreichbarkeit, POST (20/min).
-- [IP-Reputation](https://ip-info.leunos.com/api/reputation): Evidenzbasierte Risiko- und Quellenprüfung (20/min).
+## JSON API
 
-## Optional
+The public JSON endpoints are rate-limited and return the standard `{ ok, data }` / `{ ok, error }` envelope.
 
-- [Datenschutzerklärung](https://ip-info.leunos.com/privacy-policy): Umgang mit IP-Adressen, eingebundene Dienste, DSGVO-Rechte.
-- [Nutzungsbedingungen](https://ip-info.leunos.com/terms-of-use): Bedingungen für die Nutzung der Werkzeuge.
-- [Sitemap](https://ip-info.leunos.com/sitemap.xml): Übersicht aller Seiten.
+- `/api/ip`: Public IP metadata (80 requests/minute).
+- `/api/asn/{asn}`: ASN and routing data (30/minute).
+- `/api/dns?target=`: DNS records for a domain (40/minute).
+- `/api/whois?target=`: WHOIS/RDAP data (20/minute).
+- `/api/cdn?target=`: CDN signals for a domain (20/minute).
+- `/api/ping`: TCP/UDP reachability, POST (20/minute).
+- `/api/reputation?ip=`: Reputation and source analysis (20/minute).
+
+## Legal and discovery
+
+- [Privacy policy](https://ip-info.leunos.com/privacy-policy)
+- [Terms of use](https://ip-info.leunos.com/terms-of-use)
+- [Sitemap](https://ip-info.leunos.com/sitemap.xml)

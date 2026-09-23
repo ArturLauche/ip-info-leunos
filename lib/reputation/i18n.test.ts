@@ -4,8 +4,8 @@ import { REPUTATION_SOURCES } from "./model";
 
 /**
  * The reputation UI resolves reason codes and source ids against translation
- * records at runtime. Because `de` spreads over `en`, a missing record key
- * would silently render as undefined — this keeps both locales aligned.
+ * records at runtime. Every supported catalog is complete, so this keeps the
+ * English and German reference records aligned with the runtime UI.
  */
 const REPUTATION_RECORDS = [
   "reputationCategories",
@@ -39,8 +39,14 @@ describe("reputation translation parity", () => {
     const de = getToolTranslation("de");
 
     for (const source of REPUTATION_SOURCES) {
-      expect(en.reputationSourceDescriptions[source.id], source.id).toBeTruthy();
-      expect(de.reputationSourceDescriptions[source.id], source.id).toBeTruthy();
+      expect(
+        en.reputationSourceDescriptions[source.id],
+        source.id,
+      ).toBeTruthy();
+      expect(
+        de.reputationSourceDescriptions[source.id],
+        source.id,
+      ).toBeTruthy();
     }
   });
 

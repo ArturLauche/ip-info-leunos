@@ -1,8 +1,8 @@
-import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { resolveLocale } from "@/lib/i18n";
+import { getLocaleSchemaLanguage } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { canonicalUrl, createPageMetadata, siteConfig } from "@/lib/seo";
 import { getPrivacyContactEmail } from "@/lib/privacy";
 import { getTermsContent } from "@/lib/terms";
@@ -10,13 +10,17 @@ import { splitEmail, type EmailParts } from "@/lib/email";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { StructuredData } from "@/components/structured-data";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Nutzungsbedingungen",
-  description:
-    "Nutzungsbedingungen: Bedingungen für die Nutzung der IP-, Domain- und Netzwerk-Werkzeuge dieser Seite.",
-  path: "/terms-of-use",
-  keywords: ["Nutzungsbedingungen", "Terms of Use", "AGB"],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const content = getTermsContent(locale);
+  return createPageMetadata({
+    title: content.title,
+    description: content.subtitle,
+    path: "/terms-of-use",
+    keywords: [content.title, "IP"],
+    locale,
+  });
+}
 
 interface ParagraphTokens {
   emailParts: EmailParts | null;
@@ -28,7 +32,11 @@ interface ParagraphTokens {
  * assembles it in the browser (keeping it out of the HTML), or a muted fallback
  * when no contact address is configured.
  */
-function renderParagraph(text: string, tokens: ParagraphTokens) {
+function renderParagraph(
+  text: string,
+  tokens: ParagraphTokens,
+  locale: import("@/lib/i18n").Locale,
+) {
   const parts = text.split("{email}");
   if (parts.length === 1) return text;
 
@@ -42,18 +50,20 @@ function renderParagraph(text: string, tokens: ParagraphTokens) {
           <ObfuscatedEmail
             user={emailParts.user}
             domain={emailParts.domain}
+            locale={locale}
             className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
           />
         ) : (
-          <span className="italic text-muted-foreground/80">{emailFallback}</span>
+          <span className="italic text-muted-foreground/80">
+            {emailFallback}
+          </span>
         ))}
     </span>
   ));
 }
 
 export default async function TermsOfUsePage() {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = await getRequestLocale();
   const content = getTermsContent(locale);
   const emailParts = splitEmail(getPrivacyContactEmail() ?? "");
   const pageUrl = canonicalUrl("/terms-of-use");
@@ -73,7 +83,7 @@ export default async function TermsOfUsePage() {
           headline: content.title,
           description: content.subtitle,
           dateModified: content.lastUpdated,
-          inLanguage: locale === "de" ? "de-DE" : locale,
+          inLanguage: getLocaleSchemaLanguage(locale),
           mainEntityOfPage: pageUrl,
           author: { "@id": `${siteConfig.url}/#organization` },
           publisher: { "@id": `${siteConfig.url}/#organization` },
@@ -96,14 +106,18 @@ export default async function TermsOfUsePage() {
                   key={index}
                   className="text-sm leading-relaxed text-muted-foreground"
                 >
-                  {renderParagraph(paragraph, {
-                    emailParts,
-                    emailFallback: content.contactNotConfigured,
-                  })}
+                  {renderParagraph(
+                    paragraph,
+                    {
+                      emailParts,
+                      emailFallback: content.contactNotConfigured,
+                    },
+                    locale,
+                  )}
                 </p>
               ))}
               {section.bullets && (
-                <ul className="space-y-2 pl-5">
+                <ul className="space-y-2 ps-5">
                   {section.bullets.map((bullet, index) => (
                     <li
                       key={index}

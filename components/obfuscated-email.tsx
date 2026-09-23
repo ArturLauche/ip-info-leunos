@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 
+import type { Locale } from "@/lib/i18n";
+import { getUiCopy } from "@/lib/ui-copy";
+
 interface ObfuscatedEmailProps {
   /** Local part (before the "@"), passed separately from the domain. */
   user: string;
   /** Domain part (after the "@"). */
   domain: string;
   className?: string;
+  locale?: Locale;
 }
 
 /**
@@ -20,7 +24,12 @@ interface ObfuscatedEmailProps {
  * shown instead: still legally accessible (GDPR Art. 13) but not a
  * regex-matchable address.
  */
-export function ObfuscatedEmail({ user, domain, className }: ObfuscatedEmailProps) {
+export function ObfuscatedEmail({
+  user,
+  domain,
+  className,
+  locale = "en",
+}: ObfuscatedEmailProps) {
   const [revealed, setRevealed] = useState(false);
 
   // Runs only in the browser, so the assembled address is never part of the
@@ -31,9 +40,10 @@ export function ObfuscatedEmail({ user, domain, className }: ObfuscatedEmailProp
   }, []);
 
   if (!revealed) {
+    const copy = getUiCopy(locale);
     return (
       <span className={className}>
-        {user} [at] {domain.replace(/\./g, " [dot] ")}
+        {user} {copy.emailAt} {domain.replace(/\./g, ` ${copy.emailDot} `)}
       </span>
     );
   }

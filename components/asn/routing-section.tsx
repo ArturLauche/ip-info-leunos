@@ -18,28 +18,45 @@ function RelationRow({
   showPower,
   locale,
   powerLabel,
+  t,
 }: {
   relation: AsnRelation;
   maxPower: number;
   showPower: boolean;
   locale: Locale;
   powerLabel: string;
+  t: ToolTranslation;
 }) {
   const powerPct =
-    maxPower > 0 ? Math.min(100, Math.max(6, ((relation.power || 0) / maxPower) * 100)) : 0;
+    maxPower > 0
+      ? Math.min(100, Math.max(6, ((relation.power || 0) / maxPower) * 100))
+      : 0;
   // Secondary metadata shares one quiet line so peer counts and provenance
   // never truncate against the power cluster on narrow columns.
   const metaParts: string[] = [];
-  if (relation.v4Peers !== null && relation.v4Peers !== undefined && relation.v4Peers > 0) {
-    metaParts.push(`v4 ${formatNumber(relation.v4Peers, locale)}`);
+  if (
+    relation.v4Peers !== null &&
+    relation.v4Peers !== undefined &&
+    relation.v4Peers > 0
+  ) {
+    metaParts.push(
+      `${t.asnLabelIpv4} ${formatNumber(relation.v4Peers, locale)}`,
+    );
   }
-  if (relation.v6Peers !== null && relation.v6Peers !== undefined && relation.v6Peers > 0) {
-    metaParts.push(`v6 ${formatNumber(relation.v6Peers, locale)}`);
+  if (
+    relation.v6Peers !== null &&
+    relation.v6Peers !== undefined &&
+    relation.v6Peers > 0
+  ) {
+    metaParts.push(
+      `${t.asnLabelIpv6} ${formatNumber(relation.v6Peers, locale)}`,
+    );
   }
   if (relation.source) {
     metaParts.push(relation.source);
   }
-  const hasPower = showPower && relation.power !== null && relation.power !== undefined;
+  const hasPower =
+    showPower && relation.power !== null && relation.power !== undefined;
 
   return (
     <li className="border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/40">
@@ -50,12 +67,15 @@ function RelationRow({
         >
           {relation.asn}
           <ArrowUpRight
-            className="size-3.5 shrink-0 text-muted-foreground/50 transition-opacity group-hover/link:opacity-100"
+            className="size-3.5 shrink-0 text-muted-foreground/50 transition-opacity group-hover/link:opacity-100 rtl:rotate-180"
             aria-hidden
           />
         </Link>
         {hasPower && (
-          <span className="ml-auto flex shrink-0 items-center gap-2" title={powerLabel}>
+          <span
+            className="ms-auto flex shrink-0 items-center gap-2"
+            title={powerLabel}
+          >
             <span
               className="hidden h-1 w-14 overflow-hidden rounded-full bg-foreground/10 sm:block"
               aria-hidden
@@ -99,8 +119,13 @@ function RelationColumn({
 }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? relations : relations.slice(0, ROW_LIMIT);
-  const maxPower = useMemo(() => Math.max(...relations.map((r) => r.power || 0), 0), [relations]);
-  const showPower = relations.some((r) => r.power !== null && r.power !== undefined);
+  const maxPower = useMemo(
+    () => Math.max(...relations.map((r) => r.power || 0), 0),
+    [relations],
+  );
+  const showPower = relations.some(
+    (r) => r.power !== null && r.power !== undefined,
+  );
 
   return (
     <DataColumn
@@ -131,6 +156,7 @@ function RelationColumn({
               showPower={showPower}
               locale={locale}
               powerLabel={t.asnRelationPower}
+              t={t}
             />
           ))}
         </ul>
@@ -143,14 +169,24 @@ function RelationColumn({
   );
 }
 
-export function RoutingSection({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
+export function RoutingSection({
+  result,
+  t,
+  locale,
+}: {
+  result: AsnProfile;
+  t: ToolTranslation;
+  locale: Locale;
+}) {
   return (
     <section aria-label={t.asnRouting} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnRouting}
         </h3>
-        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnRoutingDescription}</p>
+        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">
+          {t.asnRoutingDescription}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-5">

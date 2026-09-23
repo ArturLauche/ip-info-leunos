@@ -1,6 +1,14 @@
 import { ApiClientError } from "@/lib/api/client";
 import { type Locale } from "@/lib/i18n";
-import type { EvidenceCategory, EvidenceSeverity, SourceStatus } from "@/lib/reputation/model";
+import type {
+  EvidenceCategory,
+  EvidenceSeverity,
+  SourceStatus,
+} from "@/lib/reputation/model";
+import { toolsEastern } from "@/lib/translations/tools-eastern";
+import { toolsMenaAsia } from "@/lib/translations/tools-mena-asia";
+import { toolsNorthern } from "@/lib/translations/tools-northern";
+import { toolsWestern } from "@/lib/translations/tools-western";
 
 type ToolTranslation = {
   errorRateLimited: string;
@@ -340,8 +348,10 @@ type ToolTranslation = {
 
 const en: ToolTranslation = {
   errorRateLimited: "Too many requests. Please wait a moment and try again.",
-  errorInvalidTarget: "Please provide a valid public domain, IP address, or URL.",
-  errorTargetBlocked: "Private, local, and internal targets cannot be checked on this public site.",
+  errorInvalidTarget:
+    "Please provide a valid public domain, IP address, or URL.",
+  errorTargetBlocked:
+    "Private, local, and internal targets cannot be checked on this public site.",
   errorTimeout: "The check timed out. The target may be slow or unreachable.",
   errorUpstream: "An upstream data provider is currently unavailable.",
   errorBadRequest: "The request parameters are invalid.",
@@ -364,8 +374,10 @@ const en: ToolTranslation = {
   copyValue: "Copy",
   downloadJson: "Download JSON",
   cancelLookup: "Cancel",
-  whoisNoteIana: "No referral server was found. Showing the IANA WHOIS response.",
-  whoisNoteRdap: "WHOIS was unavailable. Showing RDAP registration data instead.",
+  whoisNoteIana:
+    "No referral server was found. Showing the IANA WHOIS response.",
+  whoisNoteRdap:
+    "WHOIS was unavailable. Showing RDAP registration data instead.",
   commandTriggerLabel: "Search…",
   commandPlaceholder: "Search tools, or enter an IP, domain or ASN…",
   commandGroupActions: "Actions",
@@ -395,33 +407,44 @@ const en: ToolTranslation = {
   asnTabLabel: "ASN Lookup",
   reputationTabLabel: "IP Reputation",
   pingTitle: "Ping & Port Tester",
-  pingSubtitle: "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
+  pingSubtitle:
+    "Guided checks for TCP/UDP ports, EB endpoints, and database connectivity with a cleaner test workflow.",
   dnsTitle: "DNS Lookup",
-  dnsSubtitle: "Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) for domains and reverse DNS for IP addresses.",
+  dnsSubtitle:
+    "Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) for domains and reverse DNS for IP addresses.",
   whoisTitle: "WHOIS Lookup",
-  whoisSubtitle: "Query WHOIS records for domains and IP addresses directly from this app.",
+  whoisSubtitle:
+    "Query WHOIS records for domains and IP addresses directly from this app.",
   cdnTitle: "CDN Usage Checker",
-  cdnSubtitle: "Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).",
+  cdnSubtitle:
+    "Analyze any domain for CDN usage and likely provider (including CloudFront, Google Cloud CDN, Azure CDN, Vercel, and more).",
   asnTitle: "ASN Information",
-  asnSubtitle: "Look up autonomous systems with IPinfo ASN details and public PeeringDB interconnection data.",
+  asnSubtitle:
+    "Look up autonomous systems with IPinfo ASN details and public PeeringDB interconnection data.",
   asnPlaceholder: "AS8881 or 8881",
   asnLookupButton: "Lookup ASN",
   asnLookingUp: "Looking up...",
-  asnInvalidInput: "Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.",
+  asnInvalidInput:
+    "Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.",
   asnInvalidRange: "ASN must be between 1 and {max}.",
   asnNetworkError: "Network error while contacting the ASN lookup.",
   asnUpstreamError: "ASN data providers are currently unavailable.",
   asnRateLimitError: "Too many ASN lookups. Please wait before trying again.",
   asnEmptyTitle: "Enter an ASN to inspect a network profile",
-  asnEmptyDescription: "Use AS-prefixed or numeric input. Provider data may be partial depending on public records and the configured IPinfo plan.",
+  asnEmptyDescription:
+    "Use AS-prefixed or numeric input. Provider data may be partial depending on public records and the configured IPinfo plan.",
   dnsEmptyTitle: "Enter a domain to resolve its DNS records",
-  dnsEmptyDescription: "Look up A, AAAA, MX, TXT, NS, SOA, SRV and CAA records, or run a reverse lookup on an IP address.",
+  dnsEmptyDescription:
+    "Look up A, AAAA, MX, TXT, NS, SOA, SRV and CAA records, or run a reverse lookup on an IP address.",
   whoisEmptyTitle: "Enter a domain or IP to query WHOIS",
-  whoisEmptyDescription: "Retrieve registrar, registration dates, status and nameservers from the responsible WHOIS server.",
+  whoisEmptyDescription:
+    "Retrieve registrar, registration dates, status and nameservers from the responsible WHOIS server.",
   cdnEmptyTitle: "Enter a domain to detect its CDN",
-  cdnEmptyDescription: "Inspect DNS, CNAME chains and response headers to identify the CDN or edge provider sitting in front of a site.",
+  cdnEmptyDescription:
+    "Inspect DNS, CNAME chains and response headers to identify the CDN or edge provider sitting in front of a site.",
   asnNotFoundTitle: "No ASN profile found",
-  asnNotFoundDescription: "The ASN is valid, but neither configured source returned a usable public profile.",
+  asnNotFoundDescription:
+    "The ASN is valid, but neither configured source returned a usable public profile.",
   asnPartialData: "Partial data",
   asnCompleteData: "Complete",
   asnPrefixes: "Announced prefixes",
@@ -436,10 +459,12 @@ const en: ToolTranslation = {
     "Autonomous system interconnections, neighbours, and path weights. Higher weights indicate more frequently observed routing paths.",
   asnIxDescription:
     "Internet exchanges (IX) where this autonomous system is present, including interconnection bandwidth.",
-  asnPrefixesDescription: "IP netblocks announced by this autonomous system to the global routing table.",
+  asnPrefixesDescription:
+    "IP netblocks announced by this autonomous system to the global routing table.",
   asnPeeringDbDescription:
     "Interconnection profile and routing policies declared in the public PeeringDB database.",
-  asnFacilitiesDescription: "Physical data centers and colocation facilities where this network is present.",
+  asnFacilitiesDescription:
+    "Physical data centers and colocation facilities where this network is present.",
   asnProfileIdentityHeading: "Identity & status",
   asnProfileInterconnectionHeading: "Interconnection details",
   asnProfilePolicyHeading: "Peering policy",
@@ -458,7 +483,8 @@ const en: ToolTranslation = {
   asnCacheStale: "stale",
   asnCacheNotConfigured: "not configured",
   asnNoPrefixes: "No prefixes returned by the configured sources.",
-  asnNoRelations: "No routing relationships returned by the configured sources.",
+  asnNoRelations:
+    "No routing relationships returned by the configured sources.",
   asnMetricIpv4Addresses: "IPv4 addresses",
   asnMetricRoutingNeighbours: "Routing neighbours",
   asnMetricIxPresence: "IX presence",
@@ -507,16 +533,19 @@ const en: ToolTranslation = {
   asnSpeedMbps: "Mbps",
   asnNoIxLanRecords: "No IX LAN records returned.",
   asnNoFacilityRecords: "No facility records returned.",
-  asnWarningIpinfoUnavailable: "IPinfo ASN data is unavailable for this ASN or token plan.",
+  asnWarningIpinfoUnavailable:
+    "IPinfo ASN data is unavailable for this ASN or token plan.",
   asnWarningIpinfoUnexpected: "IPinfo returned an unexpected ASN payload.",
   asnWarningNoRipeStatData: "No RIPEstat ASN data was found for this ASN.",
-  asnWarningNoPeeringDbProfile: "No public PeeringDB network profile was found for this ASN.",
+  asnWarningNoPeeringDbProfile:
+    "No public PeeringDB network profile was found for this ASN.",
   asnWarningProviderHttp: "{provider} returned HTTP {status}.",
   asnWarningProviderTimedOut: "{provider} request timed out.",
   asnWarningProviderTooLarge: "{provider} response exceeded the size limit.",
   asnWarningProviderInvalidJson: "{provider} returned invalid JSON.",
   asnWarningProviderUnavailable: "{provider} data is currently unavailable.",
-  asnWarningProviderStale: "{provider} data is currently unavailable; using stale cached data.",
+  asnWarningProviderStale:
+    "{provider} data is currently unavailable; using stale cached data.",
   asnWarningTruncated: "{label} truncated to {limit} of {total} records.",
   asnWarningLabelIpinfoIpv4Prefixes: "IPinfo IPv4 prefixes",
   asnWarningLabelIpinfoIpv6Prefixes: "IPinfo IPv6 prefixes",
@@ -528,8 +557,10 @@ const en: ToolTranslation = {
   asnWarningLabelRipeStatIpv4Prefixes: "RIPEstat IPv4 prefixes",
   asnWarningLabelRipeStatIpv6Prefixes: "RIPEstat IPv6 prefixes",
   asnWarningLabelRipeStatRoutingNeighbours: "RIPEstat routing neighbours",
-  asnWarningLabelRipeStatUpstreamNeighbours: "RIPEstat upstream-side neighbours",
-  asnWarningLabelRipeStatDownstreamNeighbours: "RIPEstat downstream-side neighbours",
+  asnWarningLabelRipeStatUpstreamNeighbours:
+    "RIPEstat upstream-side neighbours",
+  asnWarningLabelRipeStatDownstreamNeighbours:
+    "RIPEstat downstream-side neighbours",
   targetPlaceholder: "example.com",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
@@ -561,9 +592,12 @@ const en: ToolTranslation = {
   whoisHideRaw: "Hide raw output",
   pingTestMode: "Test mode",
   pingModeHelperTcp: "Verifies whether the TCP port accepts a connection.",
-  pingModeHelperUdp: "Sends a UDP probe and reports immediate response/error behavior.",
-  pingModeHelperEb: "Checks TCP first, then tries HTTP/HTTPS endpoint reachability.",
-  pingModeHelperDatabase: "Runs pre-auth protocol checks and optional authenticated checks.",
+  pingModeHelperUdp:
+    "Sends a UDP probe and reports immediate response/error behavior.",
+  pingModeHelperEb:
+    "Checks TCP first, then tries HTTP/HTTPS endpoint reachability.",
+  pingModeHelperDatabase:
+    "Runs pre-auth protocol checks and optional authenticated checks.",
   pingModeDatabase: "Database",
   pingDatabaseType: "Database type",
   pingTargetHost: "Target host / IP",
@@ -581,7 +615,8 @@ const en: ToolTranslation = {
   pingTargetLabel: "Target",
   pingDetailsLabel: "Details",
   pingEmptyTitle: "No test run yet",
-  pingEmptyDescription: "Pick a test mode, enter a host and port, then run the check to measure reachability and latency.",
+  pingEmptyDescription:
+    "Pick a test mode, enter a host and port, then run the check to measure reachability and latency.",
   pingStatusSuccess: "Target reachable",
   pingStatusFailed: "Check failed",
   pingShowDetails: "Show technical details",
@@ -589,17 +624,22 @@ const en: ToolTranslation = {
   pingResultTcpOk: "TCP connection established.",
   pingResultTcpTimeout: "TCP timeout after {timeoutMs} ms.",
   pingResultTcpFailed: "TCP connection failed: {error}",
-  pingResultUdpSent: "UDP packet sent. No ICMP error observed within {timeoutMs} ms.",
+  pingResultUdpSent:
+    "UDP packet sent. No ICMP error observed within {timeoutMs} ms.",
   pingResultUdpResponse: "UDP response received from {from} ({bytes} bytes).",
   pingResultUdpFailed: "UDP probe failed: {error}",
   pingResultEbHttpOk: "Endpoint reachable via {scheme} (status {status}).",
-  pingResultEbNoHttp: "TCP open, but no HTTP(S) response detected on this endpoint.",
+  pingResultEbNoHttp:
+    "TCP open, but no HTTP(S) response detected on this endpoint.",
   pingResultEbTcpFailed: "EB check failed at TCP stage: {error}",
   pingResultDbConnectFailed: "{database} connectivity failed: {error}",
-  pingResultDbProtocolOk: "{database} server responded to a pre-auth handshake probe.",
+  pingResultDbProtocolOk:
+    "{database} server responded to a pre-auth handshake probe.",
   pingResultDbProtocolFailed: "{database} probe failed: {error}",
-  pingResultDbTcpOk: "{database} TCP port is reachable. No protocol-level pre-auth probe for this type.",
-  pingResultDbAuthUnsupported: "Authenticated checks are only implemented for Redis. Use the protocol check for {database}.",
+  pingResultDbTcpOk:
+    "{database} TCP port is reachable. No protocol-level pre-auth probe for this type.",
+  pingResultDbAuthUnsupported:
+    "Authenticated checks are only implemented for Redis. Use the protocol check for {database}.",
   pingResultDbAuthOk: "Authenticated Redis connection succeeded.",
   pingResultDbAuthFailed: "Redis authentication check failed: {error}",
   cdnAnalyzeButton: "Check CDN",
@@ -627,10 +667,13 @@ const en: ToolTranslation = {
   reputationPlaceholder: "8.8.8.8 or 2001:4860:4860::8888",
   reputationCheckButton: "Check reputation",
   reputationChecking: "Checking...",
-  reputationNetworkError: "Network error while contacting the reputation check.",
-  reputationRateLimitError: "Too many reputation checks. Please wait before trying again.",
+  reputationNetworkError:
+    "Network error while contacting the reputation check.",
+  reputationRateLimitError:
+    "Too many reputation checks. Please wait before trying again.",
   reputationInvalidIp: "Please enter a valid public IP address (IPv4 or IPv6).",
-  reputationBlockedIp: "Private, reserved, and internal IP ranges cannot be checked.",
+  reputationBlockedIp:
+    "Private, reserved, and internal IP ranges cannot be checked.",
   reputationEmptyTitle: "Enter an IP address to check its reputation",
   reputationEmptyDescription:
     "The IP is checked against DNS blocklists, abuse-report databases, botnet C2 trackers, and network classification sources. Optional providers (AbuseIPDB, GreyNoise, http:BL, ThreatFox) activate when a free API key is configured.",
@@ -652,9 +695,11 @@ const en: ToolTranslation = {
   reputationGeneratedAt: "Generated {time}",
   reputationNoThreatEvidence:
     "No direct malicious observations were found in the sources that could be checked.",
-  reputationNoMailEvidence: "No email reputation listings were found in the checked sources.",
+  reputationNoMailEvidence:
+    "No email reputation listings were found in the checked sources.",
   reputationFilterAll: "All",
-  reputationNoEvidence: "No evidence in this group from the sources that could be checked.",
+  reputationNoEvidence:
+    "No evidence in this group from the sources that could be checked.",
   reputationFactChecked: "Checked",
   reputationFactMatched: "With threat evidence",
   reputationFactUnavailable: "Unavailable",
@@ -710,41 +755,40 @@ const en: ToolTranslation = {
     unavailable: "unavailable",
   },
   reputationReasons: {
-    sbl:
-      "Listed on the Spamhaus SBL: verified spam sources, spam services, or ROKSO spammers (evidence-based, human-maintained listing).",
-    css:
-      "Listed on Spamhaus CSS: automated detection of high-volume or grey-area email sending. Weaker evidence than the SBL.",
-    xbl:
-      "Listed on the Spamhaus XBL: the host was observed running trojan/exploit software or an open proxy — typically a compromised machine.",
-    drop:
-      "The address is in a Spamhaus DROP netblock: ranges controlled by criminal or bulletproof-hosting operations and used for malware, botnet controllers, or spam.",
+    sbl: "Listed on the Spamhaus SBL: verified spam sources, spam services, or ROKSO spammers (evidence-based, human-maintained listing).",
+    css: "Listed on Spamhaus CSS: automated detection of high-volume or grey-area email sending. Weaker evidence than the SBL.",
+    xbl: "Listed on the Spamhaus XBL: the host was observed running trojan/exploit software or an open proxy — typically a compromised machine.",
+    drop: "The address is in a Spamhaus DROP netblock: ranges controlled by criminal or bulletproof-hosting operations and used for malware, botnet controllers, or spam.",
     pbl_isp:
       "Listed on the Spamhaus PBL (ISP-maintained): this range is not expected to deliver SMTP mail directly to third-party mail servers. This is normal for most residential, dynamic, and end-user addresses and is not evidence of abuse.",
     pbl_spamhaus:
       "Listed on the Spamhaus PBL (Spamhaus-maintained): a policy range that should not deliver mail directly. Normal for many end-user addresses, not evidence of abuse.",
-    bcl:
-      "Listed on the Spamhaus Botnet Controller List: confirmed active botnet command-and-control infrastructure.",
+    bcl: "Listed on the Spamhaus Botnet Controller List: confirmed active botnet command-and-control infrastructure.",
     spamcop_listing:
       "Listed on SpamCop based on recent spam reports (spamtraps and user-submitted evidence). Listings expire shortly after the last report.",
     barracuda_listing:
       "Poor email reputation measured across the Barracuda filter network. This is aggregated, partly historical evidence and can also affect dynamically reassigned addresses — it does not prove that this address is currently sending spam.",
-    dronebl_irc_drone: "Observed as an IRC spam drone (bot) by the DroneBL network.",
+    dronebl_irc_drone:
+      "Observed as an IRC spam drone (bot) by the DroneBL network.",
     dronebl_bottler: "Observed as a Bottler IRC bot by the DroneBL network.",
     dronebl_worm: "Observed running a worm or spambot by the DroneBL network.",
-    dronebl_ddos_drone: "Observed as a DDoS drone (participates in distributed attacks).",
+    dronebl_ddos_drone:
+      "Observed as a DDoS drone (participates in distributed attacks).",
     dronebl_open_socks_proxy:
       "Observed running an open SOCKS proxy — abusable infrastructure, not necessarily malicious by itself.",
     dronebl_open_http_proxy:
       "Observed running an open HTTP proxy — abusable infrastructure, not necessarily malicious by itself.",
     dronebl_proxychain: "Observed as part of a proxy chain.",
     dronebl_web_proxy: "Observed running an open web proxy.",
-    dronebl_dictionary: "Observed performing automated dictionary (brute-force) attacks.",
+    dronebl_dictionary:
+      "Observed performing automated dictionary (brute-force) attacks.",
     dronebl_wingate: "Observed running an open WinGate proxy.",
     dronebl_compromised_router: "Observed as a compromised router or gateway.",
     dronebl_botnet_auto:
       "Automatically classified as botnet infrastructure by DroneBL (experimental detection).",
     dronebl_compromised_host: "Possibly compromised host detected on IRC.",
-    dronebl_uncategorized: "Listed on DroneBL with an uncategorized threat class.",
+    dronebl_uncategorized:
+      "Listed on DroneBL with an uncategorized threat class.",
     bld_attack:
       "Attack reports filed by affected server operators and collected by blocklist.de. A live DNS entry means attacks were reported recently.",
     bld_counts_only:
@@ -775,11 +819,14 @@ const en: ToolTranslation = {
       "Observed posting comment spam to honeypots in the Project Honey Pot network.",
     ipapi_vpn: "Flagged as a VPN, proxy, or anonymizer service by ip-api.com.",
     ipapi_hosting: "Flagged as a hosting or datacenter address by ip-api.com.",
-    ipapi_mobile: "Identified as a mobile or cellular connection by ip-api.com.",
+    ipapi_mobile:
+      "Identified as a mobile or cellular connection by ip-api.com.",
     residential_estimate:
       "Estimated residential connection based on connection type and reverse DNS naming — a heuristic, not provider-confirmed.",
-    corroboration: "Several independent sources report malicious activity for this address.",
-    mail_corroboration: "Several independent email reputation lists contain this address.",
+    corroboration:
+      "Several independent sources report malicious activity for this address.",
+    mail_corroboration:
+      "Several independent email reputation lists contain this address.",
   },
   reputationSourceDescriptions: {
     "spamhaus-zen":
@@ -804,7 +851,8 @@ const en: ToolTranslation = {
       "Project Honey Pot DNSBL for web abuse: harvesters, comment spammers, and suspicious bots. Requires a free access key (HTTPBL_ACCESS_KEY).",
     threatfox:
       "abuse.ch platform for sharing indicators of compromise, including botnet C2 addresses. Requires a free Auth-Key (THREATFOX_AUTH_KEY).",
-    "ip-api": "IP metadata: geolocation, network/ASN, and connection classification flags.",
+    "ip-api":
+      "IP metadata: geolocation, network/ASN, and connection classification flags.",
   },
   reputationGeoLabel: "Geolocation",
   reputationNetworkLabel: "ASN / Provider",
@@ -812,17 +860,21 @@ const en: ToolTranslation = {
   reputationHideHiddenSources: "Hide unconfigured sources",
 };
 
-const de: Partial<ToolTranslation> = {
+const de: ToolTranslation = {
   pingTabLabel: "Ping-Tester",
   dnsTabLabel: "DNS-Abfrage",
   whoisTabLabel: "WHOIS-Abfrage",
   cdnTabLabel: "CDN-Prüfer",
   asnTabLabel: "ASN-Abfrage",
   reputationTabLabel: "IP-Reputation",
-  errorRateLimited: "Zu viele Anfragen. Bitte warte kurz und versuche es erneut.",
-  errorInvalidTarget: "Bitte gib eine gültige öffentliche Domain, IP-Adresse oder URL an.",
-  errorTargetBlocked: "Private, lokale und interne Ziele können auf dieser öffentlichen Seite nicht geprüft werden.",
-  errorTimeout: "Zeitüberschreitung bei der Prüfung. Das Ziel ist möglicherweise langsam oder nicht erreichbar.",
+  errorRateLimited:
+    "Zu viele Anfragen. Bitte warte kurz und versuche es erneut.",
+  errorInvalidTarget:
+    "Bitte gib eine gültige öffentliche Domain, IP-Adresse oder URL an.",
+  errorTargetBlocked:
+    "Private, lokale und interne Ziele können auf dieser öffentlichen Seite nicht geprüft werden.",
+  errorTimeout:
+    "Zeitüberschreitung bei der Prüfung. Das Ziel ist möglicherweise langsam oder nicht erreichbar.",
   errorUpstream: "Ein vorgelagerter Datenanbieter ist derzeit nicht verfügbar.",
   errorBadRequest: "Die Anfrageparameter sind ungültig.",
   errorTargetNetwork: "Das Ziel konnte nicht aufgelöst oder erreicht werden.",
@@ -844,8 +896,10 @@ const de: Partial<ToolTranslation> = {
   copyValue: "Kopieren",
   downloadJson: "JSON herunterladen",
   cancelLookup: "Abbrechen",
-  whoisNoteIana: "Kein Verweisserver gefunden. Die IANA-WHOIS-Antwort wird angezeigt.",
-  whoisNoteRdap: "WHOIS war nicht verfügbar. Stattdessen werden RDAP-Registrierungsdaten angezeigt.",
+  whoisNoteIana:
+    "Kein Verweisserver gefunden. Die IANA-WHOIS-Antwort wird angezeigt.",
+  whoisNoteRdap:
+    "WHOIS war nicht verfügbar. Stattdessen werden RDAP-Registrierungsdaten angezeigt.",
   commandTriggerLabel: "Suchen…",
   commandPlaceholder: "Tools suchen oder IP, Domain oder ASN eingeben…",
   commandGroupActions: "Aktionen",
@@ -872,33 +926,45 @@ const de: Partial<ToolTranslation> = {
   whoisPlaceholder: "example.com oder 8.8.8.8",
   cdnConfidenceNa: "k. A.",
   pingTitle: "Ping- & Port-Tester",
-  pingSubtitle: "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
+  pingSubtitle:
+    "Geführte Prüfungen für TCP/UDP-Ports, EB-Endpunkte und Datenbank-Konnektivität in einem klaren Testablauf.",
   dnsTitle: "DNS-Abfrage",
-  dnsSubtitle: "DNS-Einträge (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) für Domains und Reverse-DNS für IP-Adressen abfragen.",
+  dnsSubtitle:
+    "DNS-Einträge (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) für Domains und Reverse-DNS für IP-Adressen abfragen.",
   whoisTitle: "WHOIS-Abfrage",
-  whoisSubtitle: "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
+  whoisSubtitle:
+    "WHOIS-Daten für Domains und IP-Adressen direkt in dieser App abfragen.",
   cdnTitle: "CDN-Nutzungsprüfung",
-  cdnSubtitle: "Analysiere beliebige Domains auf CDN-Nutzung und wahrscheinlichen Anbieter (u. a. CloudFront, Google Cloud CDN, Azure CDN, Vercel).",
+  cdnSubtitle:
+    "Analysiere beliebige Domains auf CDN-Nutzung und wahrscheinlichen Anbieter (u. a. CloudFront, Google Cloud CDN, Azure CDN, Vercel).",
   asnTitle: "ASN-Informationen",
-  asnSubtitle: "Autonome Systeme mit IPinfo-ASN-Daten und öffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
+  asnSubtitle:
+    "Autonome Systeme mit IPinfo-ASN-Daten und öffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
   asnPlaceholder: "AS8881 oder 8881",
   asnLookupButton: "ASN abfragen",
   asnLookingUp: "Abfrage läuft...",
-  asnInvalidInput: "Nutze eine AS-Nummer mit oder ohne Präfix, zum Beispiel AS8881 oder 8881.",
+  asnInvalidInput:
+    "Nutze eine AS-Nummer mit oder ohne Präfix, zum Beispiel AS8881 oder 8881.",
   asnInvalidRange: "ASN muss zwischen 1 und {max} liegen.",
   asnNetworkError: "Netzwerkfehler bei der ASN-Abfrage.",
   asnUpstreamError: "Die ASN-Datenquellen sind derzeit nicht verfügbar.",
-  asnRateLimitError: "Zu viele ASN-Abfragen. Bitte warte kurz und versuche es dann erneut.",
+  asnRateLimitError:
+    "Zu viele ASN-Abfragen. Bitte warte kurz und versuche es dann erneut.",
   asnEmptyTitle: "ASN eingeben, um ein Netzwerkprofil zu prüfen",
-  asnEmptyDescription: "AS-Präfix oder reine Zahl eingeben. Quelldaten können je nach öffentlichen Einträgen und IPinfo-Plan unvollständig sein.",
+  asnEmptyDescription:
+    "AS-Präfix oder reine Zahl eingeben. Quelldaten können je nach öffentlichen Einträgen und IPinfo-Plan unvollständig sein.",
   dnsEmptyTitle: "Domain eingeben, um DNS-Records abzufragen",
-  dnsEmptyDescription: "Frage A-, AAAA-, MX-, TXT-, NS-, SOA-, SRV- und CAA-Records ab oder löse eine IP-Adresse per Reverse-Lookup auf.",
+  dnsEmptyDescription:
+    "Frage A-, AAAA-, MX-, TXT-, NS-, SOA-, SRV- und CAA-Records ab oder löse eine IP-Adresse per Reverse-Lookup auf.",
   whoisEmptyTitle: "Domain oder IP eingeben, um WHOIS abzufragen",
-  whoisEmptyDescription: "Ruft Registrar, Registrierungsdaten, Status und Nameserver vom zuständigen WHOIS-Server ab.",
+  whoisEmptyDescription:
+    "Ruft Registrar, Registrierungsdaten, Status und Nameserver vom zuständigen WHOIS-Server ab.",
   cdnEmptyTitle: "Domain eingeben, um das CDN zu erkennen",
-  cdnEmptyDescription: "Analysiert DNS, CNAME-Ketten und Response-Header, um das CDN bzw. den Edge-Anbieter vor einer Seite zu identifizieren.",
+  cdnEmptyDescription:
+    "Analysiert DNS, CNAME-Ketten und Response-Header, um das CDN bzw. den Edge-Anbieter vor einer Seite zu identifizieren.",
   asnNotFoundTitle: "Kein ASN-Profil gefunden",
-  asnNotFoundDescription: "Die ASN ist gültig, aber keine konfigurierte Quelle lieferte ein nutzbares öffentliches Profil.",
+  asnNotFoundDescription:
+    "Die ASN ist gültig, aber keine konfigurierte Quelle lieferte ein nutzbares öffentliches Profil.",
   asnPartialData: "Teildaten",
   asnCompleteData: "Vollständig",
   asnPrefixes: "Angekündigte Prefixe",
@@ -913,10 +979,12 @@ const de: Partial<ToolTranslation> = {
     "Verbindungen, Nachbarn und Pfadgewichte des autonomen Systems. Höhere Gewichte stehen für häufiger beobachtete Routing-Pfade.",
   asnIxDescription:
     "Internet-Exchanges (IX), an denen dieses autonome System präsent ist, inklusive Anbindungsbandbreite.",
-  asnPrefixesDescription: "IP-Netzblöcke, die dieses autonome System in der globalen Routing-Tabelle ankündigt.",
+  asnPrefixesDescription:
+    "IP-Netzblöcke, die dieses autonome System in der globalen Routing-Tabelle ankündigt.",
   asnPeeringDbDescription:
     "Interconnection-Profil und Routing-Richtlinien aus der öffentlichen PeeringDB-Datenbank.",
-  asnFacilitiesDescription: "Physische Rechenzentren und Colocation-Standorte, an denen dieses Netzwerk präsent ist.",
+  asnFacilitiesDescription:
+    "Physische Rechenzentren und Colocation-Standorte, an denen dieses Netzwerk präsent ist.",
   asnProfileIdentityHeading: "Identität & Status",
   asnProfileInterconnectionHeading: "Interconnection-Details",
   asnProfilePolicyHeading: "Peering-Richtlinie",
@@ -935,7 +1003,8 @@ const de: Partial<ToolTranslation> = {
   asnCacheStale: "veraltet",
   asnCacheNotConfigured: "nicht konfiguriert",
   asnNoPrefixes: "Keine Prefixe von den konfigurierten Quellen erhalten.",
-  asnNoRelations: "Keine Routing-Beziehungen von den konfigurierten Quellen erhalten.",
+  asnNoRelations:
+    "Keine Routing-Beziehungen von den konfigurierten Quellen erhalten.",
   asnMetricIpv4Addresses: "IPv4-Adressen",
   asnMetricRoutingNeighbours: "Routing-Nachbarn",
   asnMetricIxPresence: "IX-Präsenz",
@@ -984,17 +1053,25 @@ const de: Partial<ToolTranslation> = {
   asnSpeedMbps: "Mbit/s",
   asnNoIxLanRecords: "Keine IX-LAN-Einträge erhalten.",
   asnNoFacilityRecords: "Keine Standort-Einträge erhalten.",
-  asnWarningIpinfoUnavailable: "IPinfo-ASN-Daten sind für diese ASN oder diesen Token-Plan nicht verfügbar.",
-  asnWarningIpinfoUnexpected: "IPinfo hat eine unerwartete ASN-Antwort geliefert.",
-  asnWarningNoRipeStatData: "RIPEstat hat für diese ASN keine ASN-Daten gefunden.",
-  asnWarningNoPeeringDbProfile: "Für diese ASN wurde kein öffentliches PeeringDB-Netzwerkprofil gefunden.",
+  asnWarningIpinfoUnavailable:
+    "IPinfo-ASN-Daten sind für diese ASN oder diesen Token-Plan nicht verfügbar.",
+  asnWarningIpinfoUnexpected:
+    "IPinfo hat eine unerwartete ASN-Antwort geliefert.",
+  asnWarningNoRipeStatData:
+    "RIPEstat hat für diese ASN keine ASN-Daten gefunden.",
+  asnWarningNoPeeringDbProfile:
+    "Für diese ASN wurde kein öffentliches PeeringDB-Netzwerkprofil gefunden.",
   asnWarningProviderHttp: "{provider} antwortete mit HTTP {status}.",
   asnWarningProviderTimedOut: "{provider} hat nicht rechtzeitig geantwortet.",
-  asnWarningProviderTooLarge: "Die Antwort von {provider} überschritt das Größenlimit.",
+  asnWarningProviderTooLarge:
+    "Die Antwort von {provider} überschritt das Größenlimit.",
   asnWarningProviderInvalidJson: "{provider} lieferte ungültiges JSON.",
-  asnWarningProviderUnavailable: "{provider}-Daten sind derzeit nicht verfügbar.",
-  asnWarningProviderStale: "{provider}-Daten sind derzeit nicht verfügbar; es werden veraltete Cache-Daten verwendet.",
-  asnWarningTruncated: "{label} wurden auf {limit} von {total} Einträgen gekürzt.",
+  asnWarningProviderUnavailable:
+    "{provider}-Daten sind derzeit nicht verfügbar.",
+  asnWarningProviderStale:
+    "{provider}-Daten sind derzeit nicht verfügbar; es werden veraltete Cache-Daten verwendet.",
+  asnWarningTruncated:
+    "{label} wurden auf {limit} von {total} Einträgen gekürzt.",
   asnWarningLabelIpinfoIpv4Prefixes: "IPinfo-IPv4-Prefixe",
   asnWarningLabelIpinfoIpv6Prefixes: "IPinfo-IPv6-Prefixe",
   asnWarningLabelIpinfoPeers: "IPinfo-Peers",
@@ -1036,9 +1113,12 @@ const de: Partial<ToolTranslation> = {
   whoisHideRaw: "Rohausgabe ausblenden",
   pingTestMode: "Testmodus",
   pingModeHelperTcp: "Prüft, ob der TCP-Port eine Verbindung akzeptiert.",
-  pingModeHelperUdp: "Sendet eine UDP-Probe und meldet unmittelbare Antworten/Fehler.",
-  pingModeHelperEb: "Prüft zuerst TCP und danach die Erreichbarkeit von HTTP/HTTPS-Endpunkten.",
-  pingModeHelperDatabase: "Führt Protokoll-Prüfungen vor Authentifizierung und optionale Auth-Checks aus.",
+  pingModeHelperUdp:
+    "Sendet eine UDP-Probe und meldet unmittelbare Antworten/Fehler.",
+  pingModeHelperEb:
+    "Prüft zuerst TCP und danach die Erreichbarkeit von HTTP/HTTPS-Endpunkten.",
+  pingModeHelperDatabase:
+    "Führt Protokoll-Prüfungen vor Authentifizierung und optionale Auth-Checks aus.",
   pingModeDatabase: "Datenbank",
   pingDatabaseType: "Datenbanktyp",
   pingTargetHost: "Ziel-Host / IP",
@@ -1056,7 +1136,8 @@ const de: Partial<ToolTranslation> = {
   pingTargetLabel: "Ziel",
   pingDetailsLabel: "Details",
   pingEmptyTitle: "Noch kein Test ausgeführt",
-  pingEmptyDescription: "Testmodus wählen, Host und Port eingeben und die Prüfung starten, um Erreichbarkeit und Latenz zu messen.",
+  pingEmptyDescription:
+    "Testmodus wählen, Host und Port eingeben und die Prüfung starten, um Erreichbarkeit und Latenz zu messen.",
   pingStatusSuccess: "Ziel erreichbar",
   pingStatusFailed: "Prüfung fehlgeschlagen",
   pingShowDetails: "Technische Details anzeigen",
@@ -1064,19 +1145,25 @@ const de: Partial<ToolTranslation> = {
   pingResultTcpOk: "TCP-Verbindung hergestellt.",
   pingResultTcpTimeout: "TCP-Zeitüberschreitung nach {timeoutMs} ms.",
   pingResultTcpFailed: "TCP-Verbindung fehlgeschlagen: {error}",
-  pingResultUdpSent: "UDP-Paket gesendet. Kein ICMP-Fehler innerhalb von {timeoutMs} ms beobachtet.",
+  pingResultUdpSent:
+    "UDP-Paket gesendet. Kein ICMP-Fehler innerhalb von {timeoutMs} ms beobachtet.",
   pingResultUdpResponse: "UDP-Antwort von {from} erhalten ({bytes} Bytes).",
   pingResultUdpFailed: "UDP-Probe fehlgeschlagen: {error}",
   pingResultEbHttpOk: "Endpunkt über {scheme} erreichbar (Status {status}).",
-  pingResultEbNoHttp: "TCP offen, aber keine HTTP(S)-Antwort auf diesem Endpunkt erkannt.",
+  pingResultEbNoHttp:
+    "TCP offen, aber keine HTTP(S)-Antwort auf diesem Endpunkt erkannt.",
   pingResultEbTcpFailed: "EB-Prüfung in der TCP-Phase fehlgeschlagen: {error}",
   pingResultDbConnectFailed: "{database}-Verbindung fehlgeschlagen: {error}",
-  pingResultDbProtocolOk: "{database}-Server hat auf die Pre-Auth-Handshake-Probe geantwortet.",
+  pingResultDbProtocolOk:
+    "{database}-Server hat auf die Pre-Auth-Handshake-Probe geantwortet.",
   pingResultDbProtocolFailed: "{database}-Probe fehlgeschlagen: {error}",
-  pingResultDbTcpOk: "{database}-TCP-Port ist erreichbar. Für diesen Typ gibt es keine Protokoll-Probe vor Authentifizierung.",
-  pingResultDbAuthUnsupported: "Authentifizierte Prüfungen sind nur für Redis umgesetzt. Nutze für {database} die Protokoll-Prüfung.",
+  pingResultDbTcpOk:
+    "{database}-TCP-Port ist erreichbar. Für diesen Typ gibt es keine Protokoll-Probe vor Authentifizierung.",
+  pingResultDbAuthUnsupported:
+    "Authentifizierte Prüfungen sind nur für Redis umgesetzt. Nutze für {database} die Protokoll-Prüfung.",
   pingResultDbAuthOk: "Authentifizierte Redis-Verbindung erfolgreich.",
-  pingResultDbAuthFailed: "Redis-Authentifizierungsprüfung fehlgeschlagen: {error}",
+  pingResultDbAuthFailed:
+    "Redis-Authentifizierungsprüfung fehlgeschlagen: {error}",
   cdnAnalyzeButton: "CDN prüfen",
   cdnAnalyzing: "Analyse läuft...",
   cdnNetworkError: "Netzwerkfehler beim CDN-Prüfer.",
@@ -1102,9 +1189,12 @@ const de: Partial<ToolTranslation> = {
   reputationCheckButton: "Reputation prüfen",
   reputationChecking: "Prüfung läuft...",
   reputationNetworkError: "Netzwerkfehler bei der Reputationsprüfung.",
-  reputationRateLimitError: "Zu viele Reputationsprüfungen. Bitte warte kurz und versuche es dann erneut.",
-  reputationInvalidIp: "Bitte eine gültige öffentliche IP-Adresse eingeben (IPv4 oder IPv6).",
-  reputationBlockedIp: "Private, reservierte und interne IP-Bereiche können nicht geprüft werden.",
+  reputationRateLimitError:
+    "Zu viele Reputationsprüfungen. Bitte warte kurz und versuche es dann erneut.",
+  reputationInvalidIp:
+    "Bitte eine gültige öffentliche IP-Adresse eingeben (IPv4 oder IPv6).",
+  reputationBlockedIp:
+    "Private, reservierte und interne IP-Bereiche können nicht geprüft werden.",
   reputationEmptyTitle: "IP-Adresse eingeben, um ihre Reputation zu prüfen",
   reputationEmptyDescription:
     "Die IP wird gegen DNS-Blocklisten, Abuse-Meldedatenbanken, Botnet-C2-Tracker und Netzwerk-Klassifizierungsquellen geprüft. Optionale Anbieter (AbuseIPDB, GreyNoise, http:BL, ThreatFox) werden aktiviert, wenn ein kostenloser API-Schlüssel konfiguriert ist.",
@@ -1126,9 +1216,11 @@ const de: Partial<ToolTranslation> = {
   reputationGeneratedAt: "Erstellt {time}",
   reputationNoThreatEvidence:
     "In den prüfbaren Quellen wurden keine direkten bösartigen Beobachtungen gefunden.",
-  reputationNoMailEvidence: "In den geprüften Quellen wurden keine Mail-Reputations-Einträge gefunden.",
+  reputationNoMailEvidence:
+    "In den geprüften Quellen wurden keine Mail-Reputations-Einträge gefunden.",
   reputationFilterAll: "Alle",
-  reputationNoEvidence: "Keine Evidenz in dieser Gruppe aus den prüfbaren Quellen.",
+  reputationNoEvidence:
+    "Keine Evidenz in dieser Gruppe aus den prüfbaren Quellen.",
   reputationFactChecked: "Geprüft",
   reputationFactMatched: "Mit Bedrohungsevidenz",
   reputationFactUnavailable: "Nicht verfügbar",
@@ -1184,41 +1276,42 @@ const de: Partial<ToolTranslation> = {
     unavailable: "nicht verfügbar",
   },
   reputationReasons: {
-    sbl:
-      "Gelistet auf der Spamhaus SBL: verifizierte Spam-Quellen, Spam-Dienste oder ROKSO-Spammer (evidenzbasierte, redaktionell gepflegte Liste).",
-    css:
-      "Gelistet auf Spamhaus CSS: automatische Erkennung von Massen- oder Grauzonen-Mail-Versand. Schwächere Evidenz als die SBL.",
-    xbl:
-      "Gelistet auf der Spamhaus XBL: Der Rechner wurde mit Trojaner-/Exploit-Software oder als offener Proxy beobachtet – typischerweise ein kompromittiertes System.",
-    drop:
-      "Die Adresse liegt in einem Spamhaus-DROP-Netzblock: Bereiche unter der Kontrolle krimineller oder Bulletproof-Hosting-Operationen, genutzt u. a. für Malware, Botnet-Controller und Spam.",
+    sbl: "Gelistet auf der Spamhaus SBL: verifizierte Spam-Quellen, Spam-Dienste oder ROKSO-Spammer (evidenzbasierte, redaktionell gepflegte Liste).",
+    css: "Gelistet auf Spamhaus CSS: automatische Erkennung von Massen- oder Grauzonen-Mail-Versand. Schwächere Evidenz als die SBL.",
+    xbl: "Gelistet auf der Spamhaus XBL: Der Rechner wurde mit Trojaner-/Exploit-Software oder als offener Proxy beobachtet – typischerweise ein kompromittiertes System.",
+    drop: "Die Adresse liegt in einem Spamhaus-DROP-Netzblock: Bereiche unter der Kontrolle krimineller oder Bulletproof-Hosting-Operationen, genutzt u. a. für Malware, Botnet-Controller und Spam.",
     pbl_isp:
       "Gelistet auf der Spamhaus PBL (vom ISP gepflegt): Dieser Bereich soll SMTP-Mail nicht direkt an Mailserver Dritter zustellen. Das ist für die meisten Privat-, dynamischen und Endkunden-Adressen normal und kein Hinweis auf Missbrauch.",
     pbl_spamhaus:
       "Gelistet auf der Spamhaus PBL (von Spamhaus gepflegt): ein Richtlinien-Bereich, der nicht direkt versenden soll. Für viele Endkunden-Adressen normal, kein Hinweis auf Missbrauch.",
-    bcl:
-      "Gelistet auf der Spamhaus Botnet Controller List: bestätigte, aktive Botnet-Kommando-und-Kontroll-Infrastruktur.",
+    bcl: "Gelistet auf der Spamhaus Botnet Controller List: bestätigte, aktive Botnet-Kommando-und-Kontroll-Infrastruktur.",
     spamcop_listing:
       "Gelistet auf SpamCop basierend auf aktuellen Spam-Meldungen (Spamtraps und Nutzer-Evidenz). Einträge verfallen kurz nach der letzten Meldung.",
     barracuda_listing:
       "Schlechte Mail-Reputation, gemessen im Barracuda-Filternetzwerk. Aggregiertes, teils historisches Signal; kann auch dynamisch neu zugewiesene Adressen treffen – es belegt nicht, dass diese Adresse aktuell Spam versendet.",
-    dronebl_irc_drone: "Vom DroneBL-Netzwerk als IRC-Spam-Drone (Bot) beobachtet.",
+    dronebl_irc_drone:
+      "Vom DroneBL-Netzwerk als IRC-Spam-Drone (Bot) beobachtet.",
     dronebl_bottler: "Vom DroneBL-Netzwerk als Bottler-IRC-Bot beobachtet.",
     dronebl_worm: "Vom DroneBL-Netzwerk mit Wurm oder Spam-Bot beobachtet.",
-    dronebl_ddos_drone: "Als DDoS-Drone beobachtet (beteiligt sich an verteilten Angriffen).",
+    dronebl_ddos_drone:
+      "Als DDoS-Drone beobachtet (beteiligt sich an verteilten Angriffen).",
     dronebl_open_socks_proxy:
       "Betreibt einen offenen SOCKS-Proxy – missbrauchbare Infrastruktur, nicht automatisch bösartig.",
     dronebl_open_http_proxy:
       "Betreibt einen offenen HTTP-Proxy – missbrauchbare Infrastruktur, nicht automatisch bösartig.",
     dronebl_proxychain: "Als Teil einer Proxy-Kette beobachtet.",
     dronebl_web_proxy: "Betreibt einen offenen Web-Proxy.",
-    dronebl_dictionary: "Beobachtet bei automatisierten Wörterbuch-/Brute-Force-Angriffen.",
+    dronebl_dictionary:
+      "Beobachtet bei automatisierten Wörterbuch-/Brute-Force-Angriffen.",
     dronebl_wingate: "Betreibt einen offenen WinGate-Proxy.",
-    dronebl_compromised_router: "Als kompromittierter Router oder Gateway beobachtet.",
+    dronebl_compromised_router:
+      "Als kompromittierter Router oder Gateway beobachtet.",
     dronebl_botnet_auto:
       "Von DroneBL automatisch als Botnet-Infrastruktur klassifiziert (experimentelle Erkennung).",
-    dronebl_compromised_host: "Möglicherweise kompromittierter Rechner, erkannt über IRC.",
-    dronebl_uncategorized: "Auf DroneBL mit unkategorisierter Bedrohungsklasse gelistet.",
+    dronebl_compromised_host:
+      "Möglicherweise kompromittierter Rechner, erkannt über IRC.",
+    dronebl_uncategorized:
+      "Auf DroneBL mit unkategorisierter Bedrohungsklasse gelistet.",
     bld_attack:
       "Angriffsmeldungen betroffener Serverbetreiber, gesammelt von blocklist.de. Ein Live-Eintrag im DNS bedeutet kürzlich gemeldete Angriffe.",
     bld_counts_only:
@@ -1240,20 +1333,25 @@ const de: Partial<ToolTranslation> = {
     abuseipdb_tor: "Von AbuseIPDB als Tor-Exit-Node identifiziert.",
     threatfox_ioc:
       "Als Bedrohungsindikator (IOC) in der abuse.ch-ThreatFox-Datenbank veröffentlicht, geteilt von Sicherheitsforschern.",
-    httpbl_search_engine: "Bekannter Suchmaschinen-Crawler (Project Honey Pot).",
+    httpbl_search_engine:
+      "Bekannter Suchmaschinen-Crawler (Project Honey Pot).",
     httpbl_suspicious:
       "Verdächtiger Web-Besucher, beobachtet im Honeypot-Netzwerk von Project Honey Pot. Oft harmlose Bots – mit Vorsicht bewerten.",
     httpbl_harvester:
       "Beobachtet beim Absammeln von E-Mail-Adressen aus Honeypots im Project Honey Pot-Netzwerk.",
     httpbl_comment_spammer:
       "Beobachtet beim Posten von Kommentar-Spam in Honeypots im Project Honey Pot-Netzwerk.",
-    ipapi_vpn: "Von ip-api.com als VPN-, Proxy- oder Anonymizer-Dienst eingestuft.",
-    ipapi_hosting: "Von ip-api.com als Hosting-/Rechenzentrums-Adresse eingestuft.",
+    ipapi_vpn:
+      "Von ip-api.com als VPN-, Proxy- oder Anonymizer-Dienst eingestuft.",
+    ipapi_hosting:
+      "Von ip-api.com als Hosting-/Rechenzentrums-Adresse eingestuft.",
     ipapi_mobile: "Von ip-api.com als Mobilfunk-Verbindung identifiziert.",
     residential_estimate:
       "Geschätzte Privatverbindung anhand von Verbindungstyp und Reverse-DNS-Namensmuster – eine Heuristik, keine Anbieterbestätigung.",
-    corroboration: "Mehrere unabhängige Quellen melden bösartige Aktivität für diese Adresse.",
-    mail_corroboration: "Mehrere unabhängige Mail-Reputationslisten enthalten diese Adresse.",
+    corroboration:
+      "Mehrere unabhängige Quellen melden bösartige Aktivität für diese Adresse.",
+    mail_corroboration:
+      "Mehrere unabhängige Mail-Reputationslisten enthalten diese Adresse.",
   },
   reputationSourceDescriptions: {
     "spamhaus-zen":
@@ -1278,7 +1376,8 @@ const de: Partial<ToolTranslation> = {
       "Project Honey Pot DNSBL für Web-Abuse: Harvester, Kommentar-Spammer und verdächtige Bots. Benötigt einen kostenlosen Access Key (HTTPBL_ACCESS_KEY).",
     threatfox:
       "abuse.ch-Plattform zum Teilen von Indicators of Compromise, inklusive Botnet-C2-Adressen. Benötigt einen kostenlosen Auth-Key (THREATFOX_AUTH_KEY).",
-    "ip-api": "IP-Metadaten: Geolokalisierung, Netzwerk/ASN und Verbindungsklassifizierung.",
+    "ip-api":
+      "IP-Metadaten: Geolokalisierung, Netzwerk/ASN und Verbindungsklassifizierung.",
   },
   reputationGeoLabel: "Geolokalisierung",
   reputationNetworkLabel: "ASN / Provider",
@@ -1286,16 +1385,16 @@ const de: Partial<ToolTranslation> = {
   reputationHideHiddenSources: "Nicht konfigurierte Quellen ausblenden",
 };
 
-const toolTranslations: Record<Locale, ToolTranslation> = {
-  de: { ...en, ...de },
-  en,
-  es: en,
-  fr: en,
-  "pt-BR": en,
-  ja: en,
-  ru: en,
-  "zh-CN": en,
-};
+export const toolTranslations: Record<Locale, ToolTranslation> = Object.assign(
+  {
+    de,
+    en,
+  },
+  toolsWestern,
+  toolsEastern,
+  toolsMenaAsia,
+  toolsNorthern,
+);
 
 export function getToolTranslation(locale: Locale): ToolTranslation {
   return toolTranslations[locale] ?? en;
@@ -1306,7 +1405,11 @@ export function getToolTranslation(locale: Locale): ToolTranslation {
  * Falls back to the tool-specific message for client-side network failures
  * and unknown codes.
  */
-export function getApiErrorMessage(error: unknown, t: ToolTranslation, fallback: string): string {
+export function getApiErrorMessage(
+  error: unknown,
+  t: ToolTranslation,
+  fallback: string,
+): string {
   if (!(error instanceof ApiClientError)) return fallback;
 
   switch (error.code) {

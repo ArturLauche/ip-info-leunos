@@ -1,21 +1,26 @@
-import { headers } from "next/headers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Compass } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { resolveLocale } from "@/lib/i18n";
+import { getLocaleOpenGraphLanguage } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { documentTitle } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = resolveLocale((await headers()).get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
 
   return {
     title: { absolute: documentTitle(t.notFoundTitle) },
-    description: t.notFoundDescription,
+     description: t.notFoundDescription,
+     openGraph: {
+       title: t.notFoundTitle,
+       description: t.notFoundDescription,
+       locale: getLocaleOpenGraphLanguage(locale),
+     },
     robots: {
       index: false,
       follow: false,
@@ -33,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * fall through to Next's default English error page.
  */
 export default async function NotFound() {
-  const locale = resolveLocale((await headers()).get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
 
   return (
@@ -56,7 +61,7 @@ export default async function NotFound() {
         </p>
         <Button asChild className="mt-2">
           <Link href="/">
-            <ArrowLeft aria-hidden="true" className="size-4" />
+            <ArrowLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
             {t.notFoundBackHome}
           </Link>
         </Button>

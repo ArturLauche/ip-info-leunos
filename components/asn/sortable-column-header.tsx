@@ -11,7 +11,7 @@ export function SortableColumnHeader({
   direction,
   onToggle,
   ariaLabel,
-  align = "left",
+  align = "start",
   className,
 }: {
   label: ReactNode;
@@ -19,7 +19,7 @@ export function SortableColumnHeader({
   direction: SortDirection | null;
   onToggle: () => void;
   ariaLabel: string;
-  align?: "left" | "right";
+  align?: "start" | "end";
   className?: string;
 }) {
   return (
@@ -29,7 +29,7 @@ export function SortableColumnHeader({
       aria-label={ariaLabel}
       className={cn(
         "group/sort inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-sm text-inherit outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60",
-        align === "right" && "ml-auto flex-row-reverse",
+        align === "end" && "ms-auto flex-row-reverse",
         active && "text-foreground",
         className,
       )}

@@ -9,6 +9,7 @@ import {
 } from "@/lib/network/target";
 import { collectReputation } from "@/lib/reputation/query";
 import { aggregateReputation } from "@/lib/reputation/scoring";
+import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
@@ -40,7 +41,10 @@ const UNAVAILABLE_STATUSES: ReadonlySet<SourceStatus> = new Set([
   "resolver_blocked",
 ]);
 
-const SKIPPED_STATUSES: ReadonlySet<SourceStatus> = new Set(["not_configured", "unsupported"]);
+const SKIPPED_STATUSES: ReadonlySet<SourceStatus> = new Set([
+  "not_configured",
+  "unsupported",
+]);
 
 function configFingerprint(): string {
   return [
@@ -52,7 +56,10 @@ function configFingerprint(): string {
 }
 
 export async function GET(request: Request) {
-  const limited = enforceRateLimit(request, "reputation", { limit: 20, windowMs: 60_000 });
+  const limited = enforceRateLimit(request, "reputation", {
+    limit: 20,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
@@ -72,11 +79,19 @@ export async function GET(request: Request) {
     if (error instanceof TargetValidationError) {
       return apiError(error.code, error.message, error.status, error.details);
     }
-    return apiError("invalid_target", "Please provide a valid public IP address.", 400);
+    return apiError(
+      "invalid_target",
+      "Please provide a valid public IP address.",
+      400,
+    );
   }
 
   const family: 4 | 6 = isIPv4Address(ip) ? 4 : 6;
-  const cacheKey = `${ip}:${configFingerprint()}`;
+  const language = resolveLocale(
+    request.headers.get("accept-language"),
+    parseLocaleCookie(request.headers.get("cookie")),
+  );
+  const cacheKey = `${ip}:${language}:${configFingerprint()}`;
 
   const cached = responseCache.get(cacheKey);
   if (cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
@@ -84,13 +99,24 @@ export async function GET(request: Request) {
   }
   responseCache.delete(cacheKey);
 
-  const { sources, evidence, geo, network, networkContext } = await collectReputation(ip, family);
+  const { sources, evidence, geo, network, networkContext } =
+    await collectReputation(ip, family, language);
 
-  const checkedSources = sources.filter((source) => CHECKED_STATUSES.has(source.status));
+  const checkedSources = sources.filter((source) =>
+    CHECKED_STATUSES.has(source.status),
+  );
   if (checkedSources.length === 0) {
-    return apiError("upstream_error", "Reputation sources are currently unavailable.", 502, {
-      sources: sources.map((source) => ({ id: source.id, status: source.status })),
-    });
+    return apiError(
+      "upstream_error",
+      "Reputation sources are currently unavailable.",
+      502,
+      {
+        sources: sources.map((source) => ({
+          id: source.id,
+          status: source.status,
+        })),
+      },
+    );
   }
 
   const aggregated = aggregateReputation(evidence);
@@ -110,13 +136,19 @@ export async function GET(request: Request) {
     sources,
     coverage: {
       checkedCount: checkedSources.length,
-      matchedCount: sources.filter((source) => source.status === "matched").length,
+      matchedCount: sources.filter((source) => source.status === "matched")
+        .length,
       policyCount: sources.filter(
-        (source) => source.status === "policy_listed" || source.status === "available",
+        (source) =>
+          source.status === "policy_listed" || source.status === "available",
       ).length,
       cleanCount: sources.filter((source) => source.status === "clean").length,
-      unavailableCount: sources.filter((source) => UNAVAILABLE_STATUSES.has(source.status)).length,
-      skippedCount: sources.filter((source) => SKIPPED_STATUSES.has(source.status)).length,
+      unavailableCount: sources.filter((source) =>
+        UNAVAILABLE_STATUSES.has(source.status),
+      ).length,
+      skippedCount: sources.filter((source) =>
+        SKIPPED_STATUSES.has(source.status),
+      ).length,
     },
     geo,
     network,

@@ -1,4 +1,6 @@
 import type { Locale } from "@/lib/i18n";
+import { additionalPrivacyContent } from "@/lib/translations/legal-content";
+import { getUiCopy } from "@/lib/ui-copy";
 
 /**
  * Resolves the controller contact email from the environment. Returns null when
@@ -166,12 +168,12 @@ const de: PrivacyContent = {
 const en: PrivacyContent = {
   navLabel: "Privacy",
   title: "Privacy Policy",
-  subtitle:
-    "How this site handles personal data — in particular IP addresses.",
+  subtitle: "How this site handles personal data — in particular IP addresses.",
   lastUpdatedLabel: "Last updated",
   lastUpdated: LAST_UPDATED,
   contactNotConfigured: "contact address on request",
-  controllerNotConfigured: "the operator of this site (identity available on request)",
+  controllerNotConfigured:
+    "the operator of this site (identity available on request)",
   sections: [
     {
       heading: "1. Controller",
@@ -283,12 +285,37 @@ const en: PrivacyContent = {
   ],
 };
 
-const CONTENT_BY_LOCALE: Partial<Record<Locale, PrivacyContent>> = {
+const CONTENT_BY_LOCALE: Record<Locale, PrivacyContent> = {
   de,
   en,
+  ...additionalPrivacyContent,
 };
 
-/** Returns the privacy content for the locale, defaulting to English. */
+function withLocaleCookieNotice(
+  content: PrivacyContent,
+  locale: Locale,
+): PrivacyContent {
+  const cookieSectionIndex = 6;
+  return {
+    ...content,
+    sections: content.sections.map((section, index) => {
+      if (index !== cookieSectionIndex) return section;
+      const paragraphs = [...(section.paragraphs ?? [])];
+      if (paragraphs.length > 1) {
+        paragraphs[1] = getUiCopy(locale).localeCookieNotice;
+      } else {
+        paragraphs.push(getUiCopy(locale).localeCookieNotice);
+      }
+      return { ...section, paragraphs };
+    }),
+  };
+}
+
+/** Returns the privacy content for a validated UI locale. */
 export function getPrivacyContent(locale: Locale): PrivacyContent {
-  return CONTENT_BY_LOCALE[locale] ?? en;
+  const resolvedLocale = CONTENT_BY_LOCALE[locale] ? locale : "en";
+  return withLocaleCookieNotice(
+    CONTENT_BY_LOCALE[resolvedLocale],
+    resolvedLocale,
+  );
 }

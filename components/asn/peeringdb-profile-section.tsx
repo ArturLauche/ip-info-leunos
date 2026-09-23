@@ -5,6 +5,32 @@ import type { PeeringDbProfile } from "@/lib/asn";
 import { formatNumber, valueOrDash } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
+
+function formatPolicyValue(
+  value: string | number | null | undefined,
+  locale: Locale,
+): string | number | null | undefined {
+  if (typeof value !== "string") return value;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "required" || normalized.startsWith("required ")) {
+    const suffix = value.trim().slice("required".length).trim();
+    return suffix
+      ? `${getUiCopy(locale).asnPolicyRequired} – ${suffix}`
+      : getUiCopy(locale).asnPolicyRequired;
+  }
+  if (
+    normalized === "not required" ||
+    normalized === "not_required" ||
+    normalized.startsWith("not required ")
+  ) {
+    const suffix = value.trim().slice("not required".length).trim();
+    return suffix
+      ? `${getUiCopy(locale).asnPolicyNotRequired} – ${suffix}`
+      : getUiCopy(locale).asnPolicyNotRequired;
+  }
+  return value;
+}
 
 interface ProfileFieldValue {
   label: string;
@@ -13,7 +39,13 @@ interface ProfileFieldValue {
   link?: boolean;
 }
 
-function ProfileRow({ field, locale }: { field: ProfileFieldValue; locale: Locale }) {
+function ProfileRow({
+  field,
+  locale,
+}: {
+  field: ProfileFieldValue;
+  locale: Locale;
+}) {
   const raw = field.value;
   const empty = raw === null || raw === undefined || raw === "";
   if (empty) return null;
@@ -26,7 +58,7 @@ function ProfileRow({ field, locale }: { field: ProfileFieldValue; locale: Local
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-border/50 py-2 last:border-b-0">
       <dt className="shrink-0 text-xs text-muted-foreground">{field.label}</dt>
-      <dd className="min-w-0 text-right text-sm font-medium break-all text-foreground tabular-nums">
+      <dd className="min-w-0 text-end text-sm font-medium break-all text-foreground tabular-nums">
         {isUrl ? (
           <a
             href={raw as string}
@@ -35,7 +67,10 @@ function ProfileRow({ field, locale }: { field: ProfileFieldValue; locale: Local
             className="inline-flex items-center gap-1 rounded-sm text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             {(raw as string).replace(/^https?:\/\/(www\.)?/, "")}
-            <ExternalLink className="size-3 shrink-0" aria-hidden />
+            <ExternalLink
+              className="size-3 shrink-0 rtl:rotate-180"
+              aria-hidden
+            />
           </a>
         ) : typeof raw === "number" ? (
           formatNumber(raw, locale)
@@ -57,7 +92,8 @@ function ProfileGroup({
   locale: Locale;
 }) {
   const visible = fields.filter(
-    (field) => field.value !== null && field.value !== undefined && field.value !== "",
+    (field) =>
+      field.value !== null && field.value !== undefined && field.value !== "",
   );
   if (visible.length === 0) return null;
 
@@ -107,10 +143,22 @@ export function PeeringDbProfileSection({
     {
       heading: t.asnProfilePolicyHeading,
       fields: [
-        { label: t.asnLabelPolicyGeneral, value: profile.policyGeneral },
-        { label: t.asnLabelPolicyLocations, value: profile.policyLocations },
-        { label: t.asnLabelPolicyRatio, value: profile.policyRatio },
-        { label: t.asnLabelPolicyContracts, value: profile.policyContracts },
+        {
+          label: t.asnLabelPolicyGeneral,
+          value: formatPolicyValue(profile.policyGeneral, locale),
+        },
+        {
+          label: t.asnLabelPolicyLocations,
+          value: formatPolicyValue(profile.policyLocations, locale),
+        },
+        {
+          label: t.asnLabelPolicyRatio,
+          value: formatPolicyValue(profile.policyRatio, locale),
+        },
+        {
+          label: t.asnLabelPolicyContracts,
+          value: formatPolicyValue(profile.policyContracts, locale),
+        },
       ] as ProfileFieldValue[],
     },
     {
@@ -129,12 +177,19 @@ export function PeeringDbProfileSection({
         <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t.asnPeeringDb}
         </h3>
-        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnPeeringDbDescription}</p>
+        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">
+          {t.asnPeeringDbDescription}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-5">
         {groups.map((group) => (
-          <ProfileGroup key={group.heading} heading={group.heading} fields={group.fields} locale={locale} />
+          <ProfileGroup
+            key={group.heading}
+            heading={group.heading}
+            fields={group.fields}
+            locale={locale}
+          />
         ))}
       </div>
     </section>

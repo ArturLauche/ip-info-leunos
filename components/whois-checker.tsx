@@ -52,17 +52,23 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
-export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) {
+export function WhoisChecker({
+  locale,
+  initialTarget = "",
+}: WhoisCheckerProps) {
   const [showRaw, setShowRaw] = useState(false);
   const t = getToolTranslation(locale);
 
-  const { loading, error, result, run, cancel, querySync } = useToolLookup<WhoisResult>({
-    buildApiUrl: (target) => `/api/whois?target=${encodeURIComponent(target)}`,
-    buildHref: (target) => `/whois?target=${encodeURIComponent(target)}`,
-    mapError: (lookupError) => getApiErrorMessage(lookupError, t, t.whoisLookupError),
-    initialQuery: initialTarget,
-    onStart: () => setShowRaw(false),
-  });
+  const { loading, error, result, run, cancel, querySync } =
+    useToolLookup<WhoisResult>({
+      buildApiUrl: (target) =>
+        `/api/whois?target=${encodeURIComponent(target)}`,
+      buildHref: (target) => `/whois?target=${encodeURIComponent(target)}`,
+      mapError: (lookupError) =>
+        getApiErrorMessage(lookupError, t, t.whoisLookupError),
+      initialQuery: initialTarget,
+      onStart: () => setShowRaw(false),
+    });
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -70,6 +76,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.whoisPlaceholder}
+        ariaLabel={t.whoisFor}
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
@@ -87,7 +94,11 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
       )}
 
       {loading && (
-        <div className="grid gap-4 md:grid-cols-2" role="status" aria-busy="true">
+        <div
+          className="grid gap-4 md:grid-cols-2"
+          role="status"
+          aria-busy="true"
+        >
           <span className="sr-only">{t.lookupInProgress}</span>
           <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
           <Skeleton className="h-28 rounded-lg" aria-hidden="true" />
@@ -105,28 +116,46 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
               <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
                 {t.queriedServer}
               </dt>
-              <dd className="min-w-0 font-mono text-sm break-all text-foreground">{result.server}</dd>
+              <dd className="min-w-0 font-mono text-sm break-all text-foreground">
+                {result.server}
+              </dd>
             </div>
             {result.refer && (
               <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
                 <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
                   {t.referralSource}
                 </dt>
-                <dd className="min-w-0 font-mono text-sm break-all text-foreground">{result.refer}</dd>
+                <dd className="min-w-0 font-mono text-sm break-all text-foreground">
+                  {result.refer}
+                </dd>
               </div>
             )}
             {result.summary && (
               <>
-                <SummaryRow label={t.whoisRegistrar} value={result.summary.registrar} />
-                <SummaryRow label={t.whoisCreated} value={result.summary.created} />
-                <SummaryRow label={t.whoisUpdated} value={result.summary.updated} />
-                <SummaryRow label={t.whoisExpires} value={result.summary.expires} />
+                <SummaryRow
+                  label={t.whoisRegistrar}
+                  value={result.summary.registrar}
+                />
+                <SummaryRow
+                  label={t.whoisCreated}
+                  value={result.summary.created}
+                />
+                <SummaryRow
+                  label={t.whoisUpdated}
+                  value={result.summary.updated}
+                />
+                <SummaryRow
+                  label={t.whoisExpires}
+                  value={result.summary.expires}
+                />
               </>
             )}
           </dl>
           {result.noteCode && (
             <p className="text-xs text-muted-foreground">
-              {result.noteCode === "iana_only" ? t.whoisNoteIana : t.whoisNoteRdap}
+              {result.noteCode === "iana_only"
+                ? t.whoisNoteIana
+                : t.whoisNoteRdap}
             </p>
           )}
 
@@ -141,7 +170,11 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {result.summary.status.length > 0 ? (
                       result.summary.status.map((status) => (
-                        <Badge key={status} variant="secondary" className="font-normal">
+                        <Badge
+                          key={status}
+                          variant="secondary"
+                          className="font-normal"
+                        >
                           {status}
                         </Badge>
                       ))
@@ -157,7 +190,10 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
                   <ul className="mt-2.5 space-y-1 text-sm text-muted-foreground">
                     {result.summary.nameservers.length > 0 ? (
                       result.summary.nameservers.map((nameserver) => (
-                        <li key={nameserver} className="font-mono break-all text-foreground">
+                        <li
+                          key={nameserver}
+                          className="font-mono break-all text-foreground"
+                        >
                           {nameserver}
                         </li>
                       ))
@@ -182,11 +218,20 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
           </Button>
 
           {showRaw && (
-            <pre id="whois-raw-result" className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground" tabIndex={0}>
+            <pre
+              id="whois-raw-result"
+              className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground"
+              tabIndex={0}
+            >
               {result.raw || t.noWhoisData}
             </pre>
           )}
-          <ResultActions locale={locale} data={result} copyText={result.raw} filename={`whois-${result.target}`} />
+          <ResultActions
+            locale={locale}
+            data={result}
+            copyText={result.raw}
+            filename={`whois-${result.target}`}
+          />
         </ResultPanel>
       )}
     </div>

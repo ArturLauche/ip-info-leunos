@@ -1,9 +1,14 @@
 import { ApiClientError } from "@/lib/api/client";
 import { AsnValidationError, MAX_ASN_NUMBER } from "@/lib/asn-id";
-import type { SourceCacheStatus, SourceStatus } from "@/lib/asn";
+import type {
+  AsnWarningDetail,
+  SourceCacheStatus,
+  SourceStatus,
+} from "@/lib/asn";
 import { formatNumber, formatTemplate } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import { getApiErrorMessage, type ToolTranslation } from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
 
 export function formatStatus(status: SourceStatus, t: ToolTranslation) {
   if (status === "available") return t.asnSourceAvailable;
@@ -12,7 +17,10 @@ export function formatStatus(status: SourceStatus, t: ToolTranslation) {
   return t.asnSourceError;
 }
 
-export function formatCacheStatus(status: SourceCacheStatus, t: ToolTranslation) {
+export function formatCacheStatus(
+  status: SourceCacheStatus,
+  t: ToolTranslation,
+) {
   if (status === "fresh") return t.asnCacheFresh;
   if (status === "stale") return t.asnCacheStale;
   if (status === "not_configured") return t.asnCacheNotConfigured;
@@ -23,10 +31,18 @@ export function hasSourceInfoFlag() {
   if (typeof window === "undefined") return false;
 
   const searchParams = new URLSearchParams(window.location.search);
-  return searchParams.has("source-info") || searchParams.has("sourceInfo") || window.location.hash === "#source-info";
+  return (
+    searchParams.has("source-info") ||
+    searchParams.has("sourceInfo") ||
+    window.location.hash === "#source-info"
+  );
 }
 
-export function formatSpeed(speed: number | null | undefined, t: ToolTranslation, locale: Locale) {
+export function formatSpeed(
+  speed: number | null | undefined,
+  t: ToolTranslation,
+  locale: Locale,
+) {
   if (!speed) return "-";
   if (speed >= 1_000_000) {
     return `${(speed / 1_000_000).toFixed(0)} Tbps`;
@@ -37,9 +53,13 @@ export function formatSpeed(speed: number | null | undefined, t: ToolTranslation
   return `${speed} ${t.asnSpeedMbps}`;
 }
 
-export function validationErrorMessage(error: unknown, t: ToolTranslation, locale: Locale) {
+export function validationErrorMessage(
+  error: unknown,
+  t: ToolTranslation,
+  locale: Locale,
+) {
   if (!(error instanceof AsnValidationError)) return t.asnInvalidInput;
-  if (error.message.includes("between")) {
+  if (error.code === "out_of_range") {
     return formatTemplate(t.asnInvalidRange, {
       max: formatNumber(MAX_ASN_NUMBER, locale),
     });
@@ -70,68 +90,65 @@ function warningLabel(label: string, t: ToolTranslation) {
     "RIPEstat IPv4 prefixes": t.asnWarningLabelRipeStatIpv4Prefixes,
     "RIPEstat IPv6 prefixes": t.asnWarningLabelRipeStatIpv6Prefixes,
     "RIPEstat routing neighbours": t.asnWarningLabelRipeStatRoutingNeighbours,
-    "RIPEstat upstream-side neighbours": t.asnWarningLabelRipeStatUpstreamNeighbours,
-    "RIPEstat downstream-side neighbours": t.asnWarningLabelRipeStatDownstreamNeighbours,
+    "RIPEstat upstream-side neighbours":
+      t.asnWarningLabelRipeStatUpstreamNeighbours,
+    "RIPEstat downstream-side neighbours":
+      t.asnWarningLabelRipeStatDownstreamNeighbours,
   };
 
-  return labels[label] || label;
+  return labels[label] || t.asnSourceError;
 }
 
-export function formatWarning(warning: string, t: ToolTranslation, locale: Locale) {
-  if (warning === "IPinfo ASN data is unavailable for this ASN or token plan.") {
-    return t.asnWarningIpinfoUnavailable;
-  }
-  if (warning === "IPinfo returned an unexpected ASN payload.") {
-    return t.asnWarningIpinfoUnexpected;
-  }
-  if (warning === "No RIPEstat ASN data was found for this ASN.") {
-    return t.asnWarningNoRipeStatData;
-  }
-  if (warning === "No public PeeringDB network profile was found for this ASN.") {
-    return t.asnWarningNoPeeringDbProfile;
-  }
+export function formatWarning(
+  warning: string | AsnWarningDetail,
+  t: ToolTranslation,
+  locale: Locale,
+) {
+  // Older cached responses may contain only the legacy string. Never display
+  // that prose directly; the API now supplies a stable warning detail code.
+  if (typeof warning === "string") return getUiCopy(locale).asnWarningUnknown;
 
-  const staleMatch = warning.match(/^(.+) data is currently unavailable; using stale cached data\.$/);
-  if (staleMatch) {
-    return formatTemplate(t.asnWarningProviderStale, { provider: staleMatch[1] });
+  switch (warning.code) {
+    case "ipinfo_unavailable":
+      return t.asnWarningIpinfoUnavailable;
+    case "ipinfo_unexpected":
+      return t.asnWarningIpinfoUnexpected;
+    case "ripe_no_data":
+      return t.asnWarningNoRipeStatData;
+    case "peeringdb_no_profile":
+      return t.asnWarningNoPeeringDbProfile;
+    case "provider_stale":
+      return formatTemplate(t.asnWarningProviderStale, {
+        provider: warning.provider ?? "",
+      });
+    case "provider_http":
+      return formatTemplate(t.asnWarningProviderHttp, {
+        provider: warning.provider ?? "",
+        status: warning.status ?? "",
+      });
+    case "provider_timeout":
+      return formatTemplate(t.asnWarningProviderTimedOut, {
+        provider: warning.provider ?? "",
+      });
+    case "provider_too_large":
+      return formatTemplate(t.asnWarningProviderTooLarge, {
+        provider: warning.provider ?? "",
+      });
+    case "provider_invalid_json":
+      return formatTemplate(t.asnWarningProviderInvalidJson, {
+        provider: warning.provider ?? "",
+      });
+    case "provider_unavailable":
+      return formatTemplate(t.asnWarningProviderUnavailable, {
+        provider: warning.provider ?? "",
+      });
+    case "truncated":
+      return formatTemplate(t.asnWarningTruncated, {
+        label: warningLabel(warning.label ?? "", t),
+        limit: formatNumber(warning.limit ?? 0, locale),
+        total: formatNumber(warning.total ?? 0, locale),
+      });
+    case "unknown":
+      return getUiCopy(locale).asnWarningUnknown;
   }
-
-  const httpMatch = warning.match(/^(.+) returned HTTP ([0-9]+)\.$/);
-  if (httpMatch) {
-    return formatTemplate(t.asnWarningProviderHttp, {
-      provider: httpMatch[1],
-      status: httpMatch[2],
-    });
-  }
-
-  const timeoutMatch = warning.match(/^(.+) request timed out\.$/);
-  if (timeoutMatch) {
-    return formatTemplate(t.asnWarningProviderTimedOut, { provider: timeoutMatch[1] });
-  }
-
-  const tooLargeMatch = warning.match(/^(.+) response exceeded the size limit\.$/);
-  if (tooLargeMatch) {
-    return formatTemplate(t.asnWarningProviderTooLarge, { provider: tooLargeMatch[1] });
-  }
-
-  const invalidJsonMatch = warning.match(/^(.+) returned invalid JSON\.$/);
-  if (invalidJsonMatch) {
-    return formatTemplate(t.asnWarningProviderInvalidJson, { provider: invalidJsonMatch[1] });
-  }
-
-  const unavailableMatch = warning.match(/^(.+) data is currently unavailable\.$/);
-  if (unavailableMatch) {
-    return formatTemplate(t.asnWarningProviderUnavailable, { provider: unavailableMatch[1] });
-  }
-
-  const truncatedMatch = warning.match(/^(.+) truncated to ([0-9]+) of ([0-9]+) records\.$/);
-  if (truncatedMatch) {
-    return formatTemplate(t.asnWarningTruncated, {
-      label: warningLabel(truncatedMatch[1], t),
-      limit: formatNumber(Number(truncatedMatch[2]), locale),
-      total: formatNumber(Number(truncatedMatch[3]), locale),
-    });
-  }
-
-  return warning;
 }

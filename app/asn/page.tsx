@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { Waypoints } from "lucide-react";
 import { AsnChecker } from "@/components/asn/asn-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { resolveLocale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "ASN Lookup für Routing- und Peeringdaten",
-  description:
-    "Analysiere verfügbare ASN-Profile, angekündigte IP-Prefixe, RIPEstat-Routing-Beobachtungen und öffentliche PeeringDB-Interconnection-Daten.",
-  path: "/asn",
-  keywords: ["ASN Lookup", "AS Nummer", "PeeringDB", "BGP"],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getToolTranslation(locale);
+  return createPageMetadata({
+    title: t.asnTitle,
+    description: t.asnSubtitle,
+    path: "/asn",
+    keywords: [t.asnTitle, "ASN", "BGP", "PeeringDB", "RPKI"],
+    locale,
+  });
+}
 
 interface AsnPageProps {
   searchParams: Promise<{
@@ -23,8 +26,7 @@ interface AsnPageProps {
 }
 
 export default async function AsnPage({ searchParams }: AsnPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
   const initialAsn = params.asn || params.q || "";

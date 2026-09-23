@@ -152,11 +152,17 @@ function DetailCardSkeleton() {
 }
 
 /** One label/value row inside a DetailCard, hairline-separated. */
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
       <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-right text-sm font-medium break-words text-foreground">
+      <dd className="min-w-0 text-end text-sm font-medium break-words text-foreground">
         {children}
       </dd>
     </div>
@@ -195,17 +201,19 @@ function FingerprintRow({
               label={copyLabel}
               copiedLabel={copiedLabel}
               failedLabel={failedLabel}
-              className="absolute top-1 right-1 size-7 bg-muted/40 [&_svg]:size-3.5"
+              className="absolute top-1 end-1 size-7 bg-muted/40 [&_svg]:size-3.5"
             />
             <code
               title={value}
-              className="block px-3.5 py-3 pr-11 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words text-foreground select-all"
+              className="block px-3.5 py-3 pe-11 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words text-foreground select-all"
             >
               {splitFingerprintGroups(value).join(" ")}
             </code>
           </div>
         ) : (
-          <span className="text-sm font-medium text-foreground">{unknownLabel}</span>
+          <span className="text-sm font-medium text-foreground">
+            {unknownLabel}
+          </span>
         )}
       </dd>
     </div>
@@ -238,7 +246,10 @@ function getProxyHintLabelPriority(label: ProxyHintLabel) {
   if (label.startsWith("product-header:")) return 100;
   if (["via-header", "proxy-header", "cache-header"].includes(label)) return 90;
   if (label.startsWith("product-signature:")) return 80;
-  if (["gateway-signature", "socks-signature", "proxy-signature"].includes(label)) return 70;
+  if (
+    ["gateway-signature", "socks-signature", "proxy-signature"].includes(label)
+  )
+    return 70;
   if (label === "forwarded-chain") return 60;
   if (["school-network", "enterprise-network"].includes(label)) return 50;
   return 40;
@@ -252,23 +263,38 @@ function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
     isProxyHintProduct(productId)
   ) {
     return formatTemplate(
-      kind === "product-header" ? t.proxyHintProductHeader : t.proxyHintProductSignature,
+      kind === "product-header"
+        ? t.proxyHintProductHeader
+        : t.proxyHintProductSignature,
       { product: PROXY_HINT_PRODUCT_NAMES[productId] },
     );
   }
 
-  return t.proxyHintSignals[label as ProxyHintFixedLabel] || t.proxyHintSignals["proxy-signature"];
+  return (
+    t.proxyHintSignals[label as ProxyHintFixedLabel] ||
+    t.proxyHintSignals["proxy-signature"]
+  );
 }
 
-export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps) {
+export function IpDisplay({
+  targetIp,
+  locale,
+  onLoadingChange,
+}: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(null);
-  const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(null);
+  const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(
+    null,
+  );
+  const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(
+    null,
+  );
   const [ipv6Loading, setIpv6Loading] = useState(false);
-  const [localProxyHints, setLocalProxyHints] = useState<ProxyHintAssessment | null>(null);
-  const [visitorBrowser, setVisitorBrowser] = useState<DetectedBrowserInfo | null>(null);
+  const [localProxyHints, setLocalProxyHints] =
+    useState<ProxyHintAssessment | null>(null);
+  const [visitorBrowser, setVisitorBrowser] =
+    useState<DetectedBrowserInfo | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [fingerprintReady, setFingerprintReady] = useState(false);
   const t = getTranslation(locale);
@@ -384,7 +410,9 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
       if (!info) return;
 
       setVisitorBrowser(info);
-      const hash = await hashFingerprintMaterial(buildFingerprintMaterial(deviceHints, info));
+      const hash = await hashFingerprintMaterial(
+        buildFingerprintMaterial(deviceHints, info),
+      );
       if (!active) return;
       setFingerprint(hash);
       setFingerprintReady(true);
@@ -397,7 +425,11 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col gap-6" role="status" aria-busy="true">
+      <div
+        className="flex w-full flex-col gap-6"
+        role="status"
+        aria-busy="true"
+      >
         <span className="sr-only">{toolT.lookupInProgress}</span>
         <Card className="gap-0 overflow-hidden p-0">
           <CardTitleBar
@@ -410,7 +442,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
               <Skeleton className="h-6 w-80 max-w-full" />
               <Skeleton className="h-4 w-48" />
             </div>
-            <div className="flex flex-col gap-3 border-t p-6 lg:border-t-0 lg:border-l lg:p-7">
+            <div className="flex flex-col gap-3 border-t p-6 lg:border-t-0 lg:border-e lg:p-7">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-7 w-40" />
               <Skeleton className="h-8 w-32" />
@@ -457,14 +489,18 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
   const displayIpv4 = displayIps.ipv4?.ip || null;
   const displayIpv6 = displayIps.ipv6?.ip || null;
   const asnHref = getAsnHref(data.as);
-  const connectionTypeLabel = t.connectionTypes[data.connectionType] ?? t.unknown;
+  const connectionTypeLabel =
+    t.connectionTypes[data.connectionType] ?? t.unknown;
   const reputationIp = displayIpv4 || displayIpv6;
   const displayedProxyHints = targetIp
     ? null
     : mergeProxyHintAssessments(data.proxyHints, localProxyHints);
   const displayedProxyHintLabels = displayedProxyHints?.detected
     ? [...displayedProxyHints.labels]
-        .sort((left, right) => getProxyHintLabelPriority(right) - getProxyHintLabelPriority(left))
+        .sort(
+          (left, right) =>
+            getProxyHintLabelPriority(right) - getProxyHintLabelPriority(left),
+        )
         .slice(0, 3)
         .map((label) => formatProxyHintLabel(label, t))
     : [];
@@ -549,7 +585,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
           </div>
 
           {/* Connection summary */}
-          <div className="flex flex-col justify-center gap-4 border-t p-6 lg:border-t-0 lg:border-l lg:p-7">
+          <div className="flex flex-col justify-center gap-4 border-t p-6 lg:border-t-0 lg:border-e lg:p-7">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.detectedConnectionType}
             </p>
@@ -575,12 +611,24 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
             {displayedProxyHints?.detected && (
               <div className="border-t border-border/60 pt-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <ShieldAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+                  <ShieldAlert
+                    className="size-4 shrink-0 text-warning"
+                    aria-hidden="true"
+                  />
                   <p className="text-xs font-semibold text-foreground">
                     {t.additionalProxyHint}
                   </p>
-                  <Badge variant={PROXY_HINT_BADGE_VARIANTS[displayedProxyHints.confidence]}>
-                    {t.proxyHintConfidence}: {t.proxyHintConfidenceLevels[displayedProxyHints.confidence]}
+                  <Badge
+                    variant={
+                      PROXY_HINT_BADGE_VARIANTS[displayedProxyHints.confidence]
+                    }
+                  >
+                    {t.proxyHintConfidence}:{" "}
+                    {
+                      t.proxyHintConfidenceLevels[
+                        displayedProxyHints.confidence
+                      ]
+                    }
                   </Badge>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -588,7 +636,9 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
                 </p>
                 {displayedProxyHintLabels.length > 0 && (
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    <span className="font-medium text-foreground/80">{t.proxyHintReasons}:</span>{" "}
+                    <span className="font-medium text-foreground/80">
+                      {t.proxyHintReasons}:
+                    </span>{" "}
                     {displayedProxyHintLabels.join(", ")}
                   </p>
                 )}
@@ -600,7 +650,9 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
 
             {reputationIp && (
               <Button asChild variant="outline" size="sm" className="w-fit">
-                <Link href={`/reputation?ip=${encodeURIComponent(reputationIp)}`}>
+                <Link
+                  href={`/reputation?ip=${encodeURIComponent(reputationIp)}`}
+                >
                   <ShieldAlert className="size-4" />
                   {t.checkReputation}
                 </Link>
@@ -646,7 +698,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
                 className="inline-flex items-center gap-1 font-mono text-foreground transition-colors hover:text-primary"
               >
                 <span className="break-all">{data.as}</span>
-                <ExternalLink className="size-3.5 shrink-0" />
+                <ExternalLink className="size-3.5 shrink-0 rtl:rotate-180" />
               </Link>
             ) : (
               <span className="font-mono">{orUnknown(data.as)}</span>

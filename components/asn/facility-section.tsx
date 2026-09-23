@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import type { PeeringDbFacility } from "@/lib/asn";
 import type { FacilitySortKey, SortState } from "@/lib/asn-sort";
-import { defaultFacilitySortDirection, nextHeaderSort, sortFacilities } from "@/lib/asn-sort";
+import {
+  defaultFacilitySortDirection,
+  nextHeaderSort,
+  sortFacilities,
+} from "@/lib/asn-sort";
 import { formatNumber, formatTemplate, valueOrDash } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
@@ -46,7 +50,10 @@ export function FacilitySection({
   locale: Locale;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [sort, setSort] = useState<SortState<FacilitySortKey>>({ key: null, direction: null });
+  const [sort, setSort] = useState<SortState<FacilitySortKey>>({
+    key: null,
+    direction: null,
+  });
 
   const sorted = useMemo(
     () => sortFacilities(facilities, sort.key, sort.direction, locale),
@@ -55,18 +62,35 @@ export function FacilitySection({
   const visible = expanded ? sorted : sorted.slice(0, ROW_LIMIT);
 
   const toggleSort = (key: FacilitySortKey) =>
-    setSort((prev) => nextHeaderSort(prev, key, defaultFacilitySortDirection()));
+    setSort((prev) =>
+      nextHeaderSort(prev, key, defaultFacilitySortDirection()),
+    );
 
-  const headers: { key: FacilitySortKey; label: string; className?: string; align?: "left" | "right" }[] = [
+  const headers: {
+    key: FacilitySortKey;
+    label: string;
+    className?: string;
+    align?: "start" | "end";
+  }[] = [
     { key: "name", label: t.asnLabelFacility },
     { key: "city", label: t.asnLabelCity },
     { key: "country", label: t.asnLabelCountry },
-    { key: "localAsn", label: t.asnLabelLocalAsn, className: "text-right", align: "right" },
+    {
+      key: "localAsn",
+      label: t.asnLabelLocalAsn,
+      className: "text-end",
+      align: "end",
+    },
   ];
 
   const sortLabel = (column: string, key: FacilitySortKey) => {
     const state = sort.key === key && sort.direction ? sort.direction : null;
-    const order = state === "asc" ? t.asnSortAscending : state === "desc" ? t.asnSortDescending : t.asnSortNotSorted;
+    const order =
+      state === "asc"
+        ? t.asnSortAscending
+        : state === "desc"
+          ? t.asnSortDescending
+          : t.asnSortNotSorted;
     return `${formatTemplate(t.asnSortBy, { column })} (${order})`;
   };
 
@@ -81,16 +105,22 @@ export function FacilitySection({
             </span>
           )}
         </h3>
-        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnFacilitiesDescription}</p>
+        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">
+          {t.asnFacilitiesDescription}
+        </p>
       </div>
 
       {facilities.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t.asnNoFacilityRecords}</p>
+        <p className="text-sm text-muted-foreground">
+          {t.asnNoFacilityRecords}
+        </p>
       ) : (
         <>
           {/* Desktop: dense data table */}
           <div className="hidden overflow-hidden rounded-lg border border-border/60 md:block">
-            <Table aria-label={`${t.asnFacilities} (${t.asnSortTable.toLowerCase()})`}>
+            <Table
+              aria-label={`${t.asnFacilities} (${t.asnSortTable.toLowerCase()})`}
+            >
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   {headers.map((header) => (
@@ -108,8 +138,12 @@ export function FacilitySection({
                     >
                       <SortableColumnHeader
                         label={header.label}
-                        active={sort.key === header.key && Boolean(sort.direction)}
-                        direction={sort.key === header.key ? sort.direction : null}
+                        active={
+                          sort.key === header.key && Boolean(sort.direction)
+                        }
+                        direction={
+                          sort.key === header.key ? sort.direction : null
+                        }
                         onToggle={() => toggleSort(header.key)}
                         ariaLabel={sortLabel(header.label, header.key)}
                         align={header.align}
@@ -133,7 +167,7 @@ export function FacilitySection({
                     <TableCell className="py-2">
                       <CountryCell country={entry.country} />
                     </TableCell>
-                    <TableCell className="py-2 text-right font-mono text-xs text-foreground/80 tabular-nums">
+                    <TableCell className="py-2 text-end font-mono text-xs text-foreground/80 tabular-nums">
                       {valueOrDash(entry.localAsn)}
                     </TableCell>
                   </TableRow>
@@ -150,7 +184,10 @@ export function FacilitySection({
                 className="flex flex-col gap-1 border-b border-border/60 py-2.5 first:pt-0 last:border-b-0"
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 text-sm font-medium text-foreground" title={entry.name}>
+                  <span
+                    className="min-w-0 text-sm font-medium text-foreground"
+                    title={entry.name}
+                  >
                     {entry.name}
                   </span>
                   <span className="shrink-0 font-mono text-xs text-foreground/80 tabular-nums">
@@ -160,7 +197,10 @@ export function FacilitySection({
                 <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                   {valueOrDash(entry.city)}
                   {entry.city && entry.country && (
-                    <span aria-hidden="true" className="text-muted-foreground/40">
+                    <span
+                      aria-hidden="true"
+                      className="text-muted-foreground/40"
+                    >
                       ·
                     </span>
                   )}
@@ -171,7 +211,12 @@ export function FacilitySection({
           </ul>
 
           {sorted.length > ROW_LIMIT && (
-            <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={sorted.length} t={t} />
+            <ShowMoreButton
+              expanded={expanded}
+              onToggle={() => setExpanded(!expanded)}
+              count={sorted.length}
+              t={t}
+            />
           )}
         </>
       )}

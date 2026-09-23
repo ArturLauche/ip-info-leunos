@@ -1,26 +1,34 @@
 import type { Metadata } from "next";
-import { SUPPORTED_LOCALES } from "@/lib/i18n";
+import {
+  DEFAULT_LOCALE,
+  getLocaleOpenGraphLanguage,
+  getLocaleSchemaLanguage,
+  getTranslation,
+  SUPPORTED_LOCALES,
+  type Locale,
+} from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
 
 export const siteConfig = {
   name: "IP Auskunft",
   shortName: "IP Auskunft",
   description:
-    "Kostenlose Netzwerk-Tools für öffentliche IP-Adressen, ASN, DNS, Whois, CDN-Erkennung, Erreichbarkeit und IP-Reputation.",
+    "Free network tools for public IP addresses, ASN, DNS, WHOIS, CDN detection, reachability and IP reputation.",
   url: "https://ip-info.leunos.com",
-  locale: "de_DE",
+  locale: "en_US",
   keywords: [
-    "IP Adresse",
-    "Meine IP",
-    "IP Lookup",
-    "ASN Lookup",
-    "DNS Lookup",
-    "Whois",
-    "CDN Check",
+    "public IP",
+    "my IP",
+    "IP lookup",
+    "ASN lookup",
+    "DNS lookup",
+    "WHOIS",
+    "CDN check",
     "PeeringDB",
-    "Ping Test",
-    "Netzwerk Analyse",
-    "IP Reputation",
-    "Blacklist Check",
+    "ping test",
+    "network analysis",
+    "IP reputation",
+    "blacklist check",
   ],
 };
 
@@ -29,14 +37,43 @@ export const siteConfig = {
 export const defaultOpenGraphImage = "/og-image.png";
 const openGraphImageWidth = 1200;
 const openGraphImageHeight = 630;
-const openGraphImageAlt = `${siteConfig.name} – Netzwerk- & IP-Toolkit`;
 
-/**
- * Schema.org `inLanguage` tags for every UI locale. `de` is published as
- * `de-DE` to match the site's primary market.
- */
+export function getSiteDescription(locale: Locale): string {
+  const t = getTranslation(locale);
+  const toolT = getToolTranslation(locale);
+  return `${t.homeSubtitle}. ${toolT.dnsSubtitle} ${toolT.pingSubtitle} ${toolT.reputationSubtitle}`;
+}
+
+export function getSiteKeywords(locale: Locale): string[] {
+  const t = getTranslation(locale);
+  const toolT = getToolTranslation(locale);
+  return [
+    t.homeTitle,
+    t.checkTitle,
+    toolT.asnTitle,
+    toolT.dnsTitle,
+    toolT.whoisTitle,
+    toolT.cdnTitle,
+    toolT.pingTitle,
+    toolT.reputationTitle,
+    "ASN",
+    "BGP",
+    "DNS",
+    "WHOIS",
+    "CDN",
+    "IPv4",
+    "IPv6",
+    "PeeringDB",
+  ];
+}
+
+function getOpenGraphImageAlt(locale: Locale): string {
+  return `${siteConfig.name} – ${getToolTranslation(locale).brandTagline}`;
+}
+
+/** Schema.org `inLanguage` tags for every UI locale, using the central registry. */
 export const schemaInLanguage = SUPPORTED_LOCALES.map((locale) =>
-  locale === "de" ? "de-DE" : locale,
+  getLocaleSchemaLanguage(locale),
 );
 
 /** Absolute document title. Next.js `title.template` is not applied to `app/page.tsx`. */
@@ -62,11 +99,13 @@ export function createPageMetadata({
   description,
   path = "/",
   keywords = [],
+  locale = DEFAULT_LOCALE,
 }: {
   title: string;
   description: string;
   path?: string;
   keywords?: string[];
+  locale?: Locale;
 }): Metadata {
   const canonical = canonicalUrl(path);
 
@@ -75,7 +114,7 @@ export function createPageMetadata({
       absolute: documentTitle(title),
     },
     description,
-    keywords: [...siteConfig.keywords, ...keywords],
+    keywords: [...getSiteKeywords(locale), ...keywords],
     applicationName: siteConfig.name,
     authors: [{ name: siteConfig.name, url: siteConfig.url }],
     creator: siteConfig.name,
@@ -87,6 +126,9 @@ export function createPageMetadata({
       address: false,
     },
     alternates: {
+      // The app intentionally has one canonical URL per route. Locale is
+      // negotiated from Accept-Language and an explicit functional cookie;
+      // emitting hreflang URLs for non-existent locale paths would be false.
       canonical,
       types: {
         "text/plain": `${siteConfig.url}/llms.txt`,
@@ -105,7 +147,7 @@ export function createPageMetadata({
     },
     openGraph: {
       type: "website",
-      locale: siteConfig.locale,
+      locale: getLocaleOpenGraphLanguage(locale),
       url: canonical,
       title,
       description,
@@ -115,7 +157,7 @@ export function createPageMetadata({
           url: defaultOpenGraphImage,
           width: openGraphImageWidth,
           height: openGraphImageHeight,
-          alt: openGraphImageAlt,
+          alt: getOpenGraphImageAlt(locale),
           type: "image/png",
         },
       ],
@@ -129,7 +171,7 @@ export function createPageMetadata({
           url: defaultOpenGraphImage,
           width: openGraphImageWidth,
           height: openGraphImageHeight,
-          alt: openGraphImageAlt,
+          alt: getOpenGraphImageAlt(locale),
           type: "image/png",
         },
       ],

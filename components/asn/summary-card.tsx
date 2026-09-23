@@ -42,7 +42,13 @@ function formatAllocated(value: string, locale: Locale) {
   }).format(date);
 }
 
-function DataCompletenessBadge({ complete, t }: { complete: boolean; t: ToolTranslation }) {
+function DataCompletenessBadge({
+  complete,
+  t,
+}: {
+  complete: boolean;
+  t: ToolTranslation;
+}) {
   // Deliberately quiet (outline + status dot): the badge explains the data, it
   // must never compete with the ASN identity beside it.
   return complete ? (
@@ -88,7 +94,10 @@ function AsnIdentity({
     const type = result.type.charAt(0).toUpperCase() + result.type.slice(1);
     meta.push(<span className="break-words">{type}</span>);
   }
-  if (result.registry) meta.push(<span className="break-words">{result.registry.toUpperCase()}</span>);
+  if (result.registry)
+    meta.push(
+      <span className="break-words">{result.registry.toUpperCase()}</span>,
+    );
   if (result.allocated) {
     meta.push(
       <span className="break-words">
@@ -117,9 +126,12 @@ function AsnIdentity({
       </div>
 
       {(meta.length > 0 || result.domain) && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-12 text-[13px] leading-relaxed text-muted-foreground sm:pl-13">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 ps-12 text-[13px] leading-relaxed text-muted-foreground sm:ps-13">
           {meta.map((entry, index) => (
-            <span key={index} className="inline-flex min-w-0 items-center gap-2">
+            <span
+              key={index}
+              className="inline-flex min-w-0 items-center gap-2"
+            >
               {index > 0 && (
                 <span aria-hidden="true" className="text-muted-foreground/40">
                   ·
@@ -191,7 +203,9 @@ function AsnMetrics({
       caption: t.asnMetricBgpRelationshipsDetail,
       icon: Share2,
       value:
-        (result.peersTotal || 0) + (result.upstreamsTotal || 0) + (result.downstreamsTotal || 0),
+        (result.peersTotal || 0) +
+        (result.upstreamsTotal || 0) +
+        (result.downstreamsTotal || 0),
     },
     {
       key: "ix",
@@ -208,11 +222,17 @@ function AsnMetrics({
         const missing = metric.value === null;
         const empty = metric.value === 0;
         return (
-          <div key={metric.key} className="flex min-w-0 flex-col gap-1 bg-card p-4 sm:p-5">
+          <div
+            key={metric.key}
+            className="flex min-w-0 flex-col gap-1 bg-card p-4 sm:p-5"
+          >
             {/* Value leads visually (strong number hierarchy, immune to label
                 wrapping); the DOM keeps dt before dd for assistive tech. */}
             <dt className="order-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <metric.icon className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+              <metric.icon
+                className="size-3.5 shrink-0 text-muted-foreground/70"
+                aria-hidden
+              />
               <span className="min-w-0 break-words">{metric.label}</span>
             </dt>
             <dd
