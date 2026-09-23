@@ -1,29 +1,48 @@
 "use client";
 
 /**
- * ASN overview: the identity block (ASN, name, geography, provenance) followed
- * by a hairline-divided metrics band. Everything a user needs to understand an
- * ASN within seconds sits in this one card; details live in the tabs below.
+ * ASN overview, read top to bottom: identity (ASN, organisation, registry
+ * facts), then the four comparison metrics, then a quiet provenance strip.
+ * Everything a user needs to understand an ASN within seconds sits in this
+ * one card; the tabs below hold the detail.
  */
 
 import type { ReactNode } from "react";
 import {
-  AlertTriangle,
+  ArrowDown,
+  ArrowLeftRight,
+  ArrowUp,
   Building2,
-  Globe,
+  CircleCheck,
   Network,
   Route,
   Share2,
-  Waypoints,
+  TriangleAlert,
+  type LucideIcon,
 } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
+import { CopyButton } from "@/components/copy-button";
 import { CountryFlag } from "@/components/country-flag";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { formatNumber } from "@/lib/format";
-import type { Locale } from "@/lib/i18n";
+import { formatNumber, formatTemplate } from "@/lib/format";
+import { getTranslation, type Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
+import {
+  countryName,
+  formatCount,
+  hasRoutingSource,
+  ipv4EquivalentBits,
+  isCompleteProfile,
+  knownTotal,
+  networkTypeName,
+  prefixTotal,
+  registryName,
+  routingTotal,
+  splitHolderName,
+} from "./helpers";
+import { ExternalLink } from "./external-link";
+import { SourceStatusList } from "./source-status";
 
 // IPinfo reports allocation as an ISO date; show it in the visitor's locale
 // while tolerating unexpected provider values.
@@ -42,163 +61,197 @@ function formatAllocated(value: string, locale: Locale) {
   }).format(date);
 }
 
-function DataCompletenessBadge({ complete, t }: { complete: boolean; t: ToolTranslation }) {
-  // Deliberately quiet (outline + status dot): the badge explains the data, it
-  // must never compete with the ASN identity beside it.
-  return complete ? (
-    <Badge variant="outline" className="gap-1.5 border-success/40 text-success">
-      <span className="size-1.5 rounded-full bg-success" aria-hidden />
-      {t.asnCompleteData}
-    </Badge>
-  ) : (
-    <Badge variant="outline" className="gap-1.5 border-warning/50 text-warning">
-      <AlertTriangle className="size-3" aria-hidden />
-      {t.asnPartialData}
-    </Badge>
-  );
+interface Fact {
+  key: string;
+  label: string;
+  value: ReactNode;
 }
 
-function AsnIdentity({
-  result,
-  t,
-  locale,
-}: {
-  result: AsnProfile;
-  t: ToolTranslation;
-  locale: Locale;
-}) {
-  const complete =
-    result.sources.ipinfo === "available" &&
-    result.sources.peeringdb === "available" &&
-    result.sources.ripestat === "available" &&
-    result.warnings.length === 0;
+function AsnIdentity({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
+  const baseT = getTranslation(locale);
+  const { handle, organisation } = splitHolderName(result.name);
 
-  const meta: ReactNode[] = [];
+  const facts: Fact[] = [];
   if (result.country) {
-    meta.push(
-      <span className="inline-flex items-center gap-1.5 font-medium text-foreground/75">
-        <CountryFlag countryCode={result.country} />
-        {result.country}
-      </span>,
-    );
+    const code = result.country.trim().toUpperCase();
+    facts.push({
+      key: "country",
+      label: t.asnLabelCountry,
+      value: (
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <CountryFlag countryCode={code} />
+          <span className="min-w-0 break-words">{countryName(code, locale)}</span>
+          <span className="font-mono text-[11px] font-medium text-muted-foreground">{code}</span>
+        </span>
+      ),
+    });
   }
   if (result.type) {
-    // IPinfo reports lowercase categories ("content", "transit"); present them
-    // as proper nouns so the metadata line reads like prose.
-    const type = result.type.charAt(0).toUpperCase() + result.type.slice(1);
-    meta.push(<span className="break-words">{type}</span>);
+    facts.push({ key: "type", label: t.asnLabelType, value: networkTypeName(result.type, t) });
   }
-  if (result.registry) meta.push(<span className="break-words">{result.registry.toUpperCase()}</span>);
+  if (result.registry) {
+    facts.push({ key: "registry", label: t.asnLabelRegistry, value: registryName(result.registry) });
+  }
   if (result.allocated) {
-    meta.push(
-      <span className="break-words">
-        {t.asnLabelAllocated} {formatAllocated(result.allocated, locale)}
-      </span>,
-    );
+    facts.push({
+      key: "allocated",
+      label: t.asnLabelAllocated,
+      value: <time dateTime={result.allocated}>{formatAllocated(result.allocated, locale)}</time>,
+    });
+  }
+  if (result.domain) {
+    facts.push({
+      key: "domain",
+      label: t.asnLabelDomain,
+      value: (
+        <ExternalLink href={`https://${result.domain}`} text={result.domain} />
+      ),
+    });
   }
 
   return (
-    <div className="flex flex-col gap-3.5 p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-10">
-            <Waypoints className="size-4 sm:size-5" aria-hidden />
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {result.asn}
-            </h2>
-            <p className="text-[0.95rem] leading-snug font-medium break-words text-foreground/90 sm:text-base">
-              {result.name || t.asnUnnamed}
-            </p>
-          </div>
+    <div className="flex flex-col gap-5 p-5 sm:p-6">
+      <div className="flex min-w-0 flex-col gap-2">
+        <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+          {t.asnIdentityEyebrow}
+        </p>
+        <div className="flex items-center gap-1">
+          <h2 className="font-mono text-[1.625rem] leading-none font-semibold tracking-tight text-foreground sm:text-3xl">
+            {result.asn}
+          </h2>
+          <CopyButton
+            text={result.asn}
+            label={t.asnCopyAsn}
+            copiedLabel={baseT.copiedToClipboard}
+            failedLabel={baseT.copyFailed}
+            className="size-9 pointer-coarse:size-11 [&_svg]:size-3.5"
+          />
         </div>
-        <DataCompletenessBadge complete={complete} t={t} />
-      </div>
-
-      {(meta.length > 0 || result.domain) && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-12 text-[13px] leading-relaxed text-muted-foreground sm:pl-13">
-          {meta.map((entry, index) => (
-            <span key={index} className="inline-flex min-w-0 items-center gap-2">
-              {index > 0 && (
-                <span aria-hidden="true" className="text-muted-foreground/40">
-                  ·
-                </span>
-              )}
-              {entry}
-            </span>
-          ))}
-          {result.domain && (
-            <span className="inline-flex min-w-0 items-center gap-2">
-              {meta.length > 0 && (
-                <span aria-hidden="true" className="text-muted-foreground/40">
-                  ·
-                </span>
-              )}
-              <a
-                href={`https://${result.domain}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-w-0 items-center gap-1.5 rounded-sm font-medium break-all text-primary outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring/60"
-              >
-                <Globe className="size-3.5 shrink-0" aria-hidden />
-                {result.domain}
-              </a>
+        <p
+          className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-base leading-snug font-medium text-foreground/90 sm:text-lg"
+          title={handle ? result.name : undefined}
+        >
+          <span className={cn("min-w-0 break-words", !organisation && "text-muted-foreground")}>
+            {organisation || t.asnUnnamed}
+          </span>
+          {handle && (
+            <span className="font-mono text-xs font-medium tracking-wide break-all text-muted-foreground">
+              {handle}
             </span>
           )}
-        </div>
+        </p>
+      </div>
+
+      {facts.length > 0 && (
+        <dl className="flex flex-wrap gap-x-8 gap-y-3 border-t border-border/60 pt-4 sm:gap-x-10">
+          {facts.map((fact) => (
+            <div key={fact.key} className="flex min-w-0 max-w-full flex-col gap-1">
+              <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                {fact.label}
+              </dt>
+              <dd className="text-sm font-medium text-foreground">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
     </div>
   );
 }
 
-interface MetricCell {
+interface Metric {
   key: string;
   label: string;
-  caption: string;
-  icon: typeof Network;
+  icon: LucideIcon;
   /** null renders as an em dash (data unavailable rather than zero). */
   value: number | null;
+  caption: ReactNode;
 }
 
-function AsnMetrics({
-  result,
-  t,
-  locale,
-}: {
-  result: AsnProfile;
-  t: ToolTranslation;
-  locale: Locale;
-}) {
-  const metrics: MetricCell[] = [
+function RelationSplit({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
+  const parts = [
+    { key: "up", icon: ArrowUp, label: t.asnRelationUpstreams, value: result.upstreamsTotal },
+    { key: "peer", icon: ArrowLeftRight, label: t.asnRelationPeers, value: result.peersTotal },
+    { key: "down", icon: ArrowDown, label: t.asnRelationDownstreams, value: result.downstreamsTotal },
+  ];
+
+  return (
+    <span className="inline-flex flex-wrap gap-x-2 gap-y-0.5">
+      {parts.map((part) => (
+        <span
+          key={part.key}
+          className="inline-flex items-center gap-0.5"
+          title={`${part.label}: ${formatNumber(part.value, locale)}`}
+        >
+          <part.icon className="size-3 shrink-0 opacity-70" aria-hidden />
+          <span className="sr-only">{part.label}</span>
+          {formatNumber(part.value, locale)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function AsnMetrics({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
+  // Prefixes and neighbours only come from IPinfo or RIPEstat. When neither
+  // answered, a zero would claim "none announced" — show unavailable instead.
+  const routingSourceAvailable = hasRoutingSource(result);
+  const prefixes = prefixTotal(result);
+  const neighbours = routingTotal(result);
+  const bits = ipv4EquivalentBits(result.numIps);
+
+  const metrics: Metric[] = [
     {
       key: "ips",
       label: t.asnMetricIpv4Addresses,
-      caption: t.asnMetricIpinfoDetail,
       icon: Network,
       value: result.numIps,
+      caption:
+        bits !== null
+          ? formatTemplate(t.asnMetricIpv4Equivalent, { bits })
+          : result.numIps === null
+            ? result.sources.ipinfo === "not_configured"
+              ? t.asnMetricRequiresIpinfo
+              : t.asnMetricNotReported
+            : null,
     },
     {
       key: "prefixes",
       label: t.asnPrefixes,
-      caption: t.asnMetricAnnouncedPrefixesDetail,
       icon: Route,
-      value: (result.prefixes4Total || 0) + (result.prefixes6Total || 0),
+      value: knownTotal(result, prefixes),
+      caption:
+        prefixes > 0 ? (
+          <>
+            {formatNumber(result.prefixes4Total, locale)} {t.asnLabelIpv4}
+            <span aria-hidden className="px-1 text-muted-foreground/50">
+              ·
+            </span>
+            {formatNumber(result.prefixes6Total, locale)} {t.asnLabelIpv6}
+          </>
+        ) : routingSourceAvailable ? null : (
+          t.asnMetricNotReported
+        ),
     },
     {
       key: "neighbours",
       label: t.asnMetricRoutingNeighbours,
-      caption: t.asnMetricBgpRelationshipsDetail,
       icon: Share2,
-      value:
-        (result.peersTotal || 0) + (result.upstreamsTotal || 0) + (result.downstreamsTotal || 0),
+      value: knownTotal(result, neighbours),
+      caption:
+        neighbours > 0 ? (
+          <RelationSplit result={result} t={t} locale={locale} />
+        ) : routingSourceAvailable ? null : (
+          t.asnMetricNotReported
+        ),
     },
     {
       key: "ix",
       label: t.asnMetricIxPresence,
-      caption: t.asnMetricPeeringDbProfileDetail,
       icon: Building2,
       value: result.peeringdb ? result.peeringdb.ixCount || 0 : null,
+      caption: result.peeringdb
+        ? formatCount(t.asnFacilityCount, result.peeringdb.facilityCount || 0, locale)
+        : t.asnMetricNoPeeringDb,
     },
   ];
 
@@ -208,30 +261,59 @@ function AsnMetrics({
         const missing = metric.value === null;
         const empty = metric.value === 0;
         return (
-          <div key={metric.key} className="flex min-w-0 flex-col gap-1 bg-card p-4 sm:p-5">
-            {/* Value leads visually (strong number hierarchy, immune to label
-                wrapping); the DOM keeps dt before dd for assistive tech. */}
-            <dt className="order-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <metric.icon className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+          // Each cell spans three subgrid rows (label, value, caption) so
+          // values stay on one line across a band even when a label wraps.
+          <div
+            key={metric.key}
+            className="row-span-3 grid min-w-0 grid-rows-subgrid gap-y-1 bg-card px-5 py-3.5 sm:px-6 sm:py-4"
+          >
+            <dt className="flex min-w-0 items-start gap-1.5 self-end text-xs font-medium text-muted-foreground">
+              <metric.icon className="mt-px size-3.5 shrink-0 opacity-70" aria-hidden />
               <span className="min-w-0 break-words">{metric.label}</span>
             </dt>
             <dd
               className={cn(
-                "order-1 text-lg tracking-tight tabular-nums sm:text-xl lg:text-2xl",
+                "text-xl leading-tight tracking-tight tabular-nums sm:text-2xl",
                 missing && "font-normal text-muted-foreground/60",
-                empty && "font-medium text-foreground/75",
+                empty && "font-medium text-foreground/60",
                 !missing && !empty && "font-semibold text-foreground",
               )}
             >
               {missing ? "—" : formatNumber(metric.value, locale)}
             </dd>
-            <p className="order-3 hidden text-[11px] leading-snug text-muted-foreground/70 lg:block">
-              {metric.caption}
-            </p>
+            {metric.caption ? (
+              <dd className="text-[11px] leading-snug text-muted-foreground tabular-nums">
+                {metric.caption}
+              </dd>
+            ) : (
+              <dd aria-hidden />
+            )}
           </div>
         );
       })}
     </dl>
+  );
+}
+
+function AsnProvenance({ result, t }: { result: AsnProfile; t: ToolTranslation }) {
+  const complete = isCompleteProfile(result);
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 bg-muted/30 px-5 py-2.5 text-xs sm:px-6">
+      <span className="inline-flex items-center gap-1.5 font-medium text-foreground/85">
+        {complete ? (
+          <CircleCheck className="size-3.5 text-success" aria-hidden />
+        ) : (
+          <TriangleAlert className="size-3.5 text-warning" aria-hidden />
+        )}
+        {complete ? t.asnCompleteData : t.asnPartialData}
+      </span>
+      <span aria-hidden className="hidden h-3.5 w-px bg-border sm:block" />
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">
+        <span className="text-muted-foreground">{t.asnSourcesLabel}</span>
+        <SourceStatusList sources={result.sources} t={t} />
+      </div>
+    </div>
   );
 }
 
@@ -248,6 +330,7 @@ export function AsnSummaryCard({
     <Card className="gap-0 overflow-hidden p-0">
       <AsnIdentity result={result} t={t} locale={locale} />
       <AsnMetrics result={result} t={t} locale={locale} />
+      <AsnProvenance result={result} t={t} />
     </Card>
   );
 }

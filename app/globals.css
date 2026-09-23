@@ -313,6 +313,33 @@
       opacity var(--motion-base) var(--ease-smooth);
   }
 
+  /*
+   * Sliding underline for tab bars that sit on a card edge (ASN details).
+   * Same measure-and-slide model as the segment chip above: it rides the
+   * container's bottom hairline and only animates once it is already visible.
+   */
+  .tool-tab-indicator {
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    z-index: 1;
+    height: 2px;
+    border-radius: 9999px;
+    background-color: var(--foreground);
+  }
+
+  .tool-tab-indicator[data-animate="true"] {
+    transition: opacity var(--motion-base) var(--ease-smooth);
+  }
+
+  .tool-tab-indicator[data-animate="true"][data-slide="true"] {
+    transition:
+      transform var(--motion-slow) var(--ease-fluid),
+      width var(--motion-slow) var(--ease-fluid),
+      opacity var(--motion-base) var(--ease-smooth);
+  }
+
   .tool-nav-item-fallback {
     background-color: var(--sidebar-accent);
     box-shadow:
@@ -518,6 +545,9 @@
   .tool-segment-highlight,
   .tool-segment-highlight[data-animate="true"],
   .tool-segment-highlight[data-animate="true"][data-slide="true"],
+  .tool-tab-indicator,
+  .tool-tab-indicator[data-animate="true"],
+  .tool-tab-indicator[data-animate="true"][data-slide="true"],
   .ping-mode-expand {
     transition-duration: 0.01ms;
   }

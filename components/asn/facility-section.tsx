@@ -1,50 +1,97 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useId, useMemo, useState } from "react";
 import type { PeeringDbFacility } from "@/lib/asn";
 import type { FacilitySortKey, SortState } from "@/lib/asn-sort";
 import { defaultFacilitySortDirection, nextHeaderSort, sortFacilities } from "@/lib/asn-sort";
-import { formatNumber, formatTemplate, valueOrDash } from "@/lib/format";
+import { formatTemplate } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/country-flag";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyColumn } from "./data-column";
+import { ExternalLink } from "./external-link";
+import { ASN_ROW_LIMIT, countryName, formatCount, peeringDbUrl } from "./helpers";
+import { MobileSortControl } from "./mobile-sort-control";
+import { SectionHeading } from "./section-heading";
 import { ShowMoreButton } from "./show-more-button";
-import { SortableColumnHeader } from "./sortable-column-header";
+import { SortableTableHead, type SortableColumn } from "./sortable-column-header";
 
-const ROW_LIMIT = 8;
-
-function CountryCell({ country }: { country: string }) {
-  if (!country) return <span className="text-muted-foreground/60">—</span>;
+function Country({ code, locale }: { code: string; locale: Locale }) {
+  if (!code) return <span className="text-muted-foreground/50">—</span>;
+  const upper = code.toUpperCase();
+  const name = countryName(upper, locale);
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <CountryFlag countryCode={country} />
-      <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        {country}
+    <span className="inline-flex items-center gap-1.5" title={name}>
+      <CountryFlag countryCode={upper} />
+      <span className="font-mono text-xs font-medium text-foreground/80" aria-hidden>
+        {upper}
       </span>
+      <span className="sr-only">{name}</span>
     </span>
+  );
+}
+
+function FacilityName({ entry, t }: { entry: PeeringDbFacility; t: ToolTranslation }) {
+  const url = peeringDbUrl("fac", entry.facilityId);
+  if (!url) return <span className="text-sm font-medium break-words text-foreground">{entry.name || "—"}</span>;
+
+  return (
+    <ExternalLink
+      href={url}
+      text={entry.name}
+      label={formatTemplate(t.asnViewOnPeeringDb, { name: entry.name })}
+      variant="subtle"
+      className="self-start text-sm font-medium"
+    />
+  );
+}
+
+/**
+ * Local ASN usually equals the looked-up network and is only context; a
+ * different ASN (a sibling or regional network) is the interesting case, so
+ * it is emphasised and links to its own profile.
+ */
+function LocalAsn({ value, ownAsn, t }: { value: number | null; ownAsn?: number; t: ToolTranslation }) {
+  if (value === null || value === undefined) return <span className="text-muted-foreground/50">—</span>;
+  if (value === ownAsn) {
+    return (
+      <span className="font-mono text-xs text-muted-foreground tabular-nums" title={t.asnSameAsn}>
+        AS{value}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={`/asn/AS${value}`}
+      className="rounded-sm font-mono text-xs font-semibold text-foreground tabular-nums underline decoration-border underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
+    >
+      AS{value}
+    </Link>
   );
 }
 
 export function FacilitySection({
   facilities,
   total,
+  asnNumber,
   t,
   locale,
 }: {
   facilities: PeeringDbFacility[];
   total: number;
+  /** The looked-up ASN, so matching local ASNs can recede. */
+  asnNumber?: number;
   t: ToolTranslation;
   locale: Locale;
 }) {
+  const headingId = useId();
+  const tableId = useId();
+  const listId = useId();
+  const listedTotal = Math.max(total, facilities.length);
   const [expanded, setExpanded] = useState(false);
   const [sort, setSort] = useState<SortState<FacilitySortKey>>({ key: null, direction: null });
 
@@ -52,89 +99,65 @@ export function FacilitySection({
     () => sortFacilities(facilities, sort.key, sort.direction, locale),
     [facilities, sort, locale],
   );
-  const visible = expanded ? sorted : sorted.slice(0, ROW_LIMIT);
+  const visible = expanded ? sorted : sorted.slice(0, ASN_ROW_LIMIT);
+  const sortedKey = sort.direction ? sort.key : null;
 
   const toggleSort = (key: FacilitySortKey) =>
     setSort((prev) => nextHeaderSort(prev, key, defaultFacilitySortDirection()));
 
-  const headers: { key: FacilitySortKey; label: string; className?: string; align?: "left" | "right" }[] = [
-    { key: "name", label: t.asnLabelFacility },
+  const columns: SortableColumn<FacilitySortKey>[] = [
+    { key: "name", label: t.asnLabelFacility, className: "pl-4" },
     { key: "city", label: t.asnLabelCity },
     { key: "country", label: t.asnLabelCountry },
-    { key: "localAsn", label: t.asnLabelLocalAsn, className: "text-right", align: "right" },
+    { key: "localAsn", label: t.asnLabelLocalAsn, align: "right", className: "pr-4" },
   ];
-
-  const sortLabel = (column: string, key: FacilitySortKey) => {
-    const state = sort.key === key && sort.direction ? sort.direction : null;
-    const order = state === "asc" ? t.asnSortAscending : state === "desc" ? t.asnSortDescending : t.asnSortNotSorted;
-    return `${formatTemplate(t.asnSortBy, { column })} (${order})`;
-  };
+  const cellTint = (key: FacilitySortKey) => sortedKey === key && "bg-muted/35";
 
   return (
-    <section aria-label={t.asnFacilities} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h3 className="flex items-baseline justify-between gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          {t.asnFacilities}
-          {facilities.length > 0 && (
-            <span className="font-mono text-xs font-normal normal-case tabular-nums">
-              {formatNumber(total, locale)}
-            </span>
-          )}
-        </h3>
-        <p className="max-w-2xl text-xs leading-normal text-muted-foreground">{t.asnFacilitiesDescription}</p>
-      </div>
+    <section aria-labelledby={headingId} className="flex flex-col gap-4">
+      <SectionHeading
+        id={headingId}
+        title={t.asnFacilities}
+        meta={listedTotal > 0 ? formatCount(t.asnFacilityCount, listedTotal, locale) : undefined}
+        description={t.asnFacilitiesDescription}
+      />
 
       {facilities.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t.asnNoFacilityRecords}</p>
+        <EmptyColumn text={t.asnNoFacilityRecords} />
       ) : (
-        <>
+        <div className="flex flex-col gap-2">
+          <MobileSortControl
+            options={columns.map(({ key, label }) => ({ key, label }))}
+            sort={sort}
+            onChange={setSort}
+            defaultDirection={() => defaultFacilitySortDirection()}
+            t={t}
+          />
+
           {/* Desktop: dense data table */}
-          <div className="hidden overflow-hidden rounded-lg border border-border/60 md:block">
-            <Table aria-label={`${t.asnFacilities} (${t.asnSortTable.toLowerCase()})`}>
+          <div className="hidden overflow-hidden rounded-lg border border-border/70 md:block">
+            <Table id={tableId} aria-labelledby={headingId}>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  {headers.map((header) => (
-                    <TableHead
-                      key={header.key}
-                      scope="col"
-                      className={header.className}
-                      aria-sort={
-                        sort.key === header.key && sort.direction
-                          ? sort.direction === "asc"
-                            ? "ascending"
-                            : "descending"
-                          : "none"
-                      }
-                    >
-                      <SortableColumnHeader
-                        label={header.label}
-                        active={sort.key === header.key && Boolean(sort.direction)}
-                        direction={sort.key === header.key ? sort.direction : null}
-                        onToggle={() => toggleSort(header.key)}
-                        ariaLabel={sortLabel(header.label, header.key)}
-                        align={header.align}
-                      />
-                    </TableHead>
+                  {columns.map((column) => (
+                    <SortableTableHead key={column.key} column={column} sort={sort} onToggle={toggleSort} t={t} />
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visible.map((entry, idx) => (
-                  <TableRow key={`${entry.id}-${idx}`}>
-                    <TableCell
-                      className="max-w-[18rem] py-2 font-medium text-foreground"
-                      title={entry.name}
-                    >
-                      <span className="block truncate">{entry.name}</span>
+                  <TableRow key={`${entry.id}-${idx}`} className="border-border/50 hover:bg-muted/30">
+                    <TableCell className={cn("min-w-56 py-2.5 pl-4 whitespace-normal", cellTint("name"))}>
+                      <FacilityName entry={entry} t={t} />
                     </TableCell>
-                    <TableCell className="py-2 text-muted-foreground">
-                      {valueOrDash(entry.city)}
+                    <TableCell className={cn("py-2.5 text-sm text-foreground/80", cellTint("city"))}>
+                      {entry.city || <span className="text-muted-foreground/50">—</span>}
                     </TableCell>
-                    <TableCell className="py-2">
-                      <CountryCell country={entry.country} />
+                    <TableCell className={cn("py-2.5", cellTint("country"))}>
+                      <Country code={entry.country} locale={locale} />
                     </TableCell>
-                    <TableCell className="py-2 text-right font-mono text-xs text-foreground/80 tabular-nums">
-                      {valueOrDash(entry.localAsn)}
+                    <TableCell className={cn("py-2.5 pr-4 text-right", cellTint("localAsn"))}>
+                      <LocalAsn value={entry.localAsn} ownAsn={asnNumber} t={t} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -142,38 +165,36 @@ export function FacilitySection({
             </Table>
           </div>
 
-          {/* Mobile: name with structured geography beneath */}
-          <ul className="flex flex-col md:hidden">
+          {/* Phones: name first, then structured geography and local ASN */}
+          <ul id={listId} className="flex flex-col md:hidden">
             {visible.map((entry, idx) => (
               <li
                 key={`${entry.id}-${idx}`}
-                className="flex flex-col gap-1 border-b border-border/60 py-2.5 first:pt-0 last:border-b-0"
+                className="flex flex-col gap-1.5 border-b border-border/50 py-3 last:border-b-0"
               >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 text-sm font-medium text-foreground" title={entry.name}>
-                    {entry.name}
+                <FacilityName entry={entry} t={t} />
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                    {entry.city && <span className="min-w-0 break-words">{entry.city}</span>}
+                    {entry.country && <Country code={entry.country} locale={locale} />}
                   </span>
-                  <span className="shrink-0 font-mono text-xs text-foreground/80 tabular-nums">
-                    {valueOrDash(entry.localAsn)}
-                  </span>
+                  <LocalAsn value={entry.localAsn} ownAsn={asnNumber} t={t} />
                 </div>
-                <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-                  {valueOrDash(entry.city)}
-                  {entry.city && entry.country && (
-                    <span aria-hidden="true" className="text-muted-foreground/40">
-                      ·
-                    </span>
-                  )}
-                  <CountryCell country={entry.country} />
-                </span>
               </li>
             ))}
           </ul>
 
-          {sorted.length > ROW_LIMIT && (
-            <ShowMoreButton expanded={expanded} onToggle={() => setExpanded(!expanded)} count={sorted.length} t={t} />
-          )}
-        </>
+          <ShowMoreButton
+            expanded={expanded}
+            onToggle={() => setExpanded((value) => !value)}
+            hiddenCount={sorted.length - ASN_ROW_LIMIT}
+            listed={facilities.length}
+            total={listedTotal}
+            controls={`${tableId} ${listId}`}
+            t={t}
+            locale={locale}
+          />
+        </div>
       )}
     </section>
   );
