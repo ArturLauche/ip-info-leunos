@@ -98,7 +98,7 @@ export function SourceDiagnosticsSection({
 
       {/* Desktop: compact diagnostics table */}
       <div className="hidden overflow-hidden rounded-lg border border-border/70 md:block">
-        <table className="w-full text-xs">
+        <table aria-labelledby={headingId} className="w-full text-xs">
           <thead>
             <tr className="border-b border-border/70 bg-muted/40">
               <th scope="col" className={cn(headCell, "pl-4 text-left")}>

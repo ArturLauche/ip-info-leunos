@@ -21,8 +21,10 @@ export function ExternalLink({
   variant?: "underline" | "subtle";
   className?: string;
 }) {
-  const head = text.slice(0, -3);
-  const tail = text.slice(-3);
+  // Split by code points so a non-BMP character never loses half its pair.
+  const chars = Array.from(text);
+  const head = chars.slice(0, -3).join("");
+  const tail = chars.slice(-3).join("");
 
   return (
     <a

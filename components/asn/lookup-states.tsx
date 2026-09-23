@@ -12,14 +12,14 @@ import { SourceStatusList } from "./source-status";
 /** Well-known networks of different shapes: content, cloud, eyeball ISP. */
 const EXAMPLE_ASNS = ["AS13335", "AS15169", "AS3320"];
 
-export function ExampleAsns({ t }: { t: ToolTranslation }) {
+export function ExampleAsns({ t, sourceInfo = false }: { t: ToolTranslation; sourceInfo?: boolean }) {
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
       <span className="text-xs text-muted-foreground">{t.asnExamplesLabel}</span>
       {EXAMPLE_ASNS.map((asn) => (
         <Link
           key={asn}
-          href={`/asn/${asn}`}
+          href={`/asn/${asn}${sourceInfo ? "?source-info=1" : ""}`}
           prefetch={false}
           className="inline-flex h-8 items-center rounded-md border border-border bg-background px-2.5 font-mono text-xs font-medium text-foreground/85 outline-none transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 pointer-coarse:h-11 dark:bg-input/30"
         >

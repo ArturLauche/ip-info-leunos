@@ -31,8 +31,10 @@ import { cn } from "@/lib/utils";
 import {
   countryName,
   formatCount,
+  hasRoutingSource,
   ipv4EquivalentBits,
   isCompleteProfile,
+  knownTotal,
   networkTypeName,
   prefixTotal,
   registryName,
@@ -192,8 +194,7 @@ function RelationSplit({ result, t, locale }: { result: AsnProfile; t: ToolTrans
 function AsnMetrics({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
   // Prefixes and neighbours only come from IPinfo or RIPEstat. When neither
   // answered, a zero would claim "none announced" — show unavailable instead.
-  const routingSourceAvailable =
-    result.sources.ipinfo === "available" || result.sources.ripestat === "available";
+  const routingSourceAvailable = hasRoutingSource(result);
   const prefixes = prefixTotal(result);
   const neighbours = routingTotal(result);
   const bits = ipv4EquivalentBits(result.numIps);
@@ -217,7 +218,7 @@ function AsnMetrics({ result, t, locale }: { result: AsnProfile; t: ToolTranslat
       key: "prefixes",
       label: t.asnPrefixes,
       icon: Route,
-      value: routingSourceAvailable || prefixes > 0 ? prefixes : null,
+      value: knownTotal(result, prefixes),
       caption:
         prefixes > 0 ? (
           <>
@@ -235,7 +236,7 @@ function AsnMetrics({ result, t, locale }: { result: AsnProfile; t: ToolTranslat
       key: "neighbours",
       label: t.asnMetricRoutingNeighbours,
       icon: Share2,
-      value: routingSourceAvailable || neighbours > 0 ? neighbours : null,
+      value: knownTotal(result, neighbours),
       caption:
         neighbours > 0 ? (
           <RelationSplit result={result} t={t} locale={locale} />
@@ -285,7 +286,7 @@ function AsnMetrics({ result, t, locale }: { result: AsnProfile; t: ToolTranslat
                 {metric.caption}
               </dd>
             ) : (
-              <span aria-hidden />
+              <dd aria-hidden />
             )}
           </div>
         );

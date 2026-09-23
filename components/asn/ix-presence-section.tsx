@@ -227,7 +227,7 @@ export function IxPresenceSection({
                     >
                       <div className="flex flex-col gap-0.5">
                         <Address value={entry.ipaddr4} />
-                        <Address value={entry.ipaddr6} />
+                        {entry.ipaddr6 !== entry.ipaddr4 && <Address value={entry.ipaddr6} />}
                       </div>
                     </TableCell>
                     <TableCell className={cn("py-2.5 pr-4 text-right", cellTint("rsPeer"))}>
@@ -269,7 +269,7 @@ export function IxPresenceSection({
                         <dd className="break-all text-foreground/80 select-all">{entry.ipaddr4}</dd>
                       </>
                     )}
-                    {entry.ipaddr6 && (
+                    {entry.ipaddr6 && entry.ipaddr6 !== entry.ipaddr4 && (
                       <>
                         <dt className="text-muted-foreground/70">{t.asnLabelIpv6}</dt>
                         <dd className="break-all text-foreground/80 select-all">{entry.ipaddr6}</dd>

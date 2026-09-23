@@ -3,12 +3,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { AsnProfile } from "@/lib/asn";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { ExternalLink } from "./external-link";
 import { FacilitySection } from "./facility-section";
 import {
   countryName,
   formatCount,
   formatSpeed,
   ipv4EquivalentBits,
+  knownTotal,
   peeringDbUrl,
   registryName,
   splitHolderName,
@@ -16,7 +18,7 @@ import {
 } from "./helpers";
 import { IxPresenceSection } from "./ix-presence-section";
 import { LoadingSkeleton } from "./loading-skeleton";
-import { LookupError, NotFoundState } from "./lookup-states";
+import { ExampleAsns, LookupError, NotFoundState } from "./lookup-states";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
 import { PrefixSection } from "./prefix-section";
 import { RoutingSection } from "./routing-section";
@@ -232,6 +234,7 @@ describe("RoutingSection", () => {
 
     expect(html.indexOf("Upstreams")).toBeLessThan(html.indexOf("Peers"));
     expect(html.indexOf("Peers")).toBeLessThan(html.indexOf("Downstreams"));
+    expect(html.match(/Power and peer counts observed via RIPEstat RIS\./g)?.length).toBe(1);
     expect(html.match(/RIPEstat RIS/g)?.length).toBe(1);
     // Terse cells, descriptive link names.
     expect(html).toContain('aria-label="AS6939, power 658, IPv4 peers 120, IPv6 peers 130"');
@@ -371,6 +374,15 @@ describe("IxPresenceSection", () => {
     expect(html).toContain("md:block");
   });
 
+  it("does not repeat an IPv4 address that PeeringDB also put in the IPv6 field", () => {
+    const profile = createProfile();
+    profile.peeringdb!.ixlan[1] = { ...profile.peeringdb!.ixlan[1], ipaddr6: "80.81.192.1" };
+    const html = renderToStaticMarkup(createElement(IxPresenceSection, { result: profile, t, locale: "en" }));
+
+    // Once in the desktop cell, once in the phone list — never as IPv6.
+    expect(html.match(/80\.81\.192\.1</g)?.length).toBe(2);
+  });
+
   it("flags connections PeeringDB marks as not operational", () => {
     const profile = createProfile();
     profile.peeringdb!.ixlan[1] = { ...profile.peeringdb!.ixlan[1], operational: false };
@@ -442,6 +454,13 @@ describe("lookup states", () => {
     expect(html).toContain("RIPEstat");
   });
 
+  it("keeps the source-info flag on example links", () => {
+    expect(renderToStaticMarkup(createElement(ExampleAsns, { t }))).toContain('href="/asn/AS13335"');
+    expect(renderToStaticMarkup(createElement(ExampleAsns, { t, sourceInfo: true }))).toContain(
+      'href="/asn/AS13335?source-info=1"',
+    );
+  });
+
   it("offers a retry only when one is provided", () => {
     const withRetry = renderToStaticMarkup(
       createElement(LookupError, { message: "ASN data providers are currently unavailable.", onRetry: () => {}, t }),
@@ -476,6 +495,27 @@ describe("ASN presentation helpers", () => {
       lan: "DE-CIX Frankfurt Peering LAN",
     });
     expect(splitIxName("TorIX")).toEqual({ exchange: "TorIX", lan: "" });
+  });
+
+  it("reports routing totals as unknown, not zero, when no routing source answered", () => {
+    const offline = createProfile({
+      ...sparse,
+      sources: { ipinfo: "not_configured", peeringdb: "available", ripestat: "error" },
+    });
+
+    expect(knownTotal(offline, 0)).toBeNull();
+    expect(knownTotal(sparse, 0)).toBe(0);
+    expect(knownTotal(offline, 5)).toBe(5);
+  });
+
+  it("keeps the link arrow glued without splitting surrogate pairs", () => {
+    const html = renderToStaticMarkup(
+      createElement(ExternalLink, { href: "https://example.com", text: "Hall 𝟙𝟚𝟛" }),
+    );
+
+    expect(html).toContain("Hall <span");
+    expect(html).toContain("𝟙𝟚𝟛");
+    expect(html).not.toContain("\uFFFD");
   });
 
   it("derives readable registry, country, size and link values", () => {

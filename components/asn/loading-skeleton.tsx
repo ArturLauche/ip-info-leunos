@@ -45,7 +45,7 @@ export function LoadingSkeleton({ label }: { label: string }) {
           <Skeleton className="h-3 w-full max-w-lg" />
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6 xl:gap-8">
             {Array.from({ length: 3 }).map((_, column) => (
-              <div key={column} className={column > 0 ? "hidden flex-col md:flex" : "flex flex-col"}>
+              <div key={column} className="flex flex-col">
                 <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
                   <div className="flex items-center gap-2">
                     <Skeleton className="size-6 rounded-md" />

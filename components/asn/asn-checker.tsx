@@ -16,6 +16,7 @@ import { AsnDetailTabs, type DetailTab } from "./detail-tabs";
 import { FacilitySection } from "./facility-section";
 import {
   hasSourceInfoFlag,
+  knownTotal,
   lookupErrorMessage,
   prefixTotal,
   routingTotal,
@@ -68,7 +69,10 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
     mapError: (lookupError) => lookupErrorMessage(lookupError, t),
     initialQuery,
-    onStart: () => setShowSourceInfo(hasSourceInfoFlag()),
+    onStart: () => {
+      setShowSourceInfo(hasSourceInfoFlag());
+      setInputError(false);
+    },
   });
 
   const submit = useCallback(
@@ -108,8 +112,8 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
   const tabs: DetailTab[] = result
     ? [
-        { value: "routing", label: t.asnTabRouting, count: routingTotal(result) },
-        { value: "prefixes", label: t.asnTabPrefixes, count: prefixTotal(result) },
+        { value: "routing", label: t.asnTabRouting, count: knownTotal(result, routingTotal(result)) },
+        { value: "prefixes", label: t.asnTabPrefixes, count: knownTotal(result, prefixTotal(result)) },
         { value: "peering", label: t.asnTabPeering },
       ]
     : [];
@@ -146,7 +150,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
 
       {!loading && !error && !result && (
         <EmptyState icon={Waypoints} title={t.asnEmptyTitle} description={t.asnEmptyDescription}>
-          <ExampleAsns t={t} />
+          <ExampleAsns t={t} sourceInfo={showSourceInfo} />
         </EmptyState>
       )}
 

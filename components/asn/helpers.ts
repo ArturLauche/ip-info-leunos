@@ -38,9 +38,35 @@ export function prefixTotal(result: AsnProfile) {
   return (result.prefixes4Total || 0) + (result.prefixes6Total || 0);
 }
 
+/** Prefixes and neighbours only come from IPinfo or RIPEstat. */
+export function hasRoutingSource(result: AsnProfile) {
+  return result.sources.ipinfo === "available" || result.sources.ripestat === "available";
+}
+
+/**
+ * A total of 0 only means "none" when a routing source answered; otherwise
+ * it is unknown (null) and must not be shown as an observed zero.
+ */
+export function knownTotal(result: AsnProfile, total: number) {
+  return hasRoutingSource(result) || total > 0 ? total : null;
+}
+
+const pluralRules = new Map<Locale, Intl.PluralRules>();
+const speedFormats = new Map<Locale, Intl.NumberFormat>();
+
+function cached<T>(cache: Map<Locale, T>, locale: Locale, create: () => T) {
+  let value = cache.get(locale);
+  if (!value) {
+    value = create();
+    cache.set(locale, value);
+  }
+  return value;
+}
+
 /** Picks the CLDR plural form, then fills `{count}` with a locale-formatted number. */
 export function formatCount(forms: Record<"one" | "other", string>, count: number, locale: Locale) {
-  const form = new Intl.PluralRules(locale).select(count) === "one" ? forms.one : forms.other;
+  const rules = cached(pluralRules, locale, () => new Intl.PluralRules(locale));
+  const form = rules.select(count) === "one" ? forms.one : forms.other;
   return formatTemplate(form, { count: formatNumber(count, locale) });
 }
 
@@ -151,8 +177,8 @@ export function hasSourceInfoFlag() {
 // port sizes exact (2.5 Gbps, 1.2 Tbps) instead of rounding them away.
 export function formatSpeed(speed: number | null | undefined, t: ToolTranslation, locale: Locale) {
   if (!speed) return "—";
-  const format = (value: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+  const formatter = cached(speedFormats, locale, () => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }));
+  const format = (value: number) => formatter.format(value);
   if (speed >= 1_000_000) {
     return `${format(speed / 1_000_000)} ${t.asnSpeedTbps}`;
   }
