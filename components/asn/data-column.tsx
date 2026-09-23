@@ -7,9 +7,11 @@ import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * Shared column scaffold for the routing and prefix lists: an uppercase label
- * with an optional icon and a monospace total, then the caller's rows. Keeps
- * both lists visually identical so switching tabs never changes the rhythm.
+ * Shared column scaffold for the routing and prefix lists: a label (with an
+ * optional direction icon) and the provider total as the column's headline
+ * figure, then the caller's rows. The column is a size container so rows can
+ * switch between a stacked and a tabular layout based on the space they get,
+ * not on the viewport.
  */
 export function DataColumn({
   title,
@@ -30,19 +32,23 @@ export function DataColumn({
   locale: Locale;
 }) {
   return (
-    <section className="flex min-w-0 flex-col">
-      <h4 className="flex items-baseline justify-between gap-2 border-b border-border/60 pb-2">
-        <span
-          className={cn(
-            "flex min-w-0 items-center gap-1.5 text-xs font-semibold tracking-wider text-foreground uppercase",
-            monoTitle && "font-mono tracking-tight normal-case",
+    <section className="@container flex min-w-0 flex-col">
+      <h4 className="flex items-center justify-between gap-3 border-b border-border/70 pb-2.5">
+        <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-foreground">
+          {Icon && (
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <Icon className="size-3.5" aria-hidden />
+            </span>
           )}
-        >
-          {Icon && <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
-          <span className="min-w-0 break-words">{title}</span>
+          <span className={cn("min-w-0 break-words", monoTitle && "font-mono")}>{title}</span>
         </span>
         {typeof total === "number" && (
-          <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+          <span
+            className={cn(
+              "shrink-0 font-mono text-sm font-semibold tabular-nums",
+              total === 0 ? "text-muted-foreground" : "text-foreground",
+            )}
+          >
             {formatNumber(total, locale)}
           </span>
         )}
@@ -52,5 +58,14 @@ export function DataColumn({
 
       {footer}
     </section>
+  );
+}
+
+/** Quiet placeholder for a column (or table) the providers returned nothing for. */
+export function EmptyColumn({ text }: { text: string }) {
+  return (
+    <p className="mt-2 rounded-md border border-dashed border-border/80 px-3 py-4 text-center text-xs text-muted-foreground">
+      {text}
+    </p>
   );
 }

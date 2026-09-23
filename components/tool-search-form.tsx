@@ -54,13 +54,20 @@ export function ToolSearchForm({
     onSubmit(trimmed);
   };
 
+  // In the compact toolbar the submit action stays quiet until the query is
+  // edited, so the result below keeps the visual lead.
+  const edited = value.trim() !== initialValue.trim();
+
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn("flex w-full flex-col gap-2.5 sm:flex-row", compact && "gap-2")}
+      className={cn(
+        "flex w-full flex-col gap-2.5 sm:flex-row",
+        compact && "flex-row flex-wrap gap-2 sm:flex-nowrap",
+      )}
       aria-busy={loading}
     >
-      <div className="relative flex-1">
+      <div className={cn("relative flex-1", compact && "min-w-0 basis-48")}>
         <Search
           className={cn(
             "pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground",
@@ -80,14 +87,18 @@ export function ToolSearchForm({
           autoCapitalize="off"
           enterKeyHint="search"
           spellCheck={false}
-          className={cn("h-11 bg-card pl-10 text-sm dark:bg-card", compact && "h-9 pl-9 text-[13px]")}
+          className={cn(
+            "h-11 bg-card pl-10 text-sm dark:bg-card",
+            compact && "h-9 pl-9 text-[13px] pointer-coarse:h-11",
+          )}
         />
       </div>
       <Button
         type="submit"
         size={compact ? "default" : "lg"}
+        variant={compact && !edited ? "outline" : "default"}
         disabled={loading || !value.trim()}
-        className={cn("h-11 shrink-0 sm:min-w-36", compact && "h-9 sm:min-w-28")}
+        className={cn("h-11 shrink-0 sm:min-w-36", compact && "h-9 sm:min-w-28 pointer-coarse:h-11")}
       >
         {loading ? (
           <>
@@ -103,7 +114,7 @@ export function ToolSearchForm({
           type="button"
           variant="outline"
           onClick={onCancel}
-          className={cn("h-11 shrink-0", compact && "h-9")}
+          className={cn("h-11 shrink-0", compact && "h-9 pointer-coarse:h-11")}
         >
           {cancelLabel}
         </Button>

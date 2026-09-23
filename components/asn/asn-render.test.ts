@@ -4,8 +4,19 @@ import { describe, expect, it } from "vitest";
 import type { AsnProfile } from "@/lib/asn";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { FacilitySection } from "./facility-section";
+import {
+  countryName,
+  formatCount,
+  formatSpeed,
+  ipv4EquivalentBits,
+  peeringDbUrl,
+  registryName,
+  splitHolderName,
+  splitIxName,
+} from "./helpers";
 import { IxPresenceSection } from "./ix-presence-section";
 import { LoadingSkeleton } from "./loading-skeleton";
+import { LookupError, NotFoundState } from "./lookup-states";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
 import { PrefixSection } from "./prefix-section";
 import { RoutingSection } from "./routing-section";
@@ -143,6 +154,52 @@ describe("AsnSummaryCard", () => {
     expect(html).not.toContain("Allocated");
     expect(html).not.toContain("/api/flag/");
   });
+
+  it("labels registry facts with readable names", () => {
+    const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: createProfile(), t, locale: "en" }));
+
+    expect(html).toContain("Germany");
+    expect(html).toContain("RIPE NCC");
+    expect(html).toContain(">ISP<");
+    expect(html).toContain("≈ /12 equivalent");
+    expect(html).toContain("566 IPv4");
+  });
+
+  it("names each provider's availability in the provenance strip", () => {
+    const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: createProfile(), t, locale: "en" }));
+
+    expect(html).toContain("IPinfo");
+    expect(html).toContain("not configured");
+    expect(html).toContain("RIPEstat");
+    expect(html).toContain("PeeringDB");
+    // Missing IPv4 data explains itself instead of showing a bare dash.
+    expect(renderToStaticMarkup(createElement(AsnSummaryCard, { result: sparse, t, locale: "en" }))).toContain(
+      "Requires IPinfo",
+    );
+  });
+
+  it("treats prefixes and neighbours as unavailable when no routing source answered", () => {
+    const offline = createProfile({
+      ...sparse,
+      sources: { ipinfo: "not_configured", peeringdb: "available", ripestat: "error" },
+    });
+    const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: offline, t, locale: "en" }));
+
+    expect(html).not.toContain(">0<");
+    expect(html).toContain("Not reported");
+  });
+
+  it("leads with the organisation when the holder string carries a registry handle", () => {
+    const html = renderToStaticMarkup(
+      createElement(AsnSummaryCard, {
+        result: createProfile({ name: "CLOUDFLARENET - Cloudflare, Inc." }),
+        t,
+        locale: "en",
+      }),
+    );
+
+    expect(html.indexOf("Cloudflare, Inc.")).toBeLessThan(html.indexOf("CLOUDFLARENET<"));
+  });
 });
 
 describe("RoutingSection", () => {
@@ -152,7 +209,7 @@ describe("RoutingSection", () => {
     expect(html).toContain('href="/asn/AS6939"');
     expect(html).toContain('href="/asn/AS3320"');
     expect(html).toContain("v4 120");
-    expect(html).toContain("RIPEstat RIS");
+    expect(html).toContain("Power and peer counts observed via RIPEstat RIS.");
     expect(html).toContain("1,201");
   });
 
@@ -161,8 +218,23 @@ describe("RoutingSection", () => {
 
     expect(html).toContain("202");
     expect(html).toContain("15");
-    expect(html).toContain("No routing relationships returned by the configured sources.");
+    // An empty relationship type gets a short in-column placeholder…
+    expect(html).toContain("None reported");
     expect(html).toContain("border-dashed");
+
+    // …and a section with no relationships at all explains why once.
+    const empty = renderToStaticMarkup(createElement(RoutingSection, { result: sparse, t, locale: "en" }));
+    expect(empty).toContain("No routing relationships returned by the configured sources.");
+  });
+
+  it("orders relationships upstream, peer, downstream and names the source once", () => {
+    const html = renderToStaticMarkup(createElement(RoutingSection, { result: createProfile(), t, locale: "en" }));
+
+    expect(html.indexOf("Upstreams")).toBeLessThan(html.indexOf("Peers"));
+    expect(html.indexOf("Peers")).toBeLessThan(html.indexOf("Downstreams"));
+    expect(html.match(/RIPEstat RIS/g)?.length).toBe(1);
+    // Terse cells, descriptive link names.
+    expect(html).toContain('aria-label="AS6939, power 658, IPv4 peers 120, IPv6 peers 130"');
   });
 });
 
@@ -170,16 +242,23 @@ describe("PrefixSection", () => {
   it("separates IPv4 from IPv6 and distinguishes RPKI states by label", () => {
     const html = renderToStaticMarkup(createElement(PrefixSection, { result: createProfile(), t, locale: "en" }));
 
-    expect(html).toContain("62.128.0.0/12");
-    expect(html).toContain("2001:1b00::/32");
+    // Address and prefix length render as separate weights.
+    expect(html).toContain("62.128.0.0</span>");
+    expect(html).toContain("/12</span>");
+    expect(html).toContain("2001:1b00::</span>");
     expect(html).toContain("RPKI valid");
     expect(html).toContain("RPKI invalid");
     expect(html).toContain("566");
+    expect(html).toContain("1,048,576 IPs");
+    // "announced" is implied by the section and not repeated per row.
+    expect(html).not.toContain(">announced<");
+    expect(html).not.toContain("· announced");
+    expect(html).toContain("2 of 566 listed");
   });
 
   it("offers show-more only once the row limit is exceeded", () => {
-    const many = createProfile({
-      prefixes4: Array.from({ length: 9 }, (_, i) => ({
+    const prefixes = (count: number) =>
+      Array.from({ length: count }, (_, i) => ({
         netblock: `10.${i}.0.0/16`,
         id: String(i),
         name: "",
@@ -188,11 +267,18 @@ describe("PrefixSection", () => {
         status: "announced",
         domain: "",
         rpkiStatus: "",
-      })),
-    });
-    const html = renderToStaticMarkup(createElement(PrefixSection, { result: many, t, locale: "en" }));
+      }));
+    const render = (count: number) =>
+      renderToStaticMarkup(
+        createElement(PrefixSection, {
+          result: createProfile({ prefixes4: prefixes(count), prefixes4Total: count }),
+          t,
+          locale: "en",
+        }),
+      );
 
-    expect(html).toContain("Show all (9)");
+    expect(render(10)).not.toContain("more</button>");
+    expect(render(11)).toContain("Show 1 more");
   });
 });
 
@@ -211,6 +297,21 @@ describe("PeeringDbProfileSection", () => {
     // Previously hidden network characteristics are surfaced.
     expect(html).toContain("IPv4 prefixes");
     expect(html).toContain("2,500");
+    // The network ID links to the PeeringDB record.
+    expect(html).toContain('href="https://www.peeringdb.com/net/684"');
+  });
+
+  it("opens with an interconnection overview of the headline facts", () => {
+    const html = renderToStaticMarkup(
+      createElement(PeeringDbProfileSection, { profile: createProfile().peeringdb!, t, locale: "en" }),
+    );
+
+    expect(html).toContain("Exchanges");
+    expect(html).toContain("14 connections");
+    expect(html).toContain("Selective");
+    expect(html).toContain("5-10Tbps");
+    // Country spread is withheld while the facility list is truncated (1 of 13).
+    expect(html).not.toContain("in 1 country");
   });
 
   it("hides fields and groups without values", () => {
@@ -242,7 +343,10 @@ describe("PeeringDbProfileSection", () => {
 
     expect(html).not.toContain("Peering policy");
     expect(html).not.toContain("External profiles");
-    expect(html).toContain("Interconnection details");
+    expect(html).not.toContain("Interconnection details");
+    // The overview still answers "how interconnected" with real zeroes.
+    expect(html).toContain("Exchanges");
+    expect(html).toContain(">0<");
   });
 });
 
@@ -250,15 +354,29 @@ describe("IxPresenceSection", () => {
   it("renders the desktop table and the mobile card list with RS peer state", () => {
     const html = renderToStaticMarkup(createElement(IxPresenceSection, { result: createProfile(), t, locale: "en" }));
 
-    expect(html).toContain("BCIX: BCIX Peering LAN");
+    // Exchange and LAN names split onto two lines; the IX links to PeeringDB.
+    expect(html).toContain("BCIX Peering LAN");
+    expect(html).toContain('href="https://www.peeringdb.com/ix/87"');
+    expect(html).toContain('aria-label="View BCIX: BCIX Peering LAN on PeeringDB"');
     expect(html).toContain("200 Gbps");
     expect(html).toContain("193.178.185.15");
     expect(html).toContain("2001:7f8:19:1::22b1:15");
     expect(html).toContain("aria-sort");
     expect(html).toContain("Sort by Exchange");
+    expect(html).toContain("Sort by IPv6");
+    expect(html).toContain("14 connections · 7 exchanges");
+    expect(html).toContain("2 of 14 listed");
     // Both presentations exist in the DOM; CSS picks one per breakpoint.
     expect(html).toContain("md:hidden");
-    expect(html).toContain("hidden overflow-hidden rounded-lg border border-border/60 md:block");
+    expect(html).toContain("md:block");
+  });
+
+  it("flags connections PeeringDB marks as not operational", () => {
+    const profile = createProfile();
+    profile.peeringdb!.ixlan[1] = { ...profile.peeringdb!.ixlan[1], operational: false };
+    const html = renderToStaticMarkup(createElement(IxPresenceSection, { result: profile, t, locale: "en" }));
+
+    expect(html).toContain("Not operational");
   });
 });
 
@@ -279,6 +397,21 @@ describe("FacilitySection", () => {
     expect(html).toContain("DE");
     expect(html).toContain("8881");
     expect(html).toContain("aria-sort");
+    expect(html).toContain('href="https://www.peeringdb.com/fac/60"');
+  });
+
+  it("links a local ASN only when it differs from the looked-up network", () => {
+    const facilities = [
+      ...createProfile().peeringdb!.facilities,
+      { id: 1, facilityId: 61, name: "Sibling PoP", city: "Berlin", country: "DE", localAsn: 3320, status: "ok" },
+    ];
+    const html = renderToStaticMarkup(
+      createElement(FacilitySection, { facilities, total: 2, asnNumber: 8881, t, locale: "en" }),
+    );
+
+    expect(html).toContain('href="/asn/AS3320"');
+    expect(html).not.toContain('href="/asn/AS8881"');
+    expect(html).toContain('title="Same as this ASN"');
   });
 });
 
@@ -288,11 +421,76 @@ describe("SourceDiagnosticsSection", () => {
       createElement(SourceDiagnosticsSection, { result: createProfile(), t, locale: "en" }),
     );
 
-    expect(html).toContain("ripestat");
+    expect(html).toContain("RIPEstat");
     expect(html).toContain("386 ms");
     expect(html).toContain("not configured");
     expect(html).toContain("Warnings");
     expect(html).toContain("Source");
+    // Provider warnings live in the diagnostics panel, translated.
+    expect(html).toContain("RIPEstat IPv4 prefixes truncated to 100 of 566 records.");
+  });
+});
+
+describe("lookup states", () => {
+  it("frames a not-found ASN with its provider availability", () => {
+    const html = renderToStaticMarkup(
+      createElement(NotFoundState, { result: createProfile({ ...sparse, found: false, asn: "AS64512" }), t }),
+    );
+
+    expect(html).toContain("AS64512");
+    expect(html).toContain("No ASN profile found");
+    expect(html).toContain("RIPEstat");
+  });
+
+  it("offers a retry only when one is provided", () => {
+    const withRetry = renderToStaticMarkup(
+      createElement(LookupError, { message: "ASN data providers are currently unavailable.", onRetry: () => {}, t }),
+    );
+    const without = renderToStaticMarkup(createElement(LookupError, { message: "Invalid", t }));
+
+    expect(withRetry).toContain("Try again");
+    expect(without).not.toContain("Try again");
+  });
+});
+
+describe("ASN presentation helpers", () => {
+  it("formats port speeds without rounding away common sizes", () => {
+    expect(formatSpeed(2500, t, "en")).toBe("2.5 Gbps");
+    expect(formatSpeed(1_200_000, t, "en")).toBe("1.2 Tbps");
+    expect(formatSpeed(100, t, "en")).toBe("100 Mbps");
+    expect(formatSpeed(null, t, "en")).toBe("—");
+    expect(formatSpeed(2500, getToolTranslation("de"), "de")).toBe("2,5 Gbit/s");
+  });
+
+  it("splits registry holder strings and PeeringDB LAN names", () => {
+    expect(splitHolderName("CLOUDFLARENET - Cloudflare, Inc.")).toEqual({
+      handle: "CLOUDFLARENET",
+      organisation: "Cloudflare, Inc.",
+    });
+    expect(splitHolderName("VERSATEL 1&1 Versatel GmbH")).toEqual({
+      handle: "",
+      organisation: "VERSATEL 1&1 Versatel GmbH",
+    });
+    expect(splitIxName("DE-CIX Frankfurt: DE-CIX Frankfurt Peering LAN")).toEqual({
+      exchange: "DE-CIX Frankfurt",
+      lan: "DE-CIX Frankfurt Peering LAN",
+    });
+    expect(splitIxName("TorIX")).toEqual({ exchange: "TorIX", lan: "" });
+  });
+
+  it("derives readable registry, country, size and link values", () => {
+    expect(registryName("ripe")).toBe("RIPE NCC");
+    expect(registryName("arin")).toBe("ARIN");
+    expect(countryName("de", "en")).toBe("Germany");
+    expect(countryName("de", "de")).toBe("Deutschland");
+    expect(countryName("not-a-code", "en")).toBe("not-a-code");
+    expect(ipv4EquivalentBits(1_048_576)).toBe(12);
+    expect(ipv4EquivalentBits(256)).toBe(24);
+    expect(ipv4EquivalentBits(null)).toBeNull();
+    expect(peeringDbUrl("net", 684)).toBe("https://www.peeringdb.com/net/684");
+    expect(peeringDbUrl("ix", null)).toBeNull();
+    expect(formatCount(t.asnFacilityCount, 1, "en")).toBe("1 facility");
+    expect(formatCount(t.asnFacilityCount, 1200, "en")).toBe("1,200 facilities");
   });
 });
 
