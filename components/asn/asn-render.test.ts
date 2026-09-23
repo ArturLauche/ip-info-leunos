@@ -5,6 +5,7 @@ import type { AsnProfile } from "@/lib/asn";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { FacilitySection } from "./facility-section";
 import { IxPresenceSection } from "./ix-presence-section";
+import { AsnInterconnectionWorkspace } from "./interconnection-workspace";
 import { LoadingSkeleton } from "./loading-skeleton";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
 import { PrefixSection } from "./prefix-section";
@@ -124,6 +125,8 @@ describe("AsnSummaryCard", () => {
     const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: createProfile(), t, locale: "en" }));
 
     expect(html).toContain("Partial data");
+    expect(html).toContain("2/3");
+    expect(html).toContain("RPKI health");
     expect(html).not.toContain("Complete");
   });
 
@@ -192,7 +195,7 @@ describe("PrefixSection", () => {
     });
     const html = renderToStaticMarkup(createElement(PrefixSection, { result: many, t, locale: "en" }));
 
-    expect(html).toContain("Show all (9)");
+    expect(html).toContain("Show loaded (9)");
   });
 });
 
@@ -246,6 +249,18 @@ describe("PeeringDbProfileSection", () => {
   });
 });
 
+describe("AsnInterconnectionWorkspace", () => {
+  it("keeps a missing PeeringDB profile as a deliberate empty state", () => {
+    const html = renderToStaticMarkup(
+      createElement(AsnInterconnectionWorkspace, { result: sparse, t, locale: "en" }),
+    );
+
+    expect(html).toContain("No public PeeringDB network profile");
+    expect(html).toContain("Interconnection overview");
+    expect(html).not.toContain("IX presence table");
+  });
+});
+
 describe("IxPresenceSection", () => {
   it("renders the desktop table and the mobile card list with RS peer state", () => {
     const html = renderToStaticMarkup(createElement(IxPresenceSection, { result: createProfile(), t, locale: "en" }));
@@ -257,8 +272,8 @@ describe("IxPresenceSection", () => {
     expect(html).toContain("aria-sort");
     expect(html).toContain("Sort by Exchange");
     // Both presentations exist in the DOM; CSS picks one per breakpoint.
-    expect(html).toContain("md:hidden");
-    expect(html).toContain("hidden overflow-hidden rounded-lg border border-border/60 md:block");
+    expect(html).toContain("xl:hidden");
+    expect(html).toContain("hidden overflow-hidden rounded-lg border border-border/60 xl:block");
   });
 });
 
@@ -277,7 +292,7 @@ describe("FacilitySection", () => {
     expect(html).toContain("Frankfurt");
     expect(html).toContain("/api/flag/de");
     expect(html).toContain("DE");
-    expect(html).toContain("8881");
+    expect(html).toContain("8,881");
     expect(html).toContain("aria-sort");
   });
 });

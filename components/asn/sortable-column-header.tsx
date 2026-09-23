@@ -27,6 +27,7 @@ export function SortableColumnHeader({
       type="button"
       onClick={onToggle}
       aria-label={ariaLabel}
+      title={ariaLabel}
       className={cn(
         "group/sort inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-sm text-inherit outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60",
         align === "right" && "ml-auto flex-row-reverse",

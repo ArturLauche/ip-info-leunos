@@ -27,14 +27,15 @@ export function hasSourceInfoFlag() {
 }
 
 export function formatSpeed(speed: number | null | undefined, t: ToolTranslation, locale: Locale) {
-  if (!speed) return "-";
+  if (speed === null || speed === undefined) return "—";
+  if (speed === 0) return `0 ${t.asnSpeedMbps}`;
   if (speed >= 1_000_000) {
     return `${(speed / 1_000_000).toFixed(0)} Tbps`;
   }
   if (speed >= 1_000) {
     return `${formatNumber(Math.round(speed / 1000), locale)} Gbps`;
   }
-  return `${speed} ${t.asnSpeedMbps}`;
+  return `${formatNumber(speed, locale)} ${t.asnSpeedMbps}`;
 }
 
 export function validationErrorMessage(error: unknown, t: ToolTranslation, locale: Locale) {

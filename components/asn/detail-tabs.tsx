@@ -10,15 +10,15 @@ import { cn } from "@/lib/utils";
 interface DetailTab {
   value: string;
   label: string;
+  shortLabel: string;
   /** Unobtrusive row count shown beside the label; null hides it. */
   count: number | null;
 }
 
 /**
- * Section navigation for a loaded ASN. Keeps the sliding segment highlight so
- * switching sections feels continuous, and surfaces real provider totals for
- * the two unbounded sections (routing, prefixes) so users can judge where the
- * data volume lives before opening a tab.
+ * Section navigation for a loaded ASN. The chip travels between triggers while
+ * the small-screen 2×2 layout keeps every target comfortably tappable. Counts
+ * are provider totals, not invented section metrics.
  */
 export function AsnDetailTabs({
   routingLabel,
@@ -27,9 +27,15 @@ export function AsnDetailTabs({
   prefixesCount,
   peeringLabel,
   sourcesLabel,
+  routingShortLabel,
+  prefixesShortLabel,
+  peeringShortLabel,
+  sourcesShortLabel,
   showSources,
   locale,
   children,
+  initialTab = "routing",
+  navigationLabel,
 }: {
   routingLabel: string;
   routingCount: number | null;
@@ -37,11 +43,17 @@ export function AsnDetailTabs({
   prefixesCount: number | null;
   peeringLabel: string;
   sourcesLabel: string;
+  routingShortLabel: string;
+  prefixesShortLabel: string;
+  peeringShortLabel: string;
+  sourcesShortLabel: string;
   showSources: boolean;
   locale: Locale;
   children: ReactNode;
+  initialTab?: string;
+  navigationLabel: string;
 }) {
-  const [tab, setTab] = useState("routing");
+  const [tab, setTab] = useState(initialTab);
   const { containerRef, view, canAnimate, radius } = useSegmentHighlight(tab);
 
   // The sources tab only exists behind the source-info flag; fall back to
@@ -52,18 +64,27 @@ export function AsnDetailTabs({
     }
   }, [showSources]);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      containerRef.current
+        ?.querySelector<HTMLElement>('[data-state="active"]')
+        ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [containerRef, tab]);
+
   const triggers: DetailTab[] = [
-    { value: "routing", label: routingLabel, count: routingCount },
-    { value: "prefixes", label: prefixesLabel, count: prefixesCount },
-    { value: "peering", label: peeringLabel, count: null },
+    { value: "routing", label: routingLabel, shortLabel: routingShortLabel, count: routingCount },
+    { value: "prefixes", label: prefixesLabel, shortLabel: prefixesShortLabel, count: prefixesCount },
+    { value: "peering", label: peeringLabel, shortLabel: peeringShortLabel, count: null },
   ];
   if (showSources) {
-    triggers.push({ value: "sources", label: sourcesLabel, count: null });
+    triggers.push({ value: "sources", label: sourcesLabel, shortLabel: sourcesShortLabel, count: null });
   }
 
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      <div ref={containerRef} className="relative isolate">
+      <div ref={containerRef} className="relative isolate -mx-1 mb-1 px-1">
         <span
           className="tool-segment-highlight"
           style={{
@@ -77,20 +98,30 @@ export function AsnDetailTabs({
           data-slide={view.slide ? "true" : undefined}
           aria-hidden
         />
-        <TabsList className="h-auto w-full justify-start overflow-x-auto p-1 sm:w-fit">
+        <TabsList
+          aria-label={navigationLabel}
+          className="grid h-auto w-full grid-cols-2 gap-1 overflow-visible p-1 sm:flex sm:w-fit sm:flex-nowrap"
+        >
           {triggers.map((trigger) => (
             <TabsTrigger
               key={trigger.value}
               value={trigger.value}
+              aria-label={
+                trigger.count !== null
+                  ? `${trigger.label} (${formatNumber(trigger.count, locale)})`
+                  : trigger.label
+              }
               className={cn(
-                "group relative z-10 min-h-9 shrink-0 px-2.5 py-1 text-xs transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)] sm:text-sm",
+                "group relative z-10 min-h-11 shrink-0 justify-start px-3 py-2 text-xs transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)] sm:justify-center sm:px-3 sm:text-sm",
                 view.visible &&
                   "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
+                "data-[state=active]:font-semibold data-[state=active]:text-foreground",
               )}
             >
-              <span className="whitespace-nowrap">{trigger.label}</span>
+              <span className="min-w-0 truncate xl:hidden">{trigger.shortLabel}</span>
+              <span className="hidden min-w-0 truncate xl:inline">{trigger.label}</span>
               {trigger.count !== null && (
-                <span className="font-mono text-[11px] text-muted-foreground/70 tabular-nums transition-colors group-data-[state=active]:text-foreground/70">
+                <span className="font-mono text-[10px] text-muted-foreground/70 tabular-nums transition-colors group-data-[state=active]:text-foreground/70 sm:text-[11px]">
                   {formatNumber(trigger.count, locale)}
                 </span>
               )}
@@ -98,12 +129,7 @@ export function AsnDetailTabs({
           ))}
         </TabsList>
       </div>
-      {/* Content settles in with the shared section reveal (fade + small lift
-          on the soft-deceleration curve) so switching sections feels
-          continuous with the sliding chip. */}
-      <div key={tab} className="tool-section-reveal">
-        {children}
-      </div>
+      <div className="tool-section-reveal">{children}</div>
     </Tabs>
   );
 }

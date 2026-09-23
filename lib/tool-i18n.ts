@@ -67,6 +67,8 @@ type ToolTranslation = {
   asnTitle: string;
   asnSubtitle: string;
   asnPlaceholder: string;
+  asnQueryLabel: string;
+  asnLookupAnother: string;
   asnLookupButton: string;
   asnLookingUp: string;
   asnInvalidInput: string;
@@ -86,6 +88,28 @@ type ToolTranslation = {
   asnNotFoundDescription: string;
   asnPartialData: string;
   asnCompleteData: string;
+  asnNetworkIdentity: string;
+  asnNetworkType: string;
+  asnRegistry: string;
+  asnDomain: string;
+  asnSourceCoverage: string;
+  asnSourceAttribution: string;
+  asnSourceCoverageDescription: string;
+  asnRouteHealth: string;
+  asnRpkiUnknown: string;
+  asnLoadedOfReported: string;
+  asnShowLoaded: string;
+  asnInterconnectionOverview: string;
+  asnDetailsNavigation: string;
+  asnRoutingShort: string;
+  asnPrefixesShort: string;
+  asnPeeringShort: string;
+  asnSourcesShort: string;
+  asnProfileSnapshot: string;
+  asnSortControl: string;
+  asnOperational: string;
+  asnNotOperational: string;
+  asnViewSourceDiagnostics: string;
   asnPrefixes: string;
   asnRouting: string;
   asnPeeringDb: string;
@@ -107,6 +131,7 @@ type ToolTranslation = {
   asnProfilePrefixes6: string;
   asnWarnings: string;
   asnDiagnosticDuration: string;
+  asnDiagnosticSlowestRequest: string;
   asnDiagnosticCache: string;
   asnDiagnosticWarnings: string;
   asnDiagnosticSource: string;
@@ -405,6 +430,8 @@ const en: ToolTranslation = {
   asnTitle: "ASN Information",
   asnSubtitle: "Look up autonomous systems with IPinfo ASN details and public PeeringDB interconnection data.",
   asnPlaceholder: "AS8881 or 8881",
+  asnQueryLabel: "ASN number",
+  asnLookupAnother: "Look up another ASN",
   asnLookupButton: "Lookup ASN",
   asnLookingUp: "Looking up...",
   asnInvalidInput: "Use an AS-prefixed or numeric ASN, for example AS8881 or 8881.",
@@ -424,6 +451,28 @@ const en: ToolTranslation = {
   asnNotFoundDescription: "The ASN is valid, but neither configured source returned a usable public profile.",
   asnPartialData: "Partial data",
   asnCompleteData: "Complete",
+  asnNetworkIdentity: "Network identity",
+  asnNetworkType: "Network type",
+  asnRegistry: "Registry",
+  asnDomain: "Domain",
+  asnSourceCoverage: "Source coverage",
+  asnSourceAttribution: "ASN sources",
+  asnSourceCoverageDescription: "Provider status for this lookup",
+  asnRouteHealth: "RPKI health",
+  asnRpkiUnknown: "Not reported",
+  asnLoadedOfReported: "{loaded} loaded of {reported} reported",
+  asnShowLoaded: "Show loaded ({loaded})",
+  asnInterconnectionOverview: "Interconnection overview",
+  asnDetailsNavigation: "ASN detail sections",
+  asnRoutingShort: "Routing",
+  asnPrefixesShort: "Prefixes",
+  asnPeeringShort: "Peering",
+  asnSourcesShort: "Sources",
+  asnProfileSnapshot: "Network profile",
+  asnSortControl: "Sort records",
+  asnOperational: "Operational",
+  asnNotOperational: "Not operational",
+  asnViewSourceDiagnostics: "View source diagnostics",
   asnPrefixes: "Announced prefixes",
   asnRouting: "Routing relationships",
   asnPeeringDb: "PeeringDB profile",
@@ -448,6 +497,7 @@ const en: ToolTranslation = {
   asnProfilePrefixes6: "IPv6 prefixes",
   asnWarnings: "Warnings",
   asnDiagnosticDuration: "Duration",
+  asnDiagnosticSlowestRequest: "Slowest request",
   asnDiagnosticCache: "Cache",
   asnDiagnosticWarnings: "Warnings",
   asnDiagnosticSource: "Source",
@@ -882,6 +932,8 @@ const de: Partial<ToolTranslation> = {
   asnTitle: "ASN-Informationen",
   asnSubtitle: "Autonome Systeme mit IPinfo-ASN-Daten und öffentlichen PeeringDB-Interconnection-Daten nachschlagen.",
   asnPlaceholder: "AS8881 oder 8881",
+  asnQueryLabel: "ASN-Nummer",
+  asnLookupAnother: "Weitere ASN abfragen",
   asnLookupButton: "ASN abfragen",
   asnLookingUp: "Abfrage läuft...",
   asnInvalidInput: "Nutze eine AS-Nummer mit oder ohne Präfix, zum Beispiel AS8881 oder 8881.",
@@ -901,6 +953,28 @@ const de: Partial<ToolTranslation> = {
   asnNotFoundDescription: "Die ASN ist gültig, aber keine konfigurierte Quelle lieferte ein nutzbares öffentliches Profil.",
   asnPartialData: "Teildaten",
   asnCompleteData: "Vollständig",
+  asnNetworkIdentity: "Netzwerkidentität",
+  asnNetworkType: "Netzwerktyp",
+  asnRegistry: "Registry",
+  asnDomain: "Domain",
+  asnSourceCoverage: "Quellenabdeckung",
+  asnSourceAttribution: "ASN-Quellen",
+  asnSourceCoverageDescription: "Providerstatus für diese Abfrage",
+  asnRouteHealth: "RPKI-Status",
+  asnRpkiUnknown: "Nicht gemeldet",
+  asnLoadedOfReported: "{loaded} geladen von {reported} gemeldet",
+  asnShowLoaded: "Geladene anzeigen ({loaded})",
+  asnInterconnectionOverview: "Interconnection-Überblick",
+  asnDetailsNavigation: "ASN-Detailbereiche",
+  asnRoutingShort: "Routing",
+  asnPrefixesShort: "Prefixe",
+  asnPeeringShort: "Peering",
+  asnSourcesShort: "Quellen",
+  asnProfileSnapshot: "Netzwerkprofil",
+  asnSortControl: "Einträge sortieren",
+  asnOperational: "Betriebsbereit",
+  asnNotOperational: "Nicht betriebsbereit",
+  asnViewSourceDiagnostics: "Quellendiagnose anzeigen",
   asnPrefixes: "Angekündigte Prefixe",
   asnRouting: "Routing-Beziehungen",
   asnPeeringDb: "PeeringDB-Profil",
@@ -925,6 +999,7 @@ const de: Partial<ToolTranslation> = {
   asnProfilePrefixes6: "IPv6-Prefixe",
   asnWarnings: "Warnungen",
   asnDiagnosticDuration: "Dauer",
+  asnDiagnosticSlowestRequest: "Längste Anfrage",
   asnDiagnosticCache: "Cache",
   asnDiagnosticWarnings: "Warnungen",
   asnDiagnosticSource: "Quelle",

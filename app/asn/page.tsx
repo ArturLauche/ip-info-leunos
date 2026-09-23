@@ -17,9 +17,13 @@ export const metadata: Metadata = createPageMetadata({
 
 interface AsnPageProps {
   searchParams: Promise<{
-    asn?: string;
-    q?: string;
+    asn?: string | string[];
+    q?: string | string[];
   }>;
+}
+
+function firstSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 export default async function AsnPage({ searchParams }: AsnPageProps) {
@@ -27,7 +31,7 @@ export default async function AsnPage({ searchParams }: AsnPageProps) {
   const locale = resolveLocale(headersList.get("accept-language"));
   const t = getToolTranslation(locale);
   const params = await searchParams;
-  const initialAsn = params.asn || params.q || "";
+  const initialAsn = firstSearchParam(params.asn) || firstSearchParam(params.q) || "";
 
   return (
     <ToolPageShell

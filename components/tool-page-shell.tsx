@@ -74,7 +74,7 @@ export function ToolPageShell({
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 outline-none"
+        className="mx-auto w-full max-w-6xl min-w-0 flex-1 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8 lg:py-8 outline-none"
         data-transition-stage="panel"
       >
         {children}

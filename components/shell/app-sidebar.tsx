@@ -51,15 +51,23 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center justify-between gap-2 px-2">
           <p className="min-w-0 truncate text-[0.7rem] text-muted-foreground">
-            {t.footerDataBy}{" "}
-            <a
-              href="https://ip-api.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground/80 transition-colors hover:text-primary"
-            >
-              ip-api.com
-            </a>
+            {active === "asn" ? (
+              <span title="IPinfo · PeeringDB · RIPEstat">
+                {toolT.asnSourceAttribution}
+              </span>
+            ) : (
+              <>
+                {t.footerDataBy}{" "}
+                <a
+                  href="https://ip-api.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground/80 transition-colors hover:text-primary"
+                >
+                  ip-api.com
+                </a>
+              </>
+            )}
           </p>
           <ModeToggle
             labels={{
