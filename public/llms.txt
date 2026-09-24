@@ -2,7 +2,7 @@
 
 > Kostenlose, öffentliche Netzwerk-Toolbox unter https://ip-info.leunos.com. Zeigt die eigene öffentliche IP (IPv4/IPv6) und bietet Checks ausschließlich gegen öffentliche Internet-Ziele: IP-/Domain-Lookup, ASN, DNS, Whois, CDN-Erkennung, Ping/Port-Test und IP-Reputation. Oberflächensprache: Deutsch (de-DE).
 
-Die Werkzeuge laufen serverseitig (Next.js API-Routes). Eingaben werden mit Zod validiert; Ziele werden vor jeder Netzwerkinteraktion gegen SSRF-Schutz geprüft (keine privaten/internen Netze wie 10/8, 127/8, 192.168/16, ::1, fc00::/7). Jede Route ist ratenlimitiert (In-Memory Token-Bucket pro Client-IP). Es gibt keine Authentifizierung; Anfragedaten werden nicht gespeichert.
+Die Werkzeuge laufen serverseitig (Next.js API-Routes). Eingaben werden mit Zod validiert; Ziele werden vor jeder Netzwerkinteraktion gegen SSRF-Schutz geprüft (keine privaten/internen Netze wie 10/8, 127/8, 192.168/16, ::1, fc00::/7, fe80::/10, fec0::/10). Jede Route ist ratenlimitiert (In-Memory-Token-Bucket pro Client-IP). Es gibt keine Authentifizierung und keine dauerhafte Anfragehistorie: wiederholte öffentliche Ergebnisse werden nur für kurze, zweckgebundene Zeiträume im Arbeitsspeicher zwischengespeichert (IP ca. 60 Sekunden, DNS 2 Minuten, ASN bis zu 5 Minuten, Reputation 10 Minuten, GreyNoise bis zu 24 Stunden); Threat-Intelligence-Feeds werden auf langsameren Zeitplänen aktualisiert.
 
 ## Werkzeuge
 

@@ -220,7 +220,7 @@ export function CommandPalette({ locale, open, onOpenChange }: CommandPalettePro
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            className="h-12 min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-12 min-w-0 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           />
           <DialogPrimitive.Close asChild>
             <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0" aria-label={t.commandHintClose}>

@@ -8,7 +8,9 @@ import type { PingMessageKey, PingMessageParams } from "@/lib/network/database-p
 import { cn } from "@/lib/utils";
 import { buildPingRequest, defaultPingPort, DB_DEFAULT_PORTS, type DatabaseType, type PingMode } from "@/lib/ping";
 import { EmptyState } from "@/components/empty-state";
+import { ExampleQueries } from "@/components/example-queries";
 import { ErrorPanel } from "@/components/error-panel";
+import { ResultActions } from "@/components/result-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useRouter } from "next/navigation";
-import { FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   CircleCheck,
   Loader2,
@@ -100,6 +102,10 @@ function formatPingMessage(result: PingResult, t: ToolTranslation): string {
   }
 }
 
+function formatEndpoint(target: string, port: number) {
+  return `${target.includes(":") ? `[${target}]` : target}:${port}`;
+}
+
 const PING_MODES: PingMode[] = ["tcp", "udp", "eb", "database"];
 
 const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
@@ -111,10 +117,10 @@ const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "generic", label: "Generic TCP DB" },
 ];
 
-const getDatabaseOptionDetail = (value: DatabaseType, locale: Locale) => {
+const getDatabaseOptionDetail = (value: DatabaseType, customPortLabel: string) => {
   const defaultPort = DB_DEFAULT_PORTS[value];
   if (defaultPort) return `${defaultPort} / TCP`;
-  return locale === "de" ? "Manueller Port" : "Custom port";
+  return customPortLabel;
 };
 
 interface PingCheckerProps {
@@ -126,7 +132,7 @@ interface PingCheckerProps {
 
 export function PingChecker({
   locale,
-  initialTarget = "example.com",
+  initialTarget = "",
   initialPort = "80",
   initialMode = "tcp",
 }: PingCheckerProps) {
@@ -232,8 +238,7 @@ export function PingChecker({
     setResult(null);
   };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const runRequest = useCallback(async () => {
     if (loading) return;
 
     abortRef.current?.abort();
@@ -276,6 +281,24 @@ export function PingChecker({
     } finally {
       if (seq === requestSeq.current) setLoading(false);
     }
+  }, [
+    databaseType,
+    database,
+    loading,
+    mode,
+    password,
+    port,
+    router,
+    target,
+    t,
+    timeoutMs,
+    useAuth,
+    username,
+  ]);
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void runRequest();
   };
 
   return (
@@ -286,7 +309,7 @@ export function PingChecker({
             <div className="flex flex-col gap-5">
               <div>
                 <div className="flex flex-col gap-2.5">
-                  <Label>{t.pingTestMode}</Label>
+                  <Label id="ping-mode-label">{t.pingTestMode}</Label>
                   <PingModeTabs
                     mode={mode}
                     labels={modeLabels}
@@ -309,7 +332,7 @@ export function PingChecker({
                           <SelectItem key={option.value} value={option.value}>
                             <span className="font-medium">{option.label}</span>
                             <span className="text-muted-foreground">
-                              {getDatabaseOptionDetail(option.value, locale)}
+                              {getDatabaseOptionDetail(option.value, t.databaseCustomPort)}
                             </span>
                           </SelectItem>
                         ))}
@@ -378,7 +401,7 @@ export function PingChecker({
 
             <ModeExpand open={isDatabase}>
               <div className="pt-5">
-                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                <div className="flex min-h-11 items-center justify-between gap-3 border-t pt-4">
                   <Label
                     htmlFor="ping-use-auth"
                     className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-foreground"
@@ -464,7 +487,13 @@ export function PingChecker({
           icon={Radar}
           title={t.pingEmptyTitle}
           description={t.pingEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["example.com", "1.1.1.1"]}
+            label={t.tryExample}
+            onSelect={setTarget}
+          />
+        </EmptyState>
       )}
 
       {loading && !result && (
@@ -474,7 +503,13 @@ export function PingChecker({
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={target.trim() ? () => void runRequest() : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && (
         <Card className="tool-reveal gap-0 overflow-hidden py-0">
@@ -485,10 +520,14 @@ export function PingChecker({
               <ServerCrash className="size-4 shrink-0 text-destructive" />
             )}
             <p className="text-sm font-semibold text-foreground">
-              {result.ok ? t.pingStatusSuccess : t.pingStatusFailed}
+              {result.ok
+                ? result.messageKey === "udp_sent"
+                  ? t.pingStatusSent
+                  : t.pingStatusSuccess
+                : t.pingStatusFailed}
             </p>
             <Badge
-              variant={result.ok ? "success" : "destructive"}
+              variant={result.ok ? (result.messageKey === "udp_sent" ? "info" : "success") : "destructive"}
               className="ml-auto font-mono tabular-nums"
             >
               <Timer className="size-3" aria-hidden="true" />
@@ -503,6 +542,13 @@ export function PingChecker({
             >
               {formatPingMessage(result, t)}
             </p>
+
+            <ResultActions
+              locale={locale}
+              data={result}
+              copyText={formatPingMessage(result, t)}
+              filename={`ping-${result.target}-${result.mode}`}
+            />
 
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
@@ -526,7 +572,7 @@ export function PingChecker({
                   {t.pingTargetLabel}
                 </dt>
                 <dd className="mt-1 font-mono text-sm break-all text-foreground">
-                  {result.target}:{result.port}
+                  {formatEndpoint(result.target, result.port)}
                 </dd>
               </div>
             </dl>
@@ -594,6 +640,8 @@ function PingModeTabs({
     <Tabs
       value={mode}
       onValueChange={(value) => onModeChange(value as PingMode)}
+      aria-labelledby="ping-mode-label"
+      aria-describedby="ping-mode-help"
       className="gap-2.5"
     >
       <div ref={containerRef} className="relative isolate">
@@ -626,7 +674,7 @@ function PingModeTabs({
           ))}
         </TabsList>
       </div>
-      <div className="grid min-h-8">
+      <div id="ping-mode-help" className="grid min-h-8">
         {PING_MODES.map((value) => (
           <p
             key={value}

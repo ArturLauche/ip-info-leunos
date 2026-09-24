@@ -38,6 +38,8 @@ describe("GET /api/flag/[code]", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("image/svg+xml");
     expect(response.headers.get("cache-control")).toContain("immutable");
+    expect(response.headers.get("content-security-policy")).toContain("sandbox");
+    expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     expect(body).toContain("<svg");
   });
 
@@ -65,5 +67,24 @@ describe("GET /api/flag/[code]", () => {
 
     expect(response.status).toBe(502);
     expect(await response.text()).toBe("");
+  });
+
+  it("rate limits before awaiting route parameters", async () => {
+    const request = () => new Request("http://localhost/api/flag/xx", {
+      headers: { "x-real-ip": "198.51.100.44" },
+    });
+
+    for (let index = 0; index < 120; index += 1) {
+      const response = await GET(request(), { params: Promise.resolve({ code: "xyz" }) });
+      expect(response.status).toBe(400);
+    }
+
+    const pendingParams = new Promise<{ code: string }>(() => {});
+    const limited = await GET(request(), { params: pendingParams });
+    const body = await limited.json();
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("x-ratelimit-limit")).toBe("120");
+    expect(body).toMatchObject({ ok: false, error: { code: "rate_limited" } });
   });
 });

@@ -150,6 +150,30 @@ export interface AsnProfile {
   sourceDiagnostics?: SourceDiagnostic[];
 }
 
+export function isAsnProfile(value: unknown): value is AsnProfile {
+  const record = asRecord(value);
+  if (!record) return false;
+  const sources = asRecord(record.sources);
+  if (!sources) return false;
+
+  const stringFields = [
+    "asn",
+    "name",
+    "country",
+    "registry",
+    "allocated",
+    "domain",
+    "type",
+  ];
+  if (stringFields.some((field) => typeof record[field] !== "string")) return false;
+  if (typeof record.found !== "boolean" || typeof record.asnNumber !== "number") return false;
+  if (!Array.isArray(record.prefixes4) || !Array.isArray(record.prefixes6)) return false;
+  if (!Array.isArray(record.peers) || !Array.isArray(record.upstreams) || !Array.isArray(record.downstreams)) return false;
+  if (!Array.isArray(record.warnings)) return false;
+  if (typeof sources.ipinfo !== "string" || typeof sources.peeringdb !== "string" || typeof sources.ripestat !== "string") return false;
+  return record.peeringdb === null || (typeof record.peeringdb === "object" && !Array.isArray(record.peeringdb));
+}
+
 export function createEmptyAsnProfile(
   normalized: NormalizedAsn,
   sources: AsnProfile["sources"],

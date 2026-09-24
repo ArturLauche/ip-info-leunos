@@ -40,7 +40,7 @@ export default async function PingPage({ searchParams }: PingPageProps) {
     >
       <PingChecker
         locale={locale}
-        initialTarget={firstSearchParam(params.target) || "example.com"}
+        initialTarget={firstSearchParam(params.target)}
         initialPort={firstSearchParam(params.port) || defaultPingPort(normalizeMode(firstSearchParam(params.mode)))}
         initialMode={normalizeMode(firstSearchParam(params.mode))}
       />

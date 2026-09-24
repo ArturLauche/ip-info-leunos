@@ -8,8 +8,9 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
+import { ApiClientError } from "@/lib/api/client";
 import { normalizeAsnInput } from "@/lib/asn-id";
-import type { AsnProfile } from "@/lib/asn";
+import { isAsnProfile, type AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { AsnDetailTabs, type DetailTab } from "./detail-tabs";
@@ -69,6 +70,12 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
     mapError: (lookupError) => lookupErrorMessage(lookupError, t),
     initialQuery,
+    decode: (data) => {
+      if (!isAsnProfile(data)) {
+        throw new ApiClientError("upstream_error", "The ASN response was incomplete.");
+      }
+      return data;
+    },
     onStart: () => {
       setShowSourceInfo(hasSourceInfoFlag());
       setInputError(false);
@@ -139,14 +146,22 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.asnPlaceholder}
+        label={t.asnPlaceholder}
         submitLabel={t.asnLookupButton}
         loadingLabel={t.asnLookingUp}
         loading={loading}
+        invalid={inputError}
+        errorId="asn-input-error"
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={submit}
         compact={compact}
       />
+      {inputError && (
+        <p id="asn-input-error" className="-mt-3 text-sm text-destructive" aria-live="polite">
+          {error || t.asnInvalidInput}
+        </p>
+      )}
 
       {!loading && !error && !result && (
         <EmptyState icon={Waypoints} title={t.asnEmptyTitle} description={t.asnEmptyDescription}>

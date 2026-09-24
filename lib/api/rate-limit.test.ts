@@ -25,6 +25,18 @@ describe("rate limiting", () => {
     ).toBe("203.0.113.10");
   });
 
+  it("canonicalizes equivalent IPv6 spellings to one bucket key", () => {
+    const first = new Request("https://example.test", {
+      headers: { "cf-connecting-ip": "2001:0db8:0:0:0:0:0:1" },
+    });
+    const second = new Request("https://example.test", {
+      headers: { "cf-connecting-ip": "2001:db8::1" },
+    });
+
+    expect(getClientIp(first)).toBe("2001:db8::1");
+    expect(getClientIp(second)).toBe("2001:db8::1");
+  });
+
   it("returns retry metadata when a bucket is exhausted", async () => {
     const routeKey = `test-${Date.now()}-${Math.random()}`;
     const request = new Request("https://example.test", {

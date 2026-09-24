@@ -12,13 +12,13 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Copy DNS/WHOIS results or download JSON; DNS exports follow the selected record filter.
 - Cancel pending lookups and retry the same target without reloading the page.
 - Detect common CDN and edge-provider signals at `/cdn`.
-- Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
+- Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping` (JSON request bodies are capped before parsing).
 - Check IP reputation at `/reputation` against independent DNS blocklists (Spamhaus ZEN, SpamCop, Barracuda, DroneBL, blocklist.de), botnet C2 feeds (abuse.ch Feodo Tracker, Spamhaus DROP), GreyNoise scanner intelligence, and optional AbuseIPDB, Project Honey Pot http:BL, and ThreatFox data — with an evidence-based risk score that separates policy listings and network context from actual threat evidence.
 - Jump between tools or deep-link a typed IP, domain, or ASN into the right tool from a Spotlight-style command palette (⌘K / Ctrl+K, or `/`).
 
 ## Public-Site Safety Model
 
-The API routes are designed for public deployment. They validate inputs with `zod`, rate-limit requests in memory, enforce timeouts, and block targets that resolve to private, loopback, link-local, multicast, reserved, documentation, and cloud-metadata address ranges.
+The API routes are designed for public deployment. They validate inputs with `zod`, rate-limit requests in memory, enforce timeouts, and block targets that resolve to private, loopback, link-local, multicast, reserved, documentation, and cloud-metadata address ranges. Public results are also kept only in short-lived in-memory caches to avoid repeat upstream work; the privacy policy documents the cache windows.
 
 User-target HTTP connections and WHOIS referrals connect to validated IP addresses, while HTTPS keeps normal hostname and certificate checks. Each HTTP redirect is validated again. HTTP response limits cover both streamed and decompressed bytes, and deadlines remain active while reading the body. RDAP fallback allows up to three redirects and 256,000 response bytes within its six-second overall deadline.
 
@@ -30,7 +30,7 @@ Blocked examples include:
 - `172.16.0.0/12`
 - `192.168.0.0/16`
 - `169.254.169.254`
-- `::1`, `fc00::/7`, and `fe80::/10`
+- `::1`, `fc00::/7`, `fe80::/10`, and deprecated `fec0::/10`
 
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
 
@@ -52,7 +52,7 @@ Set `PRIVACY_CONTROLLER_NAME` to the controller's identity (name / legal entity)
 
 ## Datenschutz / GDPR
 
-The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, linked from the footer on every page. It documents the processing of IP addresses, the in-memory rate limiting, the external services that requests are forwarded to (including third-country transfers), the functional theme storage, and data-subject rights under the GDPR. The app sets no tracking cookies, runs no analytics, and stores no persistent request logs of its own.
+The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, linked from the footer on every page. It documents the processing of IP addresses, transient in-memory caches and rate limiting, the external services that requests are forwarded to (including third-country transfers), the functional theme storage, and data-subject rights under the GDPR. The app sets no tracking cookies, runs no analytics, and stores no persistent request logs of its own.
 
 ## Tech Stack
 

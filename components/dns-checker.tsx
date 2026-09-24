@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { ExampleQueries } from "@/components/example-queries";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ResultActions } from "@/components/result-actions";
@@ -78,6 +79,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.targetPlaceholder}
+        label={t.lookupTarget}
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
@@ -91,7 +93,13 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
           icon={Network}
           title={t.dnsEmptyTitle}
           description={t.dnsEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["example.com", "8.8.8.8"]}
+            label={t.tryExample}
+            onSelect={run}
+          />
+        </EmptyState>
       )}
 
       {loading && (
@@ -102,10 +110,29 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={querySync.query.trim() ? () => run(querySync.query) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && (
-        <ResultPanel title={`${t.dnsRecordsFor} ${result.target}`}>
+        <ResultPanel
+          title={`${t.dnsRecordsFor} ${result.target}`}
+          tone={result.recordErrors?.length ? "warning" : "success"}
+          actions={
+            visibleRecords.length > 0 ? (
+              <ResultActions
+                locale={locale}
+                data={{ ...result, records: visibleRecords }}
+                copyText={visibleRecords.map((record) => `${record.type}\t${formatDnsRecordValue(record)}`).join("\n")}
+                filename={`dns-${result.target}-${selectedType.toLowerCase()}`}
+              />
+            ) : null
+          }
+        >
           <div className="border-b pb-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.resolvedAddresses}
@@ -147,7 +174,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
                 key={selectedType}
                 className="overflow-hidden rounded-lg border motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200"
               >
-                <Table>
+                <Table aria-label={t.recordDetails}>
                   <TableHeader>
                     <TableRow className="bg-muted/40 hover:bg-muted/40">
                       <TableHead className="w-24">{t.dnsTableType}</TableHead>
@@ -198,15 +225,6 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
             <pre id="dns-raw-result" className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground" tabIndex={0}>
               {JSON.stringify(visibleRecords, null, 2)}
             </pre>
-          )}
-
-          {visibleRecords.length > 0 && (
-            <ResultActions
-              locale={locale}
-              data={{ ...result, records: visibleRecords }}
-              copyText={visibleRecords.map((record) => `${record.type}\t${formatDnsRecordValue(record)}`).join("\n")}
-              filename={`dns-${result.target}-${selectedType.toLowerCase()}`}
-            />
           )}
 
           {result.recordErrors && result.recordErrors.length > 0 && (

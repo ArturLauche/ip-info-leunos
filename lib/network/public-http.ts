@@ -81,7 +81,7 @@ export async function requestPublicHttp(target: PublicUrl, options: PublicHttpOp
         responseHeaders.append(message.rawHeaders[index], message.rawHeaders[index + 1]);
       }
       const tooLarge = (contentLength: number) => new TargetValidationError(
-        "target_blocked", "The target response is too large for this public checker.", 413,
+        "response_too_large", "The target response is too large for this public checker.", 413,
         { contentLength, maxContentLengthBytes: options.maxContentLengthBytes },
       );
       const declaredLength = Number(responseHeaders.get("content-length") || 0);

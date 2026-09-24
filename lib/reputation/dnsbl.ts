@@ -1,4 +1,4 @@
-import { isIPv6Address, stripIpv6Brackets } from "@/lib/network/target";
+import { isIPv4Address, isIPv6Address, stripIpv6Brackets } from "@/lib/network/target";
 import type { RawEvidence, SourceStatus } from "./model";
 
 /** DNSBL query encodings and per-zone response interpretation. */
@@ -45,7 +45,7 @@ export interface DnsblInterpretation {
 const VALID_DNSBL_ANSWER = /^127\./;
 
 function isValidAnswer(record: string) {
-  return VALID_DNSBL_ANSWER.test(record);
+  return isIPv4Address(record) && VALID_DNSBL_ANSWER.test(record);
 }
 
 /** Filters out wildcard / DNS interference answers. */
@@ -326,9 +326,13 @@ export function parseBlocklistDeTxt(txt: string[] | string | null | undefined): 
   if (!joined) return { service: null, lastAttackAt: null };
 
   const lastAttackMatch = joined.match(/Last-Attack:\s*(\d{9,11})/);
-  const lastAttackAt = lastAttackMatch
-    ? new Date(Number(lastAttackMatch[1]) * 1000).toISOString()
-    : null;
+  let lastAttackAt: string | null = null;
+  if (lastAttackMatch) {
+    const date = new Date(Number(lastAttackMatch[1]) * 1000);
+    if (!Number.isNaN(date.getTime()) && date.getUTCFullYear() <= 2100) {
+      lastAttackAt = date.toISOString();
+    }
+  }
 
   const serviceMatch = joined.match(/Service:\s*([^,\s]+)/);
   return { service: serviceMatch ? serviceMatch[1] : null, lastAttackAt };

@@ -93,7 +93,7 @@ describe("public HTTP transport", () => {
   it("rejects oversized declared bodies before returning a response", async () => {
     const message = reply(200, { "content-length": "101" });
     mockTransport([message]);
-    await expect(fetchPublicUrl("http://1.1.1.1", { maxContentLengthBytes: 100 })).rejects.toMatchObject({ code: "target_blocked", status: 413 });
+    await expect(fetchPublicUrl("http://1.1.1.1", { maxContentLengthBytes: 100 })).rejects.toMatchObject({ code: "response_too_large", status: 413 });
     expect(message.destroyed).toBe(true);
   });
 
@@ -102,7 +102,7 @@ describe("public HTTP transport", () => {
     mockTransport([message]);
     const response = await fetchPublicUrl("http://1.1.1.1", { maxContentLengthBytes: 4 });
     const body = response.text();
-    const rejected = expect(body).rejects.toMatchObject({ code: "target_blocked", status: 413 });
+    const rejected = expect(body).rejects.toMatchObject({ code: "response_too_large", status: 413 });
     message.end("12345");
     await rejected;
     expect(message.destroyed).toBe(true);
@@ -139,7 +139,7 @@ describe("public HTTP transport", () => {
     first.end(gzipSync("hello"));
     await expect(response.text()).resolves.toBe("hello");
     const oversized = await fetchPublicUrl("http://1.1.1.1", { maxContentLengthBytes: 100 });
-    const rejected = expect(oversized.text()).rejects.toMatchObject({ code: "target_blocked", status: 413 });
+    const rejected = expect(oversized.text()).rejects.toMatchObject({ code: "response_too_large", status: 413 });
     second.end(gzipSync("x".repeat(200)));
     await rejected;
   });

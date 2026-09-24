@@ -5,6 +5,7 @@ import { type Locale, getTranslation } from "@/lib/i18n";
 import { ApiClientError } from "@/lib/api/client";
 import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
+import { ExampleQueries } from "@/components/example-queries";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
@@ -189,7 +190,7 @@ function EvidenceCard({ item, t, locale }: { item: EvidenceItem; t: ToolT; local
 
       <p className="text-sm leading-relaxed text-foreground">{reasonText(item, t)}</p>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-2 rounded-md bg-muted/30 px-3 py-2.5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-2 border-t pt-3 sm:grid-cols-2">
         <MetaRow label={t.reputationFieldSource} value={sourceName(item.sourceId)} />
         {confidence !== null && <MetaRow label={t.reputationFieldConfidence} value={confidence} />}
         {firstSeen !== null && <MetaRow label={t.reputationFieldFirstSeen} value={firstSeen} />}
@@ -394,6 +395,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.reputationPlaceholder}
+        label={t.lookupTarget}
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}
         loading={loading}
@@ -407,7 +409,13 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
           icon={ShieldAlert}
           title={t.reputationEmptyTitle}
           description={t.reputationEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["8.8.8.8", "1.1.1.1"]}
+            label={t.tryExample}
+            onSelect={run}
+          />
+        </EmptyState>
       )}
 
       {loading && (
@@ -424,7 +432,13 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={querySync.query.trim() ? () => run(querySync.query) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && evidenceGroups && (
         <div className="tool-reveal flex flex-col gap-6">
@@ -498,7 +512,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
           </Card>
 
           {/* Context */}
-          <Card className="p-5">
+          <section className="border-y px-1 py-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <ContextCell
                 icon={MapPin}
@@ -552,7 +566,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
                 }
               />
             </div>
-          </Card>
+          </section>
 
           {/* Evidence with filter. Each trigger owns a TabsContent panel so
               the Radix tabs pattern keeps its trigger/panel relationship. */}
@@ -561,6 +575,7 @@ export function ReputationChecker({ locale, initialIp = "" }: ReputationCheckerP
             <Tabs
               value={filter}
               onValueChange={(value) => setFilter(value as EvidenceFilter)}
+              aria-label={t.reputationSectionSummary}
             >
               <div className="border-b px-5 py-3">
                 <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">

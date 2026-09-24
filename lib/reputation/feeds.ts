@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { RawEvidence, SourceStatus } from "./model";
 import { isIPv6Address, stripIpv6Brackets } from "@/lib/network/target";
+import { readBoundedText } from "@/lib/network/bounded-body";
 
 /**
  * Downloadable threat feeds (abuse.ch Feodo Tracker, Spamhaus DROP) are
@@ -176,9 +177,7 @@ async function fetchFeedText(url: string): Promise<string> {
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const text = await response.text();
-    if (text.length > FEED_MAX_BYTES) throw new Error("feed exceeds size limit");
-    return text;
+    return readBoundedText(response, FEED_MAX_BYTES);
   } finally {
     clearTimeout(timer);
   }

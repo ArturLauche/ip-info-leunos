@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { readApiResponse } from "@/lib/api/client";
+import { readApiResponse, type ApiDecoder } from "@/lib/api/client";
 import { useToolQuery } from "@/hooks/use-tool-query";
 
-interface ToolLookupOptions {
+interface ToolLookupOptions<T> {
   /** Builds the API URL for a submitted query. */
   buildApiUrl: (query: string) => string;
   /** Builds the browser URL reflected via router.replace, or null to skip. */
@@ -16,6 +16,8 @@ interface ToolLookupOptions {
   initialQuery?: string;
   /** Resets tool-specific state when a new lookup starts. */
   onStart?: () => void;
+  /** Validates the successful payload before it reaches tool components. */
+  decode?: ApiDecoder<T>;
 }
 
 /**
@@ -24,9 +26,9 @@ interface ToolLookupOptions {
  * sequence guard so a slow earlier response can never overwrite the result
  * of a later lookup.
  */
-export function useToolLookup<T>(options: ToolLookupOptions) {
+export function useToolLookup<T>(options: ToolLookupOptions<T>) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => Boolean(options.initialQuery?.trim()));
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<T | null>(null);
   const requestSeq = useRef(0);
@@ -80,7 +82,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
         const response = await fetch(buildApiUrl(trimmed), {
           signal: controller.signal,
         });
-        const data = await readApiResponse<T>(response);
+        const data = await readApiResponse<T>(response, optionsRef.current.decode);
         if (!controller.signal.aborted && seq === requestSeq.current) setResult(data);
       } catch (lookupError) {
         // An abort is always superseded by a newer run (or unmount): never

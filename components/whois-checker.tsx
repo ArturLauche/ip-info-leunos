@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { ExampleQueries } from "@/components/example-queries";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ResultActions } from "@/components/result-actions";
@@ -70,6 +71,7 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.whoisPlaceholder}
+        label={t.lookupTarget}
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
@@ -83,7 +85,13 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
           icon={Activity}
           title={t.whoisEmptyTitle}
           description={t.whoisEmptyDescription}
-        />
+        >
+          <ExampleQueries
+            examples={["example.com", "8.8.8.8"]}
+            label={t.tryExample}
+            onSelect={run}
+          />
+        </EmptyState>
       )}
 
       {loading && (
@@ -96,10 +104,27 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          onRetry={querySync.query.trim() ? () => run(querySync.query) : undefined}
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && (
-        <ResultPanel title={`${t.whoisFor} ${result.target}`}>
+        <ResultPanel
+          title={`${t.whoisFor} ${result.target}`}
+          tone={result.noteCode ? "info" : "success"}
+          actions={
+            <ResultActions
+              locale={locale}
+              data={result}
+              copyText={result.raw}
+              filename={`whois-${result.target}`}
+            />
+          }
+        >
           <dl className="divide-y divide-border">
             <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
               <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
@@ -186,7 +211,6 @@ export function WhoisChecker({ locale, initialTarget = "" }: WhoisCheckerProps) 
               {result.raw || t.noWhoisData}
             </pre>
           )}
-          <ResultActions locale={locale} data={result} copyText={result.raw} filename={`whois-${result.target}`} />
         </ResultPanel>
       )}
     </div>

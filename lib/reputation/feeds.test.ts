@@ -71,6 +71,7 @@ describe("feed payload parsing", () => {
   it("rejects malformed Feodo payloads", () => {
     expect(parseFeodoPayload({ not: "an array" })).toBeNull();
     expect(parseFeodoPayload([{ no_ip: true }])).toBeNull();
+    expect(parseFeodoPayload([])).toEqual([]);
   });
 
   it("parses Spamhaus DROP NDJSON and filters by address family", () => {

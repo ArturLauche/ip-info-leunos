@@ -36,10 +36,31 @@ function assertHealthy() {
   assert.equal(evaluate("!!document.querySelector('[data-nextjs-dialog]')"), false);
   assert.equal(evaluate("document.querySelector('h1')?.textContent === 'Something went wrong'"), false);
   assert.ok(evaluate("document.body.innerText.length > 100"));
+  assert.equal(evaluate(`(() => {
+    const visible = (el) => {
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    return [...document.querySelectorAll('button,a[href],input,select,textarea')].filter(visible).filter((el) => el.getAttribute('aria-hidden') !== 'true').filter((el) => {
+      const label = el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent?.trim();
+      if (label) return false;
+      if (el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]')) return false;
+      return !el.closest('label');
+    }).length;
+  })()`), 0);
 }
 function assertFits() {
   assert.equal(evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
   assert.equal(evaluate("[...document.querySelectorAll('h1,h2')].filter(e=>e.getBoundingClientRect().width).every(e=>e.scrollWidth <= e.clientWidth + 1)"), true);
+  assert.equal(evaluate("[...document.querySelectorAll('[data-slot=empty-state]')].every(e => e.scrollWidth <= e.clientWidth + 1)"), true);
+  assert.equal(evaluate(`innerWidth > 639 || [...document.querySelectorAll('button,[role=tab]')].filter((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }).filter((el) => el.getAttribute('aria-hidden') !== 'true' && el.tabIndex !== -1 && el.dataset.slot !== 'switch').every((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.width >= 40 && rect.height >= 40;
+  })`), true);
 }
 function installFixtures() {
   evaluate(`(() => {
@@ -67,7 +88,22 @@ function installFixtures() {
         records:[{type:'A',value:'93.184.215.14'},{type:'TXT',value:['v=DKIM1; p=MIIB','IjANBg']}]
       } : url.startsWith('/api/ping') ? {
         ok:true,mode:'tcp',target:'example.com',port:80,latencyMs:12,message:'',messageKey:'tcp_ok'
-      } : url.startsWith('/api/asn') ? {found:false,asn:'AS13335'} : {};
+      } : url.startsWith('/api/asn') ? {
+        found:false, asn:'AS13335', asnNumber:13335, name:'', country:'', registry:'',
+        allocated:'', domain:'', type:'', numIps:null, prefixes4:[], prefixes6:[],
+        prefixes4Total:0, prefixes6Total:0, peers:[], upstreams:[], downstreams:[],
+        peersTotal:0, upstreamsTotal:0, downstreamsTotal:0, peeringdb:null,
+        sources:{ipinfo:'unavailable',peeringdb:'error',ripestat:'available'}, warnings:[]
+      } : url.startsWith('/api/cdn') ? {
+        target, reachable:true, status:200, usesCdn:true, detectedCdn:'Cloudflare', confidence:'high',
+        reason:'Edge signals matched.', matchedSignals:['cf-ray'], resolvedIps:['1.1.1.1'],
+        cnameChain:['edge.example.net'], headers:[{key:'cf-ray',value:'fixture'}]
+      } : url.startsWith('/api/reputation') ? {
+        ip:target, score:0, rawScore:0, level:'low', headline:'no_malicious_activity', evidence:[],
+        contributions:[], threatCategories:[], mailCategories:[], contextCategories:['benign_service'],
+        networkContext:null, sources:[], coverage:{checkedCount:1,matchedCount:0,policyCount:1,cleanCount:1,unavailableCount:0,skippedCount:0},
+        geo:null, network:null, checkedAt:new Date().toISOString()
+      } : {};
       // Deliberately ignore AbortSignal: stale-result guards must work even
       // when the transport has already received/parsed a superseded response.
       return Response.json({ok:true,data:plan.data ?? data});
@@ -75,7 +111,7 @@ function installFixtures() {
   })()`);
 }
 function submit(query) {
-  browser("fill", "#tool-query", query);
+  browser("fill", "[data-tool-query]", query);
   browser("click", "button[type=submit]");
 }
 
@@ -207,7 +243,7 @@ try {
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
     browser("wait", "--url", "**/dns");
-    waitFor("document.querySelector('#tool-query')?.value === ''");
+    waitFor("document.querySelector('[data-tool-query]')?.value === ''");
     assert.equal(evaluate("document.body.innerText.includes('DNS records for')"), false);
     assert.equal(evaluate("window.__calls.length"), 4);
     assertHealthy();
@@ -224,6 +260,65 @@ try {
     assertHealthy();
   });
 
+  check("CDN results read as one verdict surface with evidence", () => {
+    open("/cdn");
+    browser("snapshot", "-i");
+    installFixtures();
+    submit("example.com");
+    waitFor("document.querySelector('h2')?.textContent.includes('Cloudflare')");
+    assert.ok(evaluate("document.body.innerText.includes('Matched signals')"));
+    assert.ok(evaluate("document.body.innerText.includes('CNAME chain')"));
+    assertFits();
+    assertHealthy();
+  });
+
+  check("reputation has a useful first-use example and a flat evidence layout", () => {
+    open("/reputation");
+    browser("snapshot", "-i");
+    assert.equal(evaluate("document.querySelector('[data-tool-query]')?.value"), "");
+    installFixtures();
+    clickRole("button", "8.8.8.8");
+    waitFor("document.body.innerText.includes('NO MALICIOUS ACTIVITY DETECTED')");
+    assert.ok(evaluate("document.body.innerText.includes('SOURCES')"));
+    assertFits();
+    assertHealthy();
+  });
+
+  check("Ping begins without a misleading prefilled target and offers examples", () => {
+    open("/ping");
+    assert.equal(evaluate("document.querySelector('#ping-target')?.value"), "");
+    assert.ok(evaluate("document.body.innerText.includes('example.com')"));
+    clickRole("button", "example.com");
+    assert.equal(evaluate("document.querySelector('#ping-target')?.value"), "example.com");
+    assertFits();
+    assertHealthy();
+  });
+
+  check("repeated ASN parameters use the first value without crashing", () => {
+    browser("network", "route", "**/api/asn*", "--body", JSON.stringify({ ok: true, data: {
+      found: false, asn: "AS1", asnNumber: 1, name: "", country: "", registry: "",
+      allocated: "", domain: "", type: "", numIps: null, prefixes4: [], prefixes6: [],
+      prefixes4Total: 0, prefixes6Total: 0, peers: [], upstreams: [], downstreams: [],
+      peersTotal: 0, upstreamsTotal: 0, downstreamsTotal: 0, peeringdb: null,
+      sources: { ipinfo: "unavailable", peeringdb: "error", ripestat: "available" }, warnings: []
+    }}));
+    open("/asn?q=AS1&q=AS2");
+    waitFor("document.querySelector('[data-tool-query]')?.value === 'AS1'");
+    assertHealthy();
+    browser("network", "unroute");
+  });
+
+  check("ASN client validation stays associated with the input", () => {
+    open("/asn");
+    installFixtures();
+    browser("fill", "[data-tool-query]", "not-an-asn");
+    browser("click", "button[type=submit]");
+    waitFor("!!document.querySelector('#asn-input-error')");
+    assert.equal(evaluate("document.querySelector('[data-tool-query]')?.getAttribute('aria-invalid')"), "true");
+    assert.equal(evaluate("document.querySelectorAll('[role=alert]').length"), 1);
+    assertHealthy();
+  });
+
   check("delayed DNS URL echoes preserve drafts; external navigation still resets them", () => {
     open("/dns");
     browser("snapshot", "-i");
@@ -231,10 +326,10 @@ try {
     evaluate("window.__rscDelay=1500; window.__plan.push({delay:1800})");
     submit("submitted.example.com");
     clickRole("button", "Cancel");
-    browser("fill", "#tool-query", "draft.example.com");
+    browser("fill", "[data-tool-query]", "draft.example.com");
     browser("wait", "--url", "**/dns?target=submitted.example.com");
     waitFor("window.__completed === window.__calls.length");
-    assert.equal(evaluate("document.querySelector('#tool-query').value"), "draft.example.com");
+    assert.equal(evaluate("document.querySelector('[data-tool-query]').value"), "draft.example.com");
     assert.equal(evaluate("window.__calls.length"), 1);
     evaluate("window.__rscDelay=0");
     browser("press", "Control+k");
@@ -242,10 +337,10 @@ try {
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
     browser("wait", "--url", "**/dns");
-    waitFor("document.querySelector('#tool-query')?.value === ''");
+    waitFor("document.querySelector('[data-tool-query]')?.value === ''");
     browser("back");
     waitFor("document.querySelector('h2')?.textContent.includes('submitted.example.com')");
-    assert.equal(evaluate("document.querySelector('#tool-query').value"), "submitted.example.com");
+    assert.equal(evaluate("document.querySelector('[data-tool-query]').value"), "submitted.example.com");
     assert.equal(evaluate("window.__calls.length"), 2);
     assertHealthy();
   });
@@ -254,6 +349,7 @@ try {
     open("/ping");
     browser("snapshot", "-i");
     installFixtures();
+    browser("fill", "#ping-target", "example.com");
     browser("fill", "#ping-port", "80");
     clickRole("tab", "UDP");
     assert.equal(evaluate("document.querySelector('#ping-port').value"), "80");
@@ -283,11 +379,11 @@ try {
     evaluate("window.__rscDelay=1500; window.__plan.push({delay:1800})");
     submit("8.8.8.8");
     clickRole("button", "Cancel");
-    browser("fill", "#tool-query", "1.0.0.1");
+    browser("fill", "[data-tool-query]", "1.0.0.1");
     browser("wait", "--url", "**/check?q=8.8.8.8");
     waitFor("window.__completed === window.__calls.length");
     assert.equal(evaluate("window.__calls.length"), 1);
-    assert.equal(evaluate("document.querySelector('#tool-query').value"), "1.0.0.1");
+    assert.equal(evaluate("document.querySelector('[data-tool-query]').value"), "1.0.0.1");
     assert.equal(evaluate("document.body.innerText.includes('Queried IP address')"), false);
     assertHealthy();
   });
@@ -296,7 +392,7 @@ try {
     const ipData = {ipv4:'1.1.1.1',ipv6:null,ipVersion:4,country:'Australia',countryCode:'AU',region:'',regionName:'',city:'',zip:'',lat:0,lon:0,timezone:'',isp:'Cloudflare',org:'Cloudflare',as:'AS13335 Cloudflare',asname:'CLOUDFLARENET',reverse:'one.one.one.one',mobile:false,proxy:false,hosting:true,connectionType:'datacenter'};
     browser("network", "route", "**/api/ip*", "--body", JSON.stringify({ok:true,data:ipData}));
     open("/check?q=1.1.1.1&q=8.8.8.8");
-    waitFor("document.querySelector('#tool-query')?.value === '1.1.1.1'");
+    waitFor("document.querySelector('[data-tool-query]')?.value === '1.1.1.1'");
     waitFor("!document.querySelector('button[type=submit]').disabled");
     assertHealthy();
     const before = evaluate("performance.getEntriesByType('resource').filter(r=>r.name.includes('/api/ip?')).length");
@@ -310,7 +406,7 @@ try {
   check("light theme and mobile navigation remain usable", () => {
     browser("set", "viewport", "390", "844");
     clickRole("button", "Toggle theme");
-    clickRole("menuitem", "Light");
+    clickRole("menuitemradio", "Light");
     waitFor("document.documentElement.classList.contains('light')");
     assertFits();
     browser("screenshot", join(artifacts, "ip-mobile-light.png"));

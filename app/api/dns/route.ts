@@ -5,6 +5,7 @@ import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { assertPublicTarget, isIpAddress, TargetValidationError } from "@/lib/network/target";
 import { isCacheableDnsResult } from "@/lib/dns-cache";
+import { SingleFlight, TtlCache } from "@/lib/cache/ttl-cache";
 
 export const runtime = "nodejs";
 
@@ -23,30 +24,12 @@ const dnsQuerySchema = z.object({
 // Short server-side memo for repeated public DNS lookups. DNS answers are
 // public data (no per-request identity), so caching by normalized hostname is
 // safe. The response header stays no-store; this only avoids hammering the
-// resolver with 10 parallel queries per repeat request.
+// resolver with repeated record queries. Single-flight also collapses a burst
+// of identical misses into one resolver fan-out.
 const DNS_CACHE_TTL_MS = 120_000;
 const DNS_CACHE_MAX_ENTRIES = 512;
-
-const dnsCache = new Map<string, { storedAt: number; payload: unknown }>();
-
-function getCachedDns(hostname: string): unknown | null {
-  const cached = dnsCache.get(hostname);
-  if (!cached) return null;
-  if (Date.now() - cached.storedAt >= DNS_CACHE_TTL_MS) {
-    dnsCache.delete(hostname);
-    return null;
-  }
-  return cached.payload;
-}
-
-function setCachedDns(hostname: string, payload: unknown) {
-  dnsCache.set(hostname, { storedAt: Date.now(), payload });
-  while (dnsCache.size > DNS_CACHE_MAX_ENTRIES) {
-    const oldest = dnsCache.keys().next().value;
-    if (oldest === undefined) break;
-    dnsCache.delete(oldest);
-  }
-}
+const dnsCache = new TtlCache<unknown>({ ttlMs: DNS_CACHE_TTL_MS, maxEntries: DNS_CACHE_MAX_ENTRIES });
+const dnsInflight = new SingleFlight<unknown>();
 
 type DnsRecordValue = string | number | boolean | null | DnsRecordValue[] | { [key: string]: DnsRecordValue };
 
@@ -59,6 +42,11 @@ interface ResolveResult {
   type: RecordType;
   records: DnsRecord[];
   error?: string;
+}
+
+interface ValidatedAddress {
+  address: string;
+  family: number;
 }
 
 function errorCode(error: unknown) {
@@ -110,37 +98,10 @@ async function resolvePtr(ip: string): Promise<ResolveResult> {
   }
 }
 
-export async function GET(request: Request) {
-  const limited = enforceRateLimit(request, "dns", { limit: 40, windowMs: 60_000 });
-  if (limited) return limited;
-
-  const { searchParams } = new URL(request.url);
-  const parsedQuery = dnsQuerySchema.safeParse({
-    target: searchParams.get("target"),
-  });
-
-  if (!parsedQuery.success) {
-    return apiValidationError(parsedQuery.error);
-  }
-
-  let hostname: string;
-
-  try {
-    const target = await assertPublicTarget(parsedQuery.data.target);
-    hostname = target.hostname;
-  } catch (error) {
-    if (error instanceof TargetValidationError) {
-      return apiError(error.code, error.message, error.status, error.details);
-    }
-
-    return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
-  }
-
-  const cachedPayload = getCachedDns(hostname);
-  if (cachedPayload) {
-    return apiOk(cachedPayload);
-  }
-
+async function resolveDnsPayload(
+  hostname: string,
+  validatedAddresses: ValidatedAddress[],
+): Promise<unknown> {
   // IP targets only support reverse (PTR) lookups.
   if (isIpAddress(hostname)) {
     const ptrResult = await resolvePtr(hostname);
@@ -158,37 +119,71 @@ export async function GET(request: Request) {
       lookupError: null,
       recordErrors,
     };
-    if (isCacheableDnsResult(null, recordErrors)) {
-      setCachedDns(hostname, payload);
-    }
-    return apiOk(payload);
+    if (isCacheableDnsResult(null, recordErrors)) dnsCache.set(hostname, payload);
+    return payload;
   }
 
-  const [lookupResult, recordsByType] = await Promise.all([
-    raceResolveTimeout(dns.lookup(hostname, { all: true })).then(
-      (value) => ({ ok: true as const, value }),
-      (error) => ({ ok: false as const, error: error as NodeJS.ErrnoException }),
-    ),
-    Promise.all(RECORD_TYPES.map((type) => resolveByType(hostname, type))),
-  ]);
+  // The target guard already performed the authoritative A/AAAA lookup for this
+  // request. Reuse that validated set instead of resolving the hostname again;
+  // this removes a race window where the second answer could differ from the
+  // public addresses that were actually checked.
+  const recordsByType = await Promise.all(
+    RECORD_TYPES.map((type) => resolveByType(hostname, type)),
+  );
 
   const records = recordsByType.flatMap((entry) => entry.records);
-  const addresses = lookupResult.ok ? lookupResult.value : [];
-
-  const lookupError = lookupResult.ok ? null : lookupResult.error.code || lookupResult.error.message;
+  const lookupError = null;
   const recordErrors = recordsByType
     // A type without records (ENODATA/ENOTFOUND) is normal, not noteworthy.
     .filter((entry) => entry.error && entry.error !== "ENODATA" && entry.error !== "ENOTFOUND")
     .map((entry) => ({ type: entry.type, error: entry.error }));
   const payload = {
     target: hostname,
-    addresses,
+    addresses: validatedAddresses,
     records,
     lookupError,
     recordErrors,
   };
-  if (isCacheableDnsResult(lookupError, recordErrors)) {
-    setCachedDns(hostname, payload);
+  if (isCacheableDnsResult(lookupError, recordErrors)) dnsCache.set(hostname, payload);
+  return payload;
+}
+
+export async function GET(request: Request) {
+  const limited = enforceRateLimit(request, "dns", { limit: 40, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = dnsQuerySchema.safeParse({
+    target: searchParams.get("target"),
+  });
+
+  if (!parsedQuery.success) {
+    return apiValidationError(parsedQuery.error);
   }
+
+  let hostname: string;
+  let validatedAddresses: ValidatedAddress[] = [];
+
+  try {
+    const target = await assertPublicTarget(parsedQuery.data.target);
+    hostname = target.hostname;
+    validatedAddresses = target.addresses.map((address) => ({
+      address,
+      family: net.isIP(address),
+    }));
+  } catch (error) {
+    if (error instanceof TargetValidationError) {
+      return apiError(error.code, error.message, error.status, error.details);
+    }
+
+    return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
+  }
+
+  const payload = await dnsInflight.run(hostname, async () => {
+    const cached = dnsCache.get(hostname);
+    if (cached) return cached;
+    return resolveDnsPayload(hostname, validatedAddresses);
+  });
+
   return apiOk(payload);
 }

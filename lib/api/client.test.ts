@@ -52,6 +52,16 @@ describe("readApiResponse", () => {
     await expect(readApiResponse(Response.json({ ok: true, data: null }))).resolves.toBeNull();
   });
 
+  it("runs an optional payload decoder at the client boundary", async () => {
+    const response = Response.json({ ok: true, data: { target: "example.com" } });
+    await expect(readApiResponse(response, (data) => {
+      if (!data || typeof data !== "object" || !("target" in data)) {
+        throw new ApiClientError("upstream_error", "Incomplete payload.");
+      }
+      return data;
+    })).resolves.toEqual({ target: "example.com" });
+  });
+
   it("does not turn cancellation during body reading into a server error", async () => {
     const response = new Response(new ReadableStream({ start(controller) { controller.error(new DOMException("Aborted", "AbortError")); } }));
     await expect(readApiResponse(response)).rejects.toMatchObject({ name: "AbortError" });

@@ -54,6 +54,7 @@ const IPV6_BLOCKED_RANGES: Array<[bigint, number, string]> = [
   [ipv6ToBigInt("2001:db8::"), 32, "documentation"],
   [ipv6ToBigInt("2002::"), 16, "6to4"],
   [ipv6ToBigInt("fc00::"), 7, "unique-local"],
+  [ipv6ToBigInt("fec0::"), 10, "site-local"],
   [ipv6ToBigInt("fe80::"), 10, "link-local"],
   [ipv6ToBigInt("ff00::"), 8, "multicast"],
 ];
@@ -327,6 +328,8 @@ export async function fetchPublicUrl(
     maxRedirects?: number;
     timeoutMs?: number;
     maxContentLengthBytes?: number;
+    /** Reuse a target that the caller has already validated in this request. */
+    validatedTarget?: PublicUrl;
   } = {},
 ) {
   const maxRedirects = init.maxRedirects ?? 3;
@@ -334,10 +337,18 @@ export async function fetchPublicUrl(
   const maxContentLengthBytes = init.maxContentLengthBytes ?? 1_000_000;
   const headers = new Headers(init.headers);
   let current = typeof input === "string" ? normalizeWebUrl(input) : input;
+  if (init.validatedTarget) {
+    if (new URL(init.validatedTarget.url).toString() !== current.toString()) {
+      throw new TargetValidationError("invalid_target", "The validated target does not match the requested URL.");
+    }
+    for (const address of init.validatedTarget.addresses) assertPublicIpAddress(address);
+  }
 
   for (let redirect = 0; redirect <= maxRedirects; redirect += 1) {
     init.signal?.throwIfAborted();
-    const target = await withAbort(assertPublicUrl(current), init.signal);
+    const target = redirect === 0 && init.validatedTarget
+      ? init.validatedTarget
+      : await withAbort(assertPublicUrl(current), init.signal);
 
     try {
       const response = await requestPublicHttp(target, {

@@ -48,11 +48,11 @@ function SheetContent({
   className,
   children,
   side = "right",
-  closeLabel = "Close",
+  closeLabel,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
-  closeLabel?: string;
+  closeLabel: string;
 }) {
   return (
     <SheetPortal>

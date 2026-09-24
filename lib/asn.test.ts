@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AsnValidationError,
+  isAsnProfile,
   mergeAsnProfile,
   normalizeAsnInput,
   normalizeIpinfoAsnPayload,
@@ -24,6 +25,31 @@ describe("ASN normalization", () => {
       expect(() => normalizeAsnInput(input)).toThrow(AsnValidationError);
     },
   );
+});
+
+describe("ASN client contract", () => {
+  it("rejects incomplete successful payloads before rendering", () => {
+    expect(isAsnProfile({ found: false, asn: "AS13335" })).toBe(false);
+    expect(isAsnProfile({
+      found: false,
+      asn: "AS13335",
+      asnNumber: 13335,
+      name: "",
+      country: "",
+      registry: "",
+      allocated: "",
+      domain: "",
+      type: "",
+      prefixes4: [],
+      prefixes6: [],
+      peers: [],
+      upstreams: [],
+      downstreams: [],
+      warnings: [],
+      peeringdb: null,
+      sources: { ipinfo: "unavailable", peeringdb: "error", ripestat: "available" },
+    })).toBe(true);
+  });
 });
 
 describe("ASN provider normalization", () => {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { ExampleQueries } from "@/components/example-queries";
 import { IpDisplay } from "@/components/ip-display";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { getTranslation, type Locale } from "@/lib/i18n";
@@ -43,6 +44,7 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.searchPlaceholder}
+        label={toolT.lookupTarget}
         submitLabel={t.searchButton}
         loadingLabel={toolT.lookupInProgress}
         loading={loading}
@@ -75,7 +77,18 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
           icon={Search}
           title={t.checkEmptyTitle ?? t.checkTitle}
           description={t.checkEmptyDescription ?? t.checkSubtitle}
-        />
+        >
+          <ExampleQueries
+            examples={["8.8.8.8", "1.1.1.1", "example.com"]}
+            label={toolT.tryExample}
+            onSelect={(value) => {
+              markSubmitted(value);
+              setSubmission((previous) => previous + 1);
+              setSubmittedIp(value);
+              router.replace(`/check?q=${encodeURIComponent(value)}`, { scroll: false });
+            }}
+          />
+        </EmptyState>
       )}
     </div>
   );
