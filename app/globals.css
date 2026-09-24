@@ -12,7 +12,8 @@
  */
 
 :root {
-  --radius: 0.65rem;
+  --radius: 0.6rem;
+  color-scheme: light;
 
   /*
    * Motion easing tokens. Tuned to feel calm and smooth rather than snappy:
@@ -79,6 +80,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
 
@@ -182,7 +184,12 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   html {
@@ -217,6 +224,33 @@
 
   *::-webkit-scrollbar-thumb:hover {
     background-color: color-mix(in oklab, var(--foreground) 26%, transparent);
+  }
+}
+
+@media (pointer: coarse), (max-width: 639px) {
+  [data-slot='button'] {
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+  }
+
+  [data-slot='select-trigger'] {
+    min-block-size: 2.75rem;
+  }
+
+  [data-slot='tabs-trigger'],
+  [data-slot='toggle-group-item'],
+  [data-slot='dropdown-menu-radio-item'] {
+    min-block-size: 2.75rem;
+  }
+
+  [data-slot='switch'] {
+    position: relative;
+  }
+
+  [data-slot='switch']::before {
+    content: "";
+    position: absolute;
+    inset: -0.6rem;
   }
 }
 
@@ -558,5 +592,10 @@
   .tool-reveal > *,
   .tool-section-reveal {
     animation: none;
+  }
+
+  [data-slot='skeleton'],
+  .animate-spin {
+    animation: none !important;
   }
 }

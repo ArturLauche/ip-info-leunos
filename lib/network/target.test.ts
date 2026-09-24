@@ -51,7 +51,7 @@ describe("network target validation", () => {
   });
 
   it("blocks private and reserved IPv6 ranges", () => {
-    for (const address of ["::1", "fc00::1", "fe80::1", "2001:db8::1", "2001::1"]) {
+    for (const address of ["::1", "fc00::1", "fec0::1", "feff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fe80::1", "2001:db8::1", "2001::1"]) {
       expect(() => assertPublicIpAddress(address), address).toThrow(TargetValidationError);
     }
   });

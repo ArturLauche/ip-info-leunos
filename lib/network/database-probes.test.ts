@@ -143,6 +143,64 @@ describe("database protocol probes", () => {
       },
     });
   });
+
+  it("keeps authenticated Redis probing functional", async () => {
+    const server = await listen((socket) => {
+      socket.on("data", (data) => {
+        const text = data.toString("utf8");
+        if (text.includes("AUTH")) {
+          socket.write("+OK\r\n");
+          return;
+        }
+        if (text.includes("PING")) {
+          socket.end("+PONG\r\n");
+        }
+      });
+    });
+
+    const result = await probeDatabase({
+      target: "127.0.0.1",
+      databaseType: "redis",
+      port: server.port,
+      timeoutMs: 1_000,
+      auth: { enabled: true, password: "secret" },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      messageKey: "db_auth_ok",
+      details: { databaseType: "redis", stage: "auth", preview: "+PONG" },
+    });
+  });
+
+  it("bounds authenticated Redis responses without returning response text", async () => {
+    const server = await listen((socket) => {
+      socket.on("error", () => {});
+      socket.once("data", () => {
+        socket.end(Buffer.concat([
+          Buffer.from("-ERR "),
+          Buffer.alloc(70_000, 120),
+          Buffer.from("\r\n"),
+        ]));
+      });
+    });
+
+    const result = await probeDatabase({
+      target: "127.0.0.1",
+      databaseType: "redis",
+      port: server.port,
+      timeoutMs: 1_000,
+      auth: { enabled: true, password: "secret" },
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      message: "Redis auth probe response exceeded the public response size limit.",
+      details: { databaseType: "redis", stage: "auth", maxBytes: 64_000 },
+    });
+    expect(result.details?.receivedBytes).toBeGreaterThan(64_000);
+    expect(result.message).not.toContain("x".repeat(1_000));
+  });
 });
 
 function writeSplitResponse(socket: net.Socket, response: Buffer, splitAt: number) {

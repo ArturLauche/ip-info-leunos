@@ -434,6 +434,7 @@ function redisAuthProbe(target: string, port: number, timeoutMs: number, auth: D
     const password = auth.password || "";
     let settled = false;
     let buffer = "";
+    let receivedBytes = 0;
 
     const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
       if (settled) return;
@@ -448,6 +449,16 @@ function redisAuthProbe(target: string, port: number, timeoutMs: number, auth: D
     socket.once("close", () => finish(false, "Redis auth probe connection closed before completion."));
 
     socket.on("data", (chunk) => {
+      receivedBytes += chunk.length;
+      if (receivedBytes > MAX_SOCKET_PROBE_RESPONSE_BYTES) {
+        finish(false, "Redis auth probe response exceeded the public response size limit.", {
+          maxBytes: MAX_SOCKET_PROBE_RESPONSE_BYTES,
+          receivedBytes,
+          stage: "auth",
+        });
+        return;
+      }
+
       buffer += chunk.toString("utf8");
 
       if (buffer.includes("\r\n")) {
@@ -463,7 +474,7 @@ function redisAuthProbe(target: string, port: number, timeoutMs: number, auth: D
         }
 
         if (buffer.startsWith("-")) {
-          finish(false, `Redis auth failed: ${buffer.trim()}`, { stage: "auth" });
+          finish(false, "Redis authentication failed.", { stage: "auth" });
         }
       }
     });

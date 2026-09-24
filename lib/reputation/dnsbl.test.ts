@@ -99,6 +99,7 @@ describe("Spamhaus ZEN interpretation", () => {
 
   it("does not trust non-127/8 answers", () => {
     expect(interpretZenResponse(["10.0.0.1"]).status).toBe("resolver_blocked");
+    expect(interpretZenResponse(["127.not-an-ip"]).status).toBe("resolver_blocked");
     expect(interpretZenResponse([]).status).toBe("clean");
   });
 });
@@ -198,6 +199,7 @@ describe("blocklist.de interpretation", () => {
       lastAttackAt: new Date(1788355802000).toISOString(),
     });
     expect(parseBlocklistDeTxt(null)).toEqual({ service: null, lastAttackAt: null });
+    expect(parseBlocklistDeTxt("Last-Attack: 999999999999")).toEqual({ service: null, lastAttackAt: null });
   });
 });
 

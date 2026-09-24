@@ -15,6 +15,7 @@ import {
   type DnsblInterpretation,
 } from "./dnsbl";
 import { matchDrop, matchFeodo } from "./feeds";
+import { readBoundedJson } from "@/lib/network/bounded-body";
 import {
   abuseIpDbEvidence,
   greyNoiseEvidence,
@@ -34,6 +35,7 @@ import {
 
 const DNSBL_TIMEOUT_MS = 2_500;
 const HTTP_TIMEOUT_MS = 4_000;
+const MAX_PROVIDER_BODY_BYTES = 512_000;
 const HTTPBL_ZONE = "dnsbl.httpbl.org";
 const BLOCKLIST_DE_ZONE = "bl.blocklist.de";
 const GREYNOISE_URL = "https://api.greynoise.io/v3/community/";
@@ -100,23 +102,28 @@ function notConfiguredOutcome(sourceId: string): ProviderOutcome {
   return { id: sourceId, status: "not_configured", evidence: [] };
 }
 
-async function fetchWithTimeout(
+async function fetchJsonWithTimeout(
   url: string,
   headers: Record<string, string>,
   init: { method?: string; body?: string } = {},
-): Promise<Response> {
+): Promise<{ response: Response; data: unknown }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
   timer.unref?.();
 
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       cache: "no-store",
       signal: controller.signal,
       headers,
       ...(init.method ? { method: init.method } : {}),
       ...(init.body ? { body: init.body } : {}),
     });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      return { response, data: null };
+    }
+    return { response, data: await readBoundedJson(response, MAX_PROVIDER_BODY_BYTES) };
   } finally {
     clearTimeout(timer);
   }
@@ -138,14 +145,11 @@ async function queryBlocklistDe(ip: string, family: 4 | 6, nowMs: number): Promi
         interpretBlocklistDeResponse(aRecords, txtRecords.length > 0 ? txtRecords[0] : null, nowMs, null),
       { withTxt: true },
     ),
-    fetchWithTimeout(`https://api.blocklist.de/api.php?ip=${encodeURIComponent(ip)}&start=1&format=json`, {
+    fetchJsonWithTimeout(`https://api.blocklist.de/api.php?ip=${encodeURIComponent(ip)}&start=1&format=json`, {
       "user-agent": USER_AGENT,
       accept: "application/json",
     })
-      .then(async (response): Promise<BlocklistDeCounts | null> => {
-        if (!response.ok) return null;
-        return normalizeBlocklistDeCounts(await response.json());
-      })
+      .then(({ data }): BlocklistDeCounts | null => normalizeBlocklistDeCounts(data))
       .catch(() => null),
   ]);
 
@@ -199,7 +203,7 @@ async function queryGreyNoise(ip: string, family: 4 | 6, nowMs: number): Promise
   };
 
   try {
-    const response = await fetchWithTimeout(`${GREYNOISE_URL}${encodeURIComponent(ip)}`, headers);
+    const { response, data } = await fetchJsonWithTimeout(`${GREYNOISE_URL}${encodeURIComponent(ip)}`, headers);
 
     if (response.status === 429) return { id: "greynoise", status: "rate_limited", evidence: [] };
     if (response.status === 404) {
@@ -208,7 +212,7 @@ async function queryGreyNoise(ip: string, family: 4 | 6, nowMs: number): Promise
     }
     if (!response.ok) return { id: "greynoise", status: "unavailable", evidence: [] };
 
-    const normalized = normalizeGreyNoisePayload(await response.json());
+    const normalized = normalizeGreyNoisePayload(data);
     if (!normalized) return { id: "greynoise", status: "unavailable", evidence: [] };
 
     cacheGreyNoise(ip, normalized, nowMs);
@@ -245,7 +249,7 @@ async function queryAbuseIpDb(ip: string, nowMs: number): Promise<ProviderOutcom
   if (!key) return notConfiguredOutcome("abuseipdb");
 
   try {
-    const response = await fetchWithTimeout(
+    const { response, data } = await fetchJsonWithTimeout(
       `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90`,
       { Key: key, Accept: "application/json", "user-agent": USER_AGENT },
     );
@@ -253,7 +257,7 @@ async function queryAbuseIpDb(ip: string, nowMs: number): Promise<ProviderOutcom
     if (response.status === 429) return { id: "abuseipdb", status: "rate_limited", evidence: [] };
     if (!response.ok) return { id: "abuseipdb", status: "unavailable", evidence: [] };
 
-    const normalized = normalizeAbuseIpDbPayload(await response.json());
+    const normalized = normalizeAbuseIpDbPayload(data);
     if (!normalized) return { id: "abuseipdb", status: "unavailable", evidence: [] };
 
     const interpretation = abuseIpDbEvidence(normalized, nowMs);
@@ -268,7 +272,7 @@ async function queryThreatFox(ip: string, nowMs: number): Promise<ProviderOutcom
   if (!key) return notConfiguredOutcome("threatfox");
 
   try {
-    const response = await fetchWithTimeout(
+    const { response, data } = await fetchJsonWithTimeout(
       "https://threatfox-api.abuse.ch/api/v1/",
       { "Auth-Key": key, "Content-Type": "application/json", "user-agent": USER_AGENT },
       { method: "POST", body: JSON.stringify({ query: "search_ioc", search_term: ip }) },
@@ -277,7 +281,7 @@ async function queryThreatFox(ip: string, nowMs: number): Promise<ProviderOutcom
     if (response.status === 429) return { id: "threatfox", status: "rate_limited", evidence: [] };
     if (!response.ok) return { id: "threatfox", status: "unavailable", evidence: [] };
 
-    const iocs = normalizeThreatFoxPayload(await response.json());
+    const iocs = normalizeThreatFoxPayload(data);
     if (!iocs) return { id: "threatfox", status: "unavailable", evidence: [] };
 
     const interpretation = threatFoxEvidence(iocs, nowMs);

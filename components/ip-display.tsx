@@ -264,6 +264,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(null);
   const [clientIpv4, setClientIpv4] = useState<ClientIpDiscoveryResult | null>(null);
   const [ipv6Loading, setIpv6Loading] = useState(false);
@@ -311,7 +312,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
       });
 
     return () => controller.abort();
-  }, [targetIp, t, toolT]);
+  }, [targetIp, retryNonce, t, toolT]);
 
   useEffect(() => {
     if (targetIp) return;
@@ -427,7 +428,13 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
   }
 
   if (error || !data) {
-    return <ErrorPanel message={error || t.ipInfoError} />;
+    return (
+      <ErrorPanel
+        message={error || t.ipInfoError}
+        onRetry={() => setRetryNonce((value) => value + 1)}
+        retryLabel={toolT.errorRetry}
+      />
+    );
   }
 
   const ConnectionIcon = data.mobile
@@ -497,7 +504,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
                   </span>
                   <CopyButton
                     text={displayIpv4}
-                    label={t.copyIpLabel}
+                    label={`${t.copyIpLabel} (IPv4)`}
                     copiedLabel={t.copiedToClipboard}
                     failedLabel={t.copyFailed}
                     className="size-8"
@@ -524,7 +531,7 @@ export function IpDisplay({ targetIp, locale, onLoadingChange }: IpDisplayProps)
                   </span>
                   <CopyButton
                     text={displayIpv6}
-                    label={t.copyIpLabel}
+                    label={`${t.copyIpLabel} (IPv6)`}
                     copiedLabel={t.copiedToClipboard}
                     failedLabel={t.copyFailed}
                     className="size-8"

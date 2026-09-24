@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -13,10 +12,9 @@ interface EmptyStateProps {
 }
 
 /**
- * Shared "no query yet" surface for the tools: a grid-textured card with an
- * icon tile, a title and a one-line hint. Centralises the polished ASN /
- * reputation empty state so every tool opens with the same considered first
- * impression instead of a bare void.
+ * A restrained first-use surface. The grid remains a small brand signature,
+ * while the border and spacing do the structural work instead of a stack of
+ * nested cards and oversized icon tiles.
  */
 export function EmptyState({
   icon: Icon,
@@ -26,24 +24,28 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <Card
+    <section
+      data-slot="empty-state"
       className={cn(
-        "bg-grid items-center gap-3 overflow-hidden p-8 text-center sm:p-12",
+        "relative isolate overflow-hidden rounded-xl border bg-card px-6 py-10 text-center shadow-none sm:px-10 sm:py-12",
         className,
       )}
     >
-      <span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
-        <Icon aria-hidden="true" className="size-6" />
-      </span>
-      <h2 className="text-lg font-semibold tracking-tight text-foreground">
-        {title}
-      </h2>
-      {description && (
-        <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-      )}
-      {children && <div className="mt-1">{children}</div>}
-    </Card>
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-40" aria-hidden="true" />
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-lg border border-primary/15 bg-primary/5 text-primary">
+          <Icon aria-hidden="true" className="size-5" />
+        </span>
+        <h2 className="text-lg font-semibold tracking-tight text-balance text-foreground">
+          {title}
+        </h2>
+        {description && (
+          <p className="max-w-md text-sm leading-relaxed text-pretty text-muted-foreground">
+            {description}
+          </p>
+        )}
+        {children && <div className="mt-2 w-full">{children}</div>}
+      </div>
+    </section>
   );
 }

@@ -1,4 +1,9 @@
-export type TargetErrorCode = "invalid_target" | "target_blocked" | "timeout" | "network_error";
+export type TargetErrorCode =
+  | "invalid_target"
+  | "target_blocked"
+  | "response_too_large"
+  | "timeout"
+  | "network_error";
 
 export class TargetValidationError extends Error {
   constructor(

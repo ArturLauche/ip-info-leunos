@@ -106,14 +106,25 @@ function normalizeIpHeader(value: string | null | undefined) {
 
   const withoutQuotes = trimmed.replace(/^"|"$/g, "");
   const directIp = withoutQuotes.split("%", 1)[0];
-  if (net.isIP(directIp)) return directIp;
+  if (net.isIP(directIp)) return canonicalizeIp(directIp);
 
   const withoutPort = withoutQuotes.startsWith("[")
     ? withoutQuotes.replace(/^\[([^\]]+)\](?::\d+)?$/, "$1")
     : withoutQuotes.replace(/:\d+$/, "");
   const withoutZone = withoutPort.split("%", 1)[0];
 
-  return net.isIP(withoutZone) ? withoutZone : null;
+  return net.isIP(withoutZone) ? canonicalizeIp(withoutZone) : null;
+}
+
+function canonicalizeIp(value: string) {
+  if (net.isIP(value) === 4) return value;
+  try {
+    // WHATWG URL parsing gives one stable compressed IPv6 representation,
+    // so equivalent spellings share a bucket key.
+    return new URL(`http://[${value}]`).hostname.slice(1, -1).toLowerCase();
+  } catch {
+    return value.toLowerCase();
+  }
 }
 
 function sweepExpiredBuckets(now: number, windowMs: number) {

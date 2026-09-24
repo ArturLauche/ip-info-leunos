@@ -101,6 +101,26 @@ describe("GET /api/whois", () => {
     expect(await response.json()).toMatchObject({ ok: true, data: { noteCode: "rdap_fallback", summary: { status: ["active"] } } });
   });
 
+  it("bounds the RDAP JSON body before parsing", async () => {
+    vi.spyOn(dns, "lookup").mockRejectedValue(new Error("WHOIS unavailable"));
+    let cancelled = false;
+    vi.spyOn(targets, "fetchPublicUrl").mockResolvedValue(new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("x".repeat(256_001)));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    })));
+
+    const response = await GET(new Request("http://localhost/api/whois?target=example.com"));
+    const body = await response.json();
+
+    expect(response.status).toBe(413);
+    expect(body).toMatchObject({ ok: false, error: { code: "response_too_large" } });
+    expect(cancelled).toBe(true);
+  });
+
   it("keeps the overall RDAP deadline active while consuming the body", async () => {
     vi.useFakeTimers();
     vi.spyOn(dns, "lookup").mockRejectedValue(new Error("WHOIS unavailable"));

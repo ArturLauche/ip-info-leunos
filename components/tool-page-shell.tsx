@@ -51,8 +51,8 @@ export function ToolPageShell({
       >
         <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <div className="flex items-start gap-3.5 sm:gap-4">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-12">
-              <Icon aria-hidden="true" className="size-5 sm:size-6" />
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/5 text-primary sm:size-10">
+              <Icon aria-hidden="true" className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
               {sectionLabel && (
@@ -60,10 +60,10 @@ export function ToolPageShell({
                   {sectionLabel}
                 </p>
               )}
-              <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:mt-1 sm:text-3xl">
+              <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-balance text-foreground sm:mt-1 sm:text-3xl">
                 {title}
               </h1>
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-2 sm:text-[0.95rem]">
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-pretty text-muted-foreground sm:mt-2 sm:text-[0.95rem]">
                 {subtitle}
               </p>
             </div>

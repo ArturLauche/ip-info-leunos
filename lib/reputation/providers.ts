@@ -15,7 +15,10 @@ const greyNoiseSchema = z
     last_seen: z.string().optional(),
     message: z.string().optional(),
   })
-  .passthrough();
+  .passthrough()
+  .refine((data) => typeof data.noise === "boolean" || typeof data.riot === "boolean", {
+    message: "GreyNoise response did not include a decision field.",
+  });
 
 export interface GreyNoiseResult {
   noise: boolean;
@@ -117,7 +120,10 @@ const abuseIpDbSchema = z
         lastReportedAt: z.string().nullable().optional(),
         isTor: z.boolean().optional(),
       })
-      .passthrough(),
+      .passthrough()
+      .refine((data) => typeof data.abuseConfidenceScore === "number", {
+        message: "AbuseIPDB response did not include a confidence score.",
+      }),
   })
   .passthrough();
 
@@ -218,7 +224,7 @@ export interface ThreatFoxIoc {
 export function normalizeThreatFoxPayload(payload: unknown): ThreatFoxIoc[] | null {
   const parsed = threatFoxSchema.safeParse(payload);
   if (!parsed.success) return null;
-  if (parsed.data.query_status && parsed.data.query_status !== "ok") return [];
+  if (parsed.data.query_status !== "ok" && parsed.data.query_status !== "no_result") return null;
   if (!parsed.data.data) return [];
 
   return parsed.data.data.map((entry) => ({

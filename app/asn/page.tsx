@@ -6,6 +6,7 @@ import { ToolPageShell } from "@/components/tool-page-shell";
 import { resolveLocale } from "@/lib/i18n";
 import { createPageMetadata } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 
 export const metadata: Metadata = createPageMetadata({
   title: "ASN Lookup für Routing- und Peeringdaten",
@@ -17,8 +18,8 @@ export const metadata: Metadata = createPageMetadata({
 
 interface AsnPageProps {
   searchParams: Promise<{
-    asn?: string;
-    q?: string;
+    asn?: SearchParamValue;
+    q?: SearchParamValue;
   }>;
 }
 
@@ -27,7 +28,7 @@ export default async function AsnPage({ searchParams }: AsnPageProps) {
   const locale = resolveLocale(headersList.get("accept-language"));
   const t = getToolTranslation(locale);
   const params = await searchParams;
-  const initialAsn = params.asn || params.q || "";
+  const initialAsn = firstSearchParam(params.asn) || firstSearchParam(params.q);
 
   return (
     <ToolPageShell

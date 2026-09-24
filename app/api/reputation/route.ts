@@ -10,6 +10,7 @@ import {
 import { collectReputation } from "@/lib/reputation/query";
 import { aggregateReputation } from "@/lib/reputation/scoring";
 import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
+import { SingleFlight, TtlCache } from "@/lib/cache/ttl-cache";
 
 export const runtime = "nodejs";
 
@@ -20,12 +21,17 @@ const reputationQuerySchema = z.object({
   ip: z.string().trim().min(1).max(64),
 });
 
-interface CacheEntry {
-  storedAt: number;
-  summary: ReputationSummary;
+const responseCache = new TtlCache<ReputationSummary>({
+  ttlMs: RESPONSE_CACHE_TTL_MS,
+  maxEntries: RESPONSE_CACHE_MAX_ENTRIES,
+});
+
+interface ReputationLookupResult {
+  summary: ReputationSummary | null;
+  unavailableSources: Array<{ id: string; status: SourceStatus }>;
 }
 
-const responseCache = new Map<string, CacheEntry>();
+const responseInflight = new SingleFlight<ReputationLookupResult>();
 
 const CHECKED_STATUSES: ReadonlySet<SourceStatus> = new Set([
   "clean",
@@ -79,56 +85,58 @@ export async function GET(request: Request) {
   const cacheKey = `${ip}:${configFingerprint()}`;
 
   const cached = responseCache.get(cacheKey);
-  if (cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
-    return apiOk(cached.summary);
-  }
-  responseCache.delete(cacheKey);
+  if (cached) return apiOk(cached);
 
-  const { sources, evidence, geo, network, networkContext } = await collectReputation(ip, family);
+  const outcome = await responseInflight.run(cacheKey, async () => {
+    const current = responseCache.get(cacheKey);
+    if (current) return { summary: current, unavailableSources: [] };
 
-  const checkedSources = sources.filter((source) => CHECKED_STATUSES.has(source.status));
-  if (checkedSources.length === 0) {
+    const { sources, evidence, geo, network, networkContext } = await collectReputation(ip, family);
+    const checkedSources = sources.filter((source) => CHECKED_STATUSES.has(source.status));
+    if (checkedSources.length === 0) {
+      return {
+        summary: null,
+        unavailableSources: sources.map((source) => ({ id: source.id, status: source.status })),
+      };
+    }
+
+    const aggregated = aggregateReputation(evidence);
+    const result: ReputationSummary = {
+      ip,
+      score: aggregated.score,
+      rawScore: aggregated.rawScore,
+      level: aggregated.level,
+      headline: aggregated.headline,
+      evidence: aggregated.evidence,
+      contributions: aggregated.contributions,
+      threatCategories: aggregated.threatCategories,
+      mailCategories: aggregated.mailCategories,
+      contextCategories: aggregated.contextCategories,
+      networkContext,
+      sources,
+      coverage: {
+        checkedCount: checkedSources.length,
+        matchedCount: sources.filter((source) => source.status === "matched").length,
+        policyCount: sources.filter(
+          (source) => source.status === "policy_listed" || source.status === "available",
+        ).length,
+        cleanCount: sources.filter((source) => source.status === "clean").length,
+        unavailableCount: sources.filter((source) => UNAVAILABLE_STATUSES.has(source.status)).length,
+        skippedCount: sources.filter((source) => SKIPPED_STATUSES.has(source.status)).length,
+      },
+      geo,
+      network,
+      checkedAt: new Date().toISOString(),
+    };
+    responseCache.set(cacheKey, result);
+    return { summary: result, unavailableSources: [] };
+  });
+
+  if (!outcome.summary) {
     return apiError("upstream_error", "Reputation sources are currently unavailable.", 502, {
-      sources: sources.map((source) => ({ id: source.id, status: source.status })),
+      sources: outcome.unavailableSources,
     });
   }
 
-  const aggregated = aggregateReputation(evidence);
-
-  const summary: ReputationSummary = {
-    ip,
-    score: aggregated.score,
-    rawScore: aggregated.rawScore,
-    level: aggregated.level,
-    headline: aggregated.headline,
-    evidence: aggregated.evidence,
-    contributions: aggregated.contributions,
-    threatCategories: aggregated.threatCategories,
-    mailCategories: aggregated.mailCategories,
-    contextCategories: aggregated.contextCategories,
-    networkContext,
-    sources,
-    coverage: {
-      checkedCount: checkedSources.length,
-      matchedCount: sources.filter((source) => source.status === "matched").length,
-      policyCount: sources.filter(
-        (source) => source.status === "policy_listed" || source.status === "available",
-      ).length,
-      cleanCount: sources.filter((source) => source.status === "clean").length,
-      unavailableCount: sources.filter((source) => UNAVAILABLE_STATUSES.has(source.status)).length,
-      skippedCount: sources.filter((source) => SKIPPED_STATUSES.has(source.status)).length,
-    },
-    geo,
-    network,
-    checkedAt: new Date().toISOString(),
-  };
-
-  responseCache.set(cacheKey, { storedAt: Date.now(), summary });
-  while (responseCache.size > RESPONSE_CACHE_MAX_ENTRIES) {
-    const oldest = responseCache.keys().next().value;
-    if (oldest === undefined) break;
-    responseCache.delete(oldest);
-  }
-
-  return apiOk(summary);
+  return apiOk(outcome.summary);
 }

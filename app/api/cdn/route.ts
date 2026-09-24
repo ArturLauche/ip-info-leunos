@@ -8,6 +8,7 @@ import {
   fetchPublicUrl,
   normalizeWebUrl,
   TargetValidationError,
+  type PublicUrl,
 } from "@/lib/network/target";
 
 export const runtime = "nodejs";
@@ -58,18 +59,6 @@ async function resolveCnameChain(hostname: string) {
   return cnames;
 }
 
-async function resolveIpAddresses(hostname: string) {
-  const [v4Result, v6Result] = await Promise.allSettled([
-    raceCdnResolve(dns.resolve4(hostname)),
-    raceCdnResolve(dns.resolve6(hostname)),
-  ]);
-
-  const ipv4 = v4Result.status === "fulfilled" ? v4Result.value : [];
-  const ipv6 = v6Result.status === "fulfilled" ? v6Result.value : [];
-
-  return [...new Set([...ipv4, ...ipv6])].slice(0, 8);
-}
-
 export async function GET(request: Request) {
   const limited = enforceRateLimit(request, "cdn", { limit: 20, windowMs: 60_000 });
   if (limited) return limited;
@@ -85,13 +74,14 @@ export async function GET(request: Request) {
 
   let normalized: URL;
   let hostname: string;
+  let publicTarget: PublicUrl;
   let resolvedIps: string[];
 
   try {
     normalized = normalizeWebUrl(parsedQuery.data.target);
-    const publicUrl = await assertPublicUrl(normalized);
-    hostname = publicUrl.hostname;
-    resolvedIps = publicUrl.addresses.slice(0, 8);
+    publicTarget = await assertPublicUrl(normalized);
+    hostname = publicTarget.hostname;
+    resolvedIps = publicTarget.addresses.slice(0, 8);
   } catch (error) {
     if (error instanceof TargetValidationError) {
       return apiError(error.code, error.message, error.status, error.details);
@@ -100,18 +90,14 @@ export async function GET(request: Request) {
     return apiError("invalid_target", "Please provide a valid public domain or URL.", 400);
   }
 
-  const [cnameChain, dnsResolvedIps] = await Promise.all([
-    resolveCnameChain(hostname),
-    resolveIpAddresses(hostname),
-  ]);
-
-  resolvedIps = [...new Set([...resolvedIps, ...dnsResolvedIps])].slice(0, 8);
+  const cnameChain = await resolveCnameChain(hostname);
 
   let responseHeaders: Headers;
   let status = 0;
 
   try {
     const response = await fetchPublicUrl(normalized, {
+      validatedTarget: publicTarget,
       method: "GET",
       cache: "no-store",
       maxRedirects: 3,

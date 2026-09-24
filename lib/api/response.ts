@@ -3,8 +3,10 @@ import { ZodError } from "zod";
 
 export type ApiErrorCode =
   | "bad_request"
+  | "request_too_large"
   | "invalid_target"
   | "target_blocked"
+  | "response_too_large"
   | "rate_limited"
   | "upstream_error"
   | "timeout"

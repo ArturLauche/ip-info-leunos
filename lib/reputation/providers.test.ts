@@ -33,6 +33,7 @@ describe("GreyNoise community normalization", () => {
     });
 
     expect(normalizeGreyNoisePayload("nope")).toBeNull();
+    expect(normalizeGreyNoisePayload({ message: "upstream error" })).toBeNull();
   });
 
   it("maps a malicious scanner to scanner evidence", () => {
@@ -85,6 +86,7 @@ describe("AbuseIPDB normalization", () => {
     ).toEqual({ confidenceScore: 100, totalReports: 250, lastReportedAt: "2026-09-01T10:00:00Z", isTor: false });
 
     expect(normalizeAbuseIpDbPayload({ data: "nope" })).toBeNull();
+    expect(normalizeAbuseIpDbPayload({ data: {} })).toBeNull();
   });
 
   it("scales evidence weight with the provider confidence score", () => {
@@ -149,6 +151,7 @@ describe("ThreatFox normalization", () => {
     ]);
 
     expect(normalizeThreatFoxPayload({ query_status: "no_result", data: [] })).toEqual([]);
+    expect(normalizeThreatFoxPayload({ query_status: "upstream_error", data: [] })).toBeNull();
     expect(normalizeThreatFoxPayload({ broken: true })).toBeNull();
   });
 

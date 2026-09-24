@@ -6,9 +6,11 @@ type ToolTranslation = {
   errorRateLimited: string;
   errorInvalidTarget: string;
   errorTargetBlocked: string;
+  errorResponseTooLarge: string;
   errorTimeout: string;
   errorUpstream: string;
   errorBadRequest: string;
+  errorRequestTooLarge: string;
   errorTargetNetwork: string;
   showAll: string;
   showLess: string;
@@ -223,9 +225,11 @@ type ToolTranslation = {
   asnSortDefault: string;
   asnSameAsn: string;
   asnExamplesLabel: string;
+  tryExample: string;
   asnLabelPolicy: string;
   asnCountryCount: Record<"one" | "other", string>;
   targetPlaceholder: string;
+  lookupTarget: string;
   lookupInProgress: string;
   dnsLookupButton: string;
   dnsLookupError: string;
@@ -261,6 +265,7 @@ type ToolTranslation = {
   pingModeHelperDatabase: string;
   pingModeDatabase: string;
   pingDatabaseType: string;
+  databaseCustomPort: string;
   pingTargetHost: string;
   pingPort: string;
   pingTimeout: string;
@@ -278,6 +283,7 @@ type ToolTranslation = {
   pingEmptyTitle: string;
   pingEmptyDescription: string;
   pingStatusSuccess: string;
+  pingStatusSent: string;
   pingStatusFailed: string;
   pingShowDetails: string;
   pingHideDetails: string;
@@ -379,9 +385,11 @@ const en: ToolTranslation = {
   errorRateLimited: "Too many requests. Please wait a moment and try again.",
   errorInvalidTarget: "Please provide a valid public domain, IP address, or URL.",
   errorTargetBlocked: "Private, local, and internal targets cannot be checked on this public site.",
+  errorResponseTooLarge: "The target returned more data than this checker can safely inspect.",
   errorTimeout: "The check timed out. The target may be slow or unreachable.",
   errorUpstream: "An upstream data provider is currently unavailable.",
   errorBadRequest: "The request parameters are invalid.",
+  errorRequestTooLarge: "The request body is larger than this checker accepts.",
   errorTargetNetwork: "The target could not be resolved or reached.",
   showAll: "Show all",
   showLess: "Show less",
@@ -608,10 +616,12 @@ const en: ToolTranslation = {
   asnSortLabel: "Sort",
   asnSortDefault: "Provider order",
   asnSameAsn: "Same as this ASN",
-  asnExamplesLabel: "Try",
+  asnExamplesLabel: "Examples",
+  tryExample: "Try an example",
   asnLabelPolicy: "Policy",
   asnCountryCount: { one: "in {count} country", other: "in {count} countries" },
   targetPlaceholder: "example.com",
+  lookupTarget: "Target",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
   dnsLookupError: "DNS lookup failed.",
@@ -647,6 +657,7 @@ const en: ToolTranslation = {
   pingModeHelperDatabase: "Runs pre-auth protocol checks and optional authenticated checks.",
   pingModeDatabase: "Database",
   pingDatabaseType: "Database type",
+  databaseCustomPort: "Custom port",
   pingTargetHost: "Target host / IP",
   pingPort: "Port",
   pingTimeout: "Timeout (ms)",
@@ -664,6 +675,7 @@ const en: ToolTranslation = {
   pingEmptyTitle: "No test run yet",
   pingEmptyDescription: "Pick a test mode, enter a host and port, then run the check to measure reachability and latency.",
   pingStatusSuccess: "Target reachable",
+  pingStatusSent: "Probe sent",
   pingStatusFailed: "Check failed",
   pingShowDetails: "Show technical details",
   pingHideDetails: "Hide technical details",
@@ -903,9 +915,11 @@ const de: Partial<ToolTranslation> = {
   errorRateLimited: "Zu viele Anfragen. Bitte warte kurz und versuche es erneut.",
   errorInvalidTarget: "Bitte gib eine gültige öffentliche Domain, IP-Adresse oder URL an.",
   errorTargetBlocked: "Private, lokale und interne Ziele können auf dieser öffentlichen Seite nicht geprüft werden.",
+  errorResponseTooLarge: "Das Ziel hat mehr Daten geliefert, als dieser Checker sicher prüfen kann.",
   errorTimeout: "Zeitüberschreitung bei der Prüfung. Das Ziel ist möglicherweise langsam oder nicht erreichbar.",
   errorUpstream: "Ein vorgelagerter Datenanbieter ist derzeit nicht verfügbar.",
   errorBadRequest: "Die Anfrageparameter sind ungültig.",
+  errorRequestTooLarge: "Der Anfragekörper ist größer, als dieser Checker akzeptiert.",
   errorTargetNetwork: "Das Ziel konnte nicht aufgelöst oder erreicht werden.",
   showAll: "Alle anzeigen",
   showLess: "Weniger anzeigen",
@@ -950,6 +964,7 @@ const de: Partial<ToolTranslation> = {
   cdnConfidenceMedium: "Mittel",
   cdnConfidenceLow: "Niedrig",
   targetPlaceholder: "example.com",
+  lookupTarget: "Ziel",
   whoisPlaceholder: "example.com oder 8.8.8.8",
   cdnConfidenceNa: "k. A.",
   pingTitle: "Ping- & Port-Tester",
@@ -1130,6 +1145,7 @@ const de: Partial<ToolTranslation> = {
   asnSortDefault: "Reihenfolge der Quelle",
   asnSameAsn: "Entspricht dieser ASN",
   asnExamplesLabel: "Beispiele",
+  tryExample: "Beispiel ausprobieren",
   asnLabelPolicy: "Policy",
   asnCountryCount: { one: "in {count} Land", other: "in {count} Ländern" },
   lookupInProgress: "Suche läuft...",
@@ -1166,6 +1182,7 @@ const de: Partial<ToolTranslation> = {
   pingModeHelperDatabase: "Führt Protokoll-Prüfungen vor Authentifizierung und optionale Auth-Checks aus.",
   pingModeDatabase: "Datenbank",
   pingDatabaseType: "Datenbanktyp",
+  databaseCustomPort: "Manueller Port",
   pingTargetHost: "Ziel-Host / IP",
   pingPort: "Port",
   pingTimeout: "Timeout (ms)",
@@ -1183,6 +1200,7 @@ const de: Partial<ToolTranslation> = {
   pingEmptyTitle: "Noch kein Test ausgeführt",
   pingEmptyDescription: "Testmodus wählen, Host und Port eingeben und die Prüfung starten, um Erreichbarkeit und Latenz zu messen.",
   pingStatusSuccess: "Ziel erreichbar",
+  pingStatusSent: "Probe gesendet",
   pingStatusFailed: "Prüfung fehlgeschlagen",
   pingShowDetails: "Technische Details anzeigen",
   pingHideDetails: "Technische Details ausblenden",
@@ -1441,12 +1459,16 @@ export function getApiErrorMessage(error: unknown, t: ToolTranslation, fallback:
       return t.errorInvalidTarget;
     case "target_blocked":
       return t.errorTargetBlocked;
+    case "response_too_large":
+      return t.errorResponseTooLarge;
     case "timeout":
       return t.errorTimeout;
     case "upstream_error":
       return t.errorUpstream;
     case "bad_request":
       return t.errorBadRequest;
+    case "request_too_large":
+      return t.errorRequestTooLarge;
     case "network_error":
       return t.errorTargetNetwork;
     default:

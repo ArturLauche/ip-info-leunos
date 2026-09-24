@@ -3,6 +3,7 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { BoundedBodyError, readBoundedJson } from "@/lib/network/bounded-body";
 import {
   assertPublicTarget,
   fetchPublicUrl,
@@ -60,6 +61,7 @@ interface PingResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 3000;
+const MAX_PING_BODY_BYTES = 16_000;
 
 function sanitizeHost(target: string) {
   return target.trim().replace(/^\[|\]$/g, "");
@@ -76,9 +78,21 @@ function normalizePort(value: number | undefined, fallback = 0): number {
 }
 
 function validatePublicPort(port: number) {
-  const allowList = process.env.PUBLIC_ALLOWED_PING_PORTS?.split(",")
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535);
+  const configuredPorts = process.env.PUBLIC_ALLOWED_PING_PORTS;
+  const allowList = configuredPorts === undefined
+    ? undefined
+    : configuredPorts.split(",")
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535);
+
+  if (configuredPorts !== undefined && allowList?.length === 0) {
+    throw new TargetValidationError(
+      "target_blocked",
+      "No public check ports are enabled on this deployment.",
+      403,
+      { port, allowedPorts: [] },
+    );
+  }
 
   if (allowList?.length && !allowList.includes(port)) {
     throw new TargetValidationError(
@@ -274,8 +288,13 @@ export async function POST(request: Request) {
   let rawPayload: unknown;
 
   try {
-    rawPayload = await request.json();
-  } catch {
+    rawPayload = await readBoundedJson(request, MAX_PING_BODY_BYTES);
+  } catch (error) {
+    if (error instanceof BoundedBodyError) {
+      return apiError("request_too_large", "Request body is too large.", 413, {
+        maxBytes: error.maxBytes,
+      });
+    }
     return apiError("bad_request", "Invalid JSON body.", 400);
   }
 

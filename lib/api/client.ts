@@ -1,3 +1,5 @@
+export type ApiDecoder<T> = (data: unknown) => T;
+
 export type ClientApiResponse<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string; details?: unknown } };
@@ -43,7 +45,10 @@ function invalidResponse() {
 }
 
 /** Reads our API contract once, preserving structured errors and aborts. */
-export async function readApiResponse<T>(response: Response): Promise<T> {
+export async function readApiResponse<T>(
+  response: Response,
+  decode?: ApiDecoder<T>,
+): Promise<T> {
   let payload: unknown;
   try {
     payload = await response.json();
@@ -54,5 +59,5 @@ export async function readApiResponse<T>(response: Response): Promise<T> {
 
   const data = unwrapApiResponse<T>(payload);
   if (!response.ok) throw invalidResponse();
-  return data;
+  return decode ? decode(data) : data;
 }

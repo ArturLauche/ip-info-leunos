@@ -41,7 +41,7 @@ export interface PrivacyContent {
 }
 
 /** ISO date shown as "last updated"; bump when the policy text changes. */
-const LAST_UPDATED = "2026-09-02";
+const LAST_UPDATED = "2026-09-24";
 
 const de: PrivacyContent = {
   navLabel: "Datenschutz",
@@ -136,7 +136,7 @@ const de: PrivacyContent = {
     {
       heading: "10. Speicherdauer",
       paragraphs: [
-        "Die Anwendung speichert Anfragedaten nicht dauerhaft. Rate-Limiting-Zähler verlieren nach Ablauf des Zeitfensters (etwa 60 Sekunden) ihre Gültigkeit; die tatsächliche Entfernung des zugehörigen Eintrags aus dem Arbeitsspeicher erfolgt bei einem späteren Aufräumvorgang im Zuge weiterer Anfragen. Bleibt weiterer Verkehr aus, kann ein bereits abgelaufener Eintrag bis zum nächsten Aufräumvorgang oder bis zum Neustart des Prozesses im Speicher verbleiben. Eine dauerhafte oder personenbezogen auswertbare Speicherung findet nicht statt.",
+        "Die Anwendung speichert keine dauerhaften personenbezogenen Daten. Neben den Rate-Limiting-Zählern (etwa 60 Sekunden) nutzt sie ausschließlich flüchtige In-Memory-Caches, um wiederholte öffentliche Abfragen zu entlasten: IP-Metadaten etwa 60 Sekunden, DNS-Ergebnisse 2 Minuten, ASN-Providerdaten bis zu 5 Minuten, Reputation-Ergebnisse 10 Minuten sowie GreyNoise-Ergebnisse bis zu 24 Stunden. Threat-Intelligence-Feeds werden serverseitig in größeren Zeitabständen aktualisiert und nur zur Auswertung geladen. Abgelaufene Einträge werden bei späteren Zugriffen oder beim Überschreiten der Cache-Grenze verworfen und spätestens beim Prozessende; es gibt keine dauerhafte Anfragehistorie.",
         "An externe Dienste übermittelte Daten unterliegen den jeweiligen Datenschutzbestimmungen dieser Anbieter.",
       ],
     },
@@ -256,7 +256,7 @@ const en: PrivacyContent = {
     {
       heading: "10. Retention",
       paragraphs: [
-        "The application does not store request data permanently. Rate-limiting counters expire after the time window (roughly 60 seconds); the associated entry is physically removed from memory during a later cleanup triggered by subsequent requests. If no further traffic arrives, an already-expired entry may remain in memory until the next cleanup or until the process restarts. No permanent or personally evaluable storage takes place.",
+        "The application does not store personal data permanently. In addition to rate-limiting counters (roughly 60 seconds), it uses only short-lived in-memory caches to reduce repeated public lookups: IP metadata for about 60 seconds, DNS results for 2 minutes, ASN provider data for up to 5 minutes, reputation results for 10 minutes, and GreyNoise results for up to 24 hours. Threat-intelligence feeds are refreshed on their own slower schedules and are used for local evaluation. Expired entries are discarded on later access or when the cache limit is exceeded, and all in-memory state ends with the process; there is no persistent request history.",
         "Data sent to external services is subject to the respective privacy policies of those providers.",
       ],
     },
