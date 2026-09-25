@@ -91,7 +91,15 @@ function createProfile(overrides: Partial<AsnProfile> = {}): AsnProfile {
       facilitiesTotal: 13,
     },
     sources: { ipinfo: "not_configured", peeringdb: "available", ripestat: "available" },
-    warnings: ["RIPEstat IPv4 prefixes truncated to 100 of 566 records."],
+    warnings: [],
+    warningDetails: [
+      {
+        code: "truncated",
+        label: "RIPEstat IPv4 prefixes",
+        limit: 100,
+        total: 566,
+      },
+    ],
     sourceDiagnostics: [
       { source: "ipinfo", status: "not_configured", durationMs: 10, cache: "not_configured", warnings: 0 },
       { source: "ripestat", status: "available", durationMs: 386, cache: "miss", warnings: 1 },

@@ -16,7 +16,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
         title: "Політика конфіденційності",
         subtitle: "Як цей сайт обробляє персональні дані, зокрема IP-адреси.",
         lastUpdatedLabel: "Останнє оновлення",
-        lastUpdated: "2026-09-02",
+        lastUpdated: "2026-09-25",
         contactNotConfigured: "контактна адреса за запитом",
         controllerNotConfigured:
           "оператор цього сайту (ідентифікація за запитом)",
@@ -75,7 +75,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
             ],
           },
           {
-            heading: "6. Локальне сховище (тема)",
+            heading: "6. Локальне сховище",
             paragraphs: [
               "Щоб зберегти вашу тему оформлення (світла, темна або системна), у локальному сховищі localStorage вашого браузера зберігається одне значення. Це технічно необхідна функція, вона потрібна лише для вашого налаштування і не передає даних на сервер чи третім сторонам. Згода для цього не потрібна.",
             ],
@@ -83,7 +83,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
           {
             heading: "7. Файли cookie",
             paragraphs: [
-              "Цей сайт не встановлює cookie для згоди, відстеження чи реклами та не використовує подібних технологій для розпізнавання вас між пристроями. Відбувається лише технічно необхідне збереження вашої теми оформлення, описане в розділі «Локальне сховище (тема)», у локальному сховищі браузера.",
+              "Цей сайт не встановлює cookie для згоди, відстеження чи реклами та не використовує подібних технологій для розпізнавання вас між пристроями. Відбувається лише технічно необхідне збереження, описане в розділі «Локальне сховище»: тему оформлення та вибрану мову зберігається в локальному сховищі браузера.",
               "Оскільки cookie, які потребують згоди, і трекери не використовуються, банер про cookie для цього сайту не потрібен.",
             ],
           },
@@ -234,7 +234,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
         title: "隐私政策",
         subtitle: "本网站如何处理个人数据，尤其是 IP 地址。",
         lastUpdatedLabel: "最后更新",
-        lastUpdated: "2026-09-02",
+        lastUpdated: "2026-09-25",
         contactNotConfigured: "可按请求提供联系地址",
         controllerNotConfigured: "本网站运营者（可按请求提供身份信息）",
         sections: [
@@ -292,7 +292,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
             ],
           },
           {
-            heading: "6. 本地存储（主题）",
+            heading: "6. 本地存储",
             paragraphs: [
               "为了保存您的主题偏好（浅色/深色/系统），浏览器会在 localStorage 中存储一个值。这项技术功能仅用于保存您的偏好，不会向服务器或第三方传输数据，因此无需征得同意。",
             ],
@@ -300,7 +300,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
           {
             heading: "7. Cookie",
             paragraphs: [
-              "本网站不会设置同意 Cookie、跟踪 Cookie 或广告 Cookie，也不会使用类似技术在不同设备之间识别您。只会在浏览器的 localStorage 中进行“本地存储（主题）”所述的技术必需存储。",
+              "本网站不会设置同意 Cookie、跟踪 Cookie 或广告 Cookie，也不会使用类似技术在不同设备之间识别您。只会在浏览器的 localStorage 中进行“本地存储”所述的技术必需存储：主题偏好和您选择的语言。",
               "由于我们不使用需要同意的 Cookie 或跟踪器，因此本网站无需显示 Cookie 横幅。",
             ],
           },
@@ -448,7 +448,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
         title: "隱私權政策",
         subtitle: "本網站如何處理個人資料，尤其是 IP 位址。",
         lastUpdatedLabel: "最後更新",
-        lastUpdated: "2026-09-02",
+        lastUpdated: "2026-09-25",
         contactNotConfigured: "可依要求提供聯絡地址",
         controllerNotConfigured: "本網站營運者（可依要求提供身分資訊）",
         sections: [
@@ -506,7 +506,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
             ],
           },
           {
-            heading: "6. 本機儲存（主題）",
+            heading: "6. 本機儲存",
             paragraphs: [
               "為了儲存您的主題偏好（淺色/深色/系統），瀏覽器會在 localStorage 中保存一個值。這是技術上必要的功能，只用於保存您的偏好，不會向伺服器或第三方傳送資料，因此不需要同意。",
             ],
@@ -514,7 +514,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
           {
             heading: "7. Cookie",
             paragraphs: [
-              "本網站不會設定同意 Cookie、追蹤 Cookie 或廣告 Cookie，也不使用類似技術在不同裝置之間辨識您。只會在瀏覽器的 localStorage 中進行「本機儲存（主題）」所述的技術性必要儲存。",
+              "本網站不會設定同意 Cookie、追蹤 Cookie 或廣告 Cookie，也不使用類似技術在不同裝置之間辨識您。只會在瀏覽器的 localStorage 中進行「本機儲存」所述的技術性必要儲存：佈景偏好和您選擇的語言。",
               "由於我們不使用需要同意的 Cookie 或追蹤器，因此本網站不需要顯示 Cookie 橫幅。",
             ],
           },
@@ -662,7 +662,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
         title: "سياسة الخصوصية",
         subtitle: "كيف يعالج هذا الموقع البيانات الشخصية، ولا سيما عناوين IP.",
         lastUpdatedLabel: "آخر تحديث",
-        lastUpdated: "2026-09-02",
+        lastUpdated: "2026-09-25",
         contactNotConfigured: "عنوان الاتصال متاح عند الطلب",
         controllerNotConfigured:
           "مشغّل هذا الموقع (يمكن الحصول على هويته عند الطلب)",
@@ -721,7 +721,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
             ],
           },
           {
-            heading: "6. التخزين المحلي (السمة)",
+            heading: "6. التخزين المحلي",
             paragraphs: [
               "لحفظ تفضيل السمة لديك (فاتح/داكن/النظام)، تُخزَّن قيمة واحدة في التخزين المحلي (localStorage) الخاص بمتصفحك. هذه وظيفة تقنية ضرورية، وتخدم تفضيلك فقط، ولا تنقل أي بيانات إلى الخادم أو إلى أطراف ثالثة. لا يلزم الحصول على موافقة لها.",
             ],
@@ -729,7 +729,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
           {
             heading: "7. ملفات تعريف الارتباط",
             paragraphs: [
-              "لا يضع هذا الموقع ملفات تعريف ارتباط للموافقة أو التتبع أو الإعلانات، ولا يستخدم تقنيات مماثلة للتعرف عليك عبر الأجهزة. لا يجري سوى التخزين التقني الضروري لتفضيل السمة الموصوف في قسم «التخزين المحلي (السمة)»، داخل التخزين المحلي لمتصفحك.",
+              "لا يضع هذا الموقع ملفات تعريف ارتباط للموافقة أو التتبع أو الإعلانات، ولا يستخدم تقنيات مماثلة للتعرف عليك عبر الأجهزة. لا يجري سوى التخزين التقني الضروري الموصوف في قسم «التخزين المحلي»: تفضيل السمة واللغة التي اخترتها، داخل التخزين المحلي لمتصفحك.",
               "ولأننا لا نستخدم ملفات تعريف ارتباط أو أدوات تتبع تتطلب الموافقة، فلا يحتاج هذا الموقع إلى لافتة ملفات تعريف الارتباط.",
             ],
           },
@@ -881,7 +881,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
         subtitle:
           "यह साइट व्यक्तिगत डेटा, विशेष रूप से IP पते, को कैसे संसाधित करती है।",
         lastUpdatedLabel: "अंतिम अद्यतन",
-        lastUpdated: "2026-09-02",
+        lastUpdated: "2026-09-25",
         contactNotConfigured: "अनुरोध पर संपर्क पता उपलब्ध कराया जाएगा",
         controllerNotConfigured:
           "इस साइट का संचालक (पहचान अनुरोध पर उपलब्ध कराई जा सकती है)",
@@ -940,7 +940,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
             ],
           },
           {
-            heading: "6. स्थानीय संग्रहण (थीम)",
+            heading: "6. स्थानीय संग्रहण",
             paragraphs: [
               "आपकी थीम की पसंद (हल्की/गहरी/सिस्टम) को सहेजने के लिए आपके ब्राउज़र के localStorage में एक मान संग्रहीत किया जाता है। यह तकनीकी रूप से आवश्यक सुविधा है, केवल आपकी पसंद के लिए है और सर्वर या तीसरे पक्षों को कोई डेटा नहीं भेजती। इसके लिए सहमति आवश्यक नहीं है।",
             ],
@@ -948,7 +948,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
           {
             heading: "7. कुकीज़",
             paragraphs: [
-              "यह साइट सहमति, ट्रैकिंग या विज्ञापन कुकीज़ नहीं लगाती और डिवाइसों के बीच आपको पहचानने के लिए ऐसी तकनीकों का उपयोग नहीं करती। केवल आपके ब्राउज़र के localStorage में “स्थानीय संग्रहण (थीम)” में वर्णित आपकी थीम की पसंद का तकनीकी रूप से आवश्यक भंडारण होता है।",
+              "यह साइट सहमति, ट्रैकिंग या विज्ञापन कुकीज़ नहीं लगाती और डिवाइसों के बीच आपको पहचानने के लिए ऐसी तकनीकों का उपयोग नहीं करती। “स्थानीय संग्रहण” में वर्णित तकनीकी रूप से आवश्यक भंडारण ही होता है: आपकी थीम की पसंद और चुना गया भाषा, आपके ब्राउज़र के localStorage में।",
               "चूँकि हम ऐसी कुकीज़ या ट्रैकर्स का उपयोग नहीं करते जिनके लिए सहमति चाहिए, इसलिए इस साइट के लिए कुकी बैनर आवश्यक नहीं है।",
             ],
           },
@@ -1098,7 +1098,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
         title: "Kebijakan Privasi",
         subtitle: "Cara situs ini menangani data pribadi, terutama alamat IP.",
         lastUpdatedLabel: "Terakhir diperbarui",
-        lastUpdated: "2026-09-02",
+        lastUpdated: "2026-09-25",
         contactNotConfigured: "alamat kontak tersedia atas permintaan",
         controllerNotConfigured:
           "pengelola situs ini (identitas tersedia atas permintaan)",
@@ -1157,7 +1157,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
             ],
           },
           {
-            heading: "6. Penyimpanan Lokal (Tema)",
+            heading: "6. Penyimpanan Lokal",
             paragraphs: [
               "Untuk menyimpan preferensi tema Anda (terang/gelap/sistem), satu nilai disimpan di localStorage browser Anda. Ini merupakan fungsi teknis yang diperlukan, hanya untuk preferensi Anda, dan tidak mengirim data ke server atau pihak ketiga. Tidak diperlukan persetujuan untuk hal ini.",
             ],
@@ -1165,7 +1165,7 @@ export const legalMenaAsia: Record<LegalMenaAsiaLocale, LegalMenaAsiaContent> =
           {
             heading: "7. Cookie",
             paragraphs: [
-              "Situs ini tidak memasang cookie persetujuan, pelacakan, atau iklan, dan tidak menggunakan teknik serupa untuk mengenali Anda di berbagai perangkat. Hanya penyimpanan teknis preferensi tema Anda yang dijelaskan pada “Penyimpanan Lokal (Tema)” yang dilakukan, di localStorage browser Anda.",
+              "Situs ini tidak memasang cookie persetujuan, pelacakan, atau iklan, dan tidak menggunakan teknik serupa untuk mengenali Anda di berbagai perangkat. Hanya penyimpanan teknis yang dijelaskan pada “Penyimpanan Lokal” yang dilakukan: preferensi tema dan pilihan bahasa Anda, di localStorage browser Anda.",
               "Karena kami tidak menggunakan cookie atau pelacak yang memerlukan persetujuan, banner cookie tidak diperlukan untuk situs ini.",
             ],
           },

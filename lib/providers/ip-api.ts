@@ -185,10 +185,13 @@ const IP_API_LANGUAGE_ALIASES: Record<string, string> = {
   "zh-Hant": "zh-CN",
 };
 
-function toIpApiLanguage(language: string): string {
+export function toIpApiLanguage(language: string): string {
   if (IP_API_LANGUAGES.has(language)) return language;
-  const alias = IP_API_LANGUAGE_ALIASES[language];
-  if (alias) return alias;
+  // `language` is an arbitrary string here, so inherited Object.prototype keys
+  // ("constructor", "toString", …) must never be read as configured aliases.
+  if (Object.hasOwn(IP_API_LANGUAGE_ALIASES, language)) {
+    return IP_API_LANGUAGE_ALIASES[language];
+  }
   return "en";
 }
 

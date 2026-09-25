@@ -1,3 +1,7 @@
+import {
+  greyNoiseQuotaAvailable,
+  observeGreyNoiseQuota,
+} from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
 import { lookupIpApi } from "@/lib/providers/ip-api";
 import { detectConnectionType } from "@/lib/connection-type";
@@ -232,15 +236,25 @@ async function queryGreyNoise(
     ...(key ? { key } : {}),
   };
 
+  // A depleted quota is known from the provider's own headers, so it is
+  // checked before spending a request on a call that can only be rejected.
+  if (!greyNoiseQuotaAvailable(Date.now()))
+    return { id: "greynoise", status: "rate_limited", evidence: [] };
+
   try {
     const response = await fetchWithTimeout(
       `${GREYNOISE_URL}${encodeURIComponent(ip)}`,
       headers,
     );
+    observeGreyNoiseQuota(response, Date.now());
 
-    if (response.status === 429)
+    if (response.status === 429) {
+      await response.body?.cancel();
       return { id: "greynoise", status: "rate_limited", evidence: [] };
+    }
     if (response.status === 404) {
+      // Nothing is read from this response; release the connection.
+      await response.body?.cancel();
       cacheGreyNoise(
         ip,
         {
@@ -254,8 +268,10 @@ async function queryGreyNoise(
       );
       return { id: "greynoise", status: "clean", evidence: [] };
     }
-    if (!response.ok)
+    if (!response.ok) {
+      await response.body?.cancel();
       return { id: "greynoise", status: "unavailable", evidence: [] };
+    }
 
     const normalized = normalizeGreyNoisePayload(await response.json());
     if (!normalized)

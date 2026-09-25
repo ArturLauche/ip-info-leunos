@@ -115,17 +115,25 @@ function formatReputationDetail(
   ui: ReturnType<typeof getUiCopy>,
 ): string | null {
   if (item.detailKey && item.detailValue) {
-    const label =
-      item.detailKey === "riot"
-        ? ui.reputationDetailRiot
-        : item.detailKey === "iocType"
-          ? ui.reputationDetailThreatType
-          : item.detailKey === "c2Status"
-            ? ui.reputationDetailC2Status
-            : item.detailKey === "network"
-              ? ui.reputationDetailNetwork
-              : ui.reputationDetailService;
-    return `${label}: ${item.detailValue}`;
+    // Exhaustive on purpose: a future ReputationDetailLabel must hit the
+    // default and render the raw detail, never inherit another label.
+    const label = ((): string => {
+      switch (item.detailKey) {
+        case "riot":
+          return ui.reputationDetailRiot;
+        case "iocType":
+          return ui.reputationDetailThreatType;
+        case "c2Status":
+          return ui.reputationDetailC2Status;
+        case "network":
+          return ui.reputationDetailNetwork;
+        case "service":
+          return ui.reputationDetailService;
+        default:
+          return "";
+      }
+    })();
+    if (label) return `${label}: ${item.detailValue}`;
   }
   return item.detail ?? null;
 }
@@ -458,6 +466,9 @@ export function ReputationChecker({
       buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
       buildHref: (ip) => `/reputation?ip=${encodeURIComponent(ip)}`,
       mapError: (checkError) => errorMessage(checkError, t),
+      // The summary embeds ip-api country/region/city names, so a language
+      // switch must re-run the lookup rather than re-render stale names.
+      refreshKey: locale,
       initialQuery: initialIp,
       onStart: () => {
         setFilter("all");
@@ -802,7 +813,7 @@ export function ReputationChecker({
                     key={`${note.reason}-${index}`}
                     className="text-xs leading-relaxed text-muted-foreground"
                   >
-                    {t.reputationReasons[note.reason] ?? t.reputationNoEvidence}{" "}
+                    {t.reputationReasons[note.reason] ?? note.reason}{" "}
                     <span className="tabular-nums">
                       +{formatNumber(note.points, locale)}
                     </span>

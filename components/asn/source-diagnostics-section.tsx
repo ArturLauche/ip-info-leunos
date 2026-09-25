@@ -3,7 +3,6 @@
 import { useId } from "react";
 import { TriangleAlert } from "lucide-react";
 import {
-  toAsnWarningDetails,
   type AsnProfile,
   type SourceCacheStatus,
   type SourceStatus,
@@ -89,10 +88,9 @@ export function SourceDiagnosticsSection({
         SOURCE_ORDER.indexOf(b.source as (typeof SOURCE_ORDER)[number]),
     );
   const maxDuration = Math.max(0, ...rows.map((row) => row.durationMs || 0));
-  // Raw provider prose is never rendered; the API ships structured details and
-  // older payloads are parsed so the panel can translate each warning.
-  const warningList =
-    result.warningDetails ?? toAsnWarningDetails(result.warnings);
+  // Raw provider prose is never rendered: the API ships structured warning
+  // details, which this panel translates through the ui-copy labels.
+  const warningList = result.warningDetails ?? [];
 
   const headCell = "px-3 py-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase";
 

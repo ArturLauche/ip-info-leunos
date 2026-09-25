@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   AsnValidationError,
+  formatAsnWarning,
   mergeAsnProfile,
   normalizeAsnInput,
   normalizeIpinfoAsnPayload,
   normalizePeeringDbPayload,
   normalizeRipeStatPayload,
+  type AsnWarningDetail,
 } from "@/lib/asn";
 
 describe("ASN normalization", () => {
@@ -28,7 +30,7 @@ describe("ASN normalization", () => {
 
 describe("ASN provider normalization", () => {
   it("normalizes IPinfo ASN payloads", () => {
-    const warnings: string[] = [];
+    const warnings: AsnWarningDetail[] = [];
     const normalized = normalizeIpinfoAsnPayload(
       {
         name: "Example Network",
@@ -81,7 +83,7 @@ describe("ASN provider normalization", () => {
   });
 
   it("normalizes PeeringDB payloads without leaking contact data", () => {
-    const warnings: string[] = [];
+    const warnings: AsnWarningDetail[] = [];
     const normalized = normalizePeeringDbPayload(
       {
         data: [
@@ -176,7 +178,7 @@ describe("ASN provider normalization", () => {
   });
 
   it("normalizes RIPEstat prefixes and routing neighbours", () => {
-    const warnings: string[] = [];
+    const warnings: AsnWarningDetail[] = [];
     const normalized = normalizeRipeStatPayload(
       {
         overview: {
@@ -299,7 +301,10 @@ describe("ASN provider normalization", () => {
       },
       peeringdb: null,
       sources: { ipinfo: "available", peeringdb: "unavailable", ripestat: "available" },
-      warnings: ["duplicate", "duplicate"],
+      warningDetails: [
+        { code: "provider_timeout", provider: "Duplicate" },
+        { code: "provider_timeout", provider: "Duplicate" },
+      ],
     });
 
     expect(profile.prefixes4).toHaveLength(2);
@@ -314,6 +319,58 @@ describe("ASN provider normalization", () => {
       status: "announced",
     });
     expect(profile.prefixes4Total).toBe(2);
-    expect(profile.warnings).toEqual(["duplicate"]);
+    expect(profile.warningDetails).toEqual([
+      { code: "provider_timeout", provider: "Duplicate" },
+    ]);
+    expect(profile.warnings).toEqual(["Duplicate request timed out."]);
+  });
+});
+
+describe("ASN warning details", () => {
+  it("renders every warning code as the documented sentence", () => {
+    expect(formatAsnWarning({ code: "ipinfo_unavailable" })).toBe(
+      "IPinfo ASN data is unavailable for this ASN or token plan.",
+    );
+    expect(formatAsnWarning({ code: "ipinfo_unexpected" })).toBe(
+      "IPinfo returned an unexpected ASN payload.",
+    );
+    expect(formatAsnWarning({ code: "ripe_no_data" })).toBe(
+      "No RIPEstat ASN data was found for this ASN.",
+    );
+    expect(formatAsnWarning({ code: "peeringdb_no_profile" })).toBe(
+      "No public PeeringDB network profile was found for this ASN.",
+    );
+    expect(
+      formatAsnWarning({ code: "provider_http", provider: "RIPEstat", status: 503 }),
+    ).toBe("RIPEstat returned HTTP 503.");
+    expect(formatAsnWarning({ code: "provider_timeout", provider: "IPinfo" })).toBe(
+      "IPinfo request timed out.",
+    );
+    expect(
+      formatAsnWarning({ code: "provider_too_large", provider: "PeeringDB" }),
+    ).toBe("PeeringDB response exceeded the size limit.");
+    expect(
+      formatAsnWarning({ code: "provider_invalid_json", provider: "IPinfo" }),
+    ).toBe("IPinfo returned invalid JSON.");
+    expect(
+      formatAsnWarning({ code: "provider_unavailable", provider: "RIPEstat" }),
+    ).toBe("RIPEstat data is currently unavailable.");
+    expect(
+      formatAsnWarning({ code: "provider_stale", provider: "RIPEstat" }),
+    ).toBe("RIPEstat data is currently unavailable; using stale cached data.");
+    expect(
+      formatAsnWarning({
+        code: "truncated",
+        label: "RIPEstat IPv4 prefixes",
+        limit: 100,
+        total: 566,
+      }),
+    ).toBe("RIPEstat IPv4 prefixes truncated to 100 of 566 records.");
+  });
+
+  it("falls back to a generic sentence for an unknown code", () => {
+    expect(formatAsnWarning({ code: "unknown" })).toBe(
+      "The data provider returned an additional warning.",
+    );
   });
 });

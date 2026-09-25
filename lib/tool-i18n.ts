@@ -10,6 +10,29 @@ import { toolsMenaAsia } from "@/lib/translations/tools-mena-asia";
 import { toolsNorthern } from "@/lib/translations/tools-northern";
 import { toolsWestern } from "@/lib/translations/tools-western";
 
+/**
+ * CLDR plural forms for a counted string. `other` is required; every other
+ * category is optional and falls back to `other`, so two-form catalogs stay
+ * small while Arabic (`zero`/`two`/`few`/`many`) and the Slavic languages
+ * (`few`/`many`) can express the categories their grammar actually uses.
+ */
+export type CountForms = {
+  zero?: string;
+  one?: string;
+  two?: string;
+  few?: string;
+  many?: string;
+  other: string;
+};
+
+/** Counted strings whose records are plural forms. */
+export const COUNT_FORM_KEYS = [
+  "asnFacilityCount",
+  "asnExchangeCount",
+  "asnConnectionCount",
+  "asnCountryCount",
+] as const;
+
 type ToolTranslation = {
   errorRateLimited: string;
   errorInvalidTarget: string;
@@ -210,9 +233,9 @@ type ToolTranslation = {
   asnMetricRequiresIpinfo: string;
   asnMetricNotReported: string;
   asnMetricNoPeeringDb: string;
-  asnFacilityCount: Record<"one" | "other", string>;
-  asnExchangeCount: Record<"one" | "other", string>;
-  asnConnectionCount: Record<"one" | "other", string>;
+  asnFacilityCount: CountForms;
+  asnExchangeCount: CountForms;
+  asnConnectionCount: CountForms;
   asnShowMore: string;
   asnListedOfTotal: string;
   asnNoneReported: string;
@@ -232,7 +255,7 @@ type ToolTranslation = {
   asnSameAsn: string;
   asnExamplesLabel: string;
   asnLabelPolicy: string;
-  asnCountryCount: Record<"one" | "other", string>;
+  asnCountryCount: CountForms;
   targetPlaceholder: string;
   lookupInProgress: string;
   dnsLookupButton: string;

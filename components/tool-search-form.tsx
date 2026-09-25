@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Search } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,8 @@ export function ToolSearchForm({
   cancelLabel,
   compact = false,
 }: ToolSearchFormProps) {
+  const inputId = useId();
+  const inputLabel = ariaLabel || placeholder;
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -70,6 +72,12 @@ export function ToolSearchForm({
       aria-busy={loading}
     >
       <div className={cn("relative flex-1", compact && "min-w-0 basis-48")}>
+        {/* A real label (not only aria-label) so the field has an associated
+            accessible name: it is announced reliably, is a click target, and
+            works with voice-control "click <name>". */}
+        <label htmlFor={inputId} className="sr-only">
+          {inputLabel}
+        </label>
         <Search
           className={cn(
             "pointer-events-none absolute top-1/2 start-3.5 size-4 -translate-y-1/2 text-muted-foreground",
@@ -78,13 +86,12 @@ export function ToolSearchForm({
           aria-hidden="true"
         />
         <Input
-          id="tool-query"
+          id={inputId}
           name="q"
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
-          aria-label={ariaLabel || placeholder}
           autoComplete="off"
           autoCapitalize="off"
           enterKeyHint="search"

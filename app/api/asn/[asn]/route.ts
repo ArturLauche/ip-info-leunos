@@ -9,8 +9,10 @@ import {
   normalizeIpinfoAsnPayload,
   normalizePeeringDbPayload,
   normalizeRipeStatPayload,
-  toAsnWarningDetails,
+  dedupeAsnWarningDetails,
+  formatAsnWarning,
   type AsnProfile,
+  type AsnWarningDetail,
   type AsnSource,
   type IpinfoAsnData,
   type NormalizedAsn,
@@ -62,6 +64,8 @@ class ProviderFetchError extends Error {
   constructor(
     readonly kind: ProviderErrorKind,
     message: string,
+    /** Upstream HTTP status, when the failure was a response status. */
+    readonly status?: number,
   ) {
     super(message);
     this.name = "ProviderFetchError";
@@ -71,7 +75,7 @@ class ProviderFetchError extends Error {
 type ProviderResult<TData, TStatus extends SourceStatus = SourceStatus> = {
   status: TStatus;
   data: TData | null;
-  warnings: string[];
+  warnings: AsnWarningDetail[];
 };
 
 type TimedProviderResult<
@@ -131,7 +135,7 @@ export async function GET(request: Request, context: RouteContext) {
     peeringdb: peeringDbResult.status,
     ripestat: ripeStatResult.status,
   };
-  const warnings = dedupeWarnings([
+  const warningDetails = dedupeAsnWarningDetails([
     ...ipinfoResult.warnings,
     ...peeringDbResult.warnings,
     ...ripeStatResult.warnings,
@@ -146,8 +150,8 @@ export async function GET(request: Request, context: RouteContext) {
       502,
       {
         sources,
-        warnings,
-        warningDetails: toAsnWarningDetails(warnings),
+        warnings: warningDetails.map(formatAsnWarning),
+        warningDetails,
         ...(includeDiagnostics ? { sourceDiagnostics } : {}),
       },
     );
@@ -159,7 +163,7 @@ export async function GET(request: Request, context: RouteContext) {
     peeringdb: peeringDbResult.data,
     ripestat: ripeStatResult.data,
     sources,
-    warnings,
+    warningDetails,
   });
 
   if (includeDiagnostics) {
@@ -249,9 +253,7 @@ async function fetchIpinfoAsn(
       return {
         status: "unavailable",
         data: null,
-        warnings: [
-          "IPinfo ASN data is unavailable for this ASN or token plan.",
-        ],
+        warnings: [{ code: "ipinfo_unavailable" }],
       };
     }
 
@@ -259,18 +261,20 @@ async function fetchIpinfoAsn(
       return {
         status: "error",
         data: null,
-        warnings: [`IPinfo returned HTTP ${response.status}.`],
+        warnings: [
+          { code: "provider_http", provider: "IPinfo", status: response.status },
+        ],
       };
     }
 
-    const warnings: string[] = [];
+    const warnings: AsnWarningDetail[] = [];
     const data = normalizeIpinfoAsnPayload(json, warnings);
 
     if (!data) {
       return {
         status: "error",
         data: null,
-        warnings: ["IPinfo returned an unexpected ASN payload."],
+        warnings: [{ code: "ipinfo_unexpected" }],
       };
     }
 
@@ -313,6 +317,7 @@ async function fetchRipeStatAsn(
         throw new ProviderFetchError(
           "network",
           `RIPEstat ${key} returned HTTP ${response.status}.`,
+          response.status,
         );
       }
 
@@ -321,7 +326,7 @@ async function fetchRipeStatAsn(
   );
 
   const payload: Parameters<typeof normalizeRipeStatPayload>[0] = {};
-  const warnings: string[] = [];
+  const warnings: AsnWarningDetail[] = [];
 
   for (const entry of entries) {
     if (entry.status === "fulfilled") {
@@ -348,7 +353,7 @@ async function fetchRipeStatAsn(
     return {
       status: "unavailable",
       data: null,
-      warnings: [...warnings, "No RIPEstat ASN data was found for this ASN."],
+      warnings: [...warnings, { code: "ripe_no_data" }],
     };
   }
 
@@ -380,9 +385,7 @@ async function fetchPeeringDbAsn(
       return {
         status: "unavailable",
         data: null,
-        warnings: [
-          "No public PeeringDB network profile was found for this ASN.",
-        ],
+        warnings: [{ code: "peeringdb_no_profile" }],
       };
     }
 
@@ -390,11 +393,13 @@ async function fetchPeeringDbAsn(
       return {
         status: "error",
         data: null,
-        warnings: [`PeeringDB returned HTTP ${response.status}.`],
+        warnings: [
+          { code: "provider_http", provider: "PeeringDB", status: response.status },
+        ],
       };
     }
 
-    const warnings: string[] = [];
+    const warnings: AsnWarningDetail[] = [];
     const data = normalizePeeringDbPayload(
       json,
       warnings,
@@ -405,9 +410,7 @@ async function fetchPeeringDbAsn(
       return {
         status: "unavailable",
         data: null,
-        warnings: [
-          "No public PeeringDB network profile was found for this ASN.",
-        ],
+        warnings: [{ code: "peeringdb_no_profile" }],
       };
     }
 
@@ -475,10 +478,10 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
   if (cacheKey && result.status === "error" && stale) {
     const staleResult = {
       ...stale.result,
-      warnings: dedupeWarnings([
+      warnings: dedupeAsnWarningDetails([
         ...stale.result.warnings,
         ...result.warnings,
-        `${provider} data is currently unavailable; using stale cached data.`,
+        { code: "provider_stale", provider },
       ]),
     };
     touchProviderCache(cacheKey);
@@ -623,7 +626,7 @@ function setProviderCache<TData, TStatus extends SourceStatus>(
     storedAt: Date.now(),
     result: {
       ...result,
-      warnings: dedupeWarnings(result.warnings),
+      warnings: dedupeAsnWarningDetails(result.warnings),
     } as ProviderResult<unknown, SourceStatus>,
   });
 
@@ -679,7 +682,7 @@ function withDiagnostic<TData, TStatus extends SourceStatus>(
   cache: SourceCacheStatus,
   startedAt: number,
 ): TimedProviderResult<TData, TStatus> {
-  const warnings = dedupeWarnings(result.warnings);
+  const warnings = dedupeAsnWarningDetails(result.warnings);
 
   return {
     ...result,
@@ -703,10 +706,6 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex").slice(0, 16);
 }
 
-function dedupeWarnings(warnings: string[]) {
-  return [...new Set(warnings.filter(Boolean))];
-}
-
 function allAttemptedProvidersFailed(
   ipinfoResult: IpinfoProviderResult,
   peeringDbResult: PeeringDbProviderResult,
@@ -718,14 +717,19 @@ function allAttemptedProvidersFailed(
   return ipinfoResult.status === "error";
 }
 
-function providerWarning(provider: string, error: unknown) {
+function providerWarning(
+  provider: string,
+  error: unknown,
+): AsnWarningDetail {
   if (error instanceof ProviderFetchError) {
-    if (error.kind === "timeout") return `${provider} request timed out.`;
+    if (typeof error.status === "number")
+      return { code: "provider_http", provider, status: error.status };
+    if (error.kind === "timeout") return { code: "provider_timeout", provider };
     if (error.kind === "response_too_large")
-      return `${provider} response exceeded the size limit.`;
+      return { code: "provider_too_large", provider };
     if (error.kind === "invalid_json")
-      return `${provider} returned invalid JSON.`;
+      return { code: "provider_invalid_json", provider };
   }
 
-  return `${provider} data is currently unavailable.`;
+  return { code: "provider_unavailable", provider };
 }

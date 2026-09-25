@@ -183,74 +183,62 @@ export interface AsnProfile {
   sourceDiagnostics?: SourceDiagnostic[];
 }
 
-export function toAsnWarningDetails(warnings: string[]): AsnWarningDetail[] {
-  return warnings.map((warning) => {
-    if (
-      warning === "IPinfo ASN data is unavailable for this ASN or token plan."
-    ) {
-      return { code: "ipinfo_unavailable" };
-    }
-    if (warning === "IPinfo returned an unexpected ASN payload.") {
-      return { code: "ipinfo_unexpected" };
-    }
-    if (warning === "No RIPEstat ASN data was found for this ASN.") {
-      return { code: "ripe_no_data" };
-    }
-    if (
-      warning === "No public PeeringDB network profile was found for this ASN."
-    ) {
-      return { code: "peeringdb_no_profile" };
-    }
+/**
+ * Renders a warning detail as the API's English display string. Warnings are
+ * produced as structured details (never as prose that later has to be parsed
+ * back), and this is the only place that turns one into a sentence.
+ */
+export function formatAsnWarning(warning: AsnWarningDetail): string {
+  const provider = warning.provider ?? "";
+  switch (warning.code) {
+    case "ipinfo_unavailable":
+      return "IPinfo ASN data is unavailable for this ASN or token plan.";
+    case "ipinfo_unexpected":
+      return "IPinfo returned an unexpected ASN payload.";
+    case "ripe_no_data":
+      return "No RIPEstat ASN data was found for this ASN.";
+    case "peeringdb_no_profile":
+      return "No public PeeringDB network profile was found for this ASN.";
+    case "provider_stale":
+      return `${provider} data is currently unavailable; using stale cached data.`;
+    case "provider_http":
+      return `${provider} returned HTTP ${warning.status ?? 0}.`;
+    case "provider_timeout":
+      return `${provider} request timed out.`;
+    case "provider_too_large":
+      return `${provider} response exceeded the size limit.`;
+    case "provider_invalid_json":
+      return `${provider} returned invalid JSON.`;
+    case "provider_unavailable":
+      return `${provider} data is currently unavailable.`;
+    case "truncated":
+      return `${warning.label ?? ""} truncated to ${warning.limit ?? 0} of ${warning.total ?? 0} records.`;
+    default:
+      return "The data provider returned an additional warning.";
+  }
+}
 
-    const stale = warning.match(
-      /^(.+) data is currently unavailable; using stale cached data\.$/,
-    );
-    if (stale) return { code: "provider_stale", provider: stale[1] };
-
-    const http = warning.match(/^(.+) returned HTTP ([0-9]+)\.$/);
-    if (http)
-      return {
-        code: "provider_http",
-        provider: http[1],
-        status: Number(http[2]),
-      };
-
-    const timeout = warning.match(/^(.+) request timed out\.$/);
-    if (timeout) return { code: "provider_timeout", provider: timeout[1] };
-
-    const tooLarge = warning.match(/^(.+) response exceeded the size limit\.$/);
-    if (tooLarge) return { code: "provider_too_large", provider: tooLarge[1] };
-
-    const invalidJson = warning.match(/^(.+) returned invalid JSON\.$/);
-    if (invalidJson)
-      return { code: "provider_invalid_json", provider: invalidJson[1] };
-
-    const unavailable = warning.match(/^(.+) data is currently unavailable\.$/);
-    if (unavailable)
-      return { code: "provider_unavailable", provider: unavailable[1] };
-
-    const truncated = warning.match(
-      /^(.+) truncated to ([0-9]+) of ([0-9]+) records\.$/,
-    );
-    if (truncated) {
-      return {
-        code: "truncated",
-        label: truncated[1],
-        limit: Number(truncated[2]),
-        total: Number(truncated[3]),
-      };
-    }
-
-    return { code: "unknown" };
-  });
+/** Deduplicates warning details by code and parameters. */
+export function dedupeAsnWarningDetails(
+  warnings: AsnWarningDetail[],
+): AsnWarningDetail[] {
+  const seen = new Set<string>();
+  const result: AsnWarningDetail[] = [];
+  for (const warning of warnings) {
+    const key = `${warning.code}|${warning.provider ?? ""}|${warning.status ?? ""}|${warning.label ?? ""}|${warning.limit ?? ""}|${warning.total ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(warning);
+  }
+  return result;
 }
 
 export function createEmptyAsnProfile(
   normalized: NormalizedAsn,
   sources: AsnProfile["sources"],
-  warnings: string[],
+  warningDetails: AsnWarningDetail[],
 ): AsnProfile {
-  const normalizedWarnings = dedupeStrings(warnings);
+  const normalizedDetails = dedupeAsnWarningDetails(warningDetails);
   return {
     found: false,
     asn: normalized.asn,
@@ -274,8 +262,8 @@ export function createEmptyAsnProfile(
     downstreamsTotal: 0,
     peeringdb: null,
     sources,
-    warnings: normalizedWarnings,
-    warningDetails: toAsnWarningDetails(normalizedWarnings),
+    warnings: normalizedDetails.map(formatAsnWarning),
+    warningDetails: normalizedDetails,
   };
 }
 
@@ -285,16 +273,16 @@ export function mergeAsnProfile({
   peeringdb,
   ripestat,
   sources,
-  warnings,
+  warningDetails,
 }: {
   normalized: NormalizedAsn;
   ipinfo: IpinfoAsnData | null;
   peeringdb: PeeringDbProfile | null;
   ripestat: RipeStatAsnData | null;
   sources: AsnProfile["sources"];
-  warnings: string[];
+  warningDetails: AsnWarningDetail[];
 }): AsnProfile {
-  const profile = createEmptyAsnProfile(normalized, sources, warnings);
+  const profile = createEmptyAsnProfile(normalized, sources, warningDetails);
   const prefixes4 = mergePrefixes(
     ipinfo?.prefixes4 || [],
     ripestat?.prefixes4 || [],
@@ -363,7 +351,7 @@ export function mergeAsnProfile({
 
 export function normalizeIpinfoAsnPayload(
   payload: unknown,
-  warnings: string[] = [],
+  warnings: AsnWarningDetail[] = [],
 ): IpinfoAsnData | null {
   const record = asRecord(payload);
   if (!record) return null;
@@ -400,7 +388,7 @@ export function normalizeIpinfoAsnPayload(
 
 export function normalizePeeringDbPayload(
   payload: unknown,
-  warnings: string[] = [],
+  warnings: AsnWarningDetail[] = [],
   asnNumber?: number,
 ): PeeringDbProfile | null {
   const record = asRecord(payload);
@@ -447,7 +435,7 @@ export function normalizeRipeStatPayload(
     prefixes?: unknown;
     neighbours?: unknown;
   },
-  warnings: string[] = [],
+  warnings: AsnWarningDetail[] = [],
 ): RipeStatAsnData | null {
   const overviewData = asRecord(asRecord(payload.overview)?.data);
   const prefixesData = asRecord(asRecord(payload.prefixes)?.data);
@@ -646,11 +634,16 @@ function normalizeFacilityList(value: unknown): PeeringDbFacility[] {
 function withLimit<T>(
   items: T[],
   limit: number,
-  warnings: string[],
+  warnings: AsnWarningDetail[],
   label: string,
 ): T[] {
   if (items.length <= limit) return items;
-  warnings.push(`${label} truncated to ${limit} of ${items.length} records.`);
+  warnings.push({
+    code: "truncated",
+    label,
+    limit,
+    total: items.length,
+  });
   return items.slice(0, limit);
 }
 
@@ -782,8 +775,4 @@ function booleanValue(value: unknown): boolean | null {
 function policyRatioValue(value: unknown): string {
   if (typeof value === "boolean") return value ? "Required" : "Not required";
   return stringValue(value);
-}
-
-function dedupeStrings(values: string[]): string[] {
-  return [...new Set(values.filter(Boolean))];
 }

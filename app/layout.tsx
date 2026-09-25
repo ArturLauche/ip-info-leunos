@@ -13,7 +13,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { StructuredData } from "@/components/structured-data";
 import { AppShell } from "@/components/shell/app-shell";
-import { getLocaleDirection, getLocaleOpenGraphLanguage } from "@/lib/i18n";
+import {
+  getIntlLocale,
+  getLocaleDirection,
+  getLocaleOpenGraphLanguage,
+} from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
 
 const baseMetadata: Metadata = {
@@ -139,9 +143,10 @@ export default async function RootLayout({
 
   return (
     // lang follows the negotiated locale so the declared document language
-    // always matches the UI language the shell and checkers render.
+    // always matches the UI language the shell and checkers render. The
+    // registry tag is the full BCP 47 form (nb-NO, pt-BR, zh-TW, …).
     <html
-      lang={locale}
+      lang={getIntlLocale(locale)}
       dir={getLocaleDirection(locale)}
       suppressHydrationWarning
     >

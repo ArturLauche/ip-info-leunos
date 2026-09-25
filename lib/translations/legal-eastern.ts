@@ -21,7 +21,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
       subtitle:
         "Jak ta witryna przetwarza dane osobowe, w szczególności adresy IP.",
       lastUpdatedLabel: "Ostatnia aktualizacja",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "adres kontaktowy na żądanie",
       controllerNotConfigured:
         "operator tej witryny (tożsamość dostępna na żądanie)",
@@ -80,7 +80,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
           ],
         },
         {
-          heading: "6. Lokalne przechowywanie (motyw)",
+          heading: "6. Lokalne przechowywanie",
           paragraphs: [
             "Twój wybór motywu (jasny/ciemny/systemowy) jest przechowywany jako wartość w lokalnym magazynie pamięci przeglądarki. Jest to funkcjonalność techniczna, służy wyłącznie do zachowania preferencji i nie przesyła danych do serwera ani podmiotów trzecich. Nie jest wymagana zgoda.",
           ],
@@ -88,7 +88,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
         {
           heading: "7. Pliki cookie",
           paragraphs: [
-            "Ta witryna nie ustawia plików cookie wymagających zgody, śledzących ani reklamowych i nie stosuje porównywalnych technik rozpoznawania użytkownika w różnych urządzeniach. Występuje wyłącznie technicznie konieczne przechowywanie preferencji motywu opisane w sekcji „Lokalne przechowywanie (motyw)” w lokalnym magazynie pamięci przeglądarki.",
+            "Ta witryna nie ustawia plików cookie wymagających zgody, śledzących ani reklamowych i nie stosuje porównywalnych technik rozpoznawania użytkownika w różnych urządzeniach. Występuje wyłącznie technicznie konieczne przechowywanie opisane w sekcji „Lokalne przechowywanie”: preferencji motywu i wybranego języka, w lokalnym magazynie pamięci przeglądarki.",
             "Ponieważ nie używamy plików cookie ani trackerów wymagających zgody, baner cookie nie jest potrzebny.",
           ],
         },
@@ -141,7 +141,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
       subtitle:
         "Como este site trata dados pessoais — em especial, endereços IP.",
       lastUpdatedLabel: "Última atualização",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "endereço de contato mediante solicitação",
       controllerNotConfigured:
         "o controlador deste site (identidade disponível mediante solicitação)",
@@ -200,7 +200,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
           ],
         },
         {
-          heading: "6. Armazenamento local (tema)",
+          heading: "6. Armazenamento local",
           paragraphs: [
             "Sua preferência de tema (claro/escuro/sistema) é armazenada como um valor no armazenamento local do navegador. Isso é tecnicamente funcional, serve apenas para preservar sua preferência e não transmite dados ao servidor ou a terceiros. Nenhum consentimento é necessário para isso.",
           ],
@@ -208,7 +208,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
         {
           heading: "7. Cookies",
           paragraphs: [
-            "Este site não define cookies de consentimento, rastreamento ou publicidade e não usa técnicas semelhantes para reconhecer você em diferentes dispositivos. Ocorre apenas o armazenamento tecnicamente necessário da sua preferência de tema, descrito em “Armazenamento local (tema)”, no armazenamento local do navegador.",
+            "Este site não define cookies de consentimento, rastreamento ou publicidade e não usa técnicas semelhantes para reconhecer você em diferentes dispositivos. Ocorre apenas o armazenamento tecnicamente necessário descrito em “Armazenamento local”: sua preferência de tema e sua escolha de idioma, no armazenamento local do navegador.",
             "Como não são usados cookies ou rastreadores que exigem consentimento, não é necessário exibir um banner de cookies.",
           ],
         },
@@ -261,7 +261,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
       subtitle:
         "Como este sítio trata os dados pessoais — em especial, os endereços IP.",
       lastUpdatedLabel: "Última atualização",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "endereço de contacto mediante pedido",
       controllerNotConfigured:
         "o responsável por este sítio (identidade disponível mediante pedido)",
@@ -320,7 +320,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
           ],
         },
         {
-          heading: "6. Armazenamento local (tema)",
+          heading: "6. Armazenamento local",
           paragraphs: [
             "A sua preferência de tema (claro/escuro/sistema) é guardada como um valor no armazenamento local do navegador. Trata-se de uma funcionalidade técnica, serve apenas para conservar a sua preferência e não transmite dados para o servidor ou para terceiros. Não é necessário consentimento para este efeito.",
           ],
@@ -328,7 +328,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
         {
           heading: "7. Cookies",
           paragraphs: [
-            "Este sítio não define cookies de consentimento, de rastreio ou publicitários e não utiliza técnicas semelhantes para o reconhecer em diferentes dispositivos. Ocorre apenas o armazenamento tecnicamente necessário da sua preferência de tema, descrito em «Armazenamento local (tema)», no armazenamento local do navegador.",
+            "Este sítio não define cookies de consentimento, de rastreio ou publicitários e não utiliza técnicas semelhantes para o reconhecer em diferentes dispositivos. Ocorre apenas o armazenamento tecnicamente necessário descrito em «Armazenamento local»: a sua preferência de tema e a sua escolha de idioma, no armazenamento local do navegador.",
             "Como não são utilizados cookies ou rastreadores que exigem consentimento, não é necessário apresentar uma faixa de cookies.",
           ],
         },
@@ -381,7 +381,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
       subtitle:
         "本サイトにおける個人データ、特にIPアドレスの取り扱いについて。",
       lastUpdatedLabel: "最終更新日",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "お問い合わせ先の住所（請求時）",
       controllerNotConfigured: "本サイトの運営者（本人確認は請求時）",
       sections: [
@@ -439,7 +439,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
           ],
         },
         {
-          heading: "6. ローカルストレージ（テーマ）",
+          heading: "6. ローカルストレージ",
           paragraphs: [
             "テーマの選択（ライト/ダーク/システム）は、ブラウザーのローカルストレージに値として保存されます。これは機能上必要な技術的処理であり、好みの保持だけに使用し、サーバーや第三者へデータを送信しません。これに同意は必要ありません。",
           ],
@@ -447,7 +447,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
         {
           heading: "7. Cookie",
           paragraphs: [
-            "本サイトは、同意用、追跡用、広告用のCookieを設定せず、異なる端末間で利用者を認識する類似の手法も使用しません。必要なのは、「ローカルストレージ（テーマ）」で説明したテーマの好みをブラウザーのローカルストレージに技術的に必要な範囲で保存することだけです。",
+            "本サイトは、同意用、追跡用、広告用のCookieを設定せず、異なる端末間で利用者を認識する類似の手法も使用しません。実施されるのは「ローカルストレージ」で説明した技術的に必要な保存のみで、テーマの好みと選択した言語をブラウザーのローカルストレージに保存するものです。",
             "同意が必要なCookieやトラッカーを使用していないため、本サイトにCookieバナーを表示する必要はありません。",
           ],
         },
@@ -500,7 +500,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
       title: "개인정보 보호정책",
       subtitle: "이 사이트가 개인정보, 특히 IP 주소를 처리하는 방식입니다.",
       lastUpdatedLabel: "마지막 업데이트",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "요청 시 제공되는 연락처",
       controllerNotConfigured: "이 사이트의 운영자(요청 시 신원 확인 가능)",
       sections: [
@@ -558,7 +558,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
           ],
         },
         {
-          heading: "6. 로컬 저장소(테마)",
+          heading: "6. 로컬 저장소",
           paragraphs: [
             "테마 환경설정(밝게/어둡게/시스템)을 브라우저의 로컬 저장소에 값으로 저장합니다. 이는 기술적으로 필요한 기능이며 사용자의 환경설정을 유지하기 위한 목적으로만 사용됩니다. 서버나 제3자에게 데이터를 전송하지 않으며 이를 위한 동의가 필요하지 않습니다.",
           ],
@@ -566,7 +566,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
         {
           heading: "7. 쿠키",
           paragraphs: [
-            "이 사이트는 동의, 추적 또는 광고 쿠키를 설정하지 않으며 여러 기기에서 사용자를 인식하는 유사한 기법도 사용하지 않습니다. 필요한 것은 “로컬 저장소(테마)”에 설명된 테마 환경설정을 브라우저의 로컬 저장소에 기술적으로 필요한 범위로 저장하는 것뿐입니다.",
+            "이 사이트는 동의, 추적 또는 광고 쿠키를 설정하지 않으며 여러 기기에서 사용자를 인식하는 유사한 기법도 사용하지 않습니다. “로컬 저장소”에 설명된 기술적으로 필요한 저장만 이루어지며, 테마 환경설정과 선택한 언어를 브라우저의 로컬 저장소에 저장합니다.",
             "동의가 필요한 쿠키나 추적기를 사용하지 않으므로 쿠키 배너는 필요하지 않습니다.",
           ],
         },
@@ -619,7 +619,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
       subtitle:
         "Как этот сайт обрабатывает персональные данные, в частности IP-адреса.",
       lastUpdatedLabel: "Последнее обновление",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "контактный адрес по запросу",
       controllerNotConfigured:
         "оператор этого сайта (идентификатор предоставляется по запросу)",
@@ -678,7 +678,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
           ],
         },
         {
-          heading: "6. Локальное хранилище (тема)",
+          heading: "6. Локальное хранилище",
           paragraphs: [
             "Ваш выбор темы (светлая/тёмная/системная) сохраняется как значение в локальном хранилище браузера. Это технически необходимое средство, которое служит только для сохранения вашего выбора и не передает данные серверу или третьим лицам. Согласие для этого не требуется.",
           ],
@@ -686,7 +686,7 @@ const legalEasternDocuments: LegalEasternDocuments = {
         {
           heading: "7. Файлы cookie",
           paragraphs: [
-            "Этот сайт не устанавливает файлы cookie для согласия, отслеживания или рекламы и не использует сопоставимые технологии для распознавания вас на разных устройствах. Происходит только технически необходимое сохранение выбора темы, описанное в разделе «Локальное хранилище (тема)», в локальном хранилище браузера.",
+            "Этот сайт не устанавливает файлы cookie для согласия, отслеживания или рекламы и не использует сопоставимые технологии для распознавания вас на разных устройствах. Происходит только технически необходимое сохранение, описанное в разделе «Локальное хранилище»: выбор темы и выбранный язык сохраняются в локальном хранилище браузера.",
             "Поскольку файлы cookie и трекеры, требующие согласия, не используются, баннер cookie на сайте не нужен.",
           ],
         },

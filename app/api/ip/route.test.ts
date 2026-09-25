@@ -5,7 +5,10 @@ const { lookupIpApiMock } = vi.hoisted(() => ({
   lookupIpApiMock: vi.fn(),
 }));
 
-vi.mock("@/lib/providers/ip-api", () => ({
+vi.mock("@/lib/providers/ip-api", async (importOriginal) => ({
+  // Keep the real language normalizer: the route keys its cache by the
+  // effective upstream language, so the mock must behave like the real module.
+  ...(await importOriginal<typeof import("@/lib/providers/ip-api")>()),
   lookupIpApi: lookupIpApiMock,
 }));
 

@@ -9,7 +9,7 @@ import type {
 } from "@/lib/asn";
 import { formatNumber, formatTemplate } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
-import { getApiErrorMessage, type ToolTranslation } from "@/lib/tool-i18n";
+import { getApiErrorMessage, type CountForms, type ToolTranslation } from "@/lib/tool-i18n";
 import { getUiCopy } from "@/lib/ui-copy";
 
 /** Collapsed list length shared by every ASN list and table. */
@@ -70,10 +70,14 @@ function cached<T>(cache: Map<Locale, T>, locale: Locale, create: () => T) {
   return value;
 }
 
-/** Picks the CLDR plural form, then fills `{count}` with a locale-formatted number. */
-export function formatCount(forms: Record<"one" | "other", string>, count: number, locale: Locale) {
+/**
+ * Picks the CLDR plural form the locale actually requires, then fills `{count}`
+ * with a locale-formatted number. Categories a catalog omits fall back to
+ * `other`, so locales whose grammar needs only one/other keep two strings.
+ */
+export function formatCount(forms: CountForms, count: number, locale: Locale) {
   const rules = cached(pluralRules, locale, () => new Intl.PluralRules(locale));
-  const form = rules.select(count) === "one" ? forms.one : forms.other;
+  const form = forms[rules.select(count) as keyof CountForms] ?? forms.other;
   return formatTemplate(form, { count: formatNumber(count, locale) });
 }
 
@@ -298,6 +302,11 @@ export function formatWarning(
         total: formatNumber(warning.total ?? 0, locale),
       });
     case "unknown":
+      return getUiCopy(locale).asnWarningUnknown;
+    default:
+      // API data is cast at runtime and can drift from this union during a
+      // rolling deploy: a new code must still render a localized row instead
+      // of leaving an empty diagnostic cell.
       return getUiCopy(locale).asnWarningUnknown;
   }
 }

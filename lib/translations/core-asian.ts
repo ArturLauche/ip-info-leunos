@@ -170,7 +170,7 @@ export const coreAsian: Record<"ja" | "ko" | "zh-TW", Translation> = {
     city: "도시",
     country: "국가",
     timezone: "시간대 (IP)",
-    timezoneDetail: "IP地理位置 기반 IANA 시간대",
+    timezoneDetail: "IP 지리적 위치 기반 IANA 시간대",
     isp: "제공자 (ISP)",
     ispDetail: "인터넷 서비스 제공자",
     organization: "조직",

@@ -9,6 +9,11 @@ import {
   TargetValidationError,
 } from "@/lib/network/target";
 import { isCacheableDnsResult } from "@/lib/dns-cache";
+import {
+  DNS_TIMEOUT_MESSAGE,
+  dnsLookupErrorCode,
+  type DnsLookupErrorCode,
+} from "@/lib/dns-errors";
 
 export const runtime = "nodejs";
 
@@ -75,34 +80,21 @@ interface DnsRecord {
   value: DnsRecordValue;
 }
 
-type DnsErrorCode = "timeout" | "not_found" | "temporary" | "unknown";
-
 interface ResolveResult {
   type: RecordType;
   records: DnsRecord[];
   error?: string;
-  errorCode?: DnsErrorCode;
+  errorCode?: DnsLookupErrorCode;
 }
 
 function errorCode(error: unknown) {
   return (error as NodeJS.ErrnoException).code || (error as Error).message;
 }
 
-function stableDnsErrorCode(error: string | undefined): DnsErrorCode {
-  if (!error) return "unknown";
-  if (error === "DNS query timed out." || error === "ETIMEOUT")
-    return "timeout";
-  if (error === "ENOTFOUND" || error === "ENODATA") return "not_found";
-  if (error === "EAI_AGAIN" || error === "SERVFAIL" || error === "EREFUSED") {
-    return "temporary";
-  }
-  return "unknown";
-}
-
 function raceResolveTimeout<T>(promise: Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error("DNS query timed out.")),
+      () => reject(new Error(DNS_TIMEOUT_MESSAGE)),
       RESOLVE_TIMEOUT_MS,
     );
     timer.unref?.();
@@ -139,7 +131,7 @@ async function resolveByType(
       type,
       records: [],
       error: code,
-      errorCode: stableDnsErrorCode(code),
+      errorCode: dnsLookupErrorCode(code),
     };
   }
 }
@@ -209,7 +201,7 @@ export async function GET(request: Request) {
               type: ptrResult.type,
               error: ptrResult.error,
               errorCode:
-                ptrResult.errorCode ?? stableDnsErrorCode(ptrResult.error),
+                ptrResult.errorCode ?? dnsLookupErrorCode(ptrResult.error),
             },
           ]
         : [];
@@ -244,7 +236,7 @@ export async function GET(request: Request) {
   const lookupError = lookupResult.ok
     ? null
     : lookupResult.error.code || lookupResult.error.message;
-  const lookupErrorCode = lookupError ? stableDnsErrorCode(lookupError) : null;
+  const lookupErrorCode = lookupError ? dnsLookupErrorCode(lookupError) : null;
   const recordErrors = recordsByType
     // A type without records (ENODATA/ENOTFOUND) is normal, not noteworthy.
     .filter(
@@ -254,7 +246,7 @@ export async function GET(request: Request) {
     .map((entry) => ({
       type: entry.type,
       error: entry.error,
-      errorCode: entry.errorCode ?? stableDnsErrorCode(entry.error),
+      errorCode: entry.errorCode ?? dnsLookupErrorCode(entry.error),
     }));
   const payload = {
     target: hostname,

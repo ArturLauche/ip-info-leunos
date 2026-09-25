@@ -43,7 +43,7 @@ export interface PrivacyContent {
 }
 
 /** ISO date shown as "last updated"; bump when the policy text changes. */
-const LAST_UPDATED = "2026-09-02";
+const LAST_UPDATED = "2026-09-25";
 
 const de: PrivacyContent = {
   navLabel: "Datenschutz",
@@ -109,7 +109,7 @@ const de: PrivacyContent = {
       ],
     },
     {
-      heading: "6. Lokale Speicherung (Theme)",
+      heading: "6. Lokale Speicherung",
       paragraphs: [
         "Zur Speicherung Ihrer Designeinstellung (hell/dunkel/System) wird ein Wert im lokalen Speicher (localStorage) Ihres Browsers abgelegt. Dies ist technisch funktional, dient ausschließlich Ihrer Voreinstellung und übermittelt keine Daten an den Server oder an Dritte. Eine Einwilligung ist hierfür nicht erforderlich.",
       ],
@@ -117,7 +117,7 @@ const de: PrivacyContent = {
     {
       heading: "7. Cookies",
       paragraphs: [
-        "Diese Seite setzt keine Einwilligungs-, Tracking- oder Werbe-Cookies und keine vergleichbaren Techniken zum geräteübergreifenden Wiedererkennen ein. Es findet lediglich die unter „Lokale Speicherung (Theme)“ beschriebene, technisch notwendige Speicherung Ihrer Designeinstellung im lokalen Speicher Ihres Browsers statt.",
+        "Diese Seite setzt keine Einwilligungs-, Tracking- oder Werbe-Cookies und keine vergleichbaren Techniken zum geräteübergreifenden Wiedererkennen ein. Es findet lediglich die unter „Lokale Speicherung“ beschriebene, technisch notwendige Speicherung statt: Ihre Designeinstellung und Ihre Sprachauswahl im lokalen Speicher Ihres Browsers.",
         "Da keine zustimmungspflichtigen Cookies oder Tracker verwendet werden, ist ein Cookie-Banner für diese Seite nicht erforderlich.",
       ],
     },
@@ -229,7 +229,7 @@ const en: PrivacyContent = {
       ],
     },
     {
-      heading: "6. Local storage (theme)",
+      heading: "6. Local storage",
       paragraphs: [
         "Your theme preference (light/dark/system) is stored as a value in your browser's local storage. This is technically functional, serves only your preference, and transmits no data to the server or third parties. No consent is required for this.",
       ],
@@ -237,7 +237,7 @@ const en: PrivacyContent = {
     {
       heading: "7. Cookies",
       paragraphs: [
-        "This site sets no consent, tracking or advertising cookies, and uses no comparable techniques to recognize you across devices. Only the technically necessary storage of your theme preference described under “Local storage (theme)” takes place, in your browser's local storage.",
+        "This site sets no consent, tracking or advertising cookies, and uses no comparable techniques to recognize you across devices. Only the technically necessary storage described under “Local storage” takes place: your theme preference and your language choice, in your browser's local storage.",
         "Because no consent-requiring cookies or trackers are used, a cookie banner is not required for this site.",
       ],
     },
@@ -291,20 +291,36 @@ const CONTENT_BY_LOCALE: Record<Locale, PrivacyContent> = {
   ...additionalPrivacyContent,
 };
 
-function withLocaleCookieNotice(
+/**
+ * Section 5 is "local storage" and section 6 "cookies" in every catalog. The
+ * language preference is stored in both, so each section discloses the store it
+ * owns instead of contradicting the neighbouring one (the surrounding text
+ * describes the theme preference, which is local storage only).
+ */
+function withLocalePreferenceNotices(
   content: PrivacyContent,
   locale: Locale,
 ): PrivacyContent {
+  const localStorageSectionIndex = 5;
   const cookieSectionIndex = 6;
+  const copy = getUiCopy(locale);
   return {
     ...content,
     sections: content.sections.map((section, index) => {
-      if (index !== cookieSectionIndex) return section;
+      if (index !== localStorageSectionIndex && index !== cookieSectionIndex) {
+        return section;
+      }
+      const notice =
+        index === localStorageSectionIndex
+          ? copy.localeStorageNotice
+          : copy.localeCookieNotice;
       const paragraphs = [...(section.paragraphs ?? [])];
-      if (paragraphs.length > 1) {
-        paragraphs[1] = getUiCopy(locale).localeCookieNotice;
+      // Section 6 states its purpose first, so the injected notice replaces
+      // that second paragraph; a single-paragraph section just gains one.
+      if (index === cookieSectionIndex && paragraphs.length > 1) {
+        paragraphs[1] = notice;
       } else {
-        paragraphs.push(getUiCopy(locale).localeCookieNotice);
+        paragraphs.push(notice);
       }
       return { ...section, paragraphs };
     }),
@@ -314,7 +330,7 @@ function withLocaleCookieNotice(
 /** Returns the privacy content for a validated UI locale. */
 export function getPrivacyContent(locale: Locale): PrivacyContent {
   const resolvedLocale = CONTENT_BY_LOCALE[locale] ? locale : "en";
-  return withLocaleCookieNotice(
+  return withLocalePreferenceNotices(
     CONTENT_BY_LOCALE[resolvedLocale],
     resolvedLocale,
   );

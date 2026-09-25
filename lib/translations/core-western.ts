@@ -132,7 +132,7 @@ export const coreWestern = {
     queriedIpAddress: "Opgevraagd IP-adres",
     yourIpAddresses: "Je IP-adressen",
     notAvailable: "Niet beschikbaar",
-    detectedConnectionType: "Detecteerd verbindingstype",
+    detectedConnectionType: "Gedetecteerd verbindingstype",
     additionalProxyHint: "Extra proxyhint",
     possibleLocalProxy:
       "Mogelijke signalen voor een zakelijke, school- of lokale proxy gedetecteerd",

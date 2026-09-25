@@ -173,7 +173,7 @@ export const LOCALE_DEFINITIONS: Record<Locale, LocaleDefinition> = {
     direction: "rtl",
     intlLocale: "ar",
     schemaLanguage: "ar",
-    openGraphLocale: "ar_AR",
+    openGraphLocale: "ar_SA",
   },
   hi: {
     nativeName: "हिन्दी",
@@ -326,6 +326,12 @@ export const LOCALE_ALIASES: Readonly<Record<string, Locale>> = {
   "da-dk": "da",
   nb: "nb",
   "nb-no": "nb",
+  "nb-nb": "nb",
+  // "no" is the Norwegian macrolanguage browsers send; Bokmål is the
+  // variant this site ships ("nn" is deliberately not mapped).
+  "no": "nb",
+  "no-nb": "nb",
+  "no-no": "nb",
   fi: "fi",
   "fi-fi": "fi",
   el: "el",
@@ -412,16 +418,35 @@ export function resolveLocale(
         index,
       };
     })
-    .filter((entry) => entry.tag && entry.quality > 0)
-    .sort((a, b) => b.quality - a.quality || a.index - b.index);
+    .filter((entry) => entry.tag);
 
+  // A q=0 entry states "do not serve me this language", which must survive
+  // filtering: without it, `en;q=0, *` would resolve to the English default
+  // the client explicitly rejected.
+  const excluded = new Set<Locale>();
   for (const entry of entries) {
-    if (entry.tag === "*") return DEFAULT_LOCALE;
+    if (entry.quality > 0 || entry.tag === "*") continue;
     const resolved = resolveLanguageTag(entry.tag);
-    if (resolved) return resolved;
+    if (resolved) excluded.add(resolved);
   }
 
-  return DEFAULT_LOCALE;
+  const acceptable = entries
+    .filter((entry) => entry.quality > 0)
+    .sort((a, b) => b.quality - a.quality || a.index - b.index);
+
+  for (const entry of acceptable) {
+    if (entry.tag === "*") return acceptableLocale(excluded);
+    const resolved = resolveLanguageTag(entry.tag);
+    if (resolved && !excluded.has(resolved)) return resolved;
+  }
+
+  return acceptableLocale(excluded);
+}
+
+/** Default locale, or the first supported locale the client did not exclude. */
+function acceptableLocale(excluded: ReadonlySet<Locale>): Locale {
+  if (!excluded.has(DEFAULT_LOCALE)) return DEFAULT_LOCALE;
+  return SUPPORTED_LOCALES.find((locale) => !excluded.has(locale)) ?? DEFAULT_LOCALE;
 }
 
 export function getLocaleDefinition(locale: Locale): LocaleDefinition {

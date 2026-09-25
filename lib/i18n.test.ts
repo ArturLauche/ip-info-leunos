@@ -16,9 +16,14 @@ import {
   translations,
   type Locale,
 } from "@/lib/i18n";
+import { formatCount } from "@/components/asn/helpers";
 import { getPrivacyContent } from "@/lib/privacy";
 import { getTermsContent } from "@/lib/terms";
-import { getToolTranslation, toolTranslations } from "@/lib/tool-i18n";
+import {
+  COUNT_FORM_KEYS,
+  getToolTranslation,
+  toolTranslations,
+} from "@/lib/tool-i18n";
 import { getUiCopy, uiCopy } from "@/lib/ui-copy";
 
 function recordKeys(value: object): string[] {
@@ -41,6 +46,12 @@ function placeholders(value: unknown): string[] {
   return [...result].sort();
 }
 
+/**
+ * Every leaf must be a non-empty string, and (for catalogs) keys must match the
+ * English reference. Plural records are the one documented exception: they
+ * carry exactly the CLDR categories a language uses (lib/i18n has its own test
+ * for that), so they must contain at least the reference keys and may add more.
+ */
 function expectStringLeaves(
   value: unknown,
   path: string,
@@ -54,12 +65,19 @@ function expectStringLeaves(
   if (value && typeof value === "object") {
     const referenceObject =
       reference && typeof reference === "object" ? reference : {};
-    expect(recordKeys(value), path).toEqual(recordKeys(referenceObject));
-    for (const [key, child] of Object.entries(value)) {
+    const key = path.split(".").pop() ?? "";
+    if (COUNT_FORM_KEYS.includes(key as (typeof COUNT_FORM_KEYS)[number])) {
+      for (const required of recordKeys(referenceObject)) {
+        expect(required in value, `${path}.${required}`).toBe(true);
+      }
+    } else {
+      expect(recordKeys(value), path).toEqual(recordKeys(referenceObject));
+    }
+    for (const [childKey, child] of Object.entries(value)) {
       expectStringLeaves(
         child,
-        `${path}.${key}`,
-        (referenceObject as Record<string, unknown>)[key],
+        `${path}.${childKey}`,
+        (referenceObject as Record<string, unknown>)[childKey],
       );
     }
   }
@@ -118,6 +136,26 @@ describe("locale registry and negotiation", () => {
       expect(resolveLocale(tag), tag).toBe(expected);
       expect(normalizeLocale(tag), tag).toBe(expected);
     }
+  });
+
+  it("accepts the Norwegian macrolanguage tags browsers send", () => {
+    // Browsers send "no" or "no-NO" rather than "nb"; both must reach Bokmål
+    // instead of silently falling back to English.
+    for (const tag of ["no", "no-NO", "no-no", "NO", "no-nb"]) {
+      expect(resolveLocale(tag), tag).toBe("nb");
+      expect(normalizeLocale(tag), tag).toBe("nb");
+    }
+  });
+
+  it("never serves a locale the client excluded with q=0", () => {
+    // A wildcard or the final fallback must not resolve to an excluded locale.
+    expect(resolveLocale("en;q=0, *;q=0.5")).not.toBe("en");
+    expect(resolveLocale("en;q=0, *;q=0.5")).toBe("de");
+    expect(resolveLocale("de;q=0, en;q=0")).toBe("es");
+    expect(resolveLocale("en;q=0, de;q=0.9")).toBe("de");
+    expect(resolveLocale("en;q=0, en-US;q=0, *;q=0.1")).not.toBe("en");
+    // An explicit preference still wins: the user picked it in this browser.
+    expect(resolveLocale("en;q=0, *;q=0.5", "en")).toBe("en");
   });
 
   it("keeps language-only Portuguese on the Brazilian variant", () => {
@@ -238,6 +276,51 @@ describe("complete translation catalogs", () => {
     );
   });
 
+  it("supplies every CLDR plural category a locale's grammar uses", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const translated = getToolTranslation(locale);
+      const categories = new Intl.PluralRules(locale).resolvedOptions()
+        .pluralCategories;
+      for (const key of COUNT_FORM_KEYS) {
+        const forms = translated[key];
+        // `other` is the mandatory fallback; every other category may be
+        // omitted only when its form is identical to it.
+        expect(forms.other.trim(), `${locale}.${key}.other`).not.toBe("");
+        for (const category of categories) {
+          const form = forms[category as keyof typeof forms] ?? forms.other;
+          expect(form.trim(), `${locale}.${key}.${category}`).not.toBe("");
+        }
+      }
+    }
+  });
+
+  it("uses the distinct plural forms Arabic and the Slavic languages require", () => {
+    const arabic = getToolTranslation("ar");
+    // Arabic distinguishes zero, one, two, few, many and other.
+    expect(arabic.asnFacilityCount.zero).toBeDefined();
+    expect(arabic.asnFacilityCount.two).toBeDefined();
+    expect(formatCount(arabic.asnFacilityCount, 0, "ar")).toBe("لا توجد منشآت");
+    expect(formatCount(arabic.asnFacilityCount, 1, "ar")).toBe("منشأة واحدة");
+    expect(formatCount(arabic.asnFacilityCount, 2, "ar")).toBe("منشأتان");
+    expect(formatCount(arabic.asnFacilityCount, 3, "ar")).toBe("3 منشآت");
+    expect(formatCount(arabic.asnFacilityCount, 11, "ar")).toBe("11 منشأة");
+    expect(formatCount(arabic.asnFacilityCount, 100, "ar")).toBe("100 منشأة");
+
+    const polish = getToolTranslation("pl");
+    // Polish: one for 1, few for 2-4, many for 0 and 5-21.
+    expect(formatCount(polish.asnFacilityCount, 1, "pl")).toBe("1 obiekt");
+    expect(formatCount(polish.asnFacilityCount, 3, "pl")).toBe("3 obiektu");
+    expect(formatCount(polish.asnFacilityCount, 5, "pl")).toBe("5 obiektów");
+
+    // Romanian: `other` covers 20+, which needs the "de" construction.
+    expect(formatCount(getToolTranslation("ro").asnFacilityCount, 20, "ro")).toBe(
+      "20 de locații",
+    );
+    expect(formatCount(getToolTranslation("ro").asnFacilityCount, 2, "ro")).toBe(
+      "2 locații",
+    );
+  });
+
   it("keeps the five reputation records complete in every tool catalog", () => {
     const recordKeysToCheck = [
       "reputationCategories",
@@ -270,6 +353,29 @@ describe("complete translation catalogs", () => {
 });
 
 describe("legal content and safe fallback", () => {
+  it("discloses the language preference in both storage sections of every policy", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const content = getPrivacyContent(locale);
+      const localStorage = (content.sections[5].paragraphs ?? []).join(" ");
+      const cookies = (content.sections[6].paragraphs ?? []).join(" ");
+      // The policy must not contradict itself: local storage holds the theme
+      // *and* the language, the cookie section names the language cookie, and
+      // no section still points at the old "Local storage (theme)" heading.
+      expect(localStorage, locale).toContain(getUiCopy(locale).localeStorageNotice);
+      expect(cookies, locale).toContain(getUiCopy(locale).localeCookieNotice);
+      for (const section of content.sections) {
+        for (const paragraph of section.paragraphs ?? []) {
+          // A leftover "(theme)" parenthetical would be a cross-reference
+          // to the heading before it was renamed to cover both preferences.
+          expect(paragraph, `${locale}: ${section.heading}`).not.toMatch(
+            /\((theme|Theme|tema|Tema|thème|tém|temă|motyw|тема|теми|θέμα|teema|teeman|teema|テーマ|主题|主題|테마|थीम|السمة|thema|теми|trav)\)/,
+          );
+        }
+      }
+      expect(content.lastUpdated, locale).toBe("2026-09-25");
+    }
+  });
+
   it("keeps Portuguese and Chinese legal variants distinct", () => {
     expect(JSON.stringify(getPrivacyContent("pt-BR"))).not.toBe(
       JSON.stringify(getPrivacyContent("pt-PT")),

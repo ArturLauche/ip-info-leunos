@@ -14,7 +14,7 @@ export const legalWestern = {
       subtitle:
         "Cómo trata este sitio los datos personales, en particular las direcciones IP.",
       lastUpdatedLabel: "Última actualización",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "dirección de contacto disponible a petición",
       controllerNotConfigured:
         "el operador de este sitio (identidad disponible a petición)",
@@ -73,7 +73,7 @@ export const legalWestern = {
           ],
         },
         {
-          heading: "6. Almacenamiento local (tema)",
+          heading: "6. Almacenamiento local",
           paragraphs: [
             "Su preferencia de tema (claro/oscuro/sistema) se guarda como un valor en el almacenamiento local (localStorage) de su navegador. Esto es técnicamente funcional, solo sirve para su preferencia y no transmite datos al servidor ni a terceros. No requiere consentimiento.",
           ],
@@ -81,7 +81,7 @@ export const legalWestern = {
         {
           heading: "7. Cookies",
           paragraphs: [
-            "Este sitio no establece cookies de consentimiento, seguimiento o publicidad, ni utiliza técnicas comparables para reconocerle entre distintos dispositivos. Solo se realiza el almacenamiento técnicamente necesario de su preferencia de tema descrito en «Almacenamiento local (tema)», en el almacenamiento local de su navegador.",
+            "Este sitio no establece cookies de consentimiento, seguimiento o publicidad, ni utiliza técnicas comparables para reconocerle entre distintos dispositivos. Solo se realiza el almacenamiento técnicamente necesario descrito en «Almacenamiento local»: tu preferencia de tema y tu elección de idioma, en el almacenamiento local de tu navegador.",
             "Como no se utilizan cookies ni rastreadores que exijan consentimiento, este sitio no necesita un aviso de cookies.",
           ],
         },
@@ -233,7 +233,7 @@ export const legalWestern = {
       subtitle:
         "Comment ce site traite les données à caractère personnel, notamment les adresses IP.",
       lastUpdatedLabel: "Dernière mise à jour",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "adresse de contact communiquée sur demande",
       controllerNotConfigured:
         "l’exploitant de ce site (identité communiquée sur demande)",
@@ -292,7 +292,7 @@ export const legalWestern = {
           ],
         },
         {
-          heading: "6. Stockage local (thème)",
+          heading: "6. Stockage local",
           paragraphs: [
             "Votre préférence de thème (clair/sombre/système) est enregistrée sous forme de valeur dans le stockage local (localStorage) de votre navigateur. Cette opération est techniquement fonctionnelle, sert uniquement à conserver votre préférence et ne transmet aucune donnée au serveur ni à des tiers. Aucun consentement n’est requis.",
           ],
@@ -300,7 +300,7 @@ export const legalWestern = {
         {
           heading: "7. Cookies",
           paragraphs: [
-            "Ce site ne dépose aucun cookie de consentement, de suivi ou publicitaire et n’utilise aucune technique comparable pour vous reconnaître entre plusieurs appareils. Seul le stockage techniquement nécessaire de votre préférence de thème décrit sous « Stockage local (thème) » a lieu, dans le stockage local de votre navigateur.",
+            "Ce site ne dépose aucun cookie de consentement, de suivi ou publicitaire et n’utilise aucune technique comparable pour vous reconnaître entre plusieurs appareils. Seul le stockage techniquement nécessaire décrit sous « Stockage local » a lieu : votre préférence de thème et votre choix de langue, dans le stockage local de votre navigateur.",
             "Comme aucun cookie ni traceur soumis à consentement n’est utilisé, ce site n’a pas besoin d’un bandeau de consentement aux cookies.",
           ],
         },
@@ -452,7 +452,7 @@ export const legalWestern = {
       subtitle:
         "Come questo sito tratta i dati personali, in particolare gli indirizzi IP.",
       lastUpdatedLabel: "Ultimo aggiornamento",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "indirizzo di contatto disponibile su richiesta",
       controllerNotConfigured:
         "il gestore di questo sito (identità disponibile su richiesta)",
@@ -511,7 +511,7 @@ export const legalWestern = {
           ],
         },
         {
-          heading: "6. Archiviazione locale (tema)",
+          heading: "6. Archiviazione locale",
           paragraphs: [
             "La preferenza sul tema (chiaro/scuro/sistema) viene salvata come valore nell’archiviazione locale (localStorage) del browser. Questa operazione è tecnicamente funzionale, serve esclusivamente a memorizzare la preferenza e non trasmette dati al server o a terzi. Non richiede il consenso.",
           ],
@@ -519,7 +519,7 @@ export const legalWestern = {
         {
           heading: "7. Cookie",
           paragraphs: [
-            "Questo sito non imposta cookie di consenso, di tracciamento o pubblicitari e non utilizza tecniche analoghe per riconoscere l’utente tra dispositivi diversi. Viene effettuato soltanto l’archiviazione tecnicamente necessaria della preferenza sul tema descritta in «Archiviazione locale (tema)», nell’archiviazione locale del browser.",
+            "Questo sito non imposta cookie di consenso, di tracciamento o pubblicitari e non utilizza tecniche analoghe per riconoscere l’utente tra dispositivi diversi. Viene effettuato soltanto l’archiviazione tecnicamente necessaria descritta in «Archiviazione locale»: la preferenza sul tema e la scelta della lingua, nell’archiviazione locale del browser.",
             "Poiché non vengono utilizzati cookie o tracker che richiedono il consenso, questo sito non necessita di un avviso sui cookie.",
           ],
         },
@@ -671,7 +671,7 @@ export const legalWestern = {
       subtitle:
         "Hoe deze site met persoonsgegevens omgaat, met name met IP-adressen.",
       lastUpdatedLabel: "Laatst bijgewerkt",
-      lastUpdated: "2026-09-02",
+      lastUpdated: "2026-09-25",
       contactNotConfigured: "contactadres op verzoek beschikbaar",
       controllerNotConfigured:
         "de exploitant van deze site (identiteit op verzoek beschikbaar)",
@@ -702,7 +702,7 @@ export const legalWestern = {
           heading: "4. Verwerking bij gebruik van de tools",
           paragraphs: [
             "De hoofdfunctie van deze site is het opzoeken van informatie over IP-adressen, domeinen en netwerken. Wanneer u uw eigen IP bekijkt of een IP-adres of domein controleert, wordt dat adres of domein naar externe, openbare diensten gestuurd om de gevraagde informatie te verkrijgen.",
-            "Sommige tools verwerken meer dan alleen een IP-adres of domein: bij de CDN-controle wordt de volledige door u ingevoerde URL, inclusief het pad en de queryparameters, bij het doel opgevraagd. Met de bereikbaarheidscontroles (ping/database) kunnen de door u ingevoerde inloggegevens, zoals een gebruikersnaam en wachtwoord, tijdens het tot stand komen van de verbinding naar het door u opgegeven doel worden verzonden. Dergelijke invoer wordt uitsluitend voor de betreffende controle gebruikt, niet permanent opgeslagen en niet met deren gedeeld buiten het door u opgegeven doel.",
+            "Sommige tools verwerken meer dan alleen een IP-adres of domein: bij de CDN-controle wordt de volledige door u ingevoerde URL, inclusief het pad en de queryparameters, bij het doel opgevraagd. Met de bereikbaarheidscontroles (ping/database) kunnen de door u ingevoerde inloggegevens, zoals een gebruikersnaam en wachtwoord, tijdens het tot stand komen van de verbinding naar het door u opgegeven doel worden verzonden. Dergelijke invoer wordt uitsluitend voor de betreffende controle gebruikt, niet permanent opgeslagen en niet met derden gedeeld buiten het door u opgegeven doel.",
             "De grondslag is art. 6.1.f van de AVG (verstrekking van de functie die u actief heeft aangevraagd).",
           ],
         },
@@ -730,15 +730,15 @@ export const legalWestern = {
           ],
         },
         {
-          heading: "6. Lokale opslag (thema)",
+          heading: "6. Lokale opslag",
           paragraphs: [
-            "Uw themavoorkeur (licht/donker/systeem) wordt als waarde opgeslagen in de lokale opslag (localStorage) van uw browser. Dit is technisch functioneel, dient uitsluitend uw voorkeur en verstuurt geen gegevens naar de server of deren. Hiervoor is geen toestemming vereist.",
+            "Uw themavoorkeur (licht/donker/systeem) wordt als waarde opgeslagen in de lokale opslag (localStorage) van uw browser. Dit is technisch functioneel, dient uitsluitend uw voorkeur en verstuurt geen gegevens naar de server of derden. Hiervoor is geen toestemming vereist.",
           ],
         },
         {
           heading: "7. Cookies",
           paragraphs: [
-            "Deze site plaatst geen toestemmings-, tracking- of advertentiecookies en gebruikt geen vergelijkbare technieken om u op verschillende apparaten te herkennen. Alleen de technisch noodzakelijke opslag van uw themavoorkeur wordt uitgevoerd die is beschreven onder “Lokale opslag (thema)”, in de lokale opslag van uw browser.",
+            "Deze site plaatst geen toestemmings-, tracking- of advertentiecookies en gebruikt geen vergelijkbare technieken om u op verschillende apparaten te herkennen. Alleen de technisch noodzakelijke opslag wordt uitgevoerd die is beschreven onder “Lokale opslag”: uw themavoorkeur en uw taalkeuze, in de lokale opslag van uw browser.",
             "Omdat er geen cookies of trackers worden gebruikt waarvoor toestemming is vereist, is voor deze site geen cookiebanner nodig.",
           ],
         },

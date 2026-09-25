@@ -8,7 +8,7 @@ type LegalContent = {
   terms: TermsContent;
 };
 
-const PRIVACY_LAST_UPDATED = "2026-09-02";
+const PRIVACY_LAST_UPDATED = "2026-09-25";
 const TERMS_LAST_UPDATED = "2026-06-15";
 
 const cs: LegalContent = {
@@ -75,7 +75,7 @@ const cs: LegalContent = {
         ],
       },
       {
-        heading: "6. Místní úložiště (motiv)",
+        heading: "6. Místní úložiště",
         paragraphs: [
           "Vaše předvolba motivu (světlý/tmavý/systémový) je uložena v místním úložišti (localStorage) prohlížeče. Jde o technicky funkční uložení, které slouží pouze k zachování vaší předvolby a neodesílá žádná data serveru ani třetím stranám. Nevyžaduje souhlas.",
         ],
@@ -83,7 +83,7 @@ const cs: LegalContent = {
       {
         heading: "7. Soubory cookie",
         paragraphs: [
-          "Tento web nenastavuje žádné soubory cookie vyžadující souhlas ani sledovací či reklamní soubory cookie a nepoužívá obdobné techniky k rozpoznávání vás napříč zařízeními. Ukládá se pouze technicky nezbytná předvolba motivu popsaná v části „Místní úložiště (motiv)“ v místním úložišti prohlížeče.",
+          "Tento web nenastavuje žádné soubory cookie vyžadující souhlas ani sledovací či reklamní soubory cookie a nepoužívá obdobné techniky k rozpoznávání vás napříč zařízeními. Ukládá se pouze technicky nezbytné údaje popsané v části „Místní úložiště“: předvolba motivu a vybraný jazyk, v místním úložišti prohlížeče.",
           "Protože se nepoužívají žádné soubory cookie ani sledovací nástroje vyžadující souhlas, není pro tento web nutný banner pro soubory cookie.",
         ],
       },
@@ -294,7 +294,7 @@ const sv: LegalContent = {
         ],
       },
       {
-        heading: "6. Lokal lagring (tema)",
+        heading: "6. Lokal lagring",
         paragraphs: [
           "Inställningen för tema (ljust/mörkt/system) lagras som ett värde i webbläsarens lokala lagring (localStorage). Detta är tekniskt funktionellt, används endast för att spara din inställning och överför inga data till servern eller tredje part. Inget samtycke krävs.",
         ],
@@ -302,7 +302,7 @@ const sv: LegalContent = {
       {
         heading: "7. Kakor",
         paragraphs: [
-          "Webbplatsen sätter inga samtyckes-, spårnings- eller annonskakor och använder inga jämförbara tekniker för att känna igen dig mellan enheter. Endast den tekniskt nödvändiga lagringen av din temainställning som beskrivs under ”Lokal lagring (tema)” sker, i webbläsarens lokala lagring.",
+          "Webbplatsen sätter inga samtyckes-, spårnings- eller annonskakor och använder inga jämförbara tekniker för att känna igen dig mellan enheter. Endast den tekniskt nödvändiga lagring som beskrivs under ”Lokal lagring” sker: din temainställning och ditt språkval, i webbläsarens lokala lagring.",
           "Eftersom inga kakor eller spårare som kräver samtycke används behövs ingen cookie-banner för den här webbplatsen.",
         ],
       },
@@ -513,7 +513,7 @@ const da: LegalContent = {
         ],
       },
       {
-        heading: "6. Lokal lagring (tema)",
+        heading: "6. Lokal lagring",
         paragraphs: [
           "Din temaindstilling (lyst/mørkt/system) gemmes som en værdi i browserens lokale lagring (localStorage). Dette er teknisk funktionelt, bruges kun til at bevare din indstilling og overfører ingen data til serveren eller tredjeparter. Der kræves ikke samtyk hertil.",
         ],
@@ -521,7 +521,7 @@ const da: LegalContent = {
       {
         heading: "7. Cookies",
         paragraphs: [
-          "Dette websted sætter ingen samtykkes-, sporings- eller annoncecookies og bruger ingen tilsvarende teknikker til at genkende dig på tværs af enheder. Der gemmes kun din temaindstilling i browserens lokale lagring, som det er teknisk nødvendigt og beskrevet under ”Lokal lagring (tema)”.",
+          "Dette websted sætter ingen samtykkes-, sporings- eller annoncecookies og bruger ingen tilsvarende teknikker til at genkende dig på tværs af enheder. Der gemmes kun det, der er teknisk nødvendigt og beskrevet under ”Lokal lagring”: din temaindstilling og dit sprogval, i browserens lokale lagring.",
           "Fordi der ikke bruges cookies eller trackere, der kræver samtyk, er der ikke behov for en cookie-banner på dette websted.",
         ],
       },
@@ -732,7 +732,7 @@ const nb: LegalContent = {
         ],
       },
       {
-        heading: "6. Lokal lagring (tema)",
+        heading: "6. Lokal lagring",
         paragraphs: [
           "Temavalget ditt (lyst/mørkt/system) lagres som en verdi i nettleserens lokale lagring (localStorage). Dette er teknisk funksjonelt, brukes bare til å bevare innstillingen din og overfører ingen data til serveren eller tredjeparter. Det kreves ikke samtykke til dette.",
         ],
@@ -740,7 +740,7 @@ const nb: LegalContent = {
       {
         heading: "7. Informasjonskaksel",
         paragraphs: [
-          "Dette nettstedet setter ingen samtykke-, sporing- eller annan informasjonskaksel og bruker ingen tilsvarende teknikker for å gjenkjenne deg på tvers av enheter. Det lagres bare temavalget ditt i nettleserens lokale lagring, slik det er teknisk nødvendig og beskrevet under ”Lokal lagring (tema)”.",
+          "Dette nettstedet setter ingen samtykke-, sporing- eller annan informasjonskaksel og bruker ingen tilsvarende teknikker for å gjenkjenne deg på tvers av enheter. Det lagres bare det som er teknisk nødvendig og beskrevet under ”Lokal lagring”: temavalget ditt og språkvalget ditt, i nettleserens lokale lagring.",
           "Fordi det ikke brukes informasjonskaksel eller sporingsteknologier som krever samtykke, er det ikke nødvendig med en informasjonskakselbanner på dette nettstedet.",
         ],
       },
@@ -950,7 +950,7 @@ const fi: LegalContent = {
         ],
       },
       {
-        heading: "6. Paikallinen tallennus (teema)",
+        heading: "6. Paikallinen tallennus",
         paragraphs: [
           "Tehema-asetelmasi (vaalea/tumma/järjestelmä) tallennetaan selaimen paikalliseen tallennustilaan (localStorage). Tämä on teknisesti toimivaa, palvelee vain asetelmasi säilyttämistä eikä lähetä tietoja palvelimelle tai kolmansille osapuolille. Siihen ei tarvita suostumusta.",
         ],
@@ -958,7 +958,7 @@ const fi: LegalContent = {
       {
         heading: "7. Evästeet",
         paragraphs: [
-          "Tämä sivusto ei aseta suostumus-, seuranta- tai mainosevästeitä eikä käytä vastaavia tekniikoita tunnistaakseen sinua eri laitteiden välillä. Ainoa tallennus on selaimen paikallisessa tallennustilassa säilytettävä teema-asetelma, joka on teknisesti välttämätön ja kuvattu kohdassa ”Paikallinen tallennus (teema)”.",
+          "Tämä sivusto ei aseta suostumus-, seuranta- tai mainosevästeitä eikä käytä vastaavia tekniikoita tunnistaakseen sinua eri laitteiden välillä. Tallennetaan vain kohdassa ”Paikallinen tallennus” kuvatut teknisesti välttämättömät tiedot: teema-asetelmasi ja kielivalintasi selaimen paikallisessa tallennustilassa.",
           "Koska sivusto ei käytä suostumusta edellyttäviä evästeitä tai seurantatekniikoita, sivustolla ei tarvita evästebanneriä.",
         ],
       },
@@ -1169,7 +1169,7 @@ const el: LegalContent = {
         ],
       },
       {
-        heading: "6. Τοπική αποθήκευση (θέμα)",
+        heading: "6. Τοπική αποθήκευση",
         paragraphs: [
           "Η προτίμηση θέματος (φωτεινό/σκοτεινό/σύστημα) αποθηκεύεται ως τιμή στην τοπική αποθήκευση του προγράμματος περιήγησης (localStorage). Η αποθήκευση είναι τεχνικά λειτουργική, εξυπηρετεί μόνο τη διατήρηση της προτίμησής σας και δεν μεταδίδει δεδομένα στον διακομιστή ή σε τρίτους. Δεν απαιτείται συναίνεση.",
         ],
@@ -1177,7 +1177,7 @@ const el: LegalContent = {
       {
         heading: "7. Cookies",
         paragraphs: [
-          "Ο ιστότοπος δεν τοποθετεί cookies συναίνεσης, παρακολούθησης ή διαφημίσεων και δεν χρησιμοποιεί ανάλογες τεχνικές για να σας αναγνωρίζει σε διαφορετικές συσκευές. Πραγματοποιείται μόνο η τεχνικά απαραίτητη αποθήκευση της προτίμησης θέματος που περιγράφεται στην ενότητα «Τοπική αποθήκευση (θέμα)», στην τοπική αποθήκευση του προγράμματος περιήγησης.",
+          "Ο ιστότοπος δεν τοποθετεί cookies συναίνεσης, παρακολούθησης ή διαφημίσεων και δεν χρησιμοποιεί ανάλογες τεχνικές για να σας αναγνωρίζει σε διαφορετικές συσκευές. Πραγματοποιείται μόνο η τεχνικά απαραίτητη αποθήκευση που περιγράφεται στην ενότητα «Τοπική αποθήκευση»: η προτίμηση θέματος και η επιλεγμένη γλώσσα, στην τοπική αποθήκευση του προγράμματος περιήγησης.",
           "Επειδή δεν χρησιμοποιούνται cookies ή εργαλεία παρακολούθησης που απαιτούν συναίνεση, ο ιστότοπος δεν χρειάζεται πλακίδιο συναίνεσης για cookies.",
         ],
       },
@@ -1388,7 +1388,7 @@ const ro: LegalContent = {
         ],
       },
       {
-        heading: "6. Stocarea locală (temă)",
+        heading: "6. Stocarea locală",
         paragraphs: [
           "Preferința pentru temă (luminos/întunecat/sistem) este stocată ca valoare în stocarea locală a browserului (localStorage). Acest lucru este necesar din punct de vedere tehnic, servește exclusiv păstrării preferinței și nu transmite date serverului sau terților. Nu este necesar consimțământul pentru această stocare.",
         ],
@@ -1396,7 +1396,7 @@ const ro: LegalContent = {
       {
         heading: "7. Cookie-uri",
         paragraphs: [
-          "Acest site nu stabilește cookie-uri de consimțământ, de urmărire sau publicitare și nu folosește tehnici similare pentru a vă recunoaște între diferite dispozitive. Singura stocare este cea tehnic necesară a preferinței pentru temă în stocarea locală a browserului, descrisă la „Stocarea locală (temă)”.",
+          "Acest site nu stabilește cookie-uri de consimțământ, de urmărire sau publicitare și nu folosește tehnici similare pentru a vă recunoaște între diferite dispozitive. Singura stocare este cea tehnic necesară descrisă la „Stocarea locală”: preferința pentru temă și limba selectată, în stocarea locală a browserului.",
           "Deoarece nu se folosesc cookie-uri sau urmăritori care necesită consimțământ, acest site nu are nevoie de un banner de consimțământ pentru cookie-uri.",
         ],
       },
@@ -1607,7 +1607,7 @@ const tr: LegalContent = {
         ],
       },
       {
-        heading: "6. Yerel depolama (tema)",
+        heading: "6. Yerel depolama",
         paragraphs: [
           "Tema tercihiniz (açık/koyu/sistem), tarayıcınızın yerel deposunda (localStorage) bir değer olarak saklanır. Bu işlev teknik açıdan gereklidir, yalnızca tercihinizi korumak için kullanılır ve sunucuya veya üçüncü taraflara veri iletmez. Bunun için onay gerekmez.",
         ],
@@ -1615,7 +1615,7 @@ const tr: LegalContent = {
       {
         heading: "7. Çerezler",
         paragraphs: [
-          "Bu site onay, izleme veya reklam çerezi yerleştirmez; sizi farklı cihazlarda tanımak için benzer teknikler kullanmaz. Yalnızca tarayıcınızın yerel deposunda, teknik açıdan gerekli olan ve “Yerel depolama (tema)” başlığında açıklanan tema tercihi saklanır.",
+          "Bu site onay, izleme veya reklam çerezi yerleştirmez; sizi farklı cihazlarda tanımak için benzer teknikler kullanmaz. Yalnızca “Yerel depolama” başlığında açıklanan teknik açıdan gerekli saklama yapılır: tema tercihiniz ve seçtiğiniz dil, tarayıcınızın yerel deposunda.",
           "Onay gerektiren çerez veya izleme teknolojileri kullanılmadığı için bu sitede çerez onay şeridi gerekmez.",
         ],
       },

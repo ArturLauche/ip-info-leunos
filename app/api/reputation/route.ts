@@ -10,6 +10,7 @@ import {
 import { collectReputation } from "@/lib/reputation/query";
 import { aggregateReputation } from "@/lib/reputation/scoring";
 import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
+import { toIpApiLanguage } from "@/lib/providers/ip-api";
 import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
@@ -91,7 +92,11 @@ export async function GET(request: Request) {
     request.headers.get("accept-language"),
     parseLocaleCookie(request.headers.get("cookie")),
   );
-  const cacheKey = `${ip}:${language}:${configFingerprint()}`;
+  // Only the ip-api geo slice is language sensitive, and ip-api collapses most
+  // UI locales onto a handful of upstream languages. Keying the whole summary
+  // cache by the raw UI locale would re-run DNSBL, AbuseIPDB and ThreatFox for
+  // every language switch and burn the same quotas for identical answers.
+  const cacheKey = `${ip}:${toIpApiLanguage(language)}:${configFingerprint()}`;
 
   const cached = responseCache.get(cacheKey);
   if (cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {

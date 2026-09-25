@@ -13,7 +13,7 @@ import {
   assessRequestProxyHints,
   normalizeForwardedIp,
 } from "@/lib/request-proxy-hints";
-import { lookupIpApi, type IpApiData } from "@/lib/providers/ip-api";
+import { lookupIpApi, toIpApiLanguage, type IpApiData } from "@/lib/providers/ip-api";
 import {
   getCachedLookup,
   getInflightLookup,
@@ -252,7 +252,10 @@ export async function GET(request: Request) {
       );
     }
 
-    const cacheKey = `${ip}:${language}`;
+    // ip-api collapses most UI locales onto the same upstream language, so the
+    // cache is keyed by that effective language: keying by the raw UI locale
+    // would miss 26 times over and re-query ip-api for identical answers.
+    const cacheKey = `${ip}:${toIpApiLanguage(language)}`;
     const cachedPayload = getCachedLookup(cacheKey);
     if (cachedPayload) {
       return apiOk(cachedPayload);

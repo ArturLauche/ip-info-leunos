@@ -18,6 +18,14 @@ interface ToolLookupOptions {
   mapError: (error: unknown) => string;
   /** Runs the lookup automatically for this query on mount and when it changes. */
   initialQuery?: string;
+  /**
+   * Invalidates the current result when it changes. Only language-sensitive
+   * tools pass a value (their locale): the API returns localized result fields
+   * (e.g. ip-api country/region/city names), so a language switch has to re-run
+   * the lookup instead of leaving rendered values in the previous language.
+   * Locale-neutral tools omit it and never refetch on a language switch.
+   */
+  refreshKey?: string;
   /** Resets tool-specific state when a new lookup starts. */
   onStart?: () => void;
 }
@@ -34,6 +42,7 @@ interface ToolLookupOptions {
  */
 export function useToolLookup<T>(options: ToolLookupOptions) {
   const router = useRouter();
+  const { refreshKey } = options;
   const [loading, setLoading] = useState(false);
   const [thrownError, setThrownError] = useState<{ value: unknown } | null>(null);
   const [result, setResult] = useState<T | null>(null);
@@ -142,7 +151,9 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       setThrownError(null);
       setResult(null);
     }
-  }, [querySync, run]);
+    // refreshKey (a locale for language-sensitive tools) re-runs the active
+    // query in place; router.refresh() alone keeps the client result mounted.
+  }, [querySync, run, refreshKey]);
 
   return { loading, error, result, run, showError, cancel, querySync };
 }

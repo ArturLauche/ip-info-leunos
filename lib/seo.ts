@@ -10,8 +10,8 @@ import {
 import { getToolTranslation } from "@/lib/tool-i18n";
 
 export const siteConfig = {
-  name: "IP Auskunft",
-  shortName: "IP Auskunft",
+  name: "IP Info",
+  shortName: "IP Info",
   description:
     "Free network tools for public IP addresses, ASN, DNS, WHOIS, CDN detection, reachability and IP reputation.",
   url: "https://ip-info.leunos.com",
@@ -38,10 +38,24 @@ export const defaultOpenGraphImage = "/og-image.png";
 const openGraphImageWidth = 1200;
 const openGraphImageHeight = 630;
 
+/** Sentence-closing marks that already appear at the end of a subtitle. */
+const SENTENCE_MARKS = /[.!?…。！？।]/;
+
+/** The terminator that reads naturally in the locale's own script. */
+function sentenceMark(locale: Locale): string {
+  if (locale === "ja" || locale === "zh-CN" || locale === "zh-TW") return "。";
+  if (locale === "hi") return "।";
+  return ".";
+}
+
 export function getSiteDescription(locale: Locale): string {
   const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
-  return `${t.homeSubtitle}. ${toolT.dnsSubtitle} ${toolT.pingSubtitle} ${toolT.reputationSubtitle}`;
+  const home = t.homeSubtitle.trim();
+  // CJK and Hindi subtitles already end with their own sentence mark; only
+  // add one where the catalog has none, so no locale ends up with "。.".
+  const lead = SENTENCE_MARKS.test(home) ? home : `${home}${sentenceMark(locale)}`;
+  return `${lead} ${toolT.dnsSubtitle} ${toolT.pingSubtitle} ${toolT.reputationSubtitle}`;
 }
 
 export function getSiteKeywords(locale: Locale): string[] {
@@ -76,9 +90,13 @@ export const schemaInLanguage = SUPPORTED_LOCALES.map((locale) =>
   getLocaleSchemaLanguage(locale),
 );
 
-/** Absolute document title. Next.js `title.template` is not applied to `app/page.tsx`. */
+/**
+ * Absolute document title. Next.js `title.template` is not applied to
+ * `app/page.tsx`. A title that already *is* the site name (e.g. the English
+ * or German home page) is not suffixed, which would read "IP Info | IP Info".
+ */
 export function documentTitle(title: string): string {
-  return `${title} | ${siteConfig.name}`;
+  return title === siteConfig.name ? title : `${title} | ${siteConfig.name}`;
 }
 
 /**

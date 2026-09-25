@@ -99,8 +99,12 @@ describe("lookupIpApi bounded reads", () => {
 
 describe("lookupIpApi language normalization", () => {
   it("only ever requests languages ip-api supports", async () => {
+    // Typed with parameters so `mock.calls[i][0]` (the request URL) is typed.
     const fetchMock = vi.fn(
-      async (_input: RequestInfo | URL, _init?: RequestInit) => chunkedResponse([SUCCESS_BODY]),
+      async (...args: [RequestInfo | URL, RequestInit?]) => {
+        void args;
+        return chunkedResponse([SUCCESS_BODY]);
+      },
     );
     vi.stubGlobal("fetch", fetchMock);
 

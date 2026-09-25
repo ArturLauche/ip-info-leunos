@@ -287,7 +287,10 @@
     pointer-events: none;
     position: absolute;
     top: 0;
-    inset-inline-start: 0;
+    /* Physical, like .tool-tab-indicator: useSegmentHighlight measures the
+       active item with getBoundingClientRect(), which is always physical, so a
+       logical anchor would slide the chip off the track in RTL. */
+    left: 0;
     z-index: 0;
     border-radius: calc(var(--radius) - 2px);
     background-color: var(--card);
