@@ -128,10 +128,6 @@ type ToolTranslation = {
   asnMetricIpv4Addresses: string;
   asnMetricRoutingNeighbours: string;
   asnMetricIxPresence: string;
-  asnMetricIpinfoDetail: string;
-  asnMetricAnnouncedPrefixesDetail: string;
-  asnMetricBgpRelationshipsDetail: string;
-  asnMetricPeeringDbProfileDetail: string;
   asnPrefixIpCount: string;
   asnRelationPeers: string;
   asnRelationUpstreams: string;
@@ -171,6 +167,8 @@ type ToolTranslation = {
   asnBooleanYes: string;
   asnBooleanNo: string;
   asnSpeedMbps: string;
+  asnSpeedGbps: string;
+  asnSpeedTbps: string;
   asnNoIxLanRecords: string;
   asnNoFacilityRecords: string;
   asnWarningIpinfoUnavailable: string;
@@ -196,6 +194,45 @@ type ToolTranslation = {
   asnWarningLabelRipeStatRoutingNeighbours: string;
   asnWarningLabelRipeStatUpstreamNeighbours: string;
   asnWarningLabelRipeStatDownstreamNeighbours: string;
+  asnTabRouting: string;
+  asnTabPrefixes: string;
+  asnTabPeering: string;
+  asnTabSources: string;
+  asnDetailNavLabel: string;
+  asnIdentityEyebrow: string;
+  asnCopyAsn: string;
+  asnLabelType: string;
+  asnLabelRegistry: string;
+  asnLabelDomain: string;
+  asnNetworkTypes: Record<string, string>;
+  asnSourcesLabel: string;
+  asnMetricIpv4Equivalent: string;
+  asnMetricRequiresIpinfo: string;
+  asnMetricNotReported: string;
+  asnMetricNoPeeringDb: string;
+  asnFacilityCount: Record<"one" | "other", string>;
+  asnExchangeCount: Record<"one" | "other", string>;
+  asnConnectionCount: Record<"one" | "other", string>;
+  asnShowMore: string;
+  asnListedOfTotal: string;
+  asnNoneReported: string;
+  asnRelationV4Peers: string;
+  asnRelationV6Peers: string;
+  asnRelationObservedVia: string;
+  asnRpkiLabel: string;
+  asnRpkiValidShort: string;
+  asnRpkiInvalidShort: string;
+  asnLabelExchanges: string;
+  asnLabelFacilities: string;
+  asnLabelPeeringDbRecord: string;
+  asnViewOnPeeringDb: string;
+  asnIxNotOperational: string;
+  asnSortLabel: string;
+  asnSortDefault: string;
+  asnSameAsn: string;
+  asnExamplesLabel: string;
+  asnLabelPolicy: string;
+  asnCountryCount: Record<"one" | "other", string>;
   targetPlaceholder: string;
   lookupInProgress: string;
   dnsLookupButton: string;
@@ -488,10 +525,6 @@ const en: ToolTranslation = {
   asnMetricIpv4Addresses: "IPv4 addresses",
   asnMetricRoutingNeighbours: "Routing neighbours",
   asnMetricIxPresence: "IX presence",
-  asnMetricIpinfoDetail: "IPinfo ASN data, when configured",
-  asnMetricAnnouncedPrefixesDetail: "Announced prefixes",
-  asnMetricBgpRelationshipsDetail: "IPinfo or RIPEstat BGP relationships",
-  asnMetricPeeringDbProfileDetail: "PeeringDB network profile",
   asnPrefixIpCount: "IPs",
   asnRelationPeers: "Peers",
   asnRelationUpstreams: "Upstreams",
@@ -531,6 +564,8 @@ const en: ToolTranslation = {
   asnBooleanYes: "yes",
   asnBooleanNo: "no",
   asnSpeedMbps: "Mbps",
+  asnSpeedGbps: "Gbps",
+  asnSpeedTbps: "Tbps",
   asnNoIxLanRecords: "No IX LAN records returned.",
   asnNoFacilityRecords: "No facility records returned.",
   asnWarningIpinfoUnavailable:
@@ -557,10 +592,54 @@ const en: ToolTranslation = {
   asnWarningLabelRipeStatIpv4Prefixes: "RIPEstat IPv4 prefixes",
   asnWarningLabelRipeStatIpv6Prefixes: "RIPEstat IPv6 prefixes",
   asnWarningLabelRipeStatRoutingNeighbours: "RIPEstat routing neighbours",
-  asnWarningLabelRipeStatUpstreamNeighbours:
-    "RIPEstat upstream-side neighbours",
-  asnWarningLabelRipeStatDownstreamNeighbours:
-    "RIPEstat downstream-side neighbours",
+  asnWarningLabelRipeStatUpstreamNeighbours: "RIPEstat upstream-side neighbours",
+  asnWarningLabelRipeStatDownstreamNeighbours: "RIPEstat downstream-side neighbours",
+  asnTabRouting: "Routing",
+  asnTabPrefixes: "Prefixes",
+  asnTabPeering: "Peering",
+  asnTabSources: "Sources",
+  asnDetailNavLabel: "ASN details",
+  asnIdentityEyebrow: "Autonomous system",
+  asnCopyAsn: "Copy ASN",
+  asnLabelType: "Type",
+  asnLabelRegistry: "Registry",
+  asnLabelDomain: "Domain",
+  asnNetworkTypes: {
+    isp: "ISP",
+    hosting: "Hosting",
+    business: "Business",
+    education: "Education",
+    government: "Government",
+    inactive: "Inactive",
+  },
+  asnSourcesLabel: "Sources",
+  asnMetricIpv4Equivalent: "≈ /{bits} equivalent",
+  asnMetricRequiresIpinfo: "Requires IPinfo",
+  asnMetricNotReported: "Not reported",
+  asnMetricNoPeeringDb: "No PeeringDB profile",
+  asnFacilityCount: { one: "{count} facility", other: "{count} facilities" },
+  asnExchangeCount: { one: "{count} exchange", other: "{count} exchanges" },
+  asnConnectionCount: { one: "{count} connection", other: "{count} connections" },
+  asnShowMore: "Show {count} more",
+  asnListedOfTotal: "{shown} of {total} listed",
+  asnNoneReported: "None reported",
+  asnRelationV4Peers: "IPv4 peers",
+  asnRelationV6Peers: "IPv6 peers",
+  asnRelationObservedVia: "Power and peer counts observed via {source}.",
+  asnRpkiLabel: "RPKI",
+  asnRpkiValidShort: "Valid",
+  asnRpkiInvalidShort: "Invalid",
+  asnLabelExchanges: "Exchanges",
+  asnLabelFacilities: "Facilities",
+  asnLabelPeeringDbRecord: "PeeringDB record",
+  asnViewOnPeeringDb: "View {name} on PeeringDB",
+  asnIxNotOperational: "Not operational",
+  asnSortLabel: "Sort",
+  asnSortDefault: "Provider order",
+  asnSameAsn: "Same as this ASN",
+  asnExamplesLabel: "Try",
+  asnLabelPolicy: "Policy",
+  asnCountryCount: { one: "in {count} country", other: "in {count} countries" },
   targetPlaceholder: "example.com",
   lookupInProgress: "Looking up...",
   dnsLookupButton: "Lookup DNS",
@@ -1008,10 +1087,6 @@ const de: ToolTranslation = {
   asnMetricIpv4Addresses: "IPv4-Adressen",
   asnMetricRoutingNeighbours: "Routing-Nachbarn",
   asnMetricIxPresence: "IX-Präsenz",
-  asnMetricIpinfoDetail: "IPinfo-ASN-Daten, wenn konfiguriert",
-  asnMetricAnnouncedPrefixesDetail: "Angekündigte Prefixe",
-  asnMetricBgpRelationshipsDetail: "BGP-Beziehungen aus IPinfo oder RIPEstat",
-  asnMetricPeeringDbProfileDetail: "PeeringDB-Netzwerkprofil",
   asnPrefixIpCount: "IPs",
   asnRelationPeers: "Peers",
   asnRelationUpstreams: "Upstreams",
@@ -1051,6 +1126,8 @@ const de: ToolTranslation = {
   asnBooleanYes: "ja",
   asnBooleanNo: "nein",
   asnSpeedMbps: "Mbit/s",
+  asnSpeedGbps: "Gbit/s",
+  asnSpeedTbps: "Tbit/s",
   asnNoIxLanRecords: "Keine IX-LAN-Einträge erhalten.",
   asnNoFacilityRecords: "Keine Standort-Einträge erhalten.",
   asnWarningIpinfoUnavailable:
@@ -1084,6 +1161,52 @@ const de: ToolTranslation = {
   asnWarningLabelRipeStatRoutingNeighbours: "RIPEstat-Routing-Nachbarn",
   asnWarningLabelRipeStatUpstreamNeighbours: "RIPEstat-Upstream-Nachbarn",
   asnWarningLabelRipeStatDownstreamNeighbours: "RIPEstat-Downstream-Nachbarn",
+  asnTabRouting: "Routing",
+  asnTabPrefixes: "Prefixe",
+  asnTabPeering: "Peering",
+  asnTabSources: "Quellen",
+  asnDetailNavLabel: "ASN-Details",
+  asnIdentityEyebrow: "Autonomes System",
+  asnCopyAsn: "ASN kopieren",
+  asnLabelType: "Typ",
+  asnLabelRegistry: "Registry",
+  asnLabelDomain: "Domain",
+  asnNetworkTypes: {
+    isp: "ISP",
+    hosting: "Hosting",
+    business: "Unternehmen",
+    education: "Bildung",
+    government: "Behörde",
+    inactive: "Inaktiv",
+  },
+  asnSourcesLabel: "Quellen",
+  asnMetricIpv4Equivalent: "≈ /{bits}-Äquivalent",
+  asnMetricRequiresIpinfo: "Erfordert IPinfo",
+  asnMetricNotReported: "Nicht gemeldet",
+  asnMetricNoPeeringDb: "Kein PeeringDB-Profil",
+  asnFacilityCount: { one: "{count} Standort", other: "{count} Standorte" },
+  asnExchangeCount: { one: "{count} Exchange", other: "{count} Exchanges" },
+  asnConnectionCount: { one: "{count} Anschluss", other: "{count} Anschlüsse" },
+  asnShowMore: "{count} weitere anzeigen",
+  asnListedOfTotal: "{shown} von {total} gelistet",
+  asnNoneReported: "Keine gemeldet",
+  asnRelationV4Peers: "IPv4-Peers",
+  asnRelationV6Peers: "IPv6-Peers",
+  asnRelationObservedVia: "Gewicht und Peer-Anzahl beobachtet über {source}.",
+  asnRpkiLabel: "RPKI",
+  asnRpkiValidShort: "Gültig",
+  asnRpkiInvalidShort: "Ungültig",
+  asnLabelExchanges: "Exchanges",
+  asnLabelFacilities: "Standorte",
+  asnLabelPeeringDbRecord: "PeeringDB-Eintrag",
+  asnViewOnPeeringDb: "{name} auf PeeringDB ansehen",
+  asnIxNotOperational: "Nicht in Betrieb",
+  asnSortLabel: "Sortierung",
+  asnSortDefault: "Reihenfolge der Quelle",
+  asnSameAsn: "Entspricht dieser ASN",
+  asnExamplesLabel: "Beispiele",
+  asnLabelPolicy: "Policy",
+  asnCountryCount: { one: "in {count} Land", other: "in {count} Ländern" },
   lookupInProgress: "Suche läuft...",
   dnsLookupButton: "DNS abfragen",
   dnsLookupError: "DNS-Abfrage fehlgeschlagen.",

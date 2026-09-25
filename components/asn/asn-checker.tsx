@@ -2,28 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, Building2, Waypoints } from "lucide-react";
-import { ErrorPanel } from "@/components/error-panel";
+import { Building2, Waypoints } from "lucide-react";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { normalizeAsnInput } from "@/lib/asn-id";
-import type { AsnProfile, AsnWarningDetail } from "@/lib/asn";
+import type { AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { AsnDetailTabs } from "./detail-tabs";
+import { AsnDetailTabs, type DetailTab } from "./detail-tabs";
 import { FacilitySection } from "./facility-section";
 import {
-  formatWarning,
   hasSourceInfoFlag,
+  knownTotal,
   lookupErrorMessage,
+  prefixTotal,
+  routingTotal,
   validationErrorMessage,
 } from "./helpers";
 import { IxPresenceSection } from "./ix-presence-section";
 import { LoadingSkeleton } from "./loading-skeleton";
+import { ExampleAsns, LookupError, NotFoundState } from "./lookup-states";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
 import { PrefixSection } from "./prefix-section";
 import { RoutingSection } from "./routing-section";
@@ -35,9 +36,19 @@ interface AsnCheckerProps {
   initialAsn?: string;
 }
 
+function isValidAsn(value: string) {
+  try {
+    normalizeAsnInput(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
   const t = getToolTranslation(locale);
   const [showSourceInfo, setShowSourceInfo] = useState(false);
+  const [inputError, setInputError] = useState(false);
   const searchParams = useSearchParams();
 
   // Deep links may carry arbitrary input; pass it through so the API can
@@ -52,195 +63,161 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     }
   }, [initialAsn]);
 
-  const { loading, error, result, run, showError, cancel, querySync } =
-    useToolLookup<AsnProfile>({
-      buildApiUrl: (asn) =>
-        `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
-      buildHref: (asn) =>
-        `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
-      mapError: (lookupError) => lookupErrorMessage(lookupError, t),
-      initialQuery,
-      onStart: () => setShowSourceInfo(hasSourceInfoFlag()),
-    });
+  const { loading, error, result, run, showError, cancel, querySync } = useToolLookup<AsnProfile>({
+    buildApiUrl: (asn) =>
+      `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
+    buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
+    mapError: (lookupError) => lookupErrorMessage(lookupError, t),
+    initialQuery,
+    onStart: () => {
+      setShowSourceInfo(hasSourceInfoFlag());
+      setInputError(false);
+    },
+  });
 
   const submit = useCallback(
     (value: string) => {
       try {
-        run(normalizeAsnInput(value).asn);
+        const asn = normalizeAsnInput(value).asn;
+        setInputError(false);
+        run(asn);
       } catch (validationError) {
+        setInputError(true);
         showError(validationErrorMessage(validationError, t, locale));
       }
     },
     [locale, run, showError, t],
   );
 
+  // Network, rate-limit and provider failures are worth repeating in place;
+  // input the client already rejected (or the API would reject) is not.
+  const retryQuery = error && !inputError && isValidAsn(querySync.query) ? querySync.query : "";
+  const retry = useCallback(() => {
+    if (retryQuery) run(retryQuery, false);
+  }, [retryQuery, run]);
+
   // Re-sync the source-info flag whenever the URL changes under us. Reacting
   // to searchParams (not hashchange/popstate) also covers client-side
   // pushState navigations from the command palette or in-page links.
-  const sourceInfoInUrl =
-    searchParams.has("source-info") || searchParams.has("sourceInfo");
+  const sourceInfoInUrl = searchParams.has("source-info") || searchParams.has("sourceInfo");
 
   useEffect(() => {
-    setShowSourceInfo(
-      sourceInfoInUrl || window.location.hash === "#source-info",
-    );
+    setShowSourceInfo(sourceInfoInUrl || window.location.hash === "#source-info");
   }, [sourceInfoInUrl]);
 
-  // Once a profile is on screen the form steps back to a quiet toolbar so the
-  // result owns the visual hierarchy; empty/error states keep it prominent.
-  const hasResult = Boolean(result && result.found);
+  // Once a lookup is running or answered, the form steps back to a quiet
+  // toolbar so the result owns the hierarchy. Keeping it compact while a new
+  // lookup loads avoids the form growing and shrinking around the skeleton.
+  const compact = loading || Boolean(result);
 
-  const routingCount = result
-    ? (result.peersTotal || 0) +
-      (result.upstreamsTotal || 0) +
-      (result.downstreamsTotal || 0)
-    : null;
-  const prefixesCount = result
-    ? (result.prefixes4Total || 0) + (result.prefixes6Total || 0)
-    : null;
+  const tabs: DetailTab[] = result
+    ? [
+        { value: "routing", label: t.asnTabRouting, count: knownTotal(result, routingTotal(result)) },
+        { value: "prefixes", label: t.asnTabPrefixes, count: knownTotal(result, prefixTotal(result)) },
+        { value: "peering", label: t.asnTabPeering },
+      ]
+    : [];
+  if (result && showSourceInfo) {
+    tabs.push({
+      value: "sources",
+      label: t.asnTabSources,
+      count: result.warnings.length > 0 ? result.warnings.length : null,
+      countLabel: t.asnWarnings,
+      tone: "warning",
+    });
+  }
+
+  const announcement = result
+    ? result.found
+      ? `${result.asn} ${result.name}`.trim()
+      : `${result.asn}: ${t.asnNotFoundTitle}`
+    : "";
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col gap-5">
       <ToolSearchForm
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.asnPlaceholder}
-        ariaLabel={t.asnTitle}
         submitLabel={t.asnLookupButton}
         loadingLabel={t.asnLookingUp}
         loading={loading}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={submit}
-        compact={hasResult}
+        compact={compact}
       />
 
       {!loading && !error && !result && (
-        <EmptyState
-          icon={Waypoints}
-          title={t.asnEmptyTitle}
-          description={t.asnEmptyDescription}
-        />
+        <EmptyState icon={Waypoints} title={t.asnEmptyTitle} description={t.asnEmptyDescription}>
+          <ExampleAsns t={t} sourceInfo={showSourceInfo} />
+        </EmptyState>
       )}
 
       {loading && <LoadingSkeleton label={t.lookupInProgress} />}
 
-      {error && <ErrorPanel message={error} />}
+      {error && <LookupError message={error} onRetry={retryQuery ? retry : undefined} t={t} />}
 
       {result && !result.found && (
-        <Alert variant="warning">
-          <AlertTriangle />
-          <AlertTitle>{t.asnNotFoundTitle}</AlertTitle>
-          <AlertDescription>{t.asnNotFoundDescription}</AlertDescription>
-        </Alert>
+        <div className="tool-reveal">
+          <NotFoundState result={result} t={t} />
+        </div>
       )}
 
       {result && result.found && (
         <div className="tool-reveal flex flex-col gap-4">
-          {/* Summary: identity + key figures in one card */}
-          <section
-            aria-label={`${result.asn} — ${t.asnTitle}`}
-            className="flex flex-col"
-          >
+          <section aria-label={`${result.asn} — ${t.asnTitle}`} className="flex flex-col">
             <AsnSummaryCard result={result} t={t} locale={locale} />
           </section>
 
-          {showSourceInfo && result.warnings.length > 0 && (
-            <Alert variant="warning">
-              <AlertTriangle />
-              <AlertTitle>{t.asnWarnings}</AlertTitle>
-              <AlertDescription>
-                <ul className="space-y-1">
-                  {result.warnings.map((warning, index) => {
-                    const detail: AsnWarningDetail | undefined =
-                      result.warningDetails?.[index];
-                    return (
-                      <li
-                        key={
-                          detail
-                            ? `${detail.code}-${index}`
-                            : `${warning}-${index}`
-                        }
-                      >
-                        {formatWarning(detail ?? warning, t, locale)}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Detail: tabbed instead of a stack of competing cards */}
-          <Card className="p-5 sm:p-6">
-            <AsnDetailTabs
-              routingLabel={t.asnRouting}
-              routingCount={routingCount}
-              prefixesLabel={t.asnPrefixes}
-              prefixesCount={prefixesCount}
-              peeringLabel={t.asnPeeringDb}
-              sourcesLabel={t.asnSourceDiagnostics}
-              showSources={showSourceInfo}
-              locale={locale}
-            >
-              <TabsContent value="routing" className="pt-4">
+          <Card className="gap-0 p-0">
+            <AsnDetailTabs tabs={tabs} label={t.asnDetailNavLabel} locale={locale}>
+              <TabsContent value="routing">
                 <RoutingSection result={result} t={t} locale={locale} />
               </TabsContent>
 
-              <TabsContent value="prefixes" className="pt-4">
+              <TabsContent value="prefixes">
                 <PrefixSection result={result} t={t} locale={locale} />
               </TabsContent>
 
-              <TabsContent value="peering" className="pt-4">
+              <TabsContent value="peering">
                 {result.peeringdb ? (
-                  <div className="flex flex-col gap-7">
-                    <PeeringDbProfileSection
-                      profile={result.peeringdb}
-                      t={t}
-                      locale={locale}
-                    />
-                    <div className="border-t border-border/60 pt-7">
-                      <IxPresenceSection
-                        result={result}
-                        t={t}
-                        locale={locale}
-                      />
+                  <div className="flex flex-col gap-8">
+                    <PeeringDbProfileSection profile={result.peeringdb} t={t} locale={locale} />
+                    <div className="border-t border-border/60 pt-8">
+                      <IxPresenceSection result={result} t={t} locale={locale} />
                     </div>
-                    <div className="border-t border-border/60 pt-7">
+                    <div className="border-t border-border/60 pt-8">
                       <FacilitySection
                         facilities={result.peeringdb.facilities}
                         total={result.peeringdb.facilitiesTotal}
+                        asnNumber={result.asnNumber}
                         t={t}
                         locale={locale}
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/70 px-6 py-10 text-center">
-                    <Building2
-                      className="size-5 text-muted-foreground/50"
-                      aria-hidden
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      {t.asnWarningNoPeeringDbProfile}
-                    </p>
+                  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/80 px-6 py-10 text-center">
+                    <Building2 className="size-5 text-muted-foreground/60" aria-hidden />
+                    <p className="max-w-sm text-sm text-muted-foreground">{t.asnWarningNoPeeringDbProfile}</p>
                   </div>
                 )}
               </TabsContent>
 
               {showSourceInfo && (
-                <TabsContent value="sources" className="pt-4">
-                  <SourceDiagnosticsSection
-                    result={result}
-                    t={t}
-                    locale={locale}
-                  />
+                <TabsContent value="sources">
+                  <SourceDiagnosticsSection result={result} t={t} locale={locale} />
                 </TabsContent>
               )}
             </AsnDetailTabs>
           </Card>
         </div>
       )}
+
+      <p className="sr-only" aria-live="polite">
+        {announcement}
+      </p>
     </div>
   );
 }
