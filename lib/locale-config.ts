@@ -346,6 +346,16 @@ export function isSupportedLocale(
   return normalizeLocale(value) !== null;
 }
 
+/**
+ * Alias lookups must never fall through to Object.prototype: an
+ * Accept-Language tag or cookie value like "constructor" would otherwise
+ * resolve to a truthy inherited key and reach locale-dependent renders as a
+ * fake Locale, crashing them.
+ */
+function aliasLocale(key: string): Locale | null {
+  return Object.hasOwn(LOCALE_ALIASES, key) ? LOCALE_ALIASES[key] : null;
+}
+
 export function normalizeLocale(
   value: string | null | undefined,
 ): Locale | null {
@@ -353,7 +363,7 @@ export function normalizeLocale(
   const normalized = value.trim().replace(/_/g, "-");
   if (!normalized) return null;
   const lower = normalized.toLowerCase();
-  return LOCALE_BY_LOWERCASE.get(lower) ?? LOCALE_ALIASES[lower] ?? null;
+  return LOCALE_BY_LOWERCASE.get(lower) ?? aliasLocale(lower);
 }
 
 function resolveLanguageTag(tag: string): Locale | null {
@@ -371,7 +381,7 @@ function resolveLanguageTag(tag: string): Locale | null {
     return "zh-CN";
 
   const base = parts[0];
-  return base ? (LOCALE_ALIASES[base] ?? null) : null;
+  return base ? aliasLocale(base) : null;
 }
 
 /**

@@ -68,8 +68,11 @@ function formatPingMessage(
   ui: ReturnType<typeof getUiCopy>,
 ): string {
   const params = result.messageParams ?? {};
+  // The API reports the display name ("Generic"); match case-insensitively so
+  // the localized label replaces it instead of leaking the English display name.
   const database =
-    params.database === "generic"
+    typeof params.database === "string" &&
+    params.database.trim().toLowerCase() === "generic"
       ? ui.pingDatabaseGeneric
       : (params.database ?? "");
   switch (result.messageKey) {
@@ -176,7 +179,7 @@ export function PingChecker({
   const [password, setPassword] = useState("");
   const [database, setDatabase] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [thrownError, setThrownError] = useState<{ value: unknown } | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const requestSeq = useRef(0);
@@ -198,6 +201,11 @@ export function PingChecker({
   } | null>(null);
   const t = getToolTranslation(locale);
   const ui = getUiCopy(locale);
+  // Derived from the raw error on every render so the message follows locale
+  // switches made while it is on screen (same pattern as useToolLookup).
+  const error = thrownError
+    ? getApiErrorMessage(thrownError.value, t, t.pingNetworkError)
+    : null;
   const isDatabase = mode === "database";
 
   // Sync the URL-backed fields when they change on the same route (e.g. the
@@ -227,7 +235,7 @@ export function PingChecker({
     setMode(initialMode);
     requestSeq.current += 1;
     setLoading(false);
-    setError(null);
+    setThrownError(null);
     setResult(null);
   }, [initialTarget, initialPort, initialMode]);
 
@@ -267,7 +275,7 @@ export function PingChecker({
     requestSeq.current += 1;
     abortRef.current?.abort();
     setLoading(false);
-    setError(null);
+    setThrownError(null);
     setResult(null);
   };
 
@@ -280,7 +288,7 @@ export function PingChecker({
     abortRef.current = controller;
     const seq = ++requestSeq.current;
     setLoading(true);
-    setError(null);
+    setThrownError(null);
     setResult(null);
     setShowDetails(false);
 
@@ -317,12 +325,10 @@ export function PingChecker({
       if (controller.signal.aborted) {
         return;
       }
-      if (seq === requestSeq.current) {
-        // Map by error code like every other checker, so rate limits and
-        // validation failures show translated messages instead of the raw
-        // backend string.
-        setError(getApiErrorMessage(checkError, t, t.pingNetworkError));
-      }
+      // Map by error code during render (see `error` above), so rate limits
+      // and validation failures show translated messages instead of the raw
+      // backend string, in the language currently on screen.
+      if (seq === requestSeq.current) setThrownError({ value: checkError });
     } finally {
       if (seq === requestSeq.current) setLoading(false);
     }

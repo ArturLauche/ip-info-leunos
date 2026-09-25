@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
-import { normalizeAsnInput } from "@/lib/asn-id";
+import { AsnValidationError, normalizeAsnInput } from "@/lib/asn-id";
 import type { AsnProfile } from "@/lib/asn";
 import type { Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
@@ -67,7 +67,12 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
     buildApiUrl: (asn) =>
       `/api/asn/${encodeURIComponent(asn)}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
     buildHref: (asn) => `/asn/${asn}${hasSourceInfoFlag() ? "?source-info=1" : ""}`,
-    mapError: (lookupError) => lookupErrorMessage(lookupError, t),
+    // Also handles client-side validation errors (see showError below), so
+    // the message is re-derived from the current locale on every render.
+    mapError: (lookupError) =>
+      lookupError instanceof AsnValidationError
+        ? validationErrorMessage(lookupError, t, locale)
+        : lookupErrorMessage(lookupError, t),
     initialQuery,
     onStart: () => {
       setShowSourceInfo(hasSourceInfoFlag());
@@ -83,10 +88,12 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         run(asn);
       } catch (validationError) {
         setInputError(true);
-        showError(validationErrorMessage(validationError, t, locale));
+        showError(validationError);
       }
     },
-    [locale, run, showError, t],
+    // `t`/`locale` are intentionally absent: validation errors are stored raw
+    // and mapped via the hook's mapError, which already closes over them.
+    [run, showError],
   );
 
   // Network, rate-limit and provider failures are worth repeating in place;

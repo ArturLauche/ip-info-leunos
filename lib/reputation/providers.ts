@@ -90,6 +90,7 @@ export function greyNoiseEvidence(result: GreyNoiseResult, nowMs: number): Dnsbl
   }
 
   if (result.riot) {
+    const riotName = result.name && result.name !== "unknown" ? result.name : null;
     evidence.push({
       sourceId: "greynoise",
       category: "benign_service",
@@ -97,7 +98,9 @@ export function greyNoiseEvidence(result: GreyNoiseResult, nowMs: number): Dnsbl
       weight: 0,
       confidence: 85,
       freshness: 1,
-      detail: result.name && result.name !== "unknown" ? `RIOT: ${result.name}` : null,
+      detail: riotName ? `RIOT: ${riotName}` : null,
+      detailKey: riotName ? "riot" : null,
+      detailValue: riotName || null,
     });
   }
 
@@ -266,6 +269,8 @@ export function threatFoxEvidence(iocs: ThreatFoxIoc[], nowMs: number): DnsblInt
       lastSeen: ioc.lastSeen,
       malwareFamily: ioc.malwareFamily,
       detail: ioc.threatType ? `IOC type: ${ioc.threatType}` : null,
+      detailKey: ioc.threatType ? "iocType" : null,
+      detailValue: ioc.threatType || null,
     });
   }
 

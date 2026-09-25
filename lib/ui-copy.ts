@@ -76,7 +76,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "A functional cookie stores your language choice. It is not used for tracking or advertising.",
+      "Your language choice is stored in a functional cookie and in this browser's local storage. Neither is used for tracking or advertising.",
     languageSelectorLabel: "Select language",
     structuredDataCategory: "Internet and network information tool",
     structuredDataOperatingSystem: "Any system with a modern web browser",
@@ -120,7 +120,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Ein funktionales Cookie speichert Ihre Sprachauswahl. Es wird weder für Tracking noch für Werbung verwendet.",
+      "Ihre Sprachauswahl wird in einem funktionalen Cookie und im lokalen Speicher dieses Browsers abgelegt. Weder das Cookie noch der lokale Speicher werden für Tracking oder Werbung verwendet.",
     languageSelectorLabel: "Sprache auswählen",
     structuredDataCategory: "Werkzeug für Internet- und Netzwerkinformationen",
     structuredDataOperatingSystem: "Jedes System mit einem modernen Webbrowser",
@@ -166,7 +166,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Una cookie funcional almacena tu elección de idioma. No se utiliza para el seguimiento ni para la publicidad.",
+      "Tu elección de idioma se guarda en una cookie funcional y en el almacenamiento local de este navegador. Ninguno de los dos se usa para el seguimiento ni para la publicidad.",
     languageSelectorLabel: "Seleccionar idioma",
     structuredDataCategory: "Herramienta de información de Internet y redes",
     structuredDataOperatingSystem:
@@ -213,7 +213,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Un cookie fonctionnel enregistre votre choix de langue. Il n’est pas utilisé pour le suivi ni pour la publicité.",
+      "Votre choix de langue est enregistré dans un cookie fonctionnel et dans le stockage local de ce navigateur. Aucun des deux n’est utilisé pour le suivi ni pour la publicité.",
     languageSelectorLabel: "Sélectionner la langue",
     structuredDataCategory: "Outil d’information sur Internet et les réseaux",
     structuredDataOperatingSystem:
@@ -260,7 +260,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Un cookie funzionale memorizza la scelta della lingua. Non viene utilizzato per il tracciamento o la pubblicità.",
+      "La scelta della lingua viene memorizzata in un cookie funzionale e nell’archiviazione locale di questo browser. Nessuno dei due viene utilizzato per il tracciamento o la pubblicità.",
     languageSelectorLabel: "Seleziona la lingua",
     structuredDataCategory: "Strumento di informazioni su Internet e rete",
     structuredDataOperatingSystem:
@@ -307,7 +307,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Een functionele cookie slaat uw taalkeuze op. Deze wordt niet gebruikt voor tracking of reclame.",
+      "Uw taalkeuze wordt opgeslagen in een functionele cookie en in de lokale opslag van deze browser. Beide worden niet gebruikt voor tracking of reclame.",
     languageSelectorLabel: "Taal selecteren",
     structuredDataCategory: "Tool voor internet- en netwerkinformatie",
     structuredDataOperatingSystem: "Elk systeem met een moderne webbrowser",
@@ -350,7 +350,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Funkcjonalny plik cookie przechowuje wybrany język. Nie jest używany do śledzenia ani reklam.",
+      "Wybrany język jest przechowywany w funkcjonalnym pliku cookie oraz w lokalnej pamięci tej przeglądarki. Żadne z nich nie służy do śledzenia ani reklam.",
     languageSelectorLabel: "Wybierz język",
     structuredDataCategory: "Narzędzie do informacji o Internecie i sieciach",
     structuredDataOperatingSystem:
@@ -398,7 +398,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Um cookie funcional armazena sua escolha de idioma. Ele não é usado para rastreamento nem publicidade.",
+      "Sua escolha de idioma é armazenada em um cookie funcional e no armazenamento local deste navegador. Nenhum dos dois é usado para rastreamento nem publicidade.",
     languageSelectorLabel: "Selecionar idioma",
     structuredDataCategory: "Ferramenta de informações sobre Internet e redes",
     structuredDataOperatingSystem:
@@ -446,7 +446,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Um cookie funcional guarda a sua escolha de idioma. Não é utilizado para rastreio nem publicidade.",
+      "A sua escolha de idioma é guardada num cookie funcional e no armazenamento local deste navegador. Nenhum dos dois é utilizado para rastreio nem publicidade.",
     languageSelectorLabel: "Selecionar idioma",
     structuredDataCategory: "Ferramenta de informações sobre Internet e redes",
     structuredDataOperatingSystem:
@@ -492,7 +492,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "機能的なCookieは、選択した言語を保存します。トラッキングや広告には使用されません。",
+      "言語の選択は、機能的なCookieとこのブラウザーのローカルストレージに保存されます。どちらもトラッキングや広告には使用されません。",
     languageSelectorLabel: "言語を選択",
     structuredDataCategory: "インターネットとネットワークの情報ツール",
     structuredDataOperatingSystem:
@@ -538,7 +538,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "기능성 쿠키는 선택한 언어를 저장합니다. 추적이나 광고에 사용되지 않습니다.",
+      "선택한 언어는 기능성 쿠키와 이 브라우저의 로컬 스토리지에 저장됩니다. 둘 다 추적이나 광고에 사용되지 않습니다.",
     languageSelectorLabel: "언어 선택",
     structuredDataCategory: "인터넷 및 네트워크 정보 도구",
     structuredDataOperatingSystem: "최신 웹 브라우저가 있는 모든 시스템",
@@ -581,7 +581,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Функциональный файл cookie хранит выбранный вами язык. Он не используется для отслеживания или рекламы.",
+      "Выбранный язык хранится в функциональном cookie и в локальном хранилище этого браузера. Ни то ни другое не используется для отслеживания или рекламы.",
     languageSelectorLabel: "Выбрать язык",
     structuredDataCategory:
       "Инструмент для получения информации об Интернете и сетях",
@@ -625,7 +625,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Функціональний файл cookie зберігає вибрану вами мову. Він не використовується для відстеження чи реклами.",
+      "Вибрана мова зберігається у функціональному cookie та в локальному сховищі цього браузера. Жоден з них не використовується для відстеження чи реклами.",
     languageSelectorLabel: "Вибрати мову",
     structuredDataCategory:
       "Інструмент для отримання інформації про Інтернет і мережі",
@@ -669,7 +669,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "功能性 Cookie 会存储您选择的语言。它不用于跟踪或广告。",
+      "您选择的语言会存储在功能型 Cookie 和此浏览器的本地存储中。两者均不用于跟踪或广告。",
     languageSelectorLabel: "选择语言",
     structuredDataCategory: "互联网和网络信息工具",
     structuredDataOperatingSystem: "配备现代网络浏览器的任何系统",
@@ -711,7 +711,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "功能性 Cookie 會儲存您選擇的語言。它不用於追蹤或廣告。",
+      "您選擇的語言會儲存在功能性 Cookie 和此瀏覽器的本機儲存空間中。兩者皆不用於追蹤或廣告。",
     languageSelectorLabel: "選擇語言",
     structuredDataCategory: "網際網路與網路資訊工具",
     structuredDataOperatingSystem: "配備現代網頁瀏覽器的任何系統",
@@ -754,7 +754,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "يخزّن ملف تعريف الارتباط الوظيفي لغتك المختارة. ولا يُستخدم للتتبع أو الإعلانات.",
+      "يُخزَّن اختيار اللغة في ملف تعريف ارتباط وظيفي وفي التخزين المحلي لهذا المتصفح. ولا يُستخدم أيٌّ منهما للتتبع أو الإعلانات.",
     languageSelectorLabel: "اختر اللغة",
     structuredDataCategory: "أداة معلومات عن الإنترنت والشبكات",
     structuredDataOperatingSystem: "أي نظام مزود بمتصفح ويب حديث",
@@ -797,7 +797,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "एक कार्यात्मक कुकी आपकी चुनी हुई भाषा संग्रहीत करती है। इसका उपयोग ट्रैकिंग या विज्ञापन के लिए नहीं किया जाता है।",
+      "आपकी चुनी हुई भाषा एक कार्यात्मक कुकी और इस ब्राउज़र के लोकल स्टोरेज में संग्रहीत होती है। दोनों का उपयोग ट्रैकिंग या विज्ञापन के लिए नहीं किया जाता है।",
     languageSelectorLabel: "भाषा चुनें",
     structuredDataCategory: "इंटरनेट और नेटवर्क की जानकारी का उपकरण",
     structuredDataOperatingSystem: "आधुनिक वेब ब्राउज़र वाला कोई भी सिस्टम",
@@ -841,7 +841,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Cookie fungsional menyimpan pilihan bahasa Anda. Cookie ini tidak digunakan untuk pelacakan atau iklan.",
+      "Pilihan bahasa Anda disimpan dalam cookie fungsional dan penyimpanan lokal peramban ini. Keduanya tidak digunakan untuk pelacakan atau iklan.",
     languageSelectorLabel: "Pilih bahasa",
     structuredDataCategory: "Alat informasi internet dan jaringan",
     structuredDataOperatingSystem: "Sistem apa pun dengan peramban web modern",
@@ -884,7 +884,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Funkční cookie ukládá vybraný jazyk. Nepoužívá se k sledování ani reklamě.",
+      "Vybraný jazyk se ukládá do funkčního cookie a do lokálního úložiště tohoto prohlížeče. Žádné z nich se nepoužívá ke sledování ani k reklamě.",
     languageSelectorLabel: "Vybrat jazyk",
     structuredDataCategory: "Nástroj pro informace o internetu a sítích",
     structuredDataOperatingSystem:
@@ -930,7 +930,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "En funktionell cookie lagrar ditt språkval. Den används inte för spårning eller annonsering.",
+      "Ditt språkval sparas i en funktionell cookie och i webbläsarens lokala lagring. Inget av dem används för spårning eller annonsering.",
     languageSelectorLabel: "Välj språk",
     structuredDataCategory: "Verktyg för information om internet och nätverk",
     structuredDataOperatingSystem: "Alla system med en modern webbläsare",
@@ -975,7 +975,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "En funktionel cookie gemmer dit sprogval. Den bruges ikke til sporing eller annoncer.",
+      "Dit sprogval gemmes i en funktionel cookie og i denne browsers lokale lagring. Ingen af dem bruges til sporing eller annoncer.",
     languageSelectorLabel: "Vælg sprog",
     structuredDataCategory: "Værktøj til information om internet og netværk",
     structuredDataOperatingSystem: "Alle systemer med en moderne webbrowser",
@@ -1020,7 +1020,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "En funksjonell cookie lagrer språkvalget ditt. Den brukes ikke til sporing eller reklame.",
+      "Språkvalget ditt lagres i en funksjonell cookie og i nettleserens lokale lagring. Ingen av dem brukes til sporing eller reklame.",
     languageSelectorLabel: "Velg språk",
     structuredDataCategory: "Verktøy for informasjon om internett og nettverk",
     structuredDataOperatingSystem: "Alle systemer med en moderne nettleser",
@@ -1065,7 +1065,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Toiminnallinen eväste tallentaa kielivalintasi. Sitä ei käytetä seurantaan eikä mainontaan.",
+      "Kielivalintasi tallennetaan toiminnalliseen evästeeseen ja tämän selaimeen paikalliseen tallennustilaan. Kumpiakaan ei käytetä seurantaan eikä mainontaan.",
     languageSelectorLabel: "Valitse kieli",
     structuredDataCategory: "Työkalu internet- ja verkkotietoihin",
     structuredDataOperatingSystem:
@@ -1112,7 +1112,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Ένα λειτουργικό cookie αποθηκεύει τη γλωσσική επιλογή σας. Δεν χρησιμοποιείται για παρακολούθηση ή διαφημίσεις.",
+      "Η γλωσσική σας επιλογή αποθηκεύεται σε ένα λειτουργικό cookie και στον τοπικό χώρο αποθήκευσης αυτού του προγράμματος περιήγησης. Και τα δύο δεν χρησιμοποιούνται για παρακολούθηση ή διαφημίσεις.",
     languageSelectorLabel: "Επιλέξτε γλώσσα",
     structuredDataCategory:
       "Εργαλείο πληροφοριών για το Διαδίκτυο και τα δίκτυα",
@@ -1161,7 +1161,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "Un cookie funcțional stochează limba selectată. Acesta nu este folosit pentru urmărire sau publicitate.",
+      "Limba selectată este stocată într-un cookie funcțional și în stocarea locală a acestui browser. Niciunul dintre ele nu este folosit pentru urmărire sau publicitate.",
     languageSelectorLabel: "Selectați limba",
     structuredDataCategory:
       "Instrument de informații despre Internet și rețele",
@@ -1207,7 +1207,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     emailAt: "[at]",
     emailDot: "[dot]",
     localeCookieNotice:
-      "İşlevsel bir çerez seçtiğiniz dili saklar. İzleme veya reklam için kullanılmaz.",
+      "Seçtiğiniz dil işlevsel bir çerezde ve bu tarayıcının yerel deposunda saklanır. İkisi de izleme veya reklam için kullanılmaz.",
     languageSelectorLabel: "Dil seçin",
     structuredDataCategory: "İnternet ve ağ bilgileri aracı",
     structuredDataOperatingSystem:

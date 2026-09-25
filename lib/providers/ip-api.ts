@@ -160,12 +160,44 @@ async function readBoundedText(response: Response): Promise<string | null> {
   return new TextDecoder().decode(merged);
 }
 
+/**
+ * ip-api's `lang` parameter only localizes geo names for these languages and
+ * rejects anything else, which would degrade the whole payload to an error.
+ * UI locales outside the set are mapped to the closest supported language.
+ * https://ip-api.com/docs/api:json → "Localization"
+ */
+const IP_API_LANGUAGES = new Set([
+  "en",
+  "de",
+  "es",
+  "fr",
+  "ja",
+  "pt-BR",
+  "ru",
+  "zh-CN",
+]);
+
+const IP_API_LANGUAGE_ALIASES: Record<string, string> = {
+  "pt-PT": "pt-BR",
+  "zh-TW": "zh-CN",
+  "zh-HK": "zh-CN",
+  "zh-Hans": "zh-CN",
+  "zh-Hant": "zh-CN",
+};
+
+function toIpApiLanguage(language: string): string {
+  if (IP_API_LANGUAGES.has(language)) return language;
+  const alias = IP_API_LANGUAGE_ALIASES[language];
+  if (alias) return alias;
+  return "en";
+}
+
 export async function lookupIpApi(
   ip: string,
   options: { language?: string; timeoutMs?: number } = {},
 ): Promise<IpApiData | null> {
   const timeoutMs = options.timeoutMs ?? 5_000;
-  const language = options.language ?? "en";
+  const language = toIpApiLanguage(options.language ?? "en");
 
   // Fast path before allocating timer/controller: a denied lookup must not
   // leak either (the definitive take happens again inside the admission

@@ -9,6 +9,7 @@ import {
   getLocaleSchemaLanguage,
   getNativeLocaleName,
   getTranslation,
+  isSupportedLocale,
   normalizeLocale,
   parseLocaleCookie,
   resolveLocale,
@@ -166,6 +167,18 @@ describe("locale registry and negotiation", () => {
     expect(getToolTranslation("zh-CN").dnsSubtitle).not.toBe(
       getToolTranslation("zh-TW").dnsSubtitle,
     );
+  });
+
+  it("never resolves prototype-inherited keys as locales", () => {
+    // Object.prototype keys must not pass locale validation: they would flow
+    // into LOCALE_DEFINITIONS lookups as fake Locales and crash renders.
+    const hostile = ["constructor", "toString", "hasOwnProperty", "valueOf", "__proto__"];
+    for (const tag of hostile) {
+      expect(normalizeLocale(tag), tag).toBeNull();
+      expect(isSupportedLocale(tag), tag).toBe(false);
+      expect(resolveLocale(null, tag), tag).toBe(DEFAULT_LOCALE);
+      expect(resolveLocale("de-DE,de;q=0.9", tag), tag).toBe("de");
+    }
   });
 
   it("activates RTL only for Arabic", () => {

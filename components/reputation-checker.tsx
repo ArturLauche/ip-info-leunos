@@ -104,29 +104,40 @@ function RiskIcon({ level }: { level: RiskLevel }) {
   return <ShieldCheck className="size-6 text-success" />;
 }
 
+/**
+ * Renders a provider detail using the structured `detailKey`/`detailValue`
+ * pair emitted by lib/reputation (localized labels, never English-prefix
+ * matching); falls back to the composed `detail` for label-less observations
+ * such as reverse DNS.
+ */
 function formatReputationDetail(
-  detail: string,
+  item: EvidenceItem,
   ui: ReturnType<typeof getUiCopy>,
-): string {
-  const prefixes: Array<[string, string]> = [
-    ["RIOT:", ui.reputationDetailRiot],
-    ["IOC type:", ui.reputationDetailThreatType],
-    ["C2 status:", ui.reputationDetailC2Status],
-    ["Network:", ui.reputationDetailNetwork],
-    ["Service:", ui.reputationDetailService],
-  ];
-  const match = prefixes.find(([prefix]) => detail.startsWith(prefix));
-  if (!match) return detail;
-  const [prefix, label] = match;
-  return `${label}: ${detail.slice(prefix.length).trim()}`;
+): string | null {
+  if (item.detailKey && item.detailValue) {
+    const label =
+      item.detailKey === "riot"
+        ? ui.reputationDetailRiot
+        : item.detailKey === "iocType"
+          ? ui.reputationDetailThreatType
+          : item.detailKey === "c2Status"
+            ? ui.reputationDetailC2Status
+            : item.detailKey === "network"
+              ? ui.reputationDetailNetwork
+              : ui.reputationDetailService;
+    return `${label}: ${item.detailValue}`;
+  }
+  return item.detail ?? null;
 }
 
+// Unknown codes fall back to the raw value, never to "no evidence": a code
+// missing from the translation must not masquerade as an absence of findings.
 function categoryLabel(category: EvidenceCategory, t: ToolT) {
-  return t.reputationCategories[category] ?? t.reputationNoEvidence;
+  return t.reputationCategories[category] ?? category;
 }
 
 function severityLabel(severity: EvidenceSeverity, t: ToolT) {
-  return t.reputationSeverities[severity] ?? t.reputationNoEvidence;
+  return t.reputationSeverities[severity] ?? severity;
 }
 
 function severityVariant(
@@ -142,11 +153,11 @@ function sourceName(sourceId: string) {
 }
 
 function reasonText(item: EvidenceItem, t: ToolT) {
-  return t.reputationReasons[item.reason] ?? t.reputationNoEvidence;
+  return t.reputationReasons[item.reason] ?? item.reason;
 }
 
 function stateLabel(status: SourceStatus, t: ToolT) {
-  return t.reputationSourceStates[status] ?? t.reputationNoEvidence;
+  return t.reputationSourceStates[status] ?? status;
 }
 
 function stateVariant(
@@ -280,7 +291,7 @@ function EvidenceCard({
         {item.detail && (
           <MetaRow
             label={t.reputationFieldDetail}
-            value={formatReputationDetail(item.detail, ui)}
+            value={formatReputationDetail(item, ui)}
           />
         )}
         {item.raw && (

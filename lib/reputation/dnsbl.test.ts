@@ -166,6 +166,8 @@ describe("blocklist.de interpretation", () => {
         reason: "bld_attack",
         weight: 25,
         detail: "Service: sasl",
+        detailKey: "service",
+        detailValue: "sasl",
         reportCount: 113,
         attackCount: 12816,
         lastSeen: new Date(1788355802000).toISOString(),

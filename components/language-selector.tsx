@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  getLocaleDirection,
   getNativeLocaleName,
   SUPPORTED_LOCALES,
   type Locale,
@@ -43,7 +44,7 @@ export function LanguageSelector({
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu dir={getLocaleDirection(locale)}>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
@@ -58,7 +59,11 @@ export function LanguageSelector({
           title={`${selectorLabel}: ${currentName}`}
         >
           <Globe2 className="size-4" aria-hidden="true" />
-          {!compact && <span className="max-w-28 truncate">{currentName}</span>}
+          {!compact && (
+            <span className="max-w-28 truncate" lang={locale}>
+              {currentName}
+            </span>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -76,7 +81,11 @@ export function LanguageSelector({
               onSelect={() => selectLocale(candidate)}
               className="justify-between gap-4"
               lang={candidate}
-              dir={candidate === "ar" ? "rtl" : "ltr"}
+              dir={getLocaleDirection(candidate)}
+              // Radio semantics announce the active language to assistive
+              // technology; the trailing check icon alone is visual-only.
+              role="menuitemradio"
+              aria-checked={selected}
             >
               <span>{name}</span>
               {selected && <Check className="size-4" aria-hidden="true" />}

@@ -380,11 +380,14 @@ export function interpretBlocklistDeResponse(
     const definition = BLOCKLIST_DE_CODES[code];
     if (!definition) continue;
 
+    const serviceName = service ?? BLOCKLIST_DE_SERVICES[code] ?? "unknown";
     evidence.push({
       ...definition,
       freshness,
       sourceId: "blocklist-de",
-      detail: `Service: ${service ?? BLOCKLIST_DE_SERVICES[code] ?? "unknown"}`,
+      detail: `Service: ${serviceName}`,
+      detailKey: "service",
+      detailValue: serviceName,
       lastSeen: lastAttackAt,
       reportCount: counts?.reports ?? null,
       attackCount: counts?.attacks ?? null,

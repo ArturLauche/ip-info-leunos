@@ -96,3 +96,32 @@ describe("lookupIpApi bounded reads", () => {
     await expect(lookupIpApi("8.8.8.8")).resolves.toBeNull();
   });
 });
+
+describe("lookupIpApi language normalization", () => {
+  it("only ever requests languages ip-api supports", async () => {
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => chunkedResponse([SUCCESS_BODY]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const cases: Array<[string | undefined, string]> = [
+      ["de", "lang=de"],
+      ["ja", "lang=ja"],
+      ["it", "lang=en"],
+      ["nb", "lang=en"],
+      ["pt-PT", "lang=pt-BR"],
+      ["zh-TW", "lang=zh-CN"],
+      [undefined, "lang=en"],
+    ];
+
+    for (const [language, expected] of cases) {
+      await lookupIpApi("8.8.8.8", language === undefined ? {} : { language });
+      const url = String(fetchMock.mock.calls.at(-1)?.[0]);
+      expect(url, String(language)).toContain(expected);
+      expect(url).not.toContain("lang=it");
+      expect(url).not.toContain("lang=nb");
+      expect(url).not.toContain("lang=pt-PT");
+      expect(url).not.toContain("lang=zh-TW");
+    }
+  });
+});
