@@ -7,11 +7,20 @@
  */
 
 export type CdnConfidence = "high" | "medium" | "low";
+export type CdnReasonCode =
+  | "matched_signals"
+  | "google_fingerprint"
+  | "microsoft_fingerprint"
+  | "generic_proxy_headers"
+  | "unreachable"
+  | "unknown_provider"
+  | "no_known_signature";
 
 export interface CdnDetection {
   provider: string;
   confidence: CdnConfidence;
   reason: string;
+  reasonCode: CdnReasonCode;
   matchedSignals: string[];
 }
 
@@ -208,6 +217,7 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
         provider: signature.provider,
         confidence: mapScoreToConfidence(score),
         reason: `Matched ${matchedSignals.length} CDN signal${matchedSignals.length > 1 ? "s" : ""}.`,
+        reasonCode: "matched_signals",
         matchedSignals,
       };
     }
@@ -229,6 +239,7 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
         provider: "Google Edge Network",
         confidence: "low",
         reason: "Google frontend server fingerprint detected.",
+        reasonCode: "google_fingerprint",
         matchedSignals: [`header-value:server=${serverValue}`],
       };
     }
@@ -239,6 +250,7 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
       provider: "Microsoft Edge Network",
       confidence: "low",
       reason: "Microsoft server fingerprint detected.",
+      reasonCode: "microsoft_fingerprint",
       matchedSignals: [`header-value:server=${serverValue}`],
     };
   }
@@ -248,6 +260,7 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
       provider: "Unknown CDN / Reverse Proxy",
       confidence: "low",
       reason: "Caching/proxy headers were found but no provider-specific signature matched.",
+      reasonCode: "generic_proxy_headers",
       matchedSignals: ["header:x-cache/via/cache-status"],
     };
   }

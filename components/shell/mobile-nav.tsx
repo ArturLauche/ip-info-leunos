@@ -13,8 +13,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { LanguageSelector } from "@/components/language-selector";
 import { ModeToggle } from "@/components/mode-toggle";
-import { type Locale } from "@/lib/i18n";
+import { getLocaleDirection, type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { siteConfig } from "@/lib/seo";
 import { BrandMark } from "./brand-mark";
@@ -35,7 +36,8 @@ export function MobileNav({ locale, active }: MobileNavProps) {
   useEffect(() => {
     const closeOnHistoryNavigation = () => setOpen(false);
     window.addEventListener("popstate", closeOnHistoryNavigation);
-    return () => window.removeEventListener("popstate", closeOnHistoryNavigation);
+    return () =>
+      window.removeEventListener("popstate", closeOnHistoryNavigation);
   }, []);
 
   const themeLabels = {
@@ -59,15 +61,21 @@ export function MobileNav({ locale, active }: MobileNavProps) {
 
       <div className="flex items-center gap-1">
         <CommandTrigger locale={locale} variant="icon" />
+        <LanguageSelector locale={locale} compact />
         <ModeToggle labels={themeLabels} />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" aria-label={toolT.navMenu}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={toolT.navMenu}
+            >
               <Menu className="size-5" aria-hidden="true" />
             </Button>
           </SheetTrigger>
           <SheetContent
-            side="right"
+            side={getLocaleDirection(locale) === "rtl" ? "left" : "right"}
             closeLabel={toolT.navClose}
             // Sheet and page motion share the same duration scale. The drawer
             // clears while the short route exit runs, before the incoming
@@ -77,7 +85,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
             <SheetHeader className="h-16 justify-center border-b border-sidebar-border px-5">
               <SheetTitle className="flex items-center gap-3">
                 <BrandMark />
-                <span className="flex flex-col leading-tight text-left">
+                <span className="flex flex-col leading-tight text-start">
                   <span className="text-sm font-semibold tracking-tight text-foreground">
                     {siteConfig.name}
                   </span>
@@ -86,7 +94,9 @@ export function MobileNav({ locale, active }: MobileNavProps) {
                   </span>
                 </span>
               </SheetTitle>
-              <SheetDescription className="sr-only">{toolT.brandTagline}</SheetDescription>
+              <SheetDescription className="sr-only">
+                {toolT.brandTagline}
+              </SheetDescription>
             </SheetHeader>
             <div className="overflow-y-auto px-3 py-5">
               <NavLinks

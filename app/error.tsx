@@ -5,7 +5,8 @@ import { AlertTriangle, RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { resolveLocale, type Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, resolveLocale, type Locale } from "@/lib/i18n";
+import { readClientLocalePreference } from "@/lib/locale-preference";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
 interface ErrorPageProps {
@@ -19,10 +20,15 @@ interface ErrorPageProps {
  * Accept-Language negotiation used on the server.
  */
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-  const [locale, setLocale] = useState<Locale>("en");
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    setLocale(resolveLocale(navigator.languages?.join(",") ?? navigator.language ?? null));
+    setLocale(
+      readClientLocalePreference() ??
+        resolveLocale(
+          navigator.languages?.join(",") ?? navigator.language ?? null,
+        ),
+    );
   }, []);
 
   useEffect(() => {

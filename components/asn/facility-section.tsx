@@ -106,10 +106,10 @@ export function FacilitySection({
     setSort((prev) => nextHeaderSort(prev, key, defaultFacilitySortDirection()));
 
   const columns: SortableColumn<FacilitySortKey>[] = [
-    { key: "name", label: t.asnLabelFacility, className: "pl-4" },
+    { key: "name", label: t.asnLabelFacility, className: "ps-4" },
     { key: "city", label: t.asnLabelCity },
     { key: "country", label: t.asnLabelCountry },
-    { key: "localAsn", label: t.asnLabelLocalAsn, align: "right", className: "pr-4" },
+    { key: "localAsn", label: t.asnLabelLocalAsn, align: "end", className: "pe-4" },
   ];
   const cellTint = (key: FacilitySortKey) => sortedKey === key && "bg-muted/35";
 
@@ -147,7 +147,7 @@ export function FacilitySection({
               <TableBody>
                 {visible.map((entry, idx) => (
                   <TableRow key={`${entry.id}-${idx}`} className="border-border/50 hover:bg-muted/30">
-                    <TableCell className={cn("min-w-56 py-2.5 pl-4 whitespace-normal", cellTint("name"))}>
+                    <TableCell className={cn("min-w-56 py-2.5 ps-4 whitespace-normal", cellTint("name"))}>
                       <FacilityName entry={entry} t={t} />
                     </TableCell>
                     <TableCell className={cn("py-2.5 text-sm text-foreground/80", cellTint("city"))}>
@@ -156,7 +156,7 @@ export function FacilitySection({
                     <TableCell className={cn("py-2.5", cellTint("country"))}>
                       <Country code={entry.country} locale={locale} />
                     </TableCell>
-                    <TableCell className={cn("py-2.5 pr-4 text-right", cellTint("localAsn"))}>
+                    <TableCell className={cn("py-2.5 pe-4 text-end", cellTint("localAsn"))}>
                       <LocalAsn value={entry.localAsn} ownAsn={asnNumber} t={t} />
                     </TableCell>
                   </TableRow>

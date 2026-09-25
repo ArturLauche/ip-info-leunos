@@ -193,6 +193,15 @@
     @apply bg-background text-foreground;
   }
 
+  /* Keep addresses, URLs, protocol codes, and keyboard symbols readable when
+     the surrounding document is RTL. */
+  code,
+  kbd,
+  .font-mono {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
   ::selection {
     background-color: color-mix(in oklab, var(--foreground) 16%, transparent);
   }
@@ -248,7 +257,7 @@
   .tool-nav-highlight::before {
     content: "";
     position: absolute;
-    left: 0.4rem;
+    inset-inline-start: 0.4rem;
     top: 50%;
     width: 3px;
     height: 1.125rem;
@@ -278,6 +287,9 @@
     pointer-events: none;
     position: absolute;
     top: 0;
+    /* Physical, like .tool-tab-indicator: useSegmentHighlight measures the
+       active item with getBoundingClientRect(), which is always physical, so a
+       logical anchor would slide the chip off the track in RTL. */
     left: 0;
     z-index: 0;
     border-radius: calc(var(--radius) - 2px);

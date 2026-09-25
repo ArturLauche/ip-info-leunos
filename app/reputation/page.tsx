@@ -1,36 +1,32 @@
 import { ReputationChecker } from "@/components/reputation-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { resolveLocale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { ShieldAlert } from "lucide-react";
-import { headers } from "next/headers";
 import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "IP Reputation Check – evidenzbasierte Risikoanalyse",
-  description:
-    "Prüfe öffentliche IP-Adressen gegen unabhängige Reputations- und Threat-Intelligence-Quellen: DNS-Blocklisten, Abuse-Meldungen, Botnet-C2-Tracker und Netzwerk-Klassifizierung – mit nachvollziehbarer Risikobewertung.",
-  path: "/reputation",
-  keywords: [
-    "IP Reputation",
-    "Blacklist Check",
-    "DNSBL",
-    "Spamhaus",
-    "AbuseIPDB",
-    "Botnet C2",
-    "Threat Intelligence",
-  ],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getToolTranslation(locale);
+  return createPageMetadata({
+    title: t.reputationTitle,
+    description: t.reputationSubtitle,
+    path: "/reputation",
+    keywords: [t.reputationTitle, "DNSBL", "Spamhaus", "AbuseIPDB"],
+    locale,
+  });
+}
 
 interface ReputationPageProps {
   searchParams: Promise<{ ip?: SearchParamValue }>;
 }
 
-export default async function ReputationPage({ searchParams }: ReputationPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+export default async function ReputationPage({
+  searchParams,
+}: ReputationPageProps) {
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
 
@@ -42,7 +38,10 @@ export default async function ReputationPage({ searchParams }: ReputationPagePro
       title={t.reputationTitle}
       subtitle={t.reputationSubtitle}
     >
-      <ReputationChecker locale={locale} initialIp={firstSearchParam(params.ip)} />
+      <ReputationChecker
+        locale={locale}
+        initialIp={firstSearchParam(params.ip)}
+      />
     </ToolPageShell>
   );
 }

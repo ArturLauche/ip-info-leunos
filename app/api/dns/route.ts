@@ -3,12 +3,31 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
-import { assertPublicTarget, isIpAddress, TargetValidationError } from "@/lib/network/target";
+import {
+  assertPublicTarget,
+  isIpAddress,
+  TargetValidationError,
+} from "@/lib/network/target";
 import { isCacheableDnsResult } from "@/lib/dns-cache";
+import {
+  DNS_TIMEOUT_MESSAGE,
+  dnsLookupErrorCode,
+  type DnsLookupErrorCode,
+} from "@/lib/dns-errors";
 
 export const runtime = "nodejs";
 
-const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA", "SRV", "CAA"] as const;
+const RECORD_TYPES = [
+  "A",
+  "AAAA",
+  "CNAME",
+  "MX",
+  "NS",
+  "TXT",
+  "SOA",
+  "SRV",
+  "CAA",
+] as const;
 type RecordType = (typeof RECORD_TYPES)[number] | "PTR";
 
 // Bounds each individual resolver call. The OS resolver can retry for tens
@@ -48,7 +67,13 @@ function setCachedDns(hostname: string, payload: unknown) {
   }
 }
 
-type DnsRecordValue = string | number | boolean | null | DnsRecordValue[] | { [key: string]: DnsRecordValue };
+type DnsRecordValue =
+  | string
+  | number
+  | boolean
+  | null
+  | DnsRecordValue[]
+  | { [key: string]: DnsRecordValue };
 
 interface DnsRecord {
   type: RecordType;
@@ -59,6 +84,7 @@ interface ResolveResult {
   type: RecordType;
   records: DnsRecord[];
   error?: string;
+  errorCode?: DnsLookupErrorCode;
 }
 
 function errorCode(error: unknown) {
@@ -68,7 +94,7 @@ function errorCode(error: unknown) {
 function raceResolveTimeout<T>(promise: Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error("DNS query timed out.")),
+      () => reject(new Error(DNS_TIMEOUT_MESSAGE)),
       RESOLVE_TIMEOUT_MS,
     );
     timer.unref?.();
@@ -85,16 +111,28 @@ function raceResolveTimeout<T>(promise: Promise<T>): Promise<T> {
   });
 }
 
-async function resolveByType(hostname: string, type: (typeof RECORD_TYPES)[number]): Promise<ResolveResult> {
+async function resolveByType(
+  hostname: string,
+  type: (typeof RECORD_TYPES)[number],
+): Promise<ResolveResult> {
   try {
     const resolved = await raceResolveTimeout(dns.resolve(hostname, type));
     const records = Array.isArray(resolved) ? resolved : [resolved];
     return {
       type,
-      records: records.map((value) => ({ type, value: value as DnsRecordValue })),
+      records: records.map((value) => ({
+        type,
+        value: value as DnsRecordValue,
+      })),
     };
   } catch (error) {
-    return { type, records: [], error: errorCode(error) };
+    const code = errorCode(error);
+    return {
+      type,
+      records: [],
+      error: code,
+      errorCode: dnsLookupErrorCode(code),
+    };
   }
 }
 
@@ -111,7 +149,10 @@ async function resolvePtr(ip: string): Promise<ResolveResult> {
 }
 
 export async function GET(request: Request) {
-  const limited = enforceRateLimit(request, "dns", { limit: 40, windowMs: 60_000 });
+  const limited = enforceRateLimit(request, "dns", {
+    limit: 40,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
@@ -133,7 +174,11 @@ export async function GET(request: Request) {
       return apiError(error.code, error.message, error.status, error.details);
     }
 
-    return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
+    return apiError(
+      "invalid_target",
+      "Please provide a valid public domain or IP.",
+      400,
+    );
   }
 
   const cachedPayload = getCachedDns(hostname);
@@ -148,14 +193,24 @@ export async function GET(request: Request) {
     // Stable negatives (no PTR record) are normal, not noteworthy — same
     // normalization as the hostname path, so clean PTR misses stay cacheable.
     const recordErrors =
-      ptrResult.error && ptrResult.error !== "ENOTFOUND" && ptrResult.error !== "ENODATA"
-        ? [{ type: ptrResult.type, error: ptrResult.error }]
+      ptrResult.error &&
+      ptrResult.error !== "ENOTFOUND" &&
+      ptrResult.error !== "ENODATA"
+        ? [
+            {
+              type: ptrResult.type,
+              error: ptrResult.error,
+              errorCode:
+                ptrResult.errorCode ?? dnsLookupErrorCode(ptrResult.error),
+            },
+          ]
         : [];
     const payload = {
       target: hostname,
       addresses: [{ address: hostname, family: net.isIP(hostname) }],
       records: ptrResult.records,
       lookupError: null,
+      lookupErrorCode: null,
       recordErrors,
     };
     if (isCacheableDnsResult(null, recordErrors)) {
@@ -167,7 +222,10 @@ export async function GET(request: Request) {
   const [lookupResult, recordsByType] = await Promise.all([
     raceResolveTimeout(dns.lookup(hostname, { all: true })).then(
       (value) => ({ ok: true as const, value }),
-      (error) => ({ ok: false as const, error: error as NodeJS.ErrnoException }),
+      (error) => ({
+        ok: false as const,
+        error: error as NodeJS.ErrnoException,
+      }),
     ),
     Promise.all(RECORD_TYPES.map((type) => resolveByType(hostname, type))),
   ]);
@@ -175,16 +233,27 @@ export async function GET(request: Request) {
   const records = recordsByType.flatMap((entry) => entry.records);
   const addresses = lookupResult.ok ? lookupResult.value : [];
 
-  const lookupError = lookupResult.ok ? null : lookupResult.error.code || lookupResult.error.message;
+  const lookupError = lookupResult.ok
+    ? null
+    : lookupResult.error.code || lookupResult.error.message;
+  const lookupErrorCode = lookupError ? dnsLookupErrorCode(lookupError) : null;
   const recordErrors = recordsByType
     // A type without records (ENODATA/ENOTFOUND) is normal, not noteworthy.
-    .filter((entry) => entry.error && entry.error !== "ENODATA" && entry.error !== "ENOTFOUND")
-    .map((entry) => ({ type: entry.type, error: entry.error }));
+    .filter(
+      (entry) =>
+        entry.error && entry.error !== "ENODATA" && entry.error !== "ENOTFOUND",
+    )
+    .map((entry) => ({
+      type: entry.type,
+      error: entry.error,
+      errorCode: entry.errorCode ?? dnsLookupErrorCode(entry.error),
+    }));
   const payload = {
     target: hostname,
     addresses,
     records,
     lookupError,
+    lookupErrorCode,
     recordErrors,
   };
   if (isCacheableDnsResult(lookupError, recordErrors)) {

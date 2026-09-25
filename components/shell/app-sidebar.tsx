@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslation, type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { siteConfig } from "@/lib/seo";
+import { LanguageSelector } from "@/components/language-selector";
 import { ModeToggle } from "@/components/mode-toggle";
 import { BrandMark } from "./brand-mark";
 import { CommandTrigger } from "./command-menu";
@@ -20,7 +21,7 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex"
+      className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-sidebar-border bg-sidebar lg:flex"
       aria-label={toolT.sidebarLabel}
     >
       <div className="flex h-16 items-center px-5">
@@ -40,8 +41,11 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
         </Link>
       </div>
 
-      <div className="px-3 pb-1">
-        <CommandTrigger locale={locale} />
+      <div className="flex items-center gap-1 px-3 pb-1">
+        <div className="min-w-0 flex-1">
+          <CommandTrigger locale={locale} />
+        </div>
+        <LanguageSelector locale={locale} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">

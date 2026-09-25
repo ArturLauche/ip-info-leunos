@@ -1,42 +1,13 @@
 import { navGroups, type ToolKey } from "@/components/shell/nav-config";
 import { StructuredData } from "@/components/structured-data";
-import type { Locale } from "@/lib/i18n";
+import {
+  getTranslation,
+  getLocaleSchemaLanguage,
+  type Locale,
+} from "@/lib/i18n";
+import { getToolTranslation } from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
 import { canonicalUrl, siteConfig } from "@/lib/seo";
-
-const featureLists: Record<ToolKey, { de: string[]; en: string[] }> = {
-  home: {
-    de: ["Öffentliche IPv4- und IPv6-Adresse", "Ungefähre IP-Geolokalisierung", "Provider, Organisation und ASN", "Reverse DNS und Verbindungshinweise"],
-    en: ["Public IPv4 and IPv6 address", "Approximate IP geolocation", "Provider, organization, and ASN", "Reverse DNS and connection signals"],
-  },
-  check: {
-    de: ["Lookup öffentlicher IPv4- und IPv6-Adressen", "Domainauflösung", "Provider- und ASN-Daten", "Reverse DNS und ungefähre Geolokalisierung"],
-    en: ["Public IPv4 and IPv6 lookup", "Domain resolution", "Provider and ASN data", "Reverse DNS and approximate geolocation"],
-  },
-  asn: {
-    de: ["ASN-Identität und angekündigte Prefixe", "RIPEstat-Routing-Beobachtungen", "Öffentliche PeeringDB-Profile", "Quellenstatus und Teilresultate"],
-    en: ["ASN identity and announced prefixes", "RIPEstat routing observations", "Public PeeringDB profiles", "Source status and partial results"],
-  },
-  ping: {
-    de: ["TCP- und UDP-Erreichbarkeit", "Endpoint-Prüfung", "Ausgewählte Datenbank-Probes", "Serverseitige Latenz und Zeitlimits"],
-    en: ["TCP and UDP reachability", "Endpoint checks", "Selected database probes", "Server-side latency and timeouts"],
-  },
-  dns: {
-    de: ["A, AAAA und CNAME", "MX, NS und TXT", "SOA, SRV und CAA", "PTR-Reverse-Lookup"],
-    en: ["A, AAAA, and CNAME", "MX, NS, and TXT", "SOA, SRV, and CAA", "PTR reverse lookup"],
-  },
-  whois: {
-    de: ["Domain- und IP-WHOIS", "Registrar- und Registry-Daten", "Nameserver und Datumsfelder", "RDAP-Fallback und Rohantwort"],
-    en: ["Domain and IP WHOIS", "Registrar and registry data", "Name servers and date fields", "RDAP fallback and raw response"],
-  },
-  cdn: {
-    de: ["DNS- und CNAME-Signale", "HTTP-Header-Signale", "CDN- und Edge-Anbieter-Heuristiken", "Begrenzte Prüfung öffentlicher Ziele"],
-    en: ["DNS and CNAME signals", "HTTP header signals", "CDN and edge-provider heuristics", "Bounded checks of public targets"],
-  },
-  reputation: {
-    de: ["Ausgewählte DNS-Blacklists", "Proxy- und Hosting-Heuristiken", "Optionale AbuseIPDB-Meldedaten", "Vorsichtiger Risiko-Score"],
-    en: ["Selected DNS blocklists", "Proxy and hosting heuristics", "Optional AbuseIPDB report data", "Cautious risk score"],
-  },
-};
 
 interface ToolStructuredDataProps {
   tool: ToolKey;
@@ -45,11 +16,51 @@ interface ToolStructuredDataProps {
   description: string;
 }
 
-export function ToolStructuredData({ tool, locale, name, description }: ToolStructuredDataProps) {
-  const path = navGroups.flatMap((group) => group.items).find((item) => item.key === tool)?.href ?? "/";
+export function ToolStructuredData({
+  tool,
+  locale,
+  name,
+  description,
+}: ToolStructuredDataProps) {
+  const path =
+    navGroups.flatMap((group) => group.items).find((item) => item.key === tool)
+      ?.href ?? "/";
   const url = canonicalUrl(path);
-  const language = locale === "de" ? "de-DE" : locale;
-  const features = locale === "de" ? featureLists[tool].de : featureLists[tool].en;
+  const t = getToolTranslation(locale);
+  const baseT = getTranslation(locale);
+  const ui = getUiCopy(locale);
+  const featuresByTool: Record<ToolKey, string[]> = {
+    home: [baseT.homeSubtitle, baseT.detectedConnectionType, baseT.reverseDns],
+    check: [baseT.checkSubtitle, baseT.asNumber, baseT.reverseDns],
+    asn: [t.asnSubtitle, t.asnPrefixes, t.asnRouting, t.asnPeeringDb],
+    ping: [
+      t.pingSubtitle,
+      t.pingModeHelperTcp,
+      t.pingModeHelperUdp,
+      t.pingModeHelperDatabase,
+    ],
+    dns: [t.dnsSubtitle, t.dnsTableType, t.dnsTableValue, t.dnsNoRecords],
+    whois: [
+      t.whoisSubtitle,
+      t.whoisRegistrar,
+      t.whoisNameservers,
+      t.noWhoisData,
+    ],
+    cdn: [
+      t.cdnSubtitle,
+      t.cdnMatchedSignals,
+      t.cdnCnameChain,
+      t.cdnInterestingHeaders,
+    ],
+    reputation: [
+      t.reputationSubtitle,
+      t.reputationSectionThreats,
+      t.reputationSectionSources,
+      t.reputationScoreLabel,
+    ],
+  };
+  const features = featuresByTool[tool];
+  const language = getLocaleSchemaLanguage(locale);
 
   return (
     <StructuredData
@@ -61,9 +72,9 @@ export function ToolStructuredData({ tool, locale, name, description }: ToolStru
         url,
         description,
         applicationCategory: "UtilitiesApplication",
-        applicationSubCategory: "Internet and network information tool",
-        operatingSystem: "Any system with a modern web browser",
-        browserRequirements: "Requires JavaScript for interactive lookups",
+        applicationSubCategory: ui.structuredDataCategory,
+        operatingSystem: ui.structuredDataOperatingSystem,
+        browserRequirements: ui.structuredDataBrowserRequirements,
         featureList: features,
         isAccessibleForFree: true,
         inLanguage: language,

@@ -75,6 +75,14 @@ export const MAIL_CATEGORIES: ReadonlySet<EvidenceCategory> = new Set([
   "spam_observed",
 ]);
 
+/** Stable label keys for provider detail strings, mapped in lib/ui-copy.ts. */
+export type ReputationDetailLabel =
+  | "riot"
+  | "iocType"
+  | "c2Status"
+  | "network"
+  | "service";
+
 /**
  * Evidence as produced by a provider parser. `weight` is the base risk
  * contribution (0-100) before confidence and freshness factors; `freshness`
@@ -98,6 +106,14 @@ export interface RawEvidence {
   malwareFamily?: string | null;
   /** Locale-neutral source detail (service names, SBL ids, CIDRs). */
   detail?: string | null;
+  /**
+   * Localizable label of `detail` ("RIOT:", "Service:", …). Clients render
+   * `detailValue` under the translated label from lib/ui-copy.ts instead of
+   * matching on the English prefix embedded in `detail`.
+   */
+  detailKey?: ReputationDetailLabel | null;
+  /** `detail` without its English label prefix; localized via `detailKey`. */
+  detailValue?: string | null;
   /** Original DNS answer or provider code, kept for transparency. */
   raw?: string | null;
 }

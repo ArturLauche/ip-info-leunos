@@ -2,11 +2,25 @@
 
 import { type Locale } from "@/lib/i18n";
 import { readApiResponse } from "@/lib/api/client";
-import { getApiErrorMessage, getToolTranslation, type ToolTranslation } from "@/lib/tool-i18n";
+import {
+  getApiErrorMessage,
+  getToolTranslation,
+  type ToolTranslation,
+} from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
 import { formatTemplate } from "@/lib/format";
-import type { PingMessageKey, PingMessageParams } from "@/lib/network/database-probes";
+import type {
+  PingMessageKey,
+  PingMessageParams,
+} from "@/lib/network/database-probes";
 import { cn } from "@/lib/utils";
-import { buildPingRequest, defaultPingPort, DB_DEFAULT_PORTS, type DatabaseType, type PingMode } from "@/lib/ping";
+import {
+  buildPingRequest,
+  defaultPingPort,
+  DB_DEFAULT_PORTS,
+  type DatabaseType,
+  type PingMode,
+} from "@/lib/ping";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
@@ -48,24 +62,43 @@ interface PingResult {
   details?: Record<string, unknown>;
 }
 
-function formatPingMessage(result: PingResult, t: ToolTranslation): string {
+function formatPingMessage(
+  result: PingResult,
+  t: ToolTranslation,
+  ui: ReturnType<typeof getUiCopy>,
+): string {
   const params = result.messageParams ?? {};
+  // The API reports the display name ("Generic"); match case-insensitively so
+  // the localized label replaces it instead of leaking the English display name.
+  const database =
+    typeof params.database === "string" &&
+    params.database.trim().toLowerCase() === "generic"
+      ? ui.pingDatabaseGeneric
+      : (params.database ?? "");
   switch (result.messageKey) {
     case "tcp_ok":
       return t.pingResultTcpOk;
     case "tcp_timeout":
-      return formatTemplate(t.pingResultTcpTimeout, { timeoutMs: params.timeoutMs ?? "" });
+      return formatTemplate(t.pingResultTcpTimeout, {
+        timeoutMs: params.timeoutMs ?? "",
+      });
     case "tcp_failed":
-      return formatTemplate(t.pingResultTcpFailed, { error: params.error ?? "" });
+      return formatTemplate(t.pingResultTcpFailed, {
+        error: params.error ?? "",
+      });
     case "udp_sent":
-      return formatTemplate(t.pingResultUdpSent, { timeoutMs: params.timeoutMs ?? "" });
+      return formatTemplate(t.pingResultUdpSent, {
+        timeoutMs: params.timeoutMs ?? "",
+      });
     case "udp_response":
       return formatTemplate(t.pingResultUdpResponse, {
         from: params.from ?? "",
         bytes: params.bytes ?? "",
       });
     case "udp_failed":
-      return formatTemplate(t.pingResultUdpFailed, { error: params.error ?? "" });
+      return formatTemplate(t.pingResultUdpFailed, {
+        error: params.error ?? "",
+      });
     case "eb_http_ok":
       return formatTemplate(t.pingResultEbHttpOk, {
         scheme: params.scheme ?? "",
@@ -74,29 +107,33 @@ function formatPingMessage(result: PingResult, t: ToolTranslation): string {
     case "eb_no_http":
       return t.pingResultEbNoHttp;
     case "eb_tcp_failed":
-      return formatTemplate(t.pingResultEbTcpFailed, { error: params.error ?? "" });
+      return formatTemplate(t.pingResultEbTcpFailed, {
+        error: params.error ?? "",
+      });
     case "db_connect_failed":
       return formatTemplate(t.pingResultDbConnectFailed, {
-        database: params.database ?? "",
+        database,
         error: params.error ?? "",
       });
     case "db_protocol_ok":
-      return formatTemplate(t.pingResultDbProtocolOk, { database: params.database ?? "" });
+      return formatTemplate(t.pingResultDbProtocolOk, { database });
     case "db_protocol_failed":
       return formatTemplate(t.pingResultDbProtocolFailed, {
-        database: params.database ?? "",
+        database,
         error: params.error ?? "",
       });
     case "db_tcp_ok":
-      return formatTemplate(t.pingResultDbTcpOk, { database: params.database ?? "" });
+      return formatTemplate(t.pingResultDbTcpOk, { database });
     case "db_auth_unsupported":
-      return formatTemplate(t.pingResultDbAuthUnsupported, { database: params.database ?? "" });
+      return formatTemplate(t.pingResultDbAuthUnsupported, { database });
     case "db_auth_ok":
       return t.pingResultDbAuthOk;
     case "db_auth_failed":
-      return formatTemplate(t.pingResultDbAuthFailed, { error: params.error ?? "" });
+      return formatTemplate(t.pingResultDbAuthFailed, {
+        error: params.error ?? "",
+      });
     default:
-      return result.message;
+      return ui.pingResultUnknown;
   }
 }
 
@@ -108,13 +145,13 @@ const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "redis", label: "Redis" },
   { value: "mongodb", label: "MongoDB" },
   { value: "mssql", label: "MS SQL Server" },
-  { value: "generic", label: "Generic TCP DB" },
+  { value: "generic", label: "TCP" },
 ];
 
 const getDatabaseOptionDetail = (value: DatabaseType, locale: Locale) => {
   const defaultPort = DB_DEFAULT_PORTS[value];
   if (defaultPort) return `${defaultPort} / TCP`;
-  return locale === "de" ? "Manueller Port" : "Custom port";
+  return getUiCopy(locale).pingCustomPort;
 };
 
 interface PingCheckerProps {
@@ -142,7 +179,7 @@ export function PingChecker({
   const [password, setPassword] = useState("");
   const [database, setDatabase] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [thrownError, setThrownError] = useState<{ value: unknown } | null>(null);
   const [result, setResult] = useState<PingResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const requestSeq = useRef(0);
@@ -157,8 +194,18 @@ export function PingChecker({
   // Values we last pushed into the URL ourselves via router.replace on submit.
   // Lets the sync effect distinguish our own URL update (which must not cancel
   // the in-flight request) from external navigation (command palette, links).
-  const selfSubmitted = useRef<{ target: string; port: string; mode: PingMode } | null>(null);
+  const selfSubmitted = useRef<{
+    target: string;
+    port: string;
+    mode: PingMode;
+  } | null>(null);
   const t = getToolTranslation(locale);
+  const ui = getUiCopy(locale);
+  // Derived from the raw error on every render so the message follows locale
+  // switches made while it is on screen (same pattern as useToolLookup).
+  const error = thrownError
+    ? getApiErrorMessage(thrownError.value, t, t.pingNetworkError)
+    : null;
   const isDatabase = mode === "database";
 
   // Sync the URL-backed fields when they change on the same route (e.g. the
@@ -188,7 +235,7 @@ export function PingChecker({
     setMode(initialMode);
     requestSeq.current += 1;
     setLoading(false);
-    setError(null);
+    setThrownError(null);
     setResult(null);
   }, [initialTarget, initialPort, initialMode]);
 
@@ -228,7 +275,7 @@ export function PingChecker({
     requestSeq.current += 1;
     abortRef.current?.abort();
     setLoading(false);
-    setError(null);
+    setThrownError(null);
     setResult(null);
   };
 
@@ -241,7 +288,7 @@ export function PingChecker({
     abortRef.current = controller;
     const seq = ++requestSeq.current;
     setLoading(true);
-    setError(null);
+    setThrownError(null);
     setResult(null);
     setShowDetails(false);
 
@@ -256,23 +303,32 @@ export function PingChecker({
         method: "POST",
         headers: { "content-type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify(buildPingRequest({
-          mode, target, port, timeoutMs, databaseType, useAuth, username, password, database,
-        })),
+        body: JSON.stringify(
+          buildPingRequest({
+            mode,
+            target,
+            port,
+            timeoutMs,
+            databaseType,
+            useAuth,
+            username,
+            password,
+            database,
+          }),
+        ),
       });
 
       const data = await readApiResponse<PingResult>(response);
-      if (!controller.signal.aborted && seq === requestSeq.current) setResult(data);
+      if (!controller.signal.aborted && seq === requestSeq.current)
+        setResult(data);
     } catch (checkError) {
       if (controller.signal.aborted) {
         return;
       }
-      if (seq === requestSeq.current) {
-        // Map by error code like every other checker, so rate limits and
-        // validation failures show translated messages instead of the raw
-        // backend string.
-        setError(getApiErrorMessage(checkError, t, t.pingNetworkError));
-      }
+      // Map by error code during render (see `error` above), so rate limits
+      // and validation failures show translated messages instead of the raw
+      // backend string, in the language currently on screen.
+      if (seq === requestSeq.current) setThrownError({ value: checkError });
     } finally {
       if (seq === requestSeq.current) setLoading(false);
     }
@@ -299,7 +355,9 @@ export function PingChecker({
                     <Label htmlFor="ping-db-type">{t.pingDatabaseType}</Label>
                     <Select
                       value={databaseType}
-                      onValueChange={(value) => onDatabaseTypeChange(value as DatabaseType)}
+                      onValueChange={(value) =>
+                        onDatabaseTypeChange(value as DatabaseType)
+                      }
                     >
                       <SelectTrigger id="ping-db-type" className="w-full">
                         <SelectValue />
@@ -307,7 +365,11 @@ export function PingChecker({
                       <SelectContent>
                         {DATABASE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            <span className="font-medium">{option.label}</span>
+                            <span className="font-medium">
+                              {option.value === "generic"
+                                ? ui.pingDatabaseGeneric
+                                : option.label}
+                            </span>
                             <span className="text-muted-foreground">
                               {getDatabaseOptionDetail(option.value, locale)}
                             </span>
@@ -423,7 +485,9 @@ export function PingChecker({
                       />
                     </div>
                     <div className="flex flex-col gap-2 sm:col-span-2">
-                      <Label htmlFor="ping-database">{t.pingDatabaseOptional}</Label>
+                      <Label htmlFor="ping-database">
+                        {t.pingDatabaseOptional}
+                      </Label>
                       <Input
                         id="ping-database"
                         name="database"
@@ -440,7 +504,16 @@ export function PingChecker({
           </div>
 
           <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-end">
-            {loading && <Button type="button" variant="outline" className="h-11" onClick={cancel}>{t.cancelLookup}</Button>}
+            {loading && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                onClick={cancel}
+              >
+                {t.cancelLookup}
+              </Button>
+            )}
             <Button
               type="submit"
               disabled={loading}
@@ -489,7 +562,7 @@ export function PingChecker({
             </p>
             <Badge
               variant={result.ok ? "success" : "destructive"}
-              className="ml-auto font-mono tabular-nums"
+              className="ms-auto font-mono tabular-nums"
             >
               <Timer className="size-3" aria-hidden="true" />
               {result.latencyMs} ms
@@ -501,7 +574,7 @@ export function PingChecker({
               key={`${result.messageKey ?? "legacy"}-${result.message}`}
               className="text-sm leading-relaxed text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
             >
-              {formatPingMessage(result, t)}
+              {formatPingMessage(result, t, ui)}
             </p>
 
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -510,7 +583,9 @@ export function PingChecker({
                   {t.pingModeLabel}
                 </dt>
                 <dd className="mt-1 font-mono text-sm text-foreground uppercase">
-                  {result.mode === "database" ? t.pingModeDatabase : result.mode}
+                  {result.mode === "database"
+                    ? t.pingModeDatabase
+                    : result.mode}
                 </dd>
               </div>
               <div>
@@ -545,7 +620,11 @@ export function PingChecker({
                   {showDetails ? t.pingHideDetails : t.pingShowDetails}
                 </Button>
                 {showDetails && (
-                  <pre id="ping-details" tabIndex={0} className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground">
+                  <pre
+                    id="ping-details"
+                    tabIndex={0}
+                    className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground"
+                  >
                     {JSON.stringify(result.details, null, 2)}
                   </pre>
                 )}

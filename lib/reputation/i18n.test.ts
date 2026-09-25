@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { SUPPORTED_LOCALES } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { REPUTATION_SOURCES } from "./model";
 
 /**
  * The reputation UI resolves reason codes and source ids against translation
- * records at runtime. Because `de` spreads over `en`, a missing record key
- * would silently render as undefined — this keeps both locales aligned.
+ * records at runtime. Every supported catalog must be complete: a missing entry
+ * would render `undefined` in the middle of an evidence row, so all locales are
+ * checked against the English reference rather than a hand-picked pair.
  */
 const REPUTATION_RECORDS = [
   "reputationCategories",
@@ -16,31 +18,35 @@ const REPUTATION_RECORDS = [
 ] as const;
 
 describe("reputation translation parity", () => {
-  it("keeps every reputation record aligned between English and German", () => {
+  it("keeps every reputation record aligned in every supported catalog", () => {
     const en = getToolTranslation("en");
-    const de = getToolTranslation("de");
 
-    for (const recordKey of REPUTATION_RECORDS) {
-      const enRecord: Record<string, string> = en[recordKey];
-      const deRecord: Record<string, string> = de[recordKey];
+    for (const locale of SUPPORTED_LOCALES) {
+      const translated = getToolTranslation(locale);
+      for (const recordKey of REPUTATION_RECORDS) {
+        const enRecord: Record<string, string> = en[recordKey];
+        const record: Record<string, string> = translated[recordKey];
 
-      expect(Object.keys(deRecord).sort(), recordKey).toEqual(
-        Object.keys(enRecord).sort(),
-      );
-      for (const [key, value] of Object.entries(enRecord)) {
-        expect(deRecord[key], `${recordKey}.${key}`).toBeTruthy();
-        expect(typeof value).toBe("string");
+        expect(Object.keys(record).sort(), `${locale}.${recordKey}`).toEqual(
+          Object.keys(enRecord).sort(),
+        );
+        for (const [key, value] of Object.entries(enRecord)) {
+          expect(record[key], `${locale}.${recordKey}.${key}`).toBeTruthy();
+          expect(typeof value).toBe("string");
+        }
       }
     }
   });
 
-  it("describes every integrated source in both locales", () => {
-    const en = getToolTranslation("en");
-    const de = getToolTranslation("de");
-
-    for (const source of REPUTATION_SOURCES) {
-      expect(en.reputationSourceDescriptions[source.id], source.id).toBeTruthy();
-      expect(de.reputationSourceDescriptions[source.id], source.id).toBeTruthy();
+  it("describes every integrated source in every supported catalog", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const translated = getToolTranslation(locale);
+      for (const source of REPUTATION_SOURCES) {
+        expect(
+          translated.reputationSourceDescriptions[source.id],
+          `${locale}.${source.id}`,
+        ).toBeTruthy();
+      }
     }
   });
 

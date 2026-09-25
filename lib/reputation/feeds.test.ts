@@ -128,6 +128,8 @@ describe("feed matching", () => {
         weight: 65,
         confidence: 95,
         malwareFamily: "QakBot",
+        detailKey: "c2Status",
+        detailValue: "online",
       }),
     );
 
@@ -155,7 +157,14 @@ describe("feed matching", () => {
     const v4 = await matchDrop("185.93.89.118", 4);
     expect(v4.status).toBe("matched");
     expect(v4.evidence[0]).toEqual(
-      expect.objectContaining({ category: "malware", reason: "drop", weight: 65, detail: "Network: 185.93.88.0/22" }),
+      expect.objectContaining({
+        category: "malware",
+        reason: "drop",
+        weight: 65,
+        detail: "Network: 185.93.88.0/22",
+        detailKey: "network",
+        detailValue: "185.93.88.0/22",
+      }),
     );
 
     const v6 = await matchDrop("2a01:4f8:1:2::3", 6);

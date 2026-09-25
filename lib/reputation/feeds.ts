@@ -287,6 +287,8 @@ export async function matchFeodo(ip: string, nowMs: number): Promise<FeedMatchRe
         lastSeen: entry.lastOnline,
         malwareFamily: entry.malware,
         detail: entry.status ? `C2 status: ${entry.status}` : null,
+        detailKey: entry.status ? "c2Status" : null,
+        detailValue: entry.status || null,
       },
     ],
   };
@@ -319,6 +321,7 @@ export async function matchDrop(ip: string, family: 4 | 6): Promise<FeedMatchRes
   for (const entry of state.data) {
     if (!isInRange(address, entry.range)) continue;
 
+    const networkDetail = `${entry.cidr}${entry.sblid ? ` (${entry.sblid})` : ""}`;
     return {
       status: "matched",
       evidence: [
@@ -329,7 +332,9 @@ export async function matchDrop(ip: string, family: 4 | 6): Promise<FeedMatchRes
           weight: 65,
           confidence: 90,
           freshness: 0.9,
-          detail: `Network: ${entry.cidr}${entry.sblid ? ` (${entry.sblid})` : ""}`,
+          detail: `Network: ${networkDetail}`,
+          detailKey: "network",
+          detailValue: networkDetail,
         },
       ],
     };

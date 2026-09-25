@@ -68,7 +68,13 @@ describe("GreyNoise community normalization", () => {
     );
     expect(riot.status).toBe("policy_listed");
     expect(riot.evidence[0]).toEqual(
-      expect.objectContaining({ category: "benign_service", weight: 0, detail: "RIOT: Cloudflare" }),
+      expect.objectContaining({
+        category: "benign_service",
+        weight: 0,
+        detail: "RIOT: Cloudflare",
+        detailKey: "riot",
+        detailValue: "Cloudflare",
+      }),
     );
 
     const clean = greyNoiseEvidence({ noise: false, riot: false, classification: null, name: null, lastSeen: null }, NOW_MS);
@@ -159,7 +165,15 @@ describe("ThreatFox normalization", () => {
     );
     expect(result.status).toBe("matched");
     expect(result.evidence[0]).toEqual(
-      expect.objectContaining({ category: "botnet", reason: "threatfox_ioc", weight: 55, confidence: 100, malwareFamily: "Cobalt Strike" }),
+      expect.objectContaining({
+        category: "botnet",
+        reason: "threatfox_ioc",
+        weight: 55,
+        confidence: 100,
+        malwareFamily: "Cobalt Strike",
+        detailKey: "iocType",
+        detailValue: "botnet_cc",
+      }),
     );
 
     expect(threatFoxEvidence([], NOW_MS).status).toBe("clean");

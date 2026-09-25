@@ -1,27 +1,30 @@
 import { WhoisChecker } from "@/components/whois-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { resolveLocale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Activity } from "lucide-react";
-import { headers } from "next/headers";
 import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Whois Lookup für Domains und IP-Adressen",
-  description: "Rufe öffentliche WHOIS- und RDAP-Daten für Domains oder IP-Adressräume mit verfügbaren Registry-, Registrar-, Nameserver- und Datumsangaben ab.",
-  path: "/whois",
-  keywords: ['Whois Lookup', 'Domain Whois', 'IP Whois'],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getToolTranslation(locale);
+  return createPageMetadata({
+    title: t.whoisTitle,
+    description: t.whoisSubtitle,
+    path: "/whois",
+    keywords: [t.whoisTitle, "WHOIS", "RDAP", "Registrar", "Nameserver"],
+    locale,
+  });
+}
 
 interface WhoisPageProps {
   searchParams: Promise<{ target?: SearchParamValue }>;
 }
 
 export default async function WhoisPage({ searchParams }: WhoisPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
 
@@ -33,7 +36,10 @@ export default async function WhoisPage({ searchParams }: WhoisPageProps) {
       title={t.whoisTitle}
       subtitle={t.whoisSubtitle}
     >
-      <WhoisChecker locale={locale} initialTarget={firstSearchParam(params.target)} />
+      <WhoisChecker
+        locale={locale}
+        initialTarget={firstSearchParam(params.target)}
+      />
     </ToolPageShell>
   );
 }

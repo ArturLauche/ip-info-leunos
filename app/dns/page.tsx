@@ -1,27 +1,30 @@
 import { DnsChecker } from "@/components/dns-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
-import { resolveLocale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { Network } from "lucide-react";
-import { headers } from "next/headers";
 import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "DNS Lookup für A, AAAA, MX, TXT und mehr",
-  description: "Prüfe öffentliche DNS-Daten für A, AAAA, CNAME, MX, NS, TXT, SOA, SRV und CAA sowie PTR-Reverse-DNS für IP-Adressen.",
-  path: "/dns",
-  keywords: ['DNS Lookup', 'DNS Records', 'MX Check'],
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getToolTranslation(locale);
+  return createPageMetadata({
+    title: t.dnsTitle,
+    description: t.dnsSubtitle,
+    path: "/dns",
+    keywords: [t.dnsTitle, "A", "AAAA", "MX", "TXT", "SRV", "CAA"],
+    locale,
+  });
+}
 
 interface DnsPageProps {
   searchParams: Promise<{ target?: SearchParamValue }>;
 }
 
 export default async function DnsPage({ searchParams }: DnsPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
 
@@ -33,7 +36,10 @@ export default async function DnsPage({ searchParams }: DnsPageProps) {
       title={t.dnsTitle}
       subtitle={t.dnsSubtitle}
     >
-      <DnsChecker locale={locale} initialTarget={firstSearchParam(params.target)} />
+      <DnsChecker
+        locale={locale}
+        initialTarget={firstSearchParam(params.target)}
+      />
     </ToolPageShell>
   );
 }

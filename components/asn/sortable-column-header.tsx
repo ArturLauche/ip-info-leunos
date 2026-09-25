@@ -18,7 +18,7 @@ export function sortAriaLabel(label: string, direction: SortDirection | null, t:
 export interface SortableColumn<K extends string> {
   key: K;
   label: string;
-  align?: "left" | "right";
+  align?: "start" | "end";
   className?: string;
 }
 
@@ -47,7 +47,7 @@ export function SortableTableHead<K extends string>({
       aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
       className={cn(
         "h-10 px-3 text-[11px] transition-colors",
-        column.align === "right" && "text-right",
+        column.align === "end" && "text-end",
         active && "bg-muted/70",
         column.className,
       )}
@@ -70,7 +70,7 @@ export function SortableColumnHeader({
   direction,
   onToggle,
   ariaLabel,
-  align = "left",
+  align = "start",
   className,
 }: {
   label: ReactNode;
@@ -78,7 +78,7 @@ export function SortableColumnHeader({
   direction: SortDirection | null;
   onToggle: () => void;
   ariaLabel: string;
-  align?: "left" | "right";
+  align?: "start" | "end";
   className?: string;
 }) {
   return (
@@ -88,7 +88,7 @@ export function SortableColumnHeader({
       aria-label={ariaLabel}
       className={cn(
         "group/sort -mx-1.5 inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-sm px-1.5 text-inherit uppercase outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 pointer-coarse:min-h-11",
-        align === "right" && "ml-auto flex-row-reverse",
+        align === "end" && "me-auto flex-row-reverse",
         active && "text-foreground",
         className,
       )}

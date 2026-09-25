@@ -43,6 +43,7 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.searchPlaceholder}
+        ariaLabel={t.checkTitle}
         submitLabel={t.searchButton}
         loadingLabel={toolT.lookupInProgress}
         loading={loading}
@@ -73,8 +74,8 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
       ) : (
         <EmptyState
           icon={Search}
-          title={t.checkEmptyTitle ?? t.checkTitle}
-          description={t.checkEmptyDescription ?? t.checkSubtitle}
+          title={t.checkEmptyTitle}
+          description={t.checkEmptyDescription}
         />
       )}
     </div>

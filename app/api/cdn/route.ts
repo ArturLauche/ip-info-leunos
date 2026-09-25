@@ -20,7 +20,10 @@ const RESOLVE_TIMEOUT_MS = 2_000;
 
 function raceCdnResolve<T>(promise: Promise<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("DNS query timed out.")), RESOLVE_TIMEOUT_MS);
+    const timer = setTimeout(
+      () => reject(new Error("DNS query timed out.")),
+      RESOLVE_TIMEOUT_MS,
+    );
     timer.unref?.();
     promise.then(
       (value) => {
@@ -71,7 +74,10 @@ async function resolveIpAddresses(hostname: string) {
 }
 
 export async function GET(request: Request) {
-  const limited = enforceRateLimit(request, "cdn", { limit: 20, windowMs: 60_000 });
+  const limited = enforceRateLimit(request, "cdn", {
+    limit: 20,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const { searchParams } = new URL(request.url);
@@ -97,7 +103,11 @@ export async function GET(request: Request) {
       return apiError(error.code, error.message, error.status, error.details);
     }
 
-    return apiError("invalid_target", "Please provide a valid public domain or URL.", 400);
+    return apiError(
+      "invalid_target",
+      "Please provide a valid public domain or URL.",
+      400,
+    );
   }
 
   const [cnameChain, dnsResolvedIps] = await Promise.all([
@@ -119,7 +129,8 @@ export async function GET(request: Request) {
       maxContentLengthBytes: 1_000_000,
       headers: {
         "user-agent": "ip-info-leunos-cdn-check/1.2",
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
 
@@ -138,6 +149,7 @@ export async function GET(request: Request) {
       detectedCdn: null,
       confidence: null,
       reason: "Target could not be reached from the server.",
+      reasonCode: "unreachable",
       matchedSignals: [],
       resolvedIps,
       cnameChain,
@@ -183,6 +195,7 @@ export async function GET(request: Request) {
     detectedCdn: detection?.provider || null,
     confidence: detection?.confidence || null,
     reason: detection?.reason || "No known CDN signature detected.",
+    reasonCode: detection?.reasonCode || "no_known_signature",
     matchedSignals: detection?.matchedSignals || [],
     resolvedIps,
     cnameChain,

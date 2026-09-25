@@ -49,7 +49,7 @@ export function ShowMoreButton({
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={controls}
-          className="-ml-2 min-h-11 px-2 text-muted-foreground hover:text-foreground sm:min-h-8"
+          className="-ms-2 min-h-11 px-2 text-muted-foreground hover:text-foreground sm:min-h-8"
         >
           <ChevronDown
             className={cn(

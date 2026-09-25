@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { additionalTermsContent } from "@/lib/translations/legal-content";
 
 export interface TermsSection {
   heading: string;
@@ -215,12 +216,13 @@ const en: TermsContent = {
   ],
 };
 
-const CONTENT_BY_LOCALE: Partial<Record<Locale, TermsContent>> = {
+const CONTENT_BY_LOCALE: Record<Locale, TermsContent> = {
   de,
   en,
+  ...additionalTermsContent,
 };
 
-/** Returns the terms-of-use content for the locale, defaulting to English. */
+/** Returns the terms-of-use content for a validated UI locale. */
 export function getTermsContent(locale: Locale): TermsContent {
-  return CONTENT_BY_LOCALE[locale] ?? en;
+  return CONTENT_BY_LOCALE[locale] ?? CONTENT_BY_LOCALE.en;
 }

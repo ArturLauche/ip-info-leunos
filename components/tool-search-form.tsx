@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Search } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ interface ToolSearchFormProps {
   /** Changes only for external navigation, including a reset to the same value. */
   syncKey?: number;
   placeholder: string;
+  ariaLabel?: string;
   submitLabel: string;
   loadingLabel?: string;
   loading?: boolean;
@@ -33,6 +34,7 @@ export function ToolSearchForm({
   initialValue = "",
   syncKey = 0,
   placeholder,
+  ariaLabel,
   submitLabel,
   loadingLabel,
   loading = false,
@@ -41,6 +43,8 @@ export function ToolSearchForm({
   cancelLabel,
   compact = false,
 }: ToolSearchFormProps) {
+  const inputId = useId();
+  const inputLabel = ariaLabel || placeholder;
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -68,28 +72,33 @@ export function ToolSearchForm({
       aria-busy={loading}
     >
       <div className={cn("relative flex-1", compact && "min-w-0 basis-48")}>
+        {/* A real label (not only aria-label) so the field has an associated
+            accessible name: it is announced reliably, is a click target, and
+            works with voice-control "click <name>". */}
+        <label htmlFor={inputId} className="sr-only">
+          {inputLabel}
+        </label>
         <Search
           className={cn(
-            "pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground",
-            compact && "left-3",
+            "pointer-events-none absolute top-1/2 start-3.5 size-4 -translate-y-1/2 text-muted-foreground",
+            compact && "start-3",
           )}
           aria-hidden="true"
         />
         <Input
-          id="tool-query"
+          id={inputId}
           name="q"
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
-          aria-label={placeholder}
           autoComplete="off"
           autoCapitalize="off"
           enterKeyHint="search"
           spellCheck={false}
           className={cn(
-            "h-11 bg-card pl-10 text-sm dark:bg-card",
-            compact && "h-9 pl-9 text-[13px] pointer-coarse:h-11",
+            "h-11 bg-card ps-10 text-sm dark:bg-card",
+            compact && "h-9 ps-9 text-[13px] pointer-coarse:h-11",
           )}
         />
       </div>

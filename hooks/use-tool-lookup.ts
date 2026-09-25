@@ -10,10 +10,22 @@ interface ToolLookupOptions {
   buildApiUrl: (query: string) => string;
   /** Builds the browser URL reflected via router.replace, or null to skip. */
   buildHref?: (query: string) => string | null;
-  /** Maps a thrown error to the user-facing message. */
+  /**
+   * Maps a thrown error to the user-facing message. Re-invoked on every
+   * render, so displayed errors follow the active locale after a language
+   * switch instead of freezing the translation from when they were thrown.
+   */
   mapError: (error: unknown) => string;
   /** Runs the lookup automatically for this query on mount and when it changes. */
   initialQuery?: string;
+  /**
+   * Invalidates the current result when it changes. Only language-sensitive
+   * tools pass a value (their locale): the API returns localized result fields
+   * (e.g. ip-api country/region/city names), so a language switch has to re-run
+   * the lookup instead of leaving rendered values in the previous language.
+   * Locale-neutral tools omit it and never refetch on a language switch.
+   */
+  refreshKey?: string;
   /** Resets tool-specific state when a new lookup starts. */
   onStart?: () => void;
 }
@@ -23,11 +35,16 @@ interface ToolLookupOptions {
  * result state, URL deep-link sync, auto-run for initial queries, and a
  * sequence guard so a slow earlier response can never overwrite the result
  * of a later lookup.
+ *
+ * Errors are stored raw (never as pre-rendered strings) and mapped through
+ * `mapError` during render, so the message always reflects the current
+ * `t`/locale of the owning checker.
  */
 export function useToolLookup<T>(options: ToolLookupOptions) {
   const router = useRouter();
+  const { refreshKey } = options;
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [thrownError, setThrownError] = useState<{ value: unknown } | null>(null);
   const [result, setResult] = useState<T | null>(null);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -37,6 +54,11 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   useEffect(() => {
     optionsRef.current = options;
   });
+
+  // Derived, not state: re-mapping on every render keeps the message in the
+  // language currently shown on screen (a stored string would go stale when
+  // router.refresh() swaps the locale while an error is visible).
+  const error = thrownError ? options.mapError(thrownError.value) : null;
 
   // Abort any in-flight lookup when the checker unmounts so superseded
   // navigations don't waste server egress after the UI is gone.
@@ -52,7 +74,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       const trimmed = query.trim();
       if (!trimmed) return;
 
-      const { buildApiUrl, buildHref, mapError, onStart } = optionsRef.current;
+      const { buildApiUrl, buildHref, onStart } = optionsRef.current;
       const href = updateUrl ? buildHref?.(trimmed) : null;
       if (href && new URL(href, window.location.href).pathname !== window.location.pathname) {
         // A pathname change mounts a new checker (notably /asn → /asn/AS…).
@@ -68,7 +90,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       abortRef.current = controller;
       const seq = ++requestSeq.current;
       setLoading(true);
-      setError(null);
+      setThrownError(null);
       setResult(null);
       onStart?.();
 
@@ -86,7 +108,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
         // An abort is always superseded by a newer run (or unmount): never
         // surface it as an error state.
         if (controller.signal.aborted) return;
-        if (seq === requestSeq.current) setError(mapError(lookupError));
+        if (seq === requestSeq.current) setThrownError({ value: lookupError });
       } finally {
         if (seq === requestSeq.current) setLoading(false);
       }
@@ -98,17 +120,21 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
     requestSeq.current += 1;
     abortRef.current?.abort();
     setLoading(false);
-    setError(null);
+    setThrownError(null);
     setResult(null);
   }, []);
 
-  /** Shows a message (e.g. client-side validation) without running a lookup. */
-  const showError = useCallback((message: string) => {
+  /**
+   * Surfaces a raw error (e.g. client-side validation) without running a
+   * lookup. The value is mapped through the current `mapError` on render, so
+   * it too follows locale switches.
+   */
+  const showError = useCallback((value: unknown) => {
     abortRef.current?.abort();
     requestSeq.current += 1;
     setLoading(false);
     setResult(null);
-    setError(message);
+    setThrownError({ value });
   }, []);
 
   useEffect(() => {
@@ -122,10 +148,12 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       abortRef.current?.abort();
       requestSeq.current += 1;
       setLoading(false);
-      setError(null);
+      setThrownError(null);
       setResult(null);
     }
-  }, [querySync, run]);
+    // refreshKey (a locale for language-sensitive tools) re-runs the active
+    // query in place; router.refresh() alone keeps the client result mounted.
+  }, [querySync, run, refreshKey]);
 
   return { loading, error, result, run, showError, cancel, querySync };
 }

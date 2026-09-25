@@ -5,6 +5,7 @@ import type { PeeringDbProfile } from "@/lib/asn";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import { ExternalLink } from "./external-link";
 import { formatCount, peeringDbUrl } from "./helpers";
@@ -59,6 +60,34 @@ function numberField(value: number | null, locale: Locale): ReactNode {
 }
 
 /**
+ * PeeringDB stores policy answers as English prose ("Required", "Not required").
+ * Map the two closed answers to translated wording and keep any free-text
+ * suffix (e.g. "Required for transit") intact.
+ */
+function formatPolicyValue(
+  value: string | number | null | undefined,
+  locale: Locale,
+): string | number | null | undefined {
+  if (typeof value !== "string") return value;
+  const copy = getUiCopy(locale);
+  const trimmed = value.trim();
+  const normalized = trimmed.toLowerCase();
+  if (normalized === "required" || normalized.startsWith("required ")) {
+    const suffix = trimmed.slice("required".length).trim();
+    return suffix ? `${copy.asnPolicyRequired} – ${suffix}` : copy.asnPolicyRequired;
+  }
+  if (
+    normalized === "not required" ||
+    normalized === "not_required" ||
+    normalized.startsWith("not required ")
+  ) {
+    const suffix = trimmed.slice("not required".length).trim();
+    return suffix ? `${copy.asnPolicyNotRequired} – ${suffix}` : copy.asnPolicyNotRequired;
+  }
+  return value;
+}
+
+/**
  * At-a-glance interconnection footprint: how many exchanges and facilities,
  * how open the network is to peering, and how much traffic it declares.
  */
@@ -92,14 +121,14 @@ function InterconnectionOverview({
       detail: facilityCountries > 0 ? formatCount(t.asnCountryCount, facilityCountries, locale) : undefined,
       numeric: true,
     },
-    { key: "policy", label: t.asnLabelPolicy, value: profile.policyGeneral || null },
+    { key: "policy", label: t.asnLabelPolicy, value: formatPolicyValue(profile.policyGeneral, locale) || null },
     { key: "traffic", label: t.asnLabelTraffic, value: profile.traffic || null },
   ];
 
   return (
     <dl className="grid grid-cols-2 gap-x-6 gap-y-5 lg:grid-cols-4">
       {stats.map((stat) => (
-        <div key={stat.key} className="flex min-w-0 flex-col gap-1 border-l-2 border-border pl-3">
+        <div key={stat.key} className="flex min-w-0 flex-col gap-1 border-s-2 border-border ps-3">
           <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{stat.label}</dt>
           <dd
             className={cn(
@@ -171,9 +200,9 @@ export function PeeringDbProfileSection({
     {
       heading: t.asnProfilePolicyHeading,
       fields: [
-        { label: t.asnLabelPolicyLocations, value: profile.policyLocations },
-        { label: t.asnLabelPolicyRatio, value: profile.policyRatio },
-        { label: t.asnLabelPolicyContracts, value: profile.policyContracts },
+        { label: t.asnLabelPolicyLocations, value: formatPolicyValue(profile.policyLocations, locale) },
+        { label: t.asnLabelPolicyRatio, value: formatPolicyValue(profile.policyRatio, locale) },
+        { label: t.asnLabelPolicyContracts, value: formatPolicyValue(profile.policyContracts, locale) },
       ],
     },
     {

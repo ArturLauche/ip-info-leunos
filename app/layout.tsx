@@ -1,19 +1,29 @@
-import type { Metadata, Viewport } from 'next'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import { headers } from 'next/headers'
-import './globals.css'
-import { schemaInLanguage, siteConfig } from '@/lib/seo'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Toaster } from '@/components/ui/sonner'
-import { StructuredData } from '@/components/structured-data'
-import { AppShell } from '@/components/shell/app-shell'
-import { resolveLocale } from '@/lib/i18n'
+import type { Metadata, Viewport } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import "./globals.css";
+import {
+  schemaInLanguage,
+  siteConfig,
+  getSiteDescription,
+  getSiteKeywords,
+} from "@/lib/seo";
+import { getToolTranslation } from "@/lib/tool-i18n";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { StructuredData } from "@/components/structured-data";
+import { AppShell } from "@/components/shell/app-shell";
+import {
+  getIntlLocale,
+  getLocaleDirection,
+  getLocaleOpenGraphLanguage,
+} from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: 'IP Auskunft - Deine IP & Netzwerk-Info',
+    default: "IP Info - Your public IP and network details",
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -21,15 +31,15 @@ export const metadata: Metadata = {
   // would leak onto the 404 route and tell crawlers that missing URLs are the homepage.
   alternates: {
     types: {
-      'text/plain': `${siteConfig.url}/llms.txt`,
+      "text/plain": `${siteConfig.url}/llms.txt`,
     },
   },
   applicationName: siteConfig.name,
-  referrer: 'origin-when-cross-origin',
+  referrer: "origin-when-cross-origin",
   keywords: siteConfig.keywords,
   creator: siteConfig.name,
   publisher: siteConfig.name,
-  category: 'technology',
+  category: "technology",
   formatDetection: {
     telephone: false,
     email: false,
@@ -41,82 +51,109 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-      'max-video-preview': -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
     },
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
       {
-        url: '/icon-light-32x32.png',
-        sizes: '32x32',
-        type: 'image/png',
-        media: '(prefers-color-scheme: light)',
+        url: "/icon-light-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+        media: "(prefers-color-scheme: light)",
       },
       {
-        url: '/icon-dark-32x32.png',
-        sizes: '32x32',
-        type: 'image/png',
-        media: '(prefers-color-scheme: dark)',
+        url: "/icon-dark-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+        media: "(prefers-color-scheme: dark)",
       },
     ],
-    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
   },
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  return {
+    ...baseMetadata,
+    description: getSiteDescription(locale),
+    keywords: getSiteKeywords(locale),
+    openGraph: {
+      ...baseMetadata.openGraph,
+      locale: getLocaleOpenGraphLanguage(locale),
+      description: getSiteDescription(locale),
+    },
+    twitter: {
+      ...baseMetadata.twitter,
+      description: getSiteDescription(locale),
+    },
+  };
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
-}
+};
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Organization',
-      '@id': `${siteConfig.url}/#organization`,
-      name: siteConfig.name,
-      url: siteConfig.url,
-      logo: {
-        '@type': 'ImageObject',
-        url: `${siteConfig.url}/apple-icon.png`,
-        width: 180,
-        height: 180,
-        caption: `${siteConfig.name} Logo`,
+function getJsonLd(locale: Parameters<typeof getSiteDescription>[0]) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${siteConfig.url}/#organization`,
+        name: siteConfig.name,
+        url: siteConfig.url,
+        logo: {
+          "@type": "ImageObject",
+          url: `${siteConfig.url}/apple-icon.png`,
+          width: 180,
+          height: 180,
+          caption: `${siteConfig.name} – ${getToolTranslation(locale).brandTagline}`,
+        },
       },
-    },
-    {
-      '@type': 'WebSite',
-      '@id': `${siteConfig.url}/#website`,
-      name: siteConfig.name,
-      url: siteConfig.url,
-      description: siteConfig.description,
-      inLanguage: schemaInLanguage,
-      publisher: { '@id': `${siteConfig.url}/#organization` },
-    },
-    // The WebApplication node is emitted per page by ToolStructuredData;
-    // a second site-wide copy here would duplicate the graph on every route.
-  ],
+      {
+        "@type": "WebSite",
+        "@id": `${siteConfig.url}/#website`,
+        name: siteConfig.name,
+        url: siteConfig.url,
+        description: getSiteDescription(locale),
+        inLanguage: schemaInLanguage,
+        publisher: { "@id": `${siteConfig.url}/#organization` },
+      },
+      // The WebApplication node is emitted per page by ToolStructuredData;
+      // a second site-wide copy here would duplicate the graph on every route.
+    ],
+  };
 }
 
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
-  const locale = resolveLocale((await headers()).get('accept-language'))
+  const locale = await getRequestLocale();
 
   return (
     // lang follows the negotiated locale so the declared document language
-    // always matches the UI language the shell and checkers render.
-    <html lang={locale} suppressHydrationWarning>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
-        <StructuredData data={jsonLd} />
+    // always matches the UI language the shell and checkers render. The
+    // registry tag is the full BCP 47 form (nb-NO, pt-BR, zh-TW, …).
+    <html
+      lang={getIntlLocale(locale)}
+      dir={getLocaleDirection(locale)}
+      suppressHydrationWarning
+    >
+      <body
+        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
+      >
+        <StructuredData data={getJsonLd(locale)} />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -128,5 +165,5 @@ export default async function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

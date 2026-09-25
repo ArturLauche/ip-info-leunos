@@ -2,6 +2,8 @@
 
 import { type Locale } from "@/lib/i18n";
 import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { getUiCopy } from "@/lib/ui-copy";
+import type { CdnReasonCode } from "@/lib/cdn-detection";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
@@ -36,10 +38,47 @@ interface CdnResult {
   detectedCdn: string | null;
   confidence: "high" | "medium" | "low" | null;
   reason: string;
+  reasonCode?: CdnReasonCode;
   matchedSignals: string[];
   resolvedIps: string[];
   cnameChain: string[];
   headers: HeaderPair[];
+}
+
+function formatCdnReason(
+  code: CdnReasonCode | undefined,
+  ui: ReturnType<typeof getUiCopy>,
+): string {
+  switch (code) {
+    case "matched_signals":
+      return ui.cdnReasonMatchedSignals;
+    case "google_fingerprint":
+      return ui.cdnReasonGoogleFingerprint;
+    case "microsoft_fingerprint":
+      return ui.cdnReasonMicrosoftFingerprint;
+    case "generic_proxy_headers":
+      return ui.cdnReasonGenericProxyHeaders;
+    case "unreachable":
+      return ui.cdnReasonUnreachable;
+    default:
+      return ui.cdnReasonNoKnownSignature;
+  }
+}
+
+function formatCdnSignal(
+  signal: string,
+  ui: ReturnType<typeof getUiCopy>,
+): string {
+  if (signal.startsWith("header-value:")) {
+    return `${ui.cdnSignalHeaderValue}: ${signal.slice("header-value:".length)}`;
+  }
+  if (signal.startsWith("header:")) {
+    return `${ui.cdnSignalHeader}: ${signal.slice("header:".length)}`;
+  }
+  if (signal.startsWith("dns:")) {
+    return `${ui.cdnSignalDns}: ${signal.slice("dns:".length)}`;
+  }
+  return signal;
 }
 
 function confidenceLabel(
@@ -72,9 +111,13 @@ function DetailCard({ icon: Icon, label, value }: DetailCardProps) {
     <Card className="gap-2 py-4">
       <div className="flex items-center gap-2 px-5 text-muted-foreground">
         <Icon className="size-4 text-primary" />
-        <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider">
+          {label}
+        </p>
       </div>
-      <p className="px-5 text-sm font-semibold break-all text-foreground">{value}</p>
+      <p className="px-5 text-sm font-semibold break-all text-foreground">
+        {value}
+      </p>
     </Card>
   );
 }
@@ -86,13 +129,16 @@ interface CdnCheckerProps {
 
 export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
   const t = getToolTranslation(locale);
+  const ui = getUiCopy(locale);
 
-  const { loading, error, result, run, cancel, querySync } = useToolLookup<CdnResult>({
-    buildApiUrl: (target) => `/api/cdn?target=${encodeURIComponent(target)}`,
-    buildHref: (target) => `/cdn?target=${encodeURIComponent(target)}`,
-    mapError: (checkError) => getApiErrorMessage(checkError, t, t.cdnNetworkError),
-    initialQuery: initialTarget,
-  });
+  const { loading, error, result, run, cancel, querySync } =
+    useToolLookup<CdnResult>({
+      buildApiUrl: (target) => `/api/cdn?target=${encodeURIComponent(target)}`,
+      buildHref: (target) => `/cdn?target=${encodeURIComponent(target)}`,
+      mapError: (checkError) =>
+        getApiErrorMessage(checkError, t, t.cdnNetworkError),
+      initialQuery: initialTarget,
+    });
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -107,6 +153,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.targetPlaceholder}
+        ariaLabel={t.cdnTargetLabel}
         submitLabel={t.cdnAnalyzeButton}
         loadingLabel={t.cdnAnalyzing}
         loading={loading}
@@ -124,10 +171,18 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
       )}
 
       {loading && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3" role="status" aria-busy="true">
+        <div
+          className="grid grid-cols-1 gap-4 md:grid-cols-3"
+          role="status"
+          aria-busy="true"
+        >
           <span className="sr-only">{t.cdnAnalyzing}</span>
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 rounded-xl" aria-hidden="true" />
+            <Skeleton
+              key={index}
+              className="h-24 rounded-xl"
+              aria-hidden="true"
+            />
           ))}
         </div>
       )}
@@ -151,7 +206,9 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                 {confidenceLabel(result.confidence, t)}
               </Badge>
             </div>
-            <p className="px-5 text-sm text-muted-foreground">{result.reason}</p>
+            <p className="px-5 text-sm text-muted-foreground">
+              {formatCdnReason(result.reasonCode, ui)}
+            </p>
           </Card>
 
           {!result.usesCdn && result.resolvedIps.length > 0 && (
@@ -170,7 +227,7 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                     className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-muted/40"
                   >
                     {ip}
-                    <ExternalLink className="size-3" />
+                    <ExternalLink className="size-3 rtl:rotate-180" />
                   </Link>
                 ))}
               </div>
@@ -178,7 +235,11 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <DetailCard icon={Globe} label={t.cdnTargetLabel} value={result.target} />
+            <DetailCard
+              icon={Globe}
+              label={t.cdnTargetLabel}
+              value={result.target}
+            />
             <DetailCard
               icon={Activity}
               label={t.cdnHttpStatusLabel}
@@ -187,7 +248,11 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
             <DetailCard
               icon={Sparkles}
               label={t.cdnProviderLabel}
-              value={result.detectedCdn || t.cdnUnknown}
+              value={
+                result.reasonCode === "generic_proxy_headers"
+                  ? ui.cdnProviderUnknownProxy
+                  : result.detectedCdn || t.cdnUnknown
+              }
             />
           </div>
 
@@ -200,12 +265,14 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
               <div className="flex flex-wrap gap-1.5 px-5">
                 {result.matchedSignals.map((signal) => (
                   <Badge key={signal} variant="secondary" className="font-mono">
-                    {signal}
+                    {formatCdnSignal(signal, ui)}
                   </Badge>
                 ))}
               </div>
             ) : (
-              <p className="px-5 text-sm text-muted-foreground">{t.cdnNoSignals}</p>
+              <p className="px-5 text-sm text-muted-foreground">
+                {t.cdnNoSignals}
+              </p>
             )}
           </Card>
 
@@ -224,7 +291,9 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                   ))}
                 </ul>
               ) : (
-                <p className="px-5 text-sm text-muted-foreground">{t.cdnNoCname}</p>
+                <p className="px-5 text-sm text-muted-foreground">
+                  {t.cdnNoCname}
+                </p>
               )}
             </Card>
 
@@ -236,13 +305,17 @@ export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
                 <ul className="space-y-1 px-5 text-sm text-muted-foreground">
                   {result.headers.map((header) => (
                     <li key={header.key} className="break-all">
-                      <span className="font-mono text-foreground">{header.key}</span>:{" "}
-                      {header.value}
+                      <span className="font-mono text-foreground">
+                        {header.key}
+                      </span>
+                      : {header.value}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="px-5 text-sm text-muted-foreground">{t.cdnNoHeaders}</p>
+                <p className="px-5 text-sm text-muted-foreground">
+                  {t.cdnNoHeaders}
+                </p>
               )}
             </Card>
           </div>

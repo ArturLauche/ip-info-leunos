@@ -146,13 +146,13 @@ export function IxPresenceSection({
 
   const toggleSort = (key: IxSortKey) => setSort((prev) => nextHeaderSort(prev, key, defaultIxSortDirection(key)));
 
-  const nameColumn: SortableColumn<IxSortKey> = { key: "name", label: t.asnLabelExchange, className: "pl-4" };
-  const speedColumn: SortableColumn<IxSortKey> = { key: "speed", label: t.asnLabelSpeed, align: "right" };
+  const nameColumn: SortableColumn<IxSortKey> = { key: "name", label: t.asnLabelExchange, className: "ps-4" };
+  const speedColumn: SortableColumn<IxSortKey> = { key: "speed", label: t.asnLabelSpeed, align: "end" };
   const rsColumn: SortableColumn<IxSortKey> = {
     key: "rsPeer",
     label: t.asnLabelRsPeer,
-    align: "right",
-    className: "pr-4",
+    align: "end",
+    className: "pe-4",
   };
   const sortOptions: { key: IxSortKey; label: string }[] = [
     { key: "name", label: t.asnLabelExchange },
@@ -203,7 +203,7 @@ export function IxPresenceSection({
               <TableBody>
                 {visible.map((entry, idx) => (
                   <TableRow key={`${entry.id}-${idx}`} className="border-border/50 hover:bg-muted/30">
-                    <TableCell className={cn("min-w-44 py-2.5 pl-4 whitespace-normal", cellTint("name"))}>
+                    <TableCell className={cn("min-w-44 py-2.5 ps-4 whitespace-normal", cellTint("name"))}>
                       <ExchangeName entry={entry} t={t} />
                     </TableCell>
                     <TableCell className={cn("py-2.5", cellTint("speed"))}>
@@ -211,7 +211,7 @@ export function IxPresenceSection({
                         {entry.speed ? <ScaleBar pct={relativeShare(entry.speed, maxSpeed)} className="w-12" /> : null}
                         <span
                           className={cn(
-                            "min-w-[4.5rem] text-right font-mono text-xs tabular-nums",
+                            "min-w-[4.5rem] text-end font-mono text-xs tabular-nums",
                             entry.speed ? "font-semibold text-foreground" : "text-muted-foreground/50",
                           )}
                         >
@@ -230,7 +230,7 @@ export function IxPresenceSection({
                         {entry.ipaddr6 !== entry.ipaddr4 && <Address value={entry.ipaddr6} />}
                       </div>
                     </TableCell>
-                    <TableCell className={cn("py-2.5 pr-4 text-right", cellTint("rsPeer"))}>
+                    <TableCell className={cn("py-2.5 pe-4 text-end", cellTint("rsPeer"))}>
                       <RsPeer value={entry.isRsPeer} t={t} />
                     </TableCell>
                   </TableRow>

@@ -2,7 +2,11 @@
 
 import { useId } from "react";
 import { TriangleAlert } from "lucide-react";
-import type { AsnProfile, SourceCacheStatus, SourceStatus } from "@/lib/asn";
+import {
+  type AsnProfile,
+  type SourceCacheStatus,
+  type SourceStatus,
+} from "@/lib/asn";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import type { ToolTranslation } from "@/lib/tool-i18n";
@@ -34,7 +38,7 @@ function Duration({ value, max, locale }: { value: number | null; max: number; l
   return (
     <span className="inline-flex items-center justify-end gap-2">
       <ScaleBar pct={relativeShare(value, max)} className="w-12" />
-      <span className="min-w-[4.25rem] text-right tabular-nums">{formatNumber(value, locale)} ms</span>
+      <span className="min-w-[4.25rem] text-end tabular-nums">{formatNumber(value, locale)} ms</span>
     </span>
   );
 }
@@ -84,6 +88,9 @@ export function SourceDiagnosticsSection({
         SOURCE_ORDER.indexOf(b.source as (typeof SOURCE_ORDER)[number]),
     );
   const maxDuration = Math.max(0, ...rows.map((row) => row.durationMs || 0));
+  // Raw provider prose is never rendered: the API ships structured warning
+  // details, which this panel translates through the ui-copy labels.
+  const warningList = result.warningDetails ?? [];
 
   const headCell = "px-3 py-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase";
 
@@ -101,19 +108,19 @@ export function SourceDiagnosticsSection({
         <table aria-labelledby={headingId} className="w-full text-xs">
           <thead>
             <tr className="border-b border-border/70 bg-muted/40">
-              <th scope="col" className={cn(headCell, "pl-4 text-left")}>
+              <th scope="col" className={cn(headCell, "ps-4 text-start")}>
                 {t.asnDiagnosticSource}
               </th>
-              <th scope="col" className={cn(headCell, "text-left")}>
+              <th scope="col" className={cn(headCell, "text-start")}>
                 {t.asnLabelStatus}
               </th>
-              <th scope="col" className={cn(headCell, "text-right")}>
+              <th scope="col" className={cn(headCell, "text-end")}>
                 {t.asnDiagnosticDuration}
               </th>
-              <th scope="col" className={cn(headCell, "text-left")}>
+              <th scope="col" className={cn(headCell, "text-start")}>
                 {t.asnDiagnosticCache}
               </th>
-              <th scope="col" className={cn(headCell, "pr-4 text-right")}>
+              <th scope="col" className={cn(headCell, "pe-4 text-end")}>
                 {t.asnDiagnosticWarnings}
               </th>
             </tr>
@@ -121,19 +128,19 @@ export function SourceDiagnosticsSection({
           <tbody className="font-mono">
             {rows.map((row) => (
               <tr key={row.source} className="border-b border-border/50 transition-colors last:border-b-0 hover:bg-muted/30">
-                <th scope="row" className="px-3 py-2.5 pl-4 text-left font-sans text-sm font-medium text-foreground">
+                <th scope="row" className="px-3 py-2.5 ps-4 text-start font-sans text-sm font-medium text-foreground">
                   {sourceName(row.source)}
                 </th>
                 <td className="px-3 py-2.5">
                   <StatusLabel status={row.status} t={t} />
                 </td>
-                <td className="px-3 py-2.5 text-right text-foreground/80">
+                <td className="px-3 py-2.5 text-end text-foreground/80">
                   <Duration value={row.durationMs} max={maxDuration} locale={locale} />
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground">
                   {row.cache ? formatCacheStatus(row.cache, t) : "—"}
                 </td>
-                <td className="px-3 py-2.5 pr-4 text-right">
+                <td className="px-3 py-2.5 pe-4 text-end">
                   <WarningCount value={row.warnings} locale={locale} />
                 </td>
               </tr>
@@ -174,18 +181,18 @@ export function SourceDiagnosticsSection({
         ))}
       </ul>
 
-      {result.warnings.length > 0 && (
+      {warningList.length > 0 && (
         <div className="flex flex-col gap-2">
           <h4 className="flex items-center gap-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
             {t.asnWarnings}
             <span className="rounded-full bg-warning/12 px-1.5 font-mono text-[10.5px] leading-4 font-medium text-warning tabular-nums normal-case">
-              {formatNumber(result.warnings.length, locale)}
+              {formatNumber(warningList.length, locale)}
             </span>
           </h4>
           <ul className="flex flex-col rounded-lg border border-border/70 bg-muted/20">
-            {result.warnings.map((warning) => (
+            {warningList.map((warning, index) => (
               <li
-                key={warning}
+                key={index}
                 className="flex items-start gap-2.5 border-b border-border/50 px-3 py-2 text-xs leading-relaxed text-foreground/85 last:border-b-0"
               >
                 <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { Waypoints } from "lucide-react";
 import { AsnChecker } from "@/components/asn/asn-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { normalizeAsnInput } from "@/lib/asn";
-import { resolveLocale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
@@ -14,31 +13,37 @@ interface AsnDeepLinkPageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: AsnDeepLinkPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: AsnDeepLinkPageProps): Promise<Metadata> {
   const { asn } = await params;
+  const locale = await getRequestLocale();
+  const t = getToolTranslation(locale);
 
   try {
     const normalized = normalizeAsnInput(asn);
     return createPageMetadata({
-      title: `${normalized.asn} - ASN-Informationen`,
-      description: `Analysiere verfügbare Daten zu ${normalized.asn}: Identität, angekündigte IP-Prefixe, RIPEstat-Routing-Beobachtungen und öffentliche PeeringDB-Profile.`,
+      title: `${normalized.asn} – ${t.asnTitle}`,
+      description: `${t.asnSubtitle} ${normalized.asn}`,
       path: `/asn/${normalized.asn}`,
-      keywords: [normalized.asn, "ASN Lookup", "PeeringDB", "BGP"],
+      keywords: [normalized.asn, t.asnTitle, "ASN", "PeeringDB", "BGP"],
+      locale,
     });
   } catch {
     return createPageMetadata({
-      title: "ASN Lookup für Routing- und Peeringdaten",
-      description:
-        "Analysiere verfügbare ASN-Profile, angekündigte IP-Prefixe, RIPEstat-Routing-Beobachtungen und öffentliche PeeringDB-Interconnection-Daten.",
+      title: t.asnTitle,
+      description: t.asnSubtitle,
       path: "/asn",
-      keywords: ["ASN Lookup", "AS Nummer", "PeeringDB", "BGP"],
+      keywords: [t.asnTitle, "ASN", "PeeringDB", "BGP"],
+      locale,
     });
   }
 }
 
-export default async function AsnDeepLinkPage({ params }: AsnDeepLinkPageProps) {
-  const headersList = await headers();
-  const locale = resolveLocale(headersList.get("accept-language"));
+export default async function AsnDeepLinkPage({
+  params,
+}: AsnDeepLinkPageProps) {
+  const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const { asn } = await params;
 

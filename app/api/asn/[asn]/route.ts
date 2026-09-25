@@ -9,7 +9,10 @@ import {
   normalizeIpinfoAsnPayload,
   normalizePeeringDbPayload,
   normalizeRipeStatPayload,
+  dedupeAsnWarningDetails,
+  formatAsnWarning,
   type AsnProfile,
+  type AsnWarningDetail,
   type AsnSource,
   type IpinfoAsnData,
   type NormalizedAsn,
@@ -51,12 +54,18 @@ const asnParamSchema = z.object({
     }),
 });
 
-type ProviderErrorKind = "timeout" | "network" | "response_too_large" | "invalid_json";
+type ProviderErrorKind =
+  | "timeout"
+  | "network"
+  | "response_too_large"
+  | "invalid_json";
 
 class ProviderFetchError extends Error {
   constructor(
     readonly kind: ProviderErrorKind,
     message: string,
+    /** Upstream HTTP status, when the failure was a response status. */
+    readonly status?: number,
   ) {
     super(message);
     this.name = "ProviderFetchError";
@@ -66,23 +75,35 @@ class ProviderFetchError extends Error {
 type ProviderResult<TData, TStatus extends SourceStatus = SourceStatus> = {
   status: TStatus;
   data: TData | null;
-  warnings: string[];
+  warnings: AsnWarningDetail[];
 };
 
-type TimedProviderResult<TData, TStatus extends SourceStatus = SourceStatus> = ProviderResult<TData, TStatus> & {
+type TimedProviderResult<
+  TData,
+  TStatus extends SourceStatus = SourceStatus,
+> = ProviderResult<TData, TStatus> & {
   diagnostic: SourceDiagnostic;
 };
 
 type IpinfoProviderResult = ProviderResult<IpinfoAsnData, SourceStatus>;
-type PeeringDbProviderResult = ProviderResult<PeeringDbProfile, Exclude<SourceStatus, "not_configured">>;
-type RipeStatProviderResult = ProviderResult<RipeStatAsnData, Exclude<SourceStatus, "not_configured">>;
+type PeeringDbProviderResult = ProviderResult<
+  PeeringDbProfile,
+  Exclude<SourceStatus, "not_configured">
+>;
+type RipeStatProviderResult = ProviderResult<
+  RipeStatAsnData,
+  Exclude<SourceStatus, "not_configured">
+>;
 
 type ProviderCacheEntry<TData, TStatus extends SourceStatus = SourceStatus> = {
   storedAt: number;
   result: ProviderResult<TData, TStatus>;
 };
 
-const providerCache = new Map<string, ProviderCacheEntry<unknown, SourceStatus>>();
+const providerCache = new Map<
+  string,
+  ProviderCacheEntry<unknown, SourceStatus>
+>();
 
 interface RouteContext {
   params: Promise<{
@@ -91,7 +112,10 @@ interface RouteContext {
 }
 
 export async function GET(request: Request, context: RouteContext) {
-  const limited = enforceRateLimit(request, "asn", { limit: 30, windowMs: 60_000 });
+  const limited = enforceRateLimit(request, "asn", {
+    limit: 30,
+    windowMs: 60_000,
+  });
   if (limited) return limited;
 
   const params = await context.params;
@@ -103,21 +127,34 @@ export async function GET(request: Request, context: RouteContext) {
 
   const normalized = parsedParams.data.asn;
   const includeDiagnostics = hasSourceInfoFlag(request);
-  const { ipinfoResult, peeringDbResult, ripeStatResult, sourceDiagnostics } = await fetchAggregatedAsn(normalized);
+  const { ipinfoResult, peeringDbResult, ripeStatResult, sourceDiagnostics } =
+    await fetchAggregatedAsn(normalized);
 
   const sources: AsnProfile["sources"] = {
     ipinfo: ipinfoResult.status,
     peeringdb: peeringDbResult.status,
     ripestat: ripeStatResult.status,
   };
-  const warnings = dedupeWarnings([...ipinfoResult.warnings, ...peeringDbResult.warnings, ...ripeStatResult.warnings]);
+  const warningDetails = dedupeAsnWarningDetails([
+    ...ipinfoResult.warnings,
+    ...peeringDbResult.warnings,
+    ...ripeStatResult.warnings,
+  ]);
 
-  if (allAttemptedProvidersFailed(ipinfoResult, peeringDbResult, ripeStatResult)) {
-    return apiError("upstream_error", "ASN data providers are currently unavailable.", 502, {
-      sources,
-      warnings,
-      ...(includeDiagnostics ? { sourceDiagnostics } : {}),
-    });
+  if (
+    allAttemptedProvidersFailed(ipinfoResult, peeringDbResult, ripeStatResult)
+  ) {
+    return apiError(
+      "upstream_error",
+      "ASN data providers are currently unavailable.",
+      502,
+      {
+        sources,
+        warnings: warningDetails.map(formatAsnWarning),
+        warningDetails,
+        ...(includeDiagnostics ? { sourceDiagnostics } : {}),
+      },
+    );
   }
 
   const profile = mergeAsnProfile({
@@ -126,7 +163,7 @@ export async function GET(request: Request, context: RouteContext) {
     peeringdb: peeringDbResult.data,
     ripestat: ripeStatResult.data,
     sources,
-    warnings,
+    warningDetails,
   });
 
   if (includeDiagnostics) {
@@ -151,14 +188,20 @@ async function fetchAggregatedAsn(normalized: NormalizedAsn) {
         signal: controller.signal,
         fetcher: (signal) => fetchIpinfoAsn(normalized, signal, token),
       }),
-      fetchProviderWithCache<PeeringDbProfile, Exclude<SourceStatus, "not_configured">>({
+      fetchProviderWithCache<
+        PeeringDbProfile,
+        Exclude<SourceStatus, "not_configured">
+      >({
         source: "peeringdb",
         provider: "PeeringDB",
         cacheKey: `peeringdb:${normalized.asn}`,
         signal: controller.signal,
         fetcher: (signal) => fetchPeeringDbAsn(normalized, signal),
       }),
-      fetchProviderWithCache<RipeStatAsnData, Exclude<SourceStatus, "not_configured">>({
+      fetchProviderWithCache<
+        RipeStatAsnData,
+        Exclude<SourceStatus, "not_configured">
+      >({
         source: "ripestat",
         provider: "RIPEstat",
         cacheKey: `ripestat:${normalized.asn}`,
@@ -171,7 +214,11 @@ async function fetchAggregatedAsn(normalized: NormalizedAsn) {
       ipinfoResult,
       peeringDbResult,
       ripeStatResult,
-      sourceDiagnostics: [ipinfoResult.diagnostic, peeringDbResult.diagnostic, ripeStatResult.diagnostic],
+      sourceDiagnostics: [
+        ipinfoResult.diagnostic,
+        peeringDbResult.diagnostic,
+        ripeStatResult.diagnostic,
+      ],
     };
   } finally {
     clearTimeout(timer);
@@ -179,7 +226,11 @@ async function fetchAggregatedAsn(normalized: NormalizedAsn) {
   }
 }
 
-async function fetchIpinfoAsn(normalized: NormalizedAsn, signal: AbortSignal, token: string): Promise<IpinfoProviderResult> {
+async function fetchIpinfoAsn(
+  normalized: NormalizedAsn,
+  signal: AbortSignal,
+  token: string,
+): Promise<IpinfoProviderResult> {
   if (!token) {
     return {
       status: "not_configured",
@@ -202,7 +253,7 @@ async function fetchIpinfoAsn(normalized: NormalizedAsn, signal: AbortSignal, to
       return {
         status: "unavailable",
         data: null,
-        warnings: ["IPinfo ASN data is unavailable for this ASN or token plan."],
+        warnings: [{ code: "ipinfo_unavailable" }],
       };
     }
 
@@ -210,18 +261,20 @@ async function fetchIpinfoAsn(normalized: NormalizedAsn, signal: AbortSignal, to
       return {
         status: "error",
         data: null,
-        warnings: [`IPinfo returned HTTP ${response.status}.`],
+        warnings: [
+          { code: "provider_http", provider: "IPinfo", status: response.status },
+        ],
       };
     }
 
-    const warnings: string[] = [];
+    const warnings: AsnWarningDetail[] = [];
     const data = normalizeIpinfoAsnPayload(json, warnings);
 
     if (!data) {
       return {
         status: "error",
         data: null,
-        warnings: ["IPinfo returned an unexpected ASN payload."],
+        warnings: [{ code: "ipinfo_unexpected" }],
       };
     }
 
@@ -239,7 +292,10 @@ async function fetchIpinfoAsn(normalized: NormalizedAsn, signal: AbortSignal, to
   }
 }
 
-async function fetchRipeStatAsn(normalized: NormalizedAsn, signal: AbortSignal): Promise<RipeStatProviderResult> {
+async function fetchRipeStatAsn(
+  normalized: NormalizedAsn,
+  signal: AbortSignal,
+): Promise<RipeStatProviderResult> {
   const endpoints = {
     overview: `https://stat.ripe.net/data/as-overview/data.json?resource=${normalized.asn}`,
     prefixes: `https://stat.ripe.net/data/announced-prefixes/data.json?resource=${normalized.asn}`,
@@ -248,13 +304,21 @@ async function fetchRipeStatAsn(normalized: NormalizedAsn, signal: AbortSignal):
 
   const entries = await Promise.allSettled(
     Object.entries(endpoints).map(async ([key, url]) => {
-      const { response, json } = await fetchProviderJson(url, {
-        "user-agent": "ip-info-leunos-asn-check/1.0",
-        accept: "application/json",
-      }, signal);
+      const { response, json } = await fetchProviderJson(
+        url,
+        {
+          "user-agent": "ip-info-leunos-asn-check/1.0",
+          accept: "application/json",
+        },
+        signal,
+      );
 
       if (!response.ok) {
-        throw new ProviderFetchError("network", `RIPEstat ${key} returned HTTP ${response.status}.`);
+        throw new ProviderFetchError(
+          "network",
+          `RIPEstat ${key} returned HTTP ${response.status}.`,
+          response.status,
+        );
       }
 
       return [key, json] as const;
@@ -262,7 +326,7 @@ async function fetchRipeStatAsn(normalized: NormalizedAsn, signal: AbortSignal):
   );
 
   const payload: Parameters<typeof normalizeRipeStatPayload>[0] = {};
-  const warnings: string[] = [];
+  const warnings: AsnWarningDetail[] = [];
 
   for (const entry of entries) {
     if (entry.status === "fulfilled") {
@@ -289,18 +353,24 @@ async function fetchRipeStatAsn(normalized: NormalizedAsn, signal: AbortSignal):
     return {
       status: "unavailable",
       data: null,
-      warnings: [...warnings, "No RIPEstat ASN data was found for this ASN."],
+      warnings: [...warnings, { code: "ripe_no_data" }],
     };
   }
 
   return {
-    status: successfulRequests === Object.keys(endpoints).length ? "available" : "unavailable",
+    status:
+      successfulRequests === Object.keys(endpoints).length
+        ? "available"
+        : "unavailable",
     data,
     warnings,
   };
 }
 
-async function fetchPeeringDbAsn(normalized: NormalizedAsn, signal: AbortSignal): Promise<PeeringDbProviderResult> {
+async function fetchPeeringDbAsn(
+  normalized: NormalizedAsn,
+  signal: AbortSignal,
+): Promise<PeeringDbProviderResult> {
   try {
     const { response, json } = await fetchProviderJson(
       `https://www.peeringdb.com/api/net?asn=${normalized.asnNumber}&depth=2`,
@@ -315,7 +385,7 @@ async function fetchPeeringDbAsn(normalized: NormalizedAsn, signal: AbortSignal)
       return {
         status: "unavailable",
         data: null,
-        warnings: ["No public PeeringDB network profile was found for this ASN."],
+        warnings: [{ code: "peeringdb_no_profile" }],
       };
     }
 
@@ -323,18 +393,24 @@ async function fetchPeeringDbAsn(normalized: NormalizedAsn, signal: AbortSignal)
       return {
         status: "error",
         data: null,
-        warnings: [`PeeringDB returned HTTP ${response.status}.`],
+        warnings: [
+          { code: "provider_http", provider: "PeeringDB", status: response.status },
+        ],
       };
     }
 
-    const warnings: string[] = [];
-    const data = normalizePeeringDbPayload(json, warnings, normalized.asnNumber);
+    const warnings: AsnWarningDetail[] = [];
+    const data = normalizePeeringDbPayload(
+      json,
+      warnings,
+      normalized.asnNumber,
+    );
 
     if (!data) {
       return {
         status: "unavailable",
         data: null,
-        warnings: ["No public PeeringDB network profile was found for this ASN."],
+        warnings: [{ code: "peeringdb_no_profile" }],
       };
     }
 
@@ -368,20 +444,32 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
   const startedAt = Date.now();
   const cached = cacheKey ? getProviderCache<TData, TStatus>(cacheKey) : null;
 
-  if (cacheKey && cached && Date.now() - cached.storedAt <= PROVIDER_CACHE_FRESH_MS) {
+  if (
+    cacheKey &&
+    cached &&
+    Date.now() - cached.storedAt <= PROVIDER_CACHE_FRESH_MS
+  ) {
     touchProviderCache(cacheKey);
     return withDiagnostic(source, cached.result, "fresh", startedAt);
   }
 
-  const stale = cached && Date.now() - cached.storedAt <= PROVIDER_CACHE_STALE_MS ? cached : null;
-  const fetched = fetcher(signal).catch((error): ProviderResult<TData, TStatus> => {
-    return {
-      status: "error" as TStatus,
-      data: null,
-      warnings: [providerWarning(provider, error)],
-    };
-  });
-  const result = await Promise.race([fetched, waitForAbort<TData, TStatus>(signal, provider)]);
+  const stale =
+    cached && Date.now() - cached.storedAt <= PROVIDER_CACHE_STALE_MS
+      ? cached
+      : null;
+  const fetched = fetcher(signal).catch(
+    (error): ProviderResult<TData, TStatus> => {
+      return {
+        status: "error" as TStatus,
+        data: null,
+        warnings: [providerWarning(provider, error)],
+      };
+    },
+  );
+  const result = await Promise.race([
+    fetched,
+    waitForAbort<TData, TStatus>(signal, provider),
+  ]);
 
   if (result.status === "not_configured") {
     return withDiagnostic(source, result, "not_configured", startedAt);
@@ -390,10 +478,10 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
   if (cacheKey && result.status === "error" && stale) {
     const staleResult = {
       ...stale.result,
-      warnings: dedupeWarnings([
+      warnings: dedupeAsnWarningDetails([
         ...stale.result.warnings,
         ...result.warnings,
-        `${provider} data is currently unavailable; using stale cached data.`,
+        { code: "provider_stale", provider },
       ]),
     };
     touchProviderCache(cacheKey);
@@ -407,7 +495,11 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
   return withDiagnostic(source, result, "miss", startedAt);
 }
 
-async function fetchProviderJson(url: string, headers: HeadersInit, signal?: AbortSignal) {
+async function fetchProviderJson(
+  url: string,
+  headers: HeadersInit,
+  signal?: AbortSignal,
+) {
   const controller = new AbortController();
   const abortFromParent = () => controller.abort();
   const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
@@ -433,19 +525,28 @@ async function fetchProviderJson(url: string, headers: HeadersInit, signal?: Abo
       throw new ProviderFetchError("timeout", "Provider request timed out.");
     }
 
-    throw new ProviderFetchError("network", (error as Error).message || "Provider request failed.");
+    throw new ProviderFetchError(
+      "network",
+      (error as Error).message || "Provider request failed.",
+    );
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", abortFromParent);
   }
 }
 
-async function readJsonWithLimit(response: Response, maxBytes: number): Promise<unknown> {
+async function readJsonWithLimit(
+  response: Response,
+  maxBytes: number,
+): Promise<unknown> {
   const contentLength = response.headers.get("content-length");
   const parsedLength = contentLength ? Number(contentLength) : 0;
 
   if (Number.isFinite(parsedLength) && parsedLength > maxBytes) {
-    throw new ProviderFetchError("response_too_large", "Provider response exceeded the size limit.");
+    throw new ProviderFetchError(
+      "response_too_large",
+      "Provider response exceeded the size limit.",
+    );
   }
 
   let text: string;
@@ -453,7 +554,10 @@ async function readJsonWithLimit(response: Response, maxBytes: number): Promise<
   if (!response.body) {
     text = await response.text();
     if (new TextEncoder().encode(text).byteLength > maxBytes) {
-      throw new ProviderFetchError("response_too_large", "Provider response exceeded the size limit.");
+      throw new ProviderFetchError(
+        "response_too_large",
+        "Provider response exceeded the size limit.",
+      );
     }
   } else {
     const reader = response.body.getReader();
@@ -469,7 +573,10 @@ async function readJsonWithLimit(response: Response, maxBytes: number): Promise<
         received += value.byteLength;
         if (received > maxBytes) {
           await reader.cancel();
-          throw new ProviderFetchError("response_too_large", "Provider response exceeded the size limit.");
+          throw new ProviderFetchError(
+            "response_too_large",
+            "Provider response exceeded the size limit.",
+          );
         }
 
         chunks.push(value);
@@ -490,15 +597,27 @@ async function readJsonWithLimit(response: Response, maxBytes: number): Promise<
   try {
     return JSON.parse(text);
   } catch {
-    throw new ProviderFetchError("invalid_json", "Provider returned invalid JSON.");
+    throw new ProviderFetchError(
+      "invalid_json",
+      "Provider returned invalid JSON.",
+    );
   }
 }
 
-function getProviderCache<TData, TStatus extends SourceStatus>(key: string): ProviderCacheEntry<TData, TStatus> | null {
-  return (providerCache.get(key) as ProviderCacheEntry<TData, TStatus> | undefined) || null;
+function getProviderCache<TData, TStatus extends SourceStatus>(
+  key: string,
+): ProviderCacheEntry<TData, TStatus> | null {
+  return (
+    (providerCache.get(key) as
+      | ProviderCacheEntry<TData, TStatus>
+      | undefined) || null
+  );
 }
 
-function setProviderCache<TData, TStatus extends SourceStatus>(key: string, result: ProviderResult<TData, TStatus>) {
+function setProviderCache<TData, TStatus extends SourceStatus>(
+  key: string,
+  result: ProviderResult<TData, TStatus>,
+) {
   if (providerCache.has(key)) {
     providerCache.delete(key);
   }
@@ -507,7 +626,7 @@ function setProviderCache<TData, TStatus extends SourceStatus>(key: string, resu
     storedAt: Date.now(),
     result: {
       ...result,
-      warnings: dedupeWarnings(result.warnings),
+      warnings: dedupeAsnWarningDetails(result.warnings),
     } as ProviderResult<unknown, SourceStatus>,
   });
 
@@ -534,15 +653,26 @@ function waitForAbort<TData, TStatus extends SourceStatus>(
   }
 
   return new Promise((resolve) => {
-    signal.addEventListener("abort", () => resolve(providerTimeoutResult(provider)), { once: true });
+    signal.addEventListener(
+      "abort",
+      () => resolve(providerTimeoutResult(provider)),
+      { once: true },
+    );
   });
 }
 
-function providerTimeoutResult<TData, TStatus extends SourceStatus>(provider: string): ProviderResult<TData, TStatus> {
+function providerTimeoutResult<TData, TStatus extends SourceStatus>(
+  provider: string,
+): ProviderResult<TData, TStatus> {
   return {
     status: "error" as TStatus,
     data: null,
-    warnings: [providerWarning(provider, new ProviderFetchError("timeout", "Provider request timed out."))],
+    warnings: [
+      providerWarning(
+        provider,
+        new ProviderFetchError("timeout", "Provider request timed out."),
+      ),
+    ],
   };
 }
 
@@ -552,7 +682,7 @@ function withDiagnostic<TData, TStatus extends SourceStatus>(
   cache: SourceCacheStatus,
   startedAt: number,
 ): TimedProviderResult<TData, TStatus> {
-  const warnings = dedupeWarnings(result.warnings);
+  const warnings = dedupeAsnWarningDetails(result.warnings);
 
   return {
     ...result,
@@ -576,26 +706,30 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex").slice(0, 16);
 }
 
-function dedupeWarnings(warnings: string[]) {
-  return [...new Set(warnings.filter(Boolean))];
-}
-
 function allAttemptedProvidersFailed(
   ipinfoResult: IpinfoProviderResult,
   peeringDbResult: PeeringDbProviderResult,
   ripeStatResult: RipeStatProviderResult,
 ) {
-  if (peeringDbResult.status !== "error" || ripeStatResult.status !== "error") return false;
+  if (peeringDbResult.status !== "error" || ripeStatResult.status !== "error")
+    return false;
   if (ipinfoResult.status === "not_configured") return true;
   return ipinfoResult.status === "error";
 }
 
-function providerWarning(provider: string, error: unknown) {
+function providerWarning(
+  provider: string,
+  error: unknown,
+): AsnWarningDetail {
   if (error instanceof ProviderFetchError) {
-    if (error.kind === "timeout") return `${provider} request timed out.`;
-    if (error.kind === "response_too_large") return `${provider} response exceeded the size limit.`;
-    if (error.kind === "invalid_json") return `${provider} returned invalid JSON.`;
+    if (typeof error.status === "number")
+      return { code: "provider_http", provider, status: error.status };
+    if (error.kind === "timeout") return { code: "provider_timeout", provider };
+    if (error.kind === "response_too_large")
+      return { code: "provider_too_large", provider };
+    if (error.kind === "invalid_json")
+      return { code: "provider_invalid_json", provider };
   }
 
-  return `${provider} data is currently unavailable.`;
+  return { code: "provider_unavailable", provider };
 }

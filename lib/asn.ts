@@ -5,11 +5,43 @@ import {
   type NormalizedAsn,
 } from "./asn-id";
 
-export { AsnValidationError, MAX_ASN_NUMBER, normalizeAsnInput, type NormalizedAsn };
+export {
+  AsnValidationError,
+  MAX_ASN_NUMBER,
+  normalizeAsnInput,
+  type NormalizedAsn,
+};
 
-export type SourceStatus = "available" | "unavailable" | "not_configured" | "error";
+export type SourceStatus =
+  | "available"
+  | "unavailable"
+  | "not_configured"
+  | "error";
 export type AsnSource = "ipinfo" | "peeringdb" | "ripestat";
 export type SourceCacheStatus = "miss" | "fresh" | "stale" | "not_configured";
+
+export type AsnWarningCode =
+  | "ipinfo_unavailable"
+  | "ipinfo_unexpected"
+  | "ripe_no_data"
+  | "peeringdb_no_profile"
+  | "provider_http"
+  | "provider_timeout"
+  | "provider_too_large"
+  | "provider_invalid_json"
+  | "provider_unavailable"
+  | "provider_stale"
+  | "truncated"
+  | "unknown";
+
+export interface AsnWarningDetail {
+  code: AsnWarningCode;
+  provider?: string;
+  status?: number;
+  label?: string;
+  limit?: number;
+  total?: number;
+}
 
 export interface SourceDiagnostic {
   source: AsnSource;
@@ -147,14 +179,66 @@ export interface AsnProfile {
     ripestat: Exclude<SourceStatus, "not_configured">;
   };
   warnings: string[];
+  warningDetails?: AsnWarningDetail[];
   sourceDiagnostics?: SourceDiagnostic[];
+}
+
+/**
+ * Renders a warning detail as the API's English display string. Warnings are
+ * produced as structured details (never as prose that later has to be parsed
+ * back), and this is the only place that turns one into a sentence.
+ */
+export function formatAsnWarning(warning: AsnWarningDetail): string {
+  const provider = warning.provider ?? "";
+  switch (warning.code) {
+    case "ipinfo_unavailable":
+      return "IPinfo ASN data is unavailable for this ASN or token plan.";
+    case "ipinfo_unexpected":
+      return "IPinfo returned an unexpected ASN payload.";
+    case "ripe_no_data":
+      return "No RIPEstat ASN data was found for this ASN.";
+    case "peeringdb_no_profile":
+      return "No public PeeringDB network profile was found for this ASN.";
+    case "provider_stale":
+      return `${provider} data is currently unavailable; using stale cached data.`;
+    case "provider_http":
+      return `${provider} returned HTTP ${warning.status ?? 0}.`;
+    case "provider_timeout":
+      return `${provider} request timed out.`;
+    case "provider_too_large":
+      return `${provider} response exceeded the size limit.`;
+    case "provider_invalid_json":
+      return `${provider} returned invalid JSON.`;
+    case "provider_unavailable":
+      return `${provider} data is currently unavailable.`;
+    case "truncated":
+      return `${warning.label ?? ""} truncated to ${warning.limit ?? 0} of ${warning.total ?? 0} records.`;
+    default:
+      return "The data provider returned an additional warning.";
+  }
+}
+
+/** Deduplicates warning details by code and parameters. */
+export function dedupeAsnWarningDetails(
+  warnings: AsnWarningDetail[],
+): AsnWarningDetail[] {
+  const seen = new Set<string>();
+  const result: AsnWarningDetail[] = [];
+  for (const warning of warnings) {
+    const key = `${warning.code}|${warning.provider ?? ""}|${warning.status ?? ""}|${warning.label ?? ""}|${warning.limit ?? ""}|${warning.total ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(warning);
+  }
+  return result;
 }
 
 export function createEmptyAsnProfile(
   normalized: NormalizedAsn,
   sources: AsnProfile["sources"],
-  warnings: string[],
+  warningDetails: AsnWarningDetail[],
 ): AsnProfile {
+  const normalizedDetails = dedupeAsnWarningDetails(warningDetails);
   return {
     found: false,
     asn: normalized.asn,
@@ -178,7 +262,8 @@ export function createEmptyAsnProfile(
     downstreamsTotal: 0,
     peeringdb: null,
     sources,
-    warnings: dedupeStrings(warnings),
+    warnings: normalizedDetails.map(formatAsnWarning),
+    warningDetails: normalizedDetails,
   };
 }
 
@@ -188,21 +273,33 @@ export function mergeAsnProfile({
   peeringdb,
   ripestat,
   sources,
-  warnings,
+  warningDetails,
 }: {
   normalized: NormalizedAsn;
   ipinfo: IpinfoAsnData | null;
   peeringdb: PeeringDbProfile | null;
   ripestat: RipeStatAsnData | null;
   sources: AsnProfile["sources"];
-  warnings: string[];
+  warningDetails: AsnWarningDetail[];
 }): AsnProfile {
-  const profile = createEmptyAsnProfile(normalized, sources, warnings);
-  const prefixes4 = mergePrefixes(ipinfo?.prefixes4 || [], ripestat?.prefixes4 || []);
-  const prefixes6 = mergePrefixes(ipinfo?.prefixes6 || [], ripestat?.prefixes6 || []);
+  const profile = createEmptyAsnProfile(normalized, sources, warningDetails);
+  const prefixes4 = mergePrefixes(
+    ipinfo?.prefixes4 || [],
+    ripestat?.prefixes4 || [],
+  );
+  const prefixes6 = mergePrefixes(
+    ipinfo?.prefixes6 || [],
+    ripestat?.prefixes6 || [],
+  );
   const peers = mergeRelations(ipinfo?.peers || [], ripestat?.peers || []);
-  const upstreams = mergeRelations(ipinfo?.upstreams || [], ripestat?.upstreams || []);
-  const downstreams = mergeRelations(ipinfo?.downstreams || [], ripestat?.downstreams || []);
+  const upstreams = mergeRelations(
+    ipinfo?.upstreams || [],
+    ripestat?.upstreams || [],
+  );
+  const downstreams = mergeRelations(
+    ipinfo?.downstreams || [],
+    ripestat?.downstreams || [],
+  );
 
   return {
     ...profile,
@@ -216,21 +313,45 @@ export function mergeAsnProfile({
     numIps: ipinfo?.numIps ?? null,
     prefixes4,
     prefixes6,
-    prefixes4Total: prefixes4.length ? Math.max(ipinfo?.prefixes4Total || 0, ripestat?.prefixes4Total || 0, prefixes4.length) : 0,
-    prefixes6Total: prefixes6.length ? Math.max(ipinfo?.prefixes6Total || 0, ripestat?.prefixes6Total || 0, prefixes6.length) : 0,
+    prefixes4Total: prefixes4.length
+      ? Math.max(
+          ipinfo?.prefixes4Total || 0,
+          ripestat?.prefixes4Total || 0,
+          prefixes4.length,
+        )
+      : 0,
+    prefixes6Total: prefixes6.length
+      ? Math.max(
+          ipinfo?.prefixes6Total || 0,
+          ripestat?.prefixes6Total || 0,
+          prefixes6.length,
+        )
+      : 0,
     peers,
     upstreams,
     downstreams,
-    peersTotal: Math.max(ipinfo?.peersTotal || 0, ripestat?.peersTotal || 0, peers.length),
-    upstreamsTotal: Math.max(ipinfo?.upstreamsTotal || 0, ripestat?.upstreamsTotal || 0, upstreams.length),
-    downstreamsTotal: Math.max(ipinfo?.downstreamsTotal || 0, ripestat?.downstreamsTotal || 0, downstreams.length),
+    peersTotal: Math.max(
+      ipinfo?.peersTotal || 0,
+      ripestat?.peersTotal || 0,
+      peers.length,
+    ),
+    upstreamsTotal: Math.max(
+      ipinfo?.upstreamsTotal || 0,
+      ripestat?.upstreamsTotal || 0,
+      upstreams.length,
+    ),
+    downstreamsTotal: Math.max(
+      ipinfo?.downstreamsTotal || 0,
+      ripestat?.downstreamsTotal || 0,
+      downstreams.length,
+    ),
     peeringdb,
   };
 }
 
 export function normalizeIpinfoAsnPayload(
   payload: unknown,
-  warnings: string[] = [],
+  warnings: AsnWarningDetail[] = [],
 ): IpinfoAsnData | null {
   const record = asRecord(payload);
   if (!record) return null;
@@ -265,13 +386,18 @@ export function normalizeIpinfoAsnPayload(
   return data;
 }
 
-export function normalizePeeringDbPayload(payload: unknown, warnings: string[] = [], asnNumber?: number): PeeringDbProfile | null {
+export function normalizePeeringDbPayload(
+  payload: unknown,
+  warnings: AsnWarningDetail[] = [],
+  asnNumber?: number,
+): PeeringDbProfile | null {
   const record = asRecord(payload);
   const data = Array.isArray(record?.data) ? record.data : null;
   const records = data?.map(asRecord).filter(isRecord) || [];
   const net =
     typeof asnNumber === "number"
-      ? records.find((entry) => numberValue(entry.asn) === asnNumber) || records[0]
+      ? records.find((entry) => numberValue(entry.asn) === asnNumber) ||
+        records[0]
       : records[0];
 
   if (!net) return null;
@@ -309,7 +435,7 @@ export function normalizeRipeStatPayload(
     prefixes?: unknown;
     neighbours?: unknown;
   },
-  warnings: string[] = [],
+  warnings: AsnWarningDetail[] = [],
 ): RipeStatAsnData | null {
   const overviewData = asRecord(asRecord(payload.overview)?.data);
   const prefixesData = asRecord(asRecord(payload.prefixes)?.data);
@@ -318,12 +444,25 @@ export function normalizeRipeStatPayload(
   if (!overviewData && !prefixesData && !neighboursData) return null;
 
   const allPrefixes = normalizeRipeStatPrefixList(prefixesData?.prefixes);
-  const prefixes4 = allPrefixes.filter((prefix) => !prefix.netblock.includes(":"));
-  const prefixes6 = allPrefixes.filter((prefix) => prefix.netblock.includes(":"));
-  const { peers, upstreams, downstreams } = normalizeRipeStatNeighbours(neighboursData?.neighbours);
+  const prefixes4 = allPrefixes.filter(
+    (prefix) => !prefix.netblock.includes(":"),
+  );
+  const prefixes6 = allPrefixes.filter((prefix) =>
+    prefix.netblock.includes(":"),
+  );
+  const { peers, upstreams, downstreams } = normalizeRipeStatNeighbours(
+    neighboursData?.neighbours,
+  );
   const name = stringValue(overviewData?.holder);
 
-  if (!name && !prefixes4.length && !prefixes6.length && !peers.length && !upstreams.length && !downstreams.length) {
+  if (
+    !name &&
+    !prefixes4.length &&
+    !prefixes6.length &&
+    !peers.length &&
+    !upstreams.length &&
+    !downstreams.length
+  ) {
     return null;
   }
 
@@ -334,8 +473,18 @@ export function normalizeRipeStatPayload(
     prefixes4Total: prefixes4.length,
     prefixes6Total: prefixes6.length,
     peers: withLimit(peers, 100, warnings, "RIPEstat routing neighbours"),
-    upstreams: withLimit(upstreams, 100, warnings, "RIPEstat upstream-side neighbours"),
-    downstreams: withLimit(downstreams, 100, warnings, "RIPEstat downstream-side neighbours"),
+    upstreams: withLimit(
+      upstreams,
+      100,
+      warnings,
+      "RIPEstat upstream-side neighbours",
+    ),
+    downstreams: withLimit(
+      downstreams,
+      100,
+      warnings,
+      "RIPEstat downstream-side neighbours",
+    ),
     peersTotal: peers.length,
     upstreamsTotal: upstreams.length,
     downstreamsTotal: downstreams.length,
@@ -482,13 +631,26 @@ function normalizeFacilityList(value: unknown): PeeringDbFacility[] {
     .filter((entry) => entry.name || entry.facilityId !== null);
 }
 
-function withLimit<T>(items: T[], limit: number, warnings: string[], label: string): T[] {
+function withLimit<T>(
+  items: T[],
+  limit: number,
+  warnings: AsnWarningDetail[],
+  label: string,
+): T[] {
   if (items.length <= limit) return items;
-  warnings.push(`${label} truncated to ${limit} of ${items.length} records.`);
+  warnings.push({
+    code: "truncated",
+    label,
+    limit,
+    total: items.length,
+  });
   return items.slice(0, limit);
 }
 
-function mergePrefixes(primary: AsnPrefix[], fallback: AsnPrefix[]): AsnPrefix[] {
+function mergePrefixes(
+  primary: AsnPrefix[],
+  fallback: AsnPrefix[],
+): AsnPrefix[] {
   const byNetblock = new Map<string, AsnPrefix>();
 
   for (const prefix of primary) {
@@ -497,7 +659,10 @@ function mergePrefixes(primary: AsnPrefix[], fallback: AsnPrefix[]): AsnPrefix[]
 
   for (const prefix of fallback) {
     const existing = byNetblock.get(prefix.netblock);
-    byNetblock.set(prefix.netblock, existing ? mergePrefix(existing, prefix) : prefix);
+    byNetblock.set(
+      prefix.netblock,
+      existing ? mergePrefix(existing, prefix) : prefix,
+    );
   }
 
   return [...byNetblock.values()];
@@ -524,9 +689,21 @@ function mergeRelations(...groups: AsnRelation[][]): AsnRelation[] {
     byAsn.set(relation.asnNumber, {
       ...existing,
       ...relation,
-      power: Math.max(existing?.power || 0, relation.power || 0) || relation.power || existing?.power || null,
-      v4Peers: Math.max(existing?.v4Peers || 0, relation.v4Peers || 0) || relation.v4Peers || existing?.v4Peers || null,
-      v6Peers: Math.max(existing?.v6Peers || 0, relation.v6Peers || 0) || relation.v6Peers || existing?.v6Peers || null,
+      power:
+        Math.max(existing?.power || 0, relation.power || 0) ||
+        relation.power ||
+        existing?.power ||
+        null,
+      v4Peers:
+        Math.max(existing?.v4Peers || 0, relation.v4Peers || 0) ||
+        relation.v4Peers ||
+        existing?.v4Peers ||
+        null,
+      v6Peers:
+        Math.max(existing?.v6Peers || 0, relation.v6Peers || 0) ||
+        relation.v6Peers ||
+        existing?.v6Peers ||
+        null,
     });
   }
 
@@ -551,14 +728,20 @@ function hasUsableIpinfoData(data: IpinfoAsnData) {
 }
 
 function sortRelations(relations: AsnRelation[]) {
-  return relations.sort((a, b) => (b.power || 0) - (a.power || 0) || a.asnNumber - b.asnNumber);
+  return relations.sort(
+    (a, b) => (b.power || 0) - (a.power || 0) || a.asnNumber - b.asnNumber,
+  );
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
-function isRecord(value: Record<string, unknown> | null): value is Record<string, unknown> {
+function isRecord(
+  value: Record<string, unknown> | null,
+): value is Record<string, unknown> {
   return value !== null;
 }
 
@@ -592,8 +775,4 @@ function booleanValue(value: unknown): boolean | null {
 function policyRatioValue(value: unknown): string {
   if (typeof value === "boolean") return value ? "Required" : "Not required";
   return stringValue(value);
-}
-
-function dedupeStrings(values: string[]): string[] {
-  return [...new Set(values.filter(Boolean))];
 }

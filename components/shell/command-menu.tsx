@@ -47,7 +47,10 @@ interface CommandMenuProviderProps {
  * global ⌘K / Ctrl+K (and "/") shortcut. Triggers anywhere in the subtree open
  * it through {@link useCommandMenu}.
  */
-export function CommandMenuProvider({ locale, children }: CommandMenuProviderProps) {
+export function CommandMenuProvider({
+  locale,
+  children,
+}: CommandMenuProviderProps) {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
 
@@ -83,7 +86,9 @@ export function CommandMenuProvider({ locale, children }: CommandMenuProviderPro
   return (
     <CommandMenuContext.Provider value={value}>
       {children}
-      {(open || hasOpened) && <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />}
+      {(open || hasOpened) && (
+        <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />
+      )}
     </CommandMenuContext.Provider>
   );
 }
@@ -138,7 +143,9 @@ export function CommandTrigger({
       )}
     >
       <Search className="size-4 shrink-0" aria-hidden />
-      <span className="flex-1 truncate text-left">{t.commandTriggerLabel}</span>
+      <span className="flex-1 truncate text-start">
+        {t.commandTriggerLabel}
+      </span>
       <kbd className="pointer-events-none hidden items-center rounded-md border border-border bg-muted/60 px-2 py-0.5 font-sans text-xs font-medium text-muted-foreground sm:inline-flex">
         {isMac ? "⌘K" : "Ctrl K"}
       </kbd>

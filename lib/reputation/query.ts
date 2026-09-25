@@ -1,8 +1,18 @@
+import {
+  greyNoiseQuotaAvailable,
+  observeGreyNoiseQuota,
+} from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
 import { lookupIpApi } from "@/lib/providers/ip-api";
 import { detectConnectionType } from "@/lib/connection-type";
 import { REPUTATION_SOURCES } from "./model";
-import type { NetworkContext, RawEvidence, ReputationGeo, ReputationNetwork, SourceResult } from "./model";
+import type {
+  NetworkContext,
+  RawEvidence,
+  ReputationGeo,
+  ReputationNetwork,
+  SourceResult,
+} from "./model";
 import {
   interpretBarracudaResponse,
   interpretBlocklistDeResponse,
@@ -41,7 +51,9 @@ const GREYNOISE_CACHE_TTL_MS = 24 * 60 * 60_000;
 const GREYNOISE_CACHE_MAX_ENTRIES = 1_024;
 const USER_AGENT = "ip-info-leunos-reputation/1.0";
 
-const SOURCE_ORDER = new Map(REPUTATION_SOURCES.map((source, index) => [source.id, index]));
+const SOURCE_ORDER = new Map(
+  REPUTATION_SOURCES.map((source, index) => [source.id, index]),
+);
 
 export interface ReputationQueryResult {
   sources: SourceResult[];
@@ -59,12 +71,18 @@ interface ProviderOutcome {
 
 // Module singleton: constructing a Resolver per provider per request churns
 // sockets and dominates reputation latency (~12 upstream lookups per check).
-const sharedResolver = new dns.Resolver({ timeout: DNSBL_TIMEOUT_MS, tries: 1 });
+const sharedResolver = new dns.Resolver({
+  timeout: DNSBL_TIMEOUT_MS,
+  tries: 1,
+});
 
 async function queryDnsbl(
   sourceId: string,
   queryName: string,
-  interpret: (aRecords: string[], txtRecords: string[][]) => DnsblInterpretation,
+  interpret: (
+    aRecords: string[],
+    txtRecords: string[][],
+  ) => DnsblInterpretation,
   options: { withTxt?: boolean } = {},
 ): Promise<ProviderOutcome> {
   const resolver = sharedResolver;
@@ -89,7 +107,11 @@ async function queryDnsbl(
   }
 
   const interpretation = interpret(aRecords, txtRecords);
-  return { id: sourceId, status: interpretation.status, evidence: interpretation.evidence };
+  return {
+    id: sourceId,
+    status: interpretation.status,
+    evidence: interpretation.evidence,
+  };
 }
 
 function unsupportedOutcome(sourceId: string): ProviderOutcome {
@@ -127,7 +149,11 @@ interface BlocklistDeCounts {
   reports: number | null;
 }
 
-async function queryBlocklistDe(ip: string, family: 4 | 6, nowMs: number): Promise<ProviderOutcome> {
+async function queryBlocklistDe(
+  ip: string,
+  family: 4 | 6,
+  nowMs: number,
+): Promise<ProviderOutcome> {
   if (family !== 4) return unsupportedOutcome("blocklist-de");
 
   const [dnsblOutcome, counts] = await Promise.all([
@@ -135,13 +161,21 @@ async function queryBlocklistDe(ip: string, family: 4 | 6, nowMs: number): Promi
       "blocklist-de",
       `${reverseIpv4ForDnsbl(ip)}.${BLOCKLIST_DE_ZONE}`,
       (aRecords, txtRecords) =>
-        interpretBlocklistDeResponse(aRecords, txtRecords.length > 0 ? txtRecords[0] : null, nowMs, null),
+        interpretBlocklistDeResponse(
+          aRecords,
+          txtRecords.length > 0 ? txtRecords[0] : null,
+          nowMs,
+          null,
+        ),
       { withTxt: true },
     ),
-    fetchWithTimeout(`https://api.blocklist.de/api.php?ip=${encodeURIComponent(ip)}&start=1&format=json`, {
-      "user-agent": USER_AGENT,
-      accept: "application/json",
-    })
+    fetchWithTimeout(
+      `https://api.blocklist.de/api.php?ip=${encodeURIComponent(ip)}&start=1&format=json`,
+      {
+        "user-agent": USER_AGENT,
+        accept: "application/json",
+      },
+    )
       .then(async (response): Promise<BlocklistDeCounts | null> => {
         if (!response.ok) return null;
         return normalizeBlocklistDeCounts(await response.json());
@@ -183,7 +217,11 @@ async function queryBlocklistDe(ip: string, family: 4 | 6, nowMs: number): Promi
   return dnsblOutcome;
 }
 
-async function queryGreyNoise(ip: string, family: 4 | 6, nowMs: number): Promise<ProviderOutcome> {
+async function queryGreyNoise(
+  ip: string,
+  family: 4 | 6,
+  nowMs: number,
+): Promise<ProviderOutcome> {
   if (family !== 4) return unsupportedOutcome("greynoise");
 
   const cached = greyNoiseCache.get(ip);
@@ -198,18 +236,46 @@ async function queryGreyNoise(ip: string, family: 4 | 6, nowMs: number): Promise
     ...(key ? { key } : {}),
   };
 
-  try {
-    const response = await fetchWithTimeout(`${GREYNOISE_URL}${encodeURIComponent(ip)}`, headers);
+  // A depleted quota is known from the provider's own headers, so it is
+  // checked before spending a request on a call that can only be rejected.
+  if (!greyNoiseQuotaAvailable(Date.now()))
+    return { id: "greynoise", status: "rate_limited", evidence: [] };
 
-    if (response.status === 429) return { id: "greynoise", status: "rate_limited", evidence: [] };
+  try {
+    const response = await fetchWithTimeout(
+      `${GREYNOISE_URL}${encodeURIComponent(ip)}`,
+      headers,
+    );
+    observeGreyNoiseQuota(response, Date.now());
+
+    if (response.status === 429) {
+      await response.body?.cancel();
+      return { id: "greynoise", status: "rate_limited", evidence: [] };
+    }
     if (response.status === 404) {
-      cacheGreyNoise(ip, { noise: false, riot: false, classification: null, name: null, lastSeen: null }, nowMs);
+      // Nothing is read from this response; release the connection.
+      await response.body?.cancel();
+      cacheGreyNoise(
+        ip,
+        {
+          noise: false,
+          riot: false,
+          classification: null,
+          name: null,
+          lastSeen: null,
+        },
+        nowMs,
+      );
       return { id: "greynoise", status: "clean", evidence: [] };
     }
-    if (!response.ok) return { id: "greynoise", status: "unavailable", evidence: [] };
+    if (!response.ok) {
+      await response.body?.cancel();
+      return { id: "greynoise", status: "unavailable", evidence: [] };
+    }
 
     const normalized = normalizeGreyNoisePayload(await response.json());
-    if (!normalized) return { id: "greynoise", status: "unavailable", evidence: [] };
+    if (!normalized)
+      return { id: "greynoise", status: "unavailable", evidence: [] };
 
     cacheGreyNoise(ip, normalized, nowMs);
     return greyNoiseOutcome(normalized, nowMs);
@@ -218,7 +284,10 @@ async function queryGreyNoise(ip: string, family: 4 | 6, nowMs: number): Promise
   }
 }
 
-const greyNoiseCache = new Map<string, { checkedAt: number; result: GreyNoiseResult }>();
+const greyNoiseCache = new Map<
+  string,
+  { checkedAt: number; result: GreyNoiseResult }
+>();
 
 function cacheGreyNoise(ip: string, result: GreyNoiseResult, nowMs: number) {
   greyNoiseCache.delete(ip);
@@ -230,9 +299,16 @@ function cacheGreyNoise(ip: string, result: GreyNoiseResult, nowMs: number) {
   }
 }
 
-function greyNoiseOutcome(result: GreyNoiseResult, nowMs: number): ProviderOutcome {
+function greyNoiseOutcome(
+  result: GreyNoiseResult,
+  nowMs: number,
+): ProviderOutcome {
   const interpretation = greyNoiseEvidence(result, nowMs);
-  return { id: "greynoise", status: interpretation.status, evidence: interpretation.evidence };
+  return {
+    id: "greynoise",
+    status: interpretation.status,
+    evidence: interpretation.evidence,
+  };
 }
 
 /** Test hook: clears the GreyNoise per-IP cache. */
@@ -240,7 +316,10 @@ export function clearGreyNoiseCacheForTests() {
   greyNoiseCache.clear();
 }
 
-async function queryAbuseIpDb(ip: string, nowMs: number): Promise<ProviderOutcome> {
+async function queryAbuseIpDb(
+  ip: string,
+  nowMs: number,
+): Promise<ProviderOutcome> {
   const key = process.env.ABUSEIPDB_API_KEY?.trim() || "";
   if (!key) return notConfiguredOutcome("abuseipdb");
 
@@ -250,38 +329,61 @@ async function queryAbuseIpDb(ip: string, nowMs: number): Promise<ProviderOutcom
       { Key: key, Accept: "application/json", "user-agent": USER_AGENT },
     );
 
-    if (response.status === 429) return { id: "abuseipdb", status: "rate_limited", evidence: [] };
-    if (!response.ok) return { id: "abuseipdb", status: "unavailable", evidence: [] };
+    if (response.status === 429)
+      return { id: "abuseipdb", status: "rate_limited", evidence: [] };
+    if (!response.ok)
+      return { id: "abuseipdb", status: "unavailable", evidence: [] };
 
     const normalized = normalizeAbuseIpDbPayload(await response.json());
-    if (!normalized) return { id: "abuseipdb", status: "unavailable", evidence: [] };
+    if (!normalized)
+      return { id: "abuseipdb", status: "unavailable", evidence: [] };
 
     const interpretation = abuseIpDbEvidence(normalized, nowMs);
-    return { id: "abuseipdb", status: interpretation.status, evidence: interpretation.evidence };
+    return {
+      id: "abuseipdb",
+      status: interpretation.status,
+      evidence: interpretation.evidence,
+    };
   } catch {
     return { id: "abuseipdb", status: "unavailable", evidence: [] };
   }
 }
 
-async function queryThreatFox(ip: string, nowMs: number): Promise<ProviderOutcome> {
+async function queryThreatFox(
+  ip: string,
+  nowMs: number,
+): Promise<ProviderOutcome> {
   const key = process.env.THREATFOX_AUTH_KEY?.trim() || "";
   if (!key) return notConfiguredOutcome("threatfox");
 
   try {
     const response = await fetchWithTimeout(
       "https://threatfox-api.abuse.ch/api/v1/",
-      { "Auth-Key": key, "Content-Type": "application/json", "user-agent": USER_AGENT },
-      { method: "POST", body: JSON.stringify({ query: "search_ioc", search_term: ip }) },
+      {
+        "Auth-Key": key,
+        "Content-Type": "application/json",
+        "user-agent": USER_AGENT,
+      },
+      {
+        method: "POST",
+        body: JSON.stringify({ query: "search_ioc", search_term: ip }),
+      },
     );
 
-    if (response.status === 429) return { id: "threatfox", status: "rate_limited", evidence: [] };
-    if (!response.ok) return { id: "threatfox", status: "unavailable", evidence: [] };
+    if (response.status === 429)
+      return { id: "threatfox", status: "rate_limited", evidence: [] };
+    if (!response.ok)
+      return { id: "threatfox", status: "unavailable", evidence: [] };
 
     const iocs = normalizeThreatFoxPayload(await response.json());
     if (!iocs) return { id: "threatfox", status: "unavailable", evidence: [] };
 
     const interpretation = threatFoxEvidence(iocs, nowMs);
-    return { id: "threatfox", status: interpretation.status, evidence: interpretation.evidence };
+    return {
+      id: "threatfox",
+      status: interpretation.status,
+      evidence: interpretation.evidence,
+    };
   } catch {
     return { id: "threatfox", status: "unavailable", evidence: [] };
   }
@@ -294,8 +396,8 @@ interface IpApiOutcome extends ProviderOutcome {
   reverse: string | null;
 }
 
-async function queryIpApi(ip: string): Promise<IpApiOutcome> {
-  const data = await lookupIpApi(ip, { timeoutMs: HTTP_TIMEOUT_MS });
+async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
+  const data = await lookupIpApi(ip, { timeoutMs: HTTP_TIMEOUT_MS, language });
 
   if (!data) {
     return {
@@ -358,7 +460,9 @@ async function queryIpApi(ip: string): Promise<IpApiOutcome> {
     !proxy &&
     !hosting &&
     !mobile &&
-    (connectionType === "dsl" || connectionType === "cable" || isDynamicReverseDns(reverse));
+    (connectionType === "dsl" ||
+      connectionType === "cable" ||
+      isDynamicReverseDns(reverse));
 
   if (residentialEstimated) {
     evidence.push({
@@ -401,29 +505,50 @@ function isDynamicReverseDns(reverse: string | null): boolean {
 }
 
 /** Collects evidence from all providers concurrently (allSettled semantics). */
-export async function collectReputation(ip: string, family: 4 | 6): Promise<ReputationQueryResult> {
+export async function collectReputation(
+  ip: string,
+  family: 4 | 6,
+  language = "en",
+): Promise<ReputationQueryResult> {
   const nowMs = Date.now();
-  const reversed = family === 4 ? reverseIpv4ForDnsbl(ip) : ipv6ToNibbleFormat(ip);
+  const reversed =
+    family === 4 ? reverseIpv4ForDnsbl(ip) : ipv6ToNibbleFormat(ip);
   const httpblKey = process.env.HTTPBL_ACCESS_KEY?.trim() || "";
 
   const tasks: Promise<ProviderOutcome | IpApiOutcome>[] = [
     reversed
-      ? queryDnsbl("spamhaus-zen", `${reversed}.zen.spamhaus.org`, (records) => interpretZenResponse(records))
+      ? queryDnsbl("spamhaus-zen", `${reversed}.zen.spamhaus.org`, (records) =>
+          interpretZenResponse(records),
+        )
       : Promise.resolve(unsupportedOutcome("spamhaus-zen")),
     family === 4 && reversed
-      ? queryDnsbl("spamcop", `${reversed}.bl.spamcop.net`, (records) => interpretSpamcopResponse(records))
+      ? queryDnsbl("spamcop", `${reversed}.bl.spamcop.net`, (records) =>
+          interpretSpamcopResponse(records),
+        )
       : Promise.resolve(unsupportedOutcome("spamcop")),
     family === 4 && reversed
-      ? queryDnsbl("barracuda", `${reversed}.b.barracudacentral.org`, (records) => interpretBarracudaResponse(records))
+      ? queryDnsbl(
+          "barracuda",
+          `${reversed}.b.barracudacentral.org`,
+          (records) => interpretBarracudaResponse(records),
+        )
       : Promise.resolve(unsupportedOutcome("barracuda")),
     reversed
-      ? queryDnsbl("dronebl", `${reversed}.dnsbl.dronebl.org`, (records) => interpretDroneblResponse(records))
+      ? queryDnsbl("dronebl", `${reversed}.dnsbl.dronebl.org`, (records) =>
+          interpretDroneblResponse(records),
+        )
       : Promise.resolve(unsupportedOutcome("dronebl")),
     queryBlocklistDe(ip, family, nowMs),
     family === 4
-      ? matchFeodo(ip, nowMs).then((result) => ({ id: "feodo-tracker", ...result }))
+      ? matchFeodo(ip, nowMs).then((result) => ({
+          id: "feodo-tracker",
+          ...result,
+        }))
       : Promise.resolve(unsupportedOutcome("feodo-tracker")),
-    matchDrop(ip, family).then((result) => ({ id: "spamhaus-drop", ...result })),
+    matchDrop(ip, family).then((result) => ({
+      id: "spamhaus-drop",
+      ...result,
+    })),
     queryGreyNoise(ip, family, nowMs),
     queryAbuseIpDb(ip, nowMs),
     httpblKey && family === 4 && reversed
@@ -434,7 +559,7 @@ export async function collectReputation(ip: string, family: 4 | 6): Promise<Repu
         )
       : Promise.resolve(notConfiguredOutcome("httpbl")),
     queryThreatFox(ip, nowMs),
-    queryIpApi(ip),
+    queryIpApi(ip, language),
   ];
 
   const settled = await Promise.allSettled(tasks);
@@ -470,7 +595,9 @@ export async function collectReputation(ip: string, family: 4 | 6): Promise<Repu
           mobile: ipApi.flags.mobile,
           proxy: ipApi.flags.proxy,
           tor: false,
-          residentialEstimated: ipApi.evidence.some((item) => item.category === "residential"),
+          residentialEstimated: ipApi.evidence.some(
+            (item) => item.category === "residential",
+          ),
           reverse: ipApi.reverse,
         };
       }
@@ -490,7 +617,9 @@ export async function collectReputation(ip: string, family: 4 | 6): Promise<Repu
   }
 
   const orderedSources = [...sources].sort(
-    (a, b) => (SOURCE_ORDER.get(a.id) ?? SOURCE_ORDER.size) - (SOURCE_ORDER.get(b.id) ?? SOURCE_ORDER.size),
+    (a, b) =>
+      (SOURCE_ORDER.get(a.id) ?? SOURCE_ORDER.size) -
+      (SOURCE_ORDER.get(b.id) ?? SOURCE_ORDER.size),
   );
 
   return { sources: orderedSources, evidence, geo, network, networkContext };
