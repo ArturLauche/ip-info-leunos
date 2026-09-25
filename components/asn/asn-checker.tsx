@@ -139,6 +139,7 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
         initialValue={querySync.query}
         syncKey={querySync.revision}
         placeholder={t.asnPlaceholder}
+        ariaLabel={t.asnTitle}
         submitLabel={t.asnLookupButton}
         loadingLabel={t.asnLookingUp}
         loading={loading}

@@ -70,17 +70,17 @@ function RelationRow({
 
         {showMetrics && (
           <>
-            <span className="hidden text-right font-mono text-xs text-muted-foreground tabular-nums @min-[17.5rem]:block">
+            <span className="hidden text-end font-mono text-xs text-muted-foreground tabular-nums @min-[17.5rem]:block">
               {v4 ?? "—"}
             </span>
-            <span className="hidden text-right font-mono text-xs text-muted-foreground tabular-nums @min-[17.5rem]:block">
+            <span className="hidden text-end font-mono text-xs text-muted-foreground tabular-nums @min-[17.5rem]:block">
               {v6 ?? "—"}
             </span>
             <span className="flex items-center justify-end gap-2">
               {power && <ScaleBar pct={relativeShare(relation.power, maxPower, 6)} className="w-7" />}
               <span
                 className={cn(
-                  "min-w-[2.75rem] text-right font-mono text-xs tabular-nums",
+                  "min-w-[2.75rem] text-end font-mono text-xs tabular-nums",
                   power ? "font-medium text-foreground/90" : "text-muted-foreground/60",
                 )}
               >
@@ -154,13 +154,13 @@ function RelationColumn({
               )}
             >
               <span>ASN</span>
-              <span className="hidden text-right @min-[17.5rem]:block" title={t.asnRelationV4Peers}>
+              <span className="hidden text-end @min-[17.5rem]:block" title={t.asnRelationV4Peers}>
                 v4
               </span>
-              <span className="hidden text-right @min-[17.5rem]:block" title={t.asnRelationV6Peers}>
+              <span className="hidden text-end @min-[17.5rem]:block" title={t.asnRelationV6Peers}>
                 v6
               </span>
-              <span className="text-right">{t.asnRelationPower}</span>
+              <span className="text-end">{t.asnRelationPower}</span>
             </div>
           )}
           <ul id={listId} className={cn("flex flex-col", !showMetrics && "pt-1.5")}>

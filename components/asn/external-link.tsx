@@ -46,7 +46,7 @@ export function ExternalLink({
         {tail}
         <ArrowUpRight
           className={cn(
-            "ml-1 inline size-3.5 align-[-0.15em] transition-colors group-hover/ext:text-foreground",
+            "ms-1 inline size-3.5 align-[-0.15em] transition-colors group-hover/ext:text-foreground rtl:-scale-x-100",
             variant === "underline" ? "text-muted-foreground" : "text-muted-foreground/50",
           )}
           aria-hidden
