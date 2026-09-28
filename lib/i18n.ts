@@ -55,7 +55,6 @@ export type Translation = {
   checkSubtitle: string;
   queryOtherIp: string;
   backToOwnIp: string;
-  footerDataBy: string;
   copyIpLabel: string;
   copiedToClipboard: string;
   copyFailed: string;
@@ -134,7 +133,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "Beliebige IP-Adresse oder Domain nachschlagen",
       queryOtherIp: "Andere IP-Adresse abfragen",
       backToOwnIp: "Zurück zur eigenen IP",
-      footerDataBy: "Daten bereitgestellt von",
       copyIpLabel: "IP-Adresse kopieren",
       copiedToClipboard: "In die Zwischenablage kopiert",
       copyFailed: "Konnte nicht in die Zwischenablage kopiert werden.",
@@ -247,7 +245,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "Look up any IP address or domain",
       queryOtherIp: "Query another IP address",
       backToOwnIp: "Back to your own IP",
-      footerDataBy: "Data provided by",
       copyIpLabel: "Copy IP address",
       copiedToClipboard: "Copied to clipboard",
       copyFailed: "Could not copy to the clipboard.",
@@ -360,7 +357,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "Busca cualquier dirección IP o dominio",
       queryOtherIp: "Consultar otra dirección IP",
       backToOwnIp: "Volver a tu propia IP",
-      footerDataBy: "Datos proporcionados por",
       copyIpLabel: "Copiar dirección IP",
       copiedToClipboard: "Copiado al portapapeles",
       copyFailed: "No se pudo copiar al portapapeles.",
@@ -473,7 +469,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "Rechercher n'importe quelle adresse IP ou domaine",
       queryOtherIp: "Rechercher une autre adresse IP",
       backToOwnIp: "Retour à votre IP",
-      footerDataBy: "Données fournies par",
       copyIpLabel: "Copier l'adresse IP",
       copiedToClipboard: "Copié dans le presse-papiers",
       copyFailed: "Impossible de copier dans le presse-papiers.",
@@ -586,7 +581,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "Pesquise qualquer endereço IP ou domínio",
       queryOtherIp: "Consultar outro endereço IP",
       backToOwnIp: "Voltar para seu IP",
-      footerDataBy: "Dados fornecidos por",
       copyIpLabel: "Copiar endereço IP",
       copiedToClipboard: "Copiado para a área de transferência",
       copyFailed: "Não foi possível copiar para a área de transferência.",
@@ -699,7 +693,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "任意のIPアドレスまたはドメインを検索",
       queryOtherIp: "別のIPアドレスを検索",
       backToOwnIp: "自分のIPに戻る",
-      footerDataBy: "データ提供",
       copyIpLabel: "IPアドレスをコピー",
       copiedToClipboard: "クリップボードにコピーしました",
       copyFailed: "クリップボードにコピーできませんでした。",
@@ -812,7 +805,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "Проверьте любой IP-адрес или домен",
       queryOtherIp: "Проверить другой IP-адрес",
       backToOwnIp: "Назад к своему IP",
-      footerDataBy: "Данные предоставлены",
       copyIpLabel: "Скопировать IP-адрес",
       copiedToClipboard: "Скопировано в буфер обмена",
       copyFailed: "Не удалось скопировать в буфер обмена.",
@@ -925,7 +917,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       checkSubtitle: "查询任意 IP 地址或域名",
       queryOtherIp: "查询其他 IP 地址",
       backToOwnIp: "返回我的 IP",
-      footerDataBy: "数据来源",
       copyIpLabel: "复制 IP 地址",
       copiedToClipboard: "已复制到剪贴板",
       copyFailed: "无法复制到剪贴板。",

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTranslation, type Locale } from "@/lib/i18n";
+import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { siteConfig } from "@/lib/seo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -14,9 +14,11 @@ interface AppSidebarProps {
   active?: ToolKey;
 }
 
-/** Fixed desktop sidebar: brand, grouped navigation, data source + theme. */
+/**
+ * Fixed desktop sidebar: brand, command trigger, grouped navigation, and the
+ * language plus theme controls in the footer.
+ */
 export function AppSidebar({ locale, active }: AppSidebarProps) {
-  const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
 
   return (
@@ -41,11 +43,8 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
         </Link>
       </div>
 
-      <div className="flex items-center gap-1 px-3 pb-1">
-        <div className="min-w-0 flex-1">
-          <CommandTrigger locale={locale} />
-        </div>
-        <LanguageSelector locale={locale} />
+      <div className="px-3 pb-1">
+        <CommandTrigger locale={locale} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
@@ -54,17 +53,7 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
 
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center justify-between gap-2 px-2">
-          <p className="min-w-0 truncate text-[0.7rem] text-muted-foreground">
-            {t.footerDataBy}{" "}
-            <a
-              href="https://ip-api.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground/80 transition-colors hover:text-primary"
-            >
-              ip-api.com
-            </a>
-          </p>
+          <LanguageSelector locale={locale} />
           <ModeToggle
             labels={{
               toggle: toolT.themeToggle,
