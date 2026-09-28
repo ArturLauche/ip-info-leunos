@@ -15,23 +15,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: () => {} }),
 }));
 
-// Radix mounts its portal only after a layout effect, so a static render never
-// reaches the panel. Rendering the dialog inline with the panel open is what
-// lets the combobox, the list and the copy be asserted here.
-vi.mock("@/components/ui/dialog", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/components/ui/dialog")>();
-  const react = await import("react");
-  return {
-    ...actual,
-    Dialog: (props: ComponentProps<typeof actual.Dialog>) =>
-      react.createElement(actual.Dialog, { ...props, open: true }),
-    DialogPortal: (props: ComponentProps<typeof actual.DialogPortal>) =>
-      react.createElement(react.Fragment, null, props.children),
-    DialogOverlay: () => null,
-  };
-});
-
 const renderSelector = (props: { locale: Locale }): string =>
   renderToStaticMarkup(createElement(LanguageSelector, props));
 
@@ -116,6 +99,11 @@ describe("LanguageSelector trigger", () => {
     const html = renderSelector({ locale: "de" });
     expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('aria-expanded="false"');
+    // The unmodified module keeps the Radix portal closed until the picker is
+    // opened, so no panel markup exists before the click.
+    expect(html).not.toContain('role="combobox"');
+    expect(html).not.toContain('role="listbox"');
+    expect(html).not.toContain('aria-controls="language-panel"');
   });
 
   it("marks the visible language name with its own lang attribute", () => {
@@ -131,9 +119,36 @@ describe("LanguageSelector trigger", () => {
   });
 });
 
+/**
+ * Radix mounts its portal only after a layout effect, so a static render never
+ * reaches the panel. The mock is applied per test through `vi.doMock` against a
+ * freshly imported copy of the component, so the closed-state tests above keep
+ * exercising the unmodified module.
+ */
+async function renderOpenPanel(locale: Locale): Promise<string> {
+  vi.resetModules();
+  vi.doMock("@/components/ui/dialog", async (importOriginal) => {
+    const actual =
+      await importOriginal<typeof import("@/components/ui/dialog")>();
+    const react = await import("react");
+    return {
+      ...actual,
+      Dialog: (props: ComponentProps<typeof actual.Dialog>) =>
+        react.createElement(actual.Dialog, { ...props, open: true }),
+      DialogPortal: (props: ComponentProps<typeof actual.DialogPortal>) =>
+        react.createElement(react.Fragment, null, props.children),
+      DialogOverlay: () => null,
+    };
+  });
+  const picker = await import("./language-selector");
+  return renderToStaticMarkup(
+    createElement(picker.LanguageSelector, { locale }),
+  );
+}
+
 describe("LanguageSelector panel", () => {
-  it("wires the filter into a combobox that names the highlighted language", () => {
-    const html = renderSelector({ locale: "ja" });
+  it("wires the filter into a combobox that names the highlighted language", async () => {
+    const html = await renderOpenPanel("ja");
     expect(html).toContain('role="combobox"');
     expect(html).toContain('aria-haspopup="listbox"');
     expect(html).toContain('aria-expanded="true"');
@@ -143,31 +158,29 @@ describe("LanguageSelector panel", () => {
     expect(html).toContain('aria-activedescendant="language-option-ja"');
   });
 
-  it("labels the filter with the localized placeholder", () => {
-    expect(renderSelector({ locale: "de" })).toContain(
+  it("labels the filter with the localized placeholder", async () => {
+    expect(await renderOpenPanel("de")).toContain(
       'placeholder="Sprachen suchen"',
     );
-    expect(renderSelector({ locale: "ja" })).toContain(
-      'placeholder="言語を検索"',
-    );
+    expect(await renderOpenPanel("ja")).toContain('placeholder="言語を検索"');
   });
 
-  it("offers every language in a listbox labelled in the active language", () => {
-    const html = renderSelector({ locale: "fr" });
+  it("offers every language in a listbox labelled in the active language", async () => {
+    const html = await renderOpenPanel("fr");
     expect(html).toContain('role="listbox"');
     expect(html).toContain('aria-label="Sélectionner la langue"');
     expect(countOf(html, 'role="option"')).toBe(SUPPORTED_LOCALES.length);
   });
 
-  it("marks exactly the language in effect inside the list", () => {
-    const html = renderSelector({ locale: "pt-BR" });
+  it("marks exactly the language in effect inside the list", async () => {
+    const html = await renderOpenPanel("pt-BR");
     expect(countOf(html, "aria-current")).toBe(1);
     expect(row(html, "pt-BR")).toContain('aria-current="true"');
     expect(row(html, "pt-PT")).not.toContain("aria-current");
   });
 
-  it("hints at the keyboard model with the picker's own labels", () => {
-    const html = renderSelector({ locale: "en" });
+  it("hints at the keyboard model with the picker's own labels", async () => {
+    const html = await renderOpenPanel("en");
     expect(html).toContain("Select language");
     expect(html).toContain("Close");
   });

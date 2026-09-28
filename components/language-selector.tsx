@@ -56,7 +56,12 @@ export function localeMatchesQuery(locale: Locale, query: string): boolean {
 
 interface LanguageSelectorProps {
   locale: Locale;
-  /** Called once a language is picked, so a hosting surface can close itself. */
+  /**
+   * Called after a new language is stored, with that language, so a surface
+   * hosting the picker (the mobile navigation sheet) can close itself and read
+   * the stored value. Re-picking the current language is a no-op that only
+   * closes the picker.
+   */
   onLocaleSelected?: (nextLocale: Locale) => void;
 }
 
@@ -189,9 +194,9 @@ export function LanguageSelector({
 
   function selectLocale(nextLocale: Locale) {
     setOpen(false);
-    onLocaleSelected?.(nextLocale);
     if (nextLocale === locale) return;
     persistLocalePreference(nextLocale);
+    onLocaleSelected?.(nextLocale);
     startTransition(() => router.refresh());
   }
 
@@ -218,6 +223,10 @@ export function LanguageSelector({
       selectLocale(activeLocale);
     }
   }
+
+  // An empty result set leaves no listbox to point at, so the combobox stops
+  // claiming an expanded popup rather than pointing aria-controls at nothing.
+  const hasMatches = matches.length > 0;
 
   return (
     <>
@@ -276,10 +285,10 @@ export function LanguageSelector({
                 placeholder={uiCopy.languageSearchPlaceholder}
                 role="combobox"
                 aria-label={uiCopy.languageSearchPlaceholder}
-                aria-expanded="true"
+                aria-expanded={hasMatches}
                 aria-haspopup="listbox"
                 aria-autocomplete="list"
-                aria-controls="language-list"
+                aria-controls={hasMatches ? "language-list" : undefined}
                 aria-activedescendant={
                   activeLocale ? `language-option-${activeLocale}` : undefined
                 }
