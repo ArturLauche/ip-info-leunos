@@ -35,6 +35,7 @@ export type UiCopy = {
   localeCookieNotice: string;
   localeStorageNotice: string;
   languageSelectorLabel: string;
+  languageSearchPlaceholder: string;
   structuredDataCategory: string;
   structuredDataOperatingSystem: string;
   structuredDataBrowserRequirements: string;
@@ -81,6 +82,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Your language choice is also stored in this browser's local storage and applied when the page renders. It is not used for tracking or advertising.",
     languageSelectorLabel: "Select language",
+    languageSearchPlaceholder: "Search languages",
     structuredDataCategory: "Internet and network information tool",
     structuredDataOperatingSystem: "Any system with a modern web browser",
     structuredDataBrowserRequirements:
@@ -127,6 +129,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Ihre Sprachauswahl wird außerdem im lokalen Speicher dieses Browsers abgelegt und beim Aufbau der Seite angewendet. Sie wird nicht für Tracking oder Werbung verwendet.",
     languageSelectorLabel: "Sprache auswählen",
+    languageSearchPlaceholder: "Sprachen suchen",
     structuredDataCategory: "Werkzeug für Internet- und Netzwerkinformationen",
     structuredDataOperatingSystem: "Jedes System mit einem modernen Webbrowser",
     structuredDataBrowserRequirements:
@@ -175,6 +178,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Tu elección de idioma también se guarda en el almacenamiento local de este navegador y se aplica al mostrar la página. No se usa para el seguimiento ni para la publicidad.",
     languageSelectorLabel: "Seleccionar idioma",
+    languageSearchPlaceholder: "Buscar idiomas",
     structuredDataCategory: "Herramienta de información de Internet y redes",
     structuredDataOperatingSystem:
       "Cualquier sistema con un navegador web moderno",
@@ -224,6 +228,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Votre choix de langue est également enregistré dans le stockage local de ce navigateur et appliqué lors de l’affichage de la page. Il n’est utilisé ni pour le suivi ni pour la publicité.",
     languageSelectorLabel: "Sélectionner la langue",
+    languageSearchPlaceholder: "Rechercher une langue",
     structuredDataCategory: "Outil d’information sur Internet et les réseaux",
     structuredDataOperatingSystem:
       "Tout système équipé d’un navigateur web moderne",
@@ -273,6 +278,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "La scelta della lingua viene memorizzata anche nell’archiviazione locale di questo browser e applicata al rendering della pagina. Non viene utilizzata per il tracciamento o la pubblicità.",
     languageSelectorLabel: "Seleziona la lingua",
+    languageSearchPlaceholder: "Cerca lingue",
     structuredDataCategory: "Strumento di informazioni su Internet e rete",
     structuredDataOperatingSystem:
       "Qualsiasi sistema con un browser web moderno",
@@ -322,6 +328,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Uw taalkeuze wordt ook opgeslagen in de lokale opslag van deze browser en toegepast wanneer de pagina wordt opgebouwd. Deze wordt niet gebruikt voor tracking of reclame.",
     languageSelectorLabel: "Taal selecteren",
+    languageSearchPlaceholder: "Talen zoeken",
     structuredDataCategory: "Tool voor internet- en netwerkinformatie",
     structuredDataOperatingSystem: "Elk systeem met een moderne webbrowser",
     structuredDataBrowserRequirements:
@@ -367,6 +374,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Wybrany język jest przechowywany także w lokalnej pamięci tej przeglądarki i stosowany podczas wyświetlania strony. Nie jest używany do śledzenia ani reklam.",
     languageSelectorLabel: "Wybierz język",
+    languageSearchPlaceholder: "Szukaj języka",
     structuredDataCategory: "Narzędzie do informacji o Internecie i sieciach",
     structuredDataOperatingSystem:
       "Dowolny system z nowoczesną przeglądarką internetową",
@@ -417,6 +425,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Sua escolha de idioma também é armazenada no armazenamento local deste navegador e aplicada ao renderizar a página. Ela não é usada para rastreamento nem publicidade.",
     languageSelectorLabel: "Selecionar idioma",
+    languageSearchPlaceholder: "Pesquisar idiomas",
     structuredDataCategory: "Ferramenta de informações sobre Internet e redes",
     structuredDataOperatingSystem:
       "Qualquer sistema com um navegador web moderno",
@@ -467,6 +476,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "A sua escolha de idioma também é guardada no armazenamento local deste navegador e aplicada ao renderizar a página. Não é utilizada para rastreio nem publicidade.",
     languageSelectorLabel: "Selecionar idioma",
+    languageSearchPlaceholder: "Pesquisar idiomas",
     structuredDataCategory: "Ferramenta de informações sobre Internet e redes",
     structuredDataOperatingSystem:
       "Qualquer sistema com um navegador web moderno",
@@ -515,6 +525,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "言語の選択はこのブラウザーのローカルストレージにも保存され、ページ表示時に適用されます。トラッキングや広告には使用されません。",
     languageSelectorLabel: "言語を選択",
+    languageSearchPlaceholder: "言語を検索",
     structuredDataCategory: "インターネットとネットワークの情報ツール",
     structuredDataOperatingSystem:
       "最新のウェブブラウザーを備えたすべてのシステム",
@@ -563,6 +574,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "선택한 언어는 이 브라우저의 로컬 스토리지에도 저장되어 페이지가 표시될 때 적용됩니다. 추적이나 광고에 사용되지 않습니다.",
     languageSelectorLabel: "언어 선택",
+    languageSearchPlaceholder: "언어 검색",
     structuredDataCategory: "인터넷 및 네트워크 정보 도구",
     structuredDataOperatingSystem: "최신 웹 브라우저가 있는 모든 시스템",
     structuredDataBrowserRequirements:
@@ -608,6 +620,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Выбранный язык также хранится в локальном хранилище этого браузера и применяется при отображении страницы. Он не используется для отслеживания или рекламы.",
     languageSelectorLabel: "Выбрать язык",
+    languageSearchPlaceholder: "Поиск языка",
     structuredDataCategory:
       "Инструмент для получения информации об Интернете и сетях",
     structuredDataOperatingSystem: "Любая система с современным веб-браузером",
@@ -654,6 +667,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Вибрана мова також зберігається в локальному сховищі цього браузера та застосовується під час відображення сторінки. Вона не використовується для відстеження чи реклами.",
     languageSelectorLabel: "Вибрати мову",
+    languageSearchPlaceholder: "Пошук мови",
     structuredDataCategory:
       "Інструмент для отримання інформації про Інтернет і мережі",
     structuredDataOperatingSystem: "Будь-яка система із сучасним веббраузером",
@@ -700,6 +714,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "您选择的语言还会存储在此浏览器的本地存储中，并在页面渲染时应用。不会用于跟踪或广告。",
     languageSelectorLabel: "选择语言",
+    languageSearchPlaceholder: "搜索语言",
     structuredDataCategory: "互联网和网络信息工具",
     structuredDataOperatingSystem: "配备现代网络浏览器的任何系统",
     structuredDataBrowserRequirements: "交互式查询需要 JavaScript",
@@ -744,6 +759,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "您選擇的語言還會儲存在此瀏覽器的本機儲存空間中，並在頁面算繪時套用。不會用於追蹤或廣告。",
     languageSelectorLabel: "選擇語言",
+    languageSearchPlaceholder: "搜尋語言",
     structuredDataCategory: "網際網路與網路資訊工具",
     structuredDataOperatingSystem: "配備現代網頁瀏覽器的任何系統",
     structuredDataBrowserRequirements: "互動式查詢需要 JavaScript",
@@ -789,6 +805,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "يُحفظ اختيار اللغة أيضًا في التخزين المحلي لهذا المتصفح ويُطبَّق عند عرض الصفحة. ولا يُستخدم للتتبع أو الإعلانات.",
     languageSelectorLabel: "اختر اللغة",
+    languageSearchPlaceholder: "ابحث عن لغة",
     structuredDataCategory: "أداة معلومات عن الإنترنت والشبكات",
     structuredDataOperatingSystem: "أي نظام مزود بمتصفح ويب حديث",
     structuredDataBrowserRequirements:
@@ -834,6 +851,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "आपकी चुनी हुई भाषा इस ब्राउज़र के लोकल स्टोरेज में भी संग्रहीत होती है और पृष्ठ प्रदर्शित होने पर लागू होती है। इसका उपयोग ट्रैकिंग या विज्ञापन के लिए नहीं किया जाता है।",
     languageSelectorLabel: "भाषा चुनें",
+    languageSearchPlaceholder: "भाषाएँ खोजें",
     structuredDataCategory: "इंटरनेट और नेटवर्क की जानकारी का उपकरण",
     structuredDataOperatingSystem: "आधुनिक वेब ब्राउज़र वाला कोई भी सिस्टम",
     structuredDataBrowserRequirements:
@@ -880,6 +898,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Pilihan bahasa Anda juga disimpan dalam penyimpanan lokal peramban ini dan diterapkan saat halaman ditampilkan. Pilihan ini tidak digunakan untuk pelacakan atau iklan.",
     languageSelectorLabel: "Pilih bahasa",
+    languageSearchPlaceholder: "Cari bahasa",
     structuredDataCategory: "Alat informasi internet dan jaringan",
     structuredDataOperatingSystem: "Sistem apa pun dengan peramban web modern",
     structuredDataBrowserRequirements:
@@ -925,6 +944,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Vybraný jazyk se ukládá také do lokálního úložiště tohoto prohlížeče a použije se při vykreslení stránky. Nepoužívá se ke sledování ani k reklamě.",
     languageSelectorLabel: "Vybrat jazyk",
+    languageSearchPlaceholder: "Hledat jazyk",
     structuredDataCategory: "Nástroj pro informace o internetu a sítích",
     structuredDataOperatingSystem:
       "Jakýkoli systém s moderním webovým prohlížečem",
@@ -973,6 +993,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Ditt språkval sparas också i webbläsarens lokala lagring och tillämpas när sidan renderas. Det används inte för spårning eller annonsering.",
     languageSelectorLabel: "Välj språk",
+    languageSearchPlaceholder: "Sök språk",
     structuredDataCategory: "Verktyg för information om internet och nätverk",
     structuredDataOperatingSystem: "Alla system med en modern webbläsare",
     structuredDataBrowserRequirements:
@@ -1020,6 +1041,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Dit sprogval gemmes også i denne browsers lokale lagring og anvendes, når siden vises. Det bruges ikke til sporing eller annoncer.",
     languageSelectorLabel: "Vælg sprog",
+    languageSearchPlaceholder: "Søg sprog",
     structuredDataCategory: "Værktøj til information om internet og netværk",
     structuredDataOperatingSystem: "Alle systemer med en moderne webbrowser",
     structuredDataBrowserRequirements:
@@ -1067,6 +1089,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Språkvalget ditt lagres også i nettleserens lokale lagring og tas i bruk når siden vises. Det brukes ikke til sporing eller reklame.",
     languageSelectorLabel: "Velg språk",
+    languageSearchPlaceholder: "Søk språk",
     structuredDataCategory: "Verktøy for informasjon om internett og nettverk",
     structuredDataOperatingSystem: "Alle systemer med en moderne nettleser",
     structuredDataBrowserRequirements: "Krever JavaScript for interaktive søk",
@@ -1114,6 +1137,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Kielivalintasi tallennetaan myös selaimen paikalliseen tallennustilaan ja otetaan käyttöön sivua renderöidessä. Sitä ei käytetä seurantaan eikä mainontaan.",
     languageSelectorLabel: "Valitse kieli",
+    languageSearchPlaceholder: "Etsi kieltä",
     structuredDataCategory: "Työkalu internet- ja verkkotietoihin",
     structuredDataOperatingSystem:
       "Kaikki järjestelmät, joissa on moderni verkkoselain",
@@ -1163,6 +1187,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Η γλωσσική σας επιλογή αποθηκεύεται επίσης στον τοπικό χώρο αποθήκευσης αυτού του προγράμματος περιήγησης και εφαρμόζεται όταν εμφανίζεται η σελίδα. Δεν χρησιμοποιείται για παρακολούθηση ή διαφημίσεις.",
     languageSelectorLabel: "Επιλέξτε γλώσσα",
+    languageSearchPlaceholder: "Αναζήτηση γλώσσας",
     structuredDataCategory:
       "Εργαλείο πληροφοριών για το Διαδίκτυο και τα δίκτυα",
     structuredDataOperatingSystem:
@@ -1214,6 +1239,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Limba selectată este stocată și în stocarea locală a acestui browser și se aplică la afișarea paginii. Nu este folosită pentru urmărire sau publicitate.",
     languageSelectorLabel: "Selectați limba",
+    languageSearchPlaceholder: "Caută limbi",
     structuredDataCategory:
       "Instrument de informații despre Internet și rețele",
     structuredDataOperatingSystem: "Orice sistem cu un browser web modern",
@@ -1262,6 +1288,7 @@ export const uiCopy: Record<Locale, UiCopy> = {
     localeStorageNotice:
       "Seçtiğiniz dil ayrıca bu tarayıcının yerel deposunda saklanır ve sayfa görüntülenirken uygulanır. İzleme veya reklam için kullanılmaz.",
     languageSelectorLabel: "Dil seçin",
+    languageSearchPlaceholder: "Dil ara",
     structuredDataCategory: "İnternet ve ağ bilgileri aracı",
     structuredDataOperatingSystem:
       "Modern bir web tarayıcısına sahip herhangi bir sistem",
