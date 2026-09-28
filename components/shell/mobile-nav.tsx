@@ -109,7 +109,10 @@ export function MobileNav({ locale, active }: MobileNavProps) {
               />
             </div>
             <div className="shrink-0 border-t border-sidebar-border px-4 py-4">
-              <LanguageSelector locale={locale} />
+              <LanguageSelector
+                locale={locale}
+                onLocaleSelected={() => setOpen(false)}
+              />
             </div>
           </SheetContent>
         </Sheet>

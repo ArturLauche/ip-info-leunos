@@ -1,9 +1,11 @@
+import type { ComponentProps } from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 import {
+  LanguageEmptyState,
   LanguageSelector,
   LocaleOptionRow,
   localeMatchesQuery,
@@ -13,10 +15,25 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: () => {} }),
 }));
 
-const renderSelector = (props: {
-  locale: Locale;
-  compact?: boolean;
-}): string => renderToStaticMarkup(createElement(LanguageSelector, props));
+// Radix mounts its portal only after a layout effect, so a static render never
+// reaches the panel. Rendering the dialog inline with the panel open is what
+// lets the combobox, the list and the copy be asserted here.
+vi.mock("@/components/ui/dialog", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/components/ui/dialog")>();
+  const react = await import("react");
+  return {
+    ...actual,
+    Dialog: (props: ComponentProps<typeof actual.Dialog>) =>
+      react.createElement(actual.Dialog, { ...props, open: true }),
+    DialogPortal: (props: ComponentProps<typeof actual.DialogPortal>) =>
+      react.createElement(react.Fragment, null, props.children),
+    DialogOverlay: () => null,
+  };
+});
+
+const renderSelector = (props: { locale: Locale }): string =>
+  renderToStaticMarkup(createElement(LanguageSelector, props));
 
 const renderRow = (props: LocaleRowProps): string =>
   renderToStaticMarkup(createElement(LocaleOptionRow, props));
@@ -27,6 +44,16 @@ const noop = () => {};
 
 const find = (query: string): Locale[] =>
   SUPPORTED_LOCALES.filter((locale) => localeMatchesQuery(locale, query));
+
+const countOf = (markup: string, needle: string): number =>
+  markup.split(needle).length - 1;
+
+/** Extracts one panel row so a single language can be inspected. */
+const row = (markup: string, locale: Locale): string => {
+  const start = markup.indexOf(`id="language-option-${locale}"`);
+  expect(start, locale).toBeGreaterThan(-1);
+  return markup.slice(start, markup.indexOf("</div>", start));
+};
 
 /**
  * The picker replaces a 26-row scroll menu, so the filter has to find a
@@ -78,7 +105,7 @@ describe("localeMatchesQuery", () => {
  * the whole page re-renders once the server render catches up with the new
  * locale cookie.
  */
-describe("LanguageSelector trigger markup", () => {
+describe("LanguageSelector trigger", () => {
   it("names the active language in the viewer's own language", () => {
     const html = renderSelector({ locale: "el" });
     expect(html).toContain('aria-label="Επιλέξτε γλώσσα: Ελληνικά"');
@@ -102,17 +129,53 @@ describe("LanguageSelector trigger markup", () => {
       '<span role="status" class="sr-only">日本語</span>',
     );
   });
+});
 
-  it("drops the visible language name in the compact variant", () => {
-    expect(renderSelector({ locale: "ja", compact: true })).not.toContain(
-      "max-w-28",
+describe("LanguageSelector panel", () => {
+  it("wires the filter into a combobox that names the highlighted language", () => {
+    const html = renderSelector({ locale: "ja" });
+    expect(html).toContain('role="combobox"');
+    expect(html).toContain('aria-haspopup="listbox"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('aria-controls="language-list"');
+    // The panel opens on the active language, so the aria-activedescendant
+    // points there and the row is scrolled into view.
+    expect(html).toContain('aria-activedescendant="language-option-ja"');
+  });
+
+  it("labels the filter with the localized placeholder", () => {
+    expect(renderSelector({ locale: "de" })).toContain(
+      'placeholder="Sprachen suchen"',
     );
+    expect(renderSelector({ locale: "ja" })).toContain(
+      'placeholder="言語を検索"',
+    );
+  });
+
+  it("offers every language in a listbox labelled in the active language", () => {
+    const html = renderSelector({ locale: "fr" });
+    expect(html).toContain('role="listbox"');
+    expect(html).toContain('aria-label="Sélectionner la langue"');
+    expect(countOf(html, 'role="option"')).toBe(SUPPORTED_LOCALES.length);
+  });
+
+  it("marks exactly the language in effect inside the list", () => {
+    const html = renderSelector({ locale: "pt-BR" });
+    expect(countOf(html, "aria-current")).toBe(1);
+    expect(row(html, "pt-BR")).toContain('aria-current="true"');
+    expect(row(html, "pt-PT")).not.toContain("aria-current");
+  });
+
+  it("hints at the keyboard model with the picker's own labels", () => {
+    const html = renderSelector({ locale: "en" });
+    expect(html).toContain("Select language");
+    expect(html).toContain("Close");
   });
 });
 
 /**
  * Panel rows are rendered headlessly because the Radix portal stays closed
- * during a static render: this is what pins the selection semantics the
+ * under a static render: this is what pins the selection semantics the
  * dropdown had and the combobox has to keep.
  */
 describe("LocaleOptionRow", () => {
@@ -171,5 +234,16 @@ describe("LocaleOptionRow", () => {
         onHighlight: noop,
       }),
     ).not.toContain('text-xs text-muted-foreground');
+  });
+});
+
+describe("LanguageEmptyState", () => {
+  it("replaces the list with a localized status message", () => {
+    const html = renderToStaticMarkup(
+      createElement(LanguageEmptyState, { locale: "de" }),
+    );
+    expect(html).toBe(
+      '<p role="status" class="px-3 py-8 text-center text-sm text-muted-foreground">Keine Sprache passt zur Suche.</p>',
+    );
   });
 });

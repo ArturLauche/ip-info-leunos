@@ -44,7 +44,9 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
         </Link>
       </div>
 
-      <CommandTrigger locale={locale} className="mx-3" />
+      <div className="px-3 pb-1">
+        <CommandTrigger locale={locale} />
+      </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <NavLinks locale={locale} active={active} />

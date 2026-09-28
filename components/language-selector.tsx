@@ -56,7 +56,20 @@ export function localeMatchesQuery(locale: Locale, query: string): boolean {
 
 interface LanguageSelectorProps {
   locale: Locale;
-  compact?: boolean;
+  /** Called once a language is picked, so a hosting surface can close itself. */
+  onLocaleSelected?: (nextLocale: Locale) => void;
+}
+
+/** Shown instead of the list when the filter matches nothing. */
+export function LanguageEmptyState({ locale }: { locale: Locale }) {
+  return (
+    <p
+      role="status"
+      className="px-3 py-8 text-center text-sm text-muted-foreground"
+    >
+      {getUiCopy(locale).languageNoMatch}
+    </p>
+  );
 }
 
 interface LocaleOptionRowProps {
@@ -128,7 +141,7 @@ export function LocaleOptionRow({
  */
 export function LanguageSelector({
   locale,
-  compact = false,
+  onLocaleSelected,
 }: LanguageSelectorProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -176,6 +189,7 @@ export function LanguageSelector({
 
   function selectLocale(nextLocale: Locale) {
     setOpen(false);
+    onLocaleSelected?.(nextLocale);
     if (nextLocale === locale) return;
     persistLocalePreference(nextLocale);
     startTransition(() => router.refresh());
@@ -210,25 +224,19 @@ export function LanguageSelector({
       <Button
         type="button"
         variant="ghost"
-        size={compact ? "icon" : "sm"}
+        size="sm"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? PANEL_ID : undefined}
         aria-label={triggerLabel}
         title={triggerLabel}
-        className={cn(
-          "gap-2",
-          compact && "size-9",
-          isPending && "opacity-70",
-        )}
+        className={cn("gap-2", isPending && "opacity-70")}
       >
         <Globe2 className="size-4" aria-hidden="true" />
-        {!compact && (
-          <span className="max-w-28 truncate" lang={locale}>
-            {currentName}
-          </span>
-        )}
+        <span className="max-w-28 truncate" lang={locale}>
+          {currentName}
+        </span>
       </Button>
 
       {/* The switch is news once the panel closes and the server render catches
@@ -294,32 +302,27 @@ export function LanguageSelector({
               </DialogPrimitive.Close>
             </div>
 
-            <div
-              id="language-list"
-              ref={listRef}
-              role="listbox"
-              aria-label={selectorLabel}
-              className="min-h-0 overflow-y-auto p-2"
-            >
-              {matches.map((candidate) => (
-                <LocaleOptionRow
-                  key={candidate}
-                  candidate={candidate}
-                  isActive={candidate === activeLocale}
-                  isCurrent={candidate === locale}
-                  onSelect={selectLocale}
-                  onHighlight={setHighlightedLocale}
-                />
-              ))}
-            </div>
-
-            {matches.length === 0 && (
-              <p
-                role="status"
-                className="px-3 py-8 text-center text-sm text-muted-foreground"
+            {matches.length > 0 ? (
+              <div
+                id="language-list"
+                ref={listRef}
+                role="listbox"
+                aria-label={selectorLabel}
+                className="min-h-0 overflow-y-auto p-2"
               >
-                {uiCopy.languageNoMatch}
-              </p>
+                {matches.map((candidate) => (
+                  <LocaleOptionRow
+                    key={candidate}
+                    candidate={candidate}
+                    isActive={candidate === activeLocale}
+                    isCurrent={candidate === locale}
+                    onSelect={selectLocale}
+                    onHighlight={setHighlightedLocale}
+                  />
+                ))}
+              </div>
+            ) : (
+              <LanguageEmptyState locale={locale} />
             )}
 
             <div className="hidden items-center gap-4 border-t border-border/50 px-4 py-2.5 text-xs text-muted-foreground sm:flex">
