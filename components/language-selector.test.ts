@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 import {
@@ -121,11 +121,14 @@ describe("LanguageSelector trigger", () => {
 
 /**
  * Radix mounts its portal only after a layout effect, so a static render never
- * reaches the panel. The mock is applied per test through `vi.doMock` against a
- * freshly imported copy of the component, so the closed-state tests above keep
- * exercising the unmodified module.
+ * reaches the panel. The mocks are applied per test through `vi.doMock` against
+ * a freshly imported copy of the component and removed again afterwards, so the
+ * closed-state tests above keep exercising the unmodified module.
  */
-async function renderOpenPanel(locale: Locale): Promise<string> {
+async function renderOpenPanel(
+  locale: Locale,
+  options: { emptyResults?: boolean } = {},
+): Promise<string> {
   vi.resetModules();
   vi.doMock("@/components/ui/dialog", async (importOriginal) => {
     const actual =
@@ -140,22 +143,55 @@ async function renderOpenPanel(locale: Locale): Promise<string> {
       DialogOverlay: () => null,
     };
   });
+  if (options.emptyResults) {
+    // No match: the only way to reach the empty branch of the panel, since the
+    // query is component state.
+    vi.doMock("@/lib/command", async (importOriginal) => {
+      const actual =
+        await importOriginal<typeof import("@/lib/command")>();
+      return { ...actual, matchesQuery: () => false };
+    });
+  }
   const picker = await import("./language-selector");
   return renderToStaticMarkup(
     createElement(picker.LanguageSelector, { locale }),
   );
 }
 
+afterEach(() => {
+  vi.doUnmock("@/components/ui/dialog");
+  vi.doUnmock("@/lib/command");
+  vi.resetModules();
+});
+
+/** Pulls the filter field out of the rendered panel. */
+function filterField(markup: string): string {
+  const role = markup.indexOf('role="combobox"');
+  expect(role, "combobox").toBeGreaterThan(-1);
+  const start = markup.lastIndexOf("<input", role);
+  return markup.slice(start, markup.indexOf(">", role) + 1);
+}
+
 describe("LanguageSelector panel", () => {
   it("wires the filter into a combobox that names the highlighted language", async () => {
     const html = await renderOpenPanel("ja");
-    expect(html).toContain('role="combobox"');
-    expect(html).toContain('aria-haspopup="listbox"');
-    expect(html).toContain('aria-expanded="true"');
-    expect(html).toContain('aria-controls="language-list"');
+    const field = filterField(html);
+    expect(field).toContain('aria-haspopup="listbox"');
+    expect(field).toContain('aria-expanded="true"');
+    expect(field).toContain('aria-controls="language-list"');
     // The panel opens on the active language, so the aria-activedescendant
     // points there and the row is scrolled into view.
-    expect(html).toContain('aria-activedescendant="language-option-ja"');
+    expect(field).toContain('aria-activedescendant="language-option-ja"');
+  });
+
+  it("collapses the combobox and swaps in the empty state when nothing matches", async () => {
+    const html = await renderOpenPanel("de", { emptyResults: true });
+    const field = filterField(html);
+    // aria-controls must not name an element that is no longer rendered.
+    expect(field).not.toContain("aria-controls");
+    expect(field).toContain('aria-expanded="false"');
+    expect(html).not.toContain('role="listbox"');
+    expect(html).toContain("Keine Sprache passt zur Suche.");
   });
 
   it("labels the filter with the localized placeholder", async () => {
