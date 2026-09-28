@@ -152,10 +152,12 @@ async function renderOpenPanel(
     vi.doMock("@/lib/command", async (importOriginal) => {
       const actual =
         await importOriginal<typeof import("@/lib/command")>();
+      // The injected filter is the query; deferring to whatever the component
+      // would have sent instead would let a real query bypass it unnoticed.
       return {
         ...actual,
-        matchesQuery: (haystack: string, query: string) =>
-          actual.matchesQuery(haystack, query || typedFilter),
+        matchesQuery: (haystack: string) =>
+          actual.matchesQuery(haystack, typedFilter),
       };
     });
   }
@@ -195,9 +197,10 @@ describe("LanguageSelector panel", () => {
   it("collapses the combobox and swaps in the empty state when nothing matches", async () => {
     const html = await renderOpenPanel("de", { query: "zzzzzzz" });
     const field = filterField(html);
-    // Nothing points at a listbox that is no longer rendered: no IDREF, and no
-    // expanded state to claim for a popup that is gone.
+    // Nothing points at a listbox that is no longer rendered: no IDREF of
+    // either kind, and no expanded state to claim for a popup that is gone.
     expect(field).not.toContain("aria-controls");
+    expect(field).not.toContain("aria-activedescendant");
     expect(field).toContain('aria-expanded="false"');
     expect(html).not.toContain('role="listbox"');
     expect(html).toContain("Keine Sprache passt zur Suche.");
