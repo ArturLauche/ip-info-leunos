@@ -3,7 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
-import { LanguageSelector, localeMatchesQuery } from "./language-selector";
+import {
+  LanguageSelector,
+  LocaleOptionRow,
+  localeMatchesQuery,
+} from "./language-selector";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: () => {} }),
@@ -13,6 +17,13 @@ const renderSelector = (props: {
   locale: Locale;
   compact?: boolean;
 }): string => renderToStaticMarkup(createElement(LanguageSelector, props));
+
+const renderRow = (props: LocaleRowProps): string =>
+  renderToStaticMarkup(createElement(LocaleOptionRow, props));
+
+type LocaleRowProps = Parameters<typeof LocaleOptionRow>[0];
+
+const noop = () => {};
 
 const find = (query: string): Locale[] =>
   SUPPORTED_LOCALES.filter((locale) => localeMatchesQuery(locale, query));
@@ -63,9 +74,9 @@ describe("localeMatchesQuery", () => {
 });
 
 /**
- * The trigger keeps announcing the active language while the picker is closed,
- * because the whole page re-renders once the server render catches up with the
- * new locale cookie.
+ * The trigger keeps announcing the language while the picker is closed, because
+ * the whole page re-renders once the server render catches up with the new
+ * locale cookie.
  */
 describe("LanguageSelector trigger markup", () => {
   it("names the active language in the viewer's own language", () => {
@@ -74,15 +85,21 @@ describe("LanguageSelector trigger markup", () => {
     expect(html).toContain('title="Επιλέξτε γλώσσα: Ελληνικά"');
   });
 
+  it("tells assistive technology that it opens a dialog", () => {
+    const html = renderSelector({ locale: "de" });
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('aria-expanded="false"');
+  });
+
   it("marks the visible language name with its own lang attribute", () => {
     expect(renderSelector({ locale: "ja" })).toContain(
       '<span class="max-w-28 truncate" lang="ja">日本語</span>',
     );
   });
 
-  it("mirrors the trigger label into a polite status region", () => {
-    expect(renderSelector({ locale: "pt-BR" })).toContain(
-      '<span role="status" class="sr-only">Selecionar idioma: Português (Brasil)</span>',
+  it("announces the switched language on its own", () => {
+    expect(renderSelector({ locale: "ja" })).toContain(
+      '<span role="status" class="sr-only">日本語</span>',
     );
   });
 
@@ -90,5 +107,69 @@ describe("LanguageSelector trigger markup", () => {
     expect(renderSelector({ locale: "ja", compact: true })).not.toContain(
       "max-w-28",
     );
+  });
+});
+
+/**
+ * Panel rows are rendered headlessly because the Radix portal stays closed
+ * during a static render: this is what pins the selection semantics the
+ * dropdown had and the combobox has to keep.
+ */
+describe("LocaleOptionRow", () => {
+  it("marks the language in effect for assistive technology", () => {
+    expect(
+      renderRow({
+        candidate: "ja",
+        isActive: false,
+        isCurrent: true,
+        onSelect: noop,
+        onHighlight: noop,
+      }),
+    ).toContain('aria-current="true"');
+  });
+
+  it("marks the keyboard row as the selected option", () => {
+    const html = renderRow({
+      candidate: "ja",
+      isActive: true,
+      isCurrent: false,
+      onSelect: noop,
+      onHighlight: noop,
+    });
+    expect(html).toContain('aria-selected="true"');
+    expect(html).not.toContain("aria-current");
+  });
+
+  it("keeps right-to-left candidates in their own direction", () => {
+    const html = renderRow({
+      candidate: "ar",
+      isActive: false,
+      isCurrent: false,
+      onSelect: noop,
+      onHighlight: noop,
+    });
+    expect(html).toContain('lang="ar"');
+    expect(html).toContain('dir="rtl"');
+  });
+
+  it("shows the English name only where the native one hides it", () => {
+    expect(
+      renderRow({
+        candidate: "ja",
+        isActive: false,
+        isCurrent: false,
+        onSelect: noop,
+        onHighlight: noop,
+      }),
+    ).toContain("Japanese");
+    expect(
+      renderRow({
+        candidate: "en",
+        isActive: false,
+        isCurrent: false,
+        onSelect: noop,
+        onHighlight: noop,
+      }),
+    ).not.toContain('text-xs text-muted-foreground');
   });
 });

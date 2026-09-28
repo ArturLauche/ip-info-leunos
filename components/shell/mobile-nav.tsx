@@ -28,7 +28,11 @@ interface MobileNavProps {
   active?: ToolKey;
 }
 
-/** Sticky top bar with a slide-out navigation sheet for small screens. */
+/**
+ * Sticky top bar with a slide-out navigation sheet for small screens. The
+ * sheet footer carries the language control, keeping the bar to brand, search
+ * and theme.
+ */
 export function MobileNav({ locale, active }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const toolT = getToolTranslation(locale);
@@ -61,7 +65,6 @@ export function MobileNav({ locale, active }: MobileNavProps) {
 
       <div className="flex items-center gap-1">
         <CommandTrigger locale={locale} variant="icon" />
-        <LanguageSelector locale={locale} compact />
         <ModeToggle labels={themeLabels} />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -98,12 +101,15 @@ export function MobileNav({ locale, active }: MobileNavProps) {
                 {toolT.brandTagline}
               </SheetDescription>
             </SheetHeader>
-            <div className="overflow-y-auto px-3 py-5">
+            <div className="flex-1 overflow-y-auto px-3 py-5">
               <NavLinks
                 locale={locale}
                 active={active}
                 onNavigate={() => setOpen(false)}
               />
+            </div>
+            <div className="shrink-0 border-t border-sidebar-border px-4 py-4">
+              <LanguageSelector locale={locale} />
             </div>
           </SheetContent>
         </Sheet>

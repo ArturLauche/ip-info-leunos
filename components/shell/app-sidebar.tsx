@@ -14,7 +14,10 @@ interface AppSidebarProps {
   active?: ToolKey;
 }
 
-/** Fixed desktop sidebar: brand, grouped navigation, data source + theme. */
+/**
+ * Fixed desktop sidebar: brand, command trigger, grouped navigation, and the
+ * language plus theme controls in the footer.
+ */
 export function AppSidebar({ locale, active }: AppSidebarProps) {
   const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
@@ -41,19 +44,17 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
         </Link>
       </div>
 
-      <div className="flex items-center gap-1 px-3 pb-1">
-        <div className="min-w-0 flex-1">
-          <CommandTrigger locale={locale} />
-        </div>
-        <LanguageSelector locale={locale} />
-      </div>
+      <CommandTrigger locale={locale} className="mx-3" />
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <NavLinks locale={locale} active={active} />
       </div>
 
       <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center justify-between gap-2 px-2">
+        <div className="px-2">
+          <LanguageSelector locale={locale} />
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2 px-2">
           <p className="min-w-0 truncate text-[0.7rem] text-muted-foreground">
             {t.footerDataBy}{" "}
             <a
