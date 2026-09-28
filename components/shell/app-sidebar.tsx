@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTranslation, type Locale } from "@/lib/i18n";
+import { type Locale } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { siteConfig } from "@/lib/seo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -19,7 +19,6 @@ interface AppSidebarProps {
  * language plus theme controls in the footer.
  */
 export function AppSidebar({ locale, active }: AppSidebarProps) {
-  const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
 
   return (
@@ -53,21 +52,8 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
       </div>
 
       <div className="border-t border-sidebar-border p-3">
-        <div className="px-2">
+        <div className="flex items-center justify-between gap-2 px-2">
           <LanguageSelector locale={locale} />
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2 px-2">
-          <p className="min-w-0 truncate text-[0.7rem] text-muted-foreground">
-            {t.footerDataBy}{" "}
-            <a
-              href="https://ip-api.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground/80 transition-colors hover:text-primary"
-            >
-              ip-api.com
-            </a>
-          </p>
           <ModeToggle
             labels={{
               toggle: toolT.themeToggle,
