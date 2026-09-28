@@ -286,7 +286,7 @@ export function LanguageSelector({
                 role="combobox"
                 aria-label={uiCopy.languageSearchPlaceholder}
                 aria-expanded={hasMatches}
-                aria-haspopup="listbox"
+                aria-haspopup={hasMatches ? "listbox" : undefined}
                 aria-autocomplete="list"
                 aria-controls={hasMatches ? "language-list" : undefined}
                 aria-activedescendant={
