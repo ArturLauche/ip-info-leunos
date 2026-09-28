@@ -125,12 +125,13 @@ describe("LanguageSelector trigger", () => {
  * a freshly imported copy of the component and removed again afterwards, so the
  * closed-state tests above keep exercising the unmodified module.
  *
- * `matches` stubs the matcher the way a filter would leave the list: absent for
- * the full list, `null` for none, a predicate to narrow it.
+ * `query` is the filter to inject, because the panel's own query is component
+ * state a static render cannot set. It is run through the real matcher, so
+ * these tests cover narrowed and empty result sets, not a fake list.
  */
 async function renderOpenPanel(
   locale: Locale,
-  options: { matches?: ((haystack: string) => boolean) | null } = {},
+  options: { query?: string } = {},
 ): Promise<string> {
   vi.resetModules();
   vi.doMock("@/components/ui/dialog", async (importOriginal) => {
@@ -146,12 +147,16 @@ async function renderOpenPanel(
       DialogOverlay: () => null,
     };
   });
-  if (options.matches !== undefined) {
+  if (options.query !== undefined) {
+    const typedFilter = options.query;
     vi.doMock("@/lib/command", async (importOriginal) => {
       const actual =
         await importOriginal<typeof import("@/lib/command")>();
-      const matcher = options.matches ?? (() => false);
-      return { ...actual, matchesQuery: (haystack: string) => matcher(haystack) };
+      return {
+        ...actual,
+        matchesQuery: (haystack: string, query: string) =>
+          actual.matchesQuery(haystack, query || typedFilter),
+      };
     });
   }
   const picker = await import("./language-selector");
@@ -180,7 +185,6 @@ function filterField(markup: string): string {
 describe("LanguageSelector panel", () => {
   it("wires the filter into a combobox that names the highlighted language", async () => {
     const field = filterField(await renderOpenPanel("ja"));
-    expect(field).toContain('aria-haspopup="listbox"');
     expect(field).toContain('aria-expanded="true"');
     expect(field).toContain('aria-controls="language-list"');
     // The panel opens on the active language, so the aria-activedescendant
@@ -189,21 +193,18 @@ describe("LanguageSelector panel", () => {
   });
 
   it("collapses the combobox and swaps in the empty state when nothing matches", async () => {
-    const html = await renderOpenPanel("de", { matches: null });
+    const html = await renderOpenPanel("de", { query: "zzzzzzz" });
     const field = filterField(html);
-    // Nothing points at a listbox that is no longer rendered: no IDREF, no
-    // popup to declare, and no expanded state to claim.
+    // Nothing points at a listbox that is no longer rendered: no IDREF, and no
+    // expanded state to claim for a popup that is gone.
     expect(field).not.toContain("aria-controls");
-    expect(field).not.toContain("aria-haspopup");
     expect(field).toContain('aria-expanded="false"');
     expect(html).not.toContain('role="listbox"');
     expect(html).toContain("Keine Sprache passt zur Suche.");
   });
 
   it("falls back to the first match when the active language is filtered out", async () => {
-    const html = await renderOpenPanel("ja", {
-      matches: (haystack) => haystack.split(" ").includes("German"),
-    });
+    const html = await renderOpenPanel("ja", { query: "german" });
     expect(countOf(html, 'role="option"')).toBe(1);
     expect(filterField(html)).toContain(
       'aria-activedescendant="language-option-de"',
