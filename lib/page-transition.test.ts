@@ -7,6 +7,7 @@ import {
   EXIT_START_TIMEOUT_MS,
   MOBILE_BREAKPOINT_PX,
   exitScrollOffset,
+  exitFadeCanRun,
   getExitDurationMs,
   getExitFallbackMs,
   shouldUseFallbackSnapshot,
@@ -80,6 +81,21 @@ describe("getExitFallbackMs", () => {
     expect(EXIT_START_TIMEOUT_MS).toBeGreaterThan(
       getExitFallbackMs(EXIT_DURATION_MOBILE_MS),
     );
+  });
+});
+
+describe("exitFadeCanRun", () => {
+  it("is false when CSS produced no fade", () => {
+    expect(exitFadeCanRun([])).toBe(false);
+  });
+
+  it("is false when the fade is paused", () => {
+    expect(exitFadeCanRun(["paused"])).toBe(false);
+  });
+
+  it("is true for a fade that is running or has not yet been started", () => {
+    expect(exitFadeCanRun(["running"])).toBe(true);
+    expect(exitFadeCanRun(["idle"])).toBe(true);
   });
 });
 

@@ -52,6 +52,16 @@ export function getExitFallbackMs(exitDurationMs: number): number {
 }
 
 /**
+ * Whether the outgoing copy's fade can play. A fade CSS did not create, or one
+ * that is paused (a user stylesheet or extension), dispatches no event that
+ * would end it. Any other state, including one a browser reports before the
+ * first frame, is left to the animation events and the bounds above.
+ */
+export function exitFadeCanRun(playStates: readonly string[]): boolean {
+  return playStates.some((state) => state !== "paused");
+}
+
+/**
  * Keeps retained outgoing content visually anchored while Next.js resets or
  * restores the document scroll position for a navigation.
  */

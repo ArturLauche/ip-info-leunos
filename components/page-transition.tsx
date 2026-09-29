@@ -11,6 +11,7 @@ import {
 
 import {
   exitScrollOffset,
+  exitFadeCanRun,
   getExitDurationMs,
   getExitFallbackMs,
   EXIT_START_TIMEOUT_MS,
@@ -358,11 +359,12 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 
     startSnapshotExit(snapshot, duration);
 
-    // getAnimations() resolves style first. A fade that CSS does not run at
-    // all (a user stylesheet or extension disabling animations) dispatches no
-    // event that could end it, so drop the copy now instead of covering the
-    // new route.
-    if (snapshot.getAnimations().length === 0) {
+    // getAnimations() resolves style first. A fade CSS does not run (a user
+    // stylesheet or extension that disables or pauses animations) dispatches
+    // no event that could end it, so drop the copy now instead of covering
+    // the new route.
+    const fadeStates = snapshot.getAnimations().map((fade) => fade.playState);
+    if (!exitFadeCanRun(fadeStates)) {
       removeSnapshot(snapshot);
       return;
     }

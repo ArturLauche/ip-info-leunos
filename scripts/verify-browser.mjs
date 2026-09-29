@@ -170,6 +170,8 @@ try {
     browser("wait", "--url", "**/dns");
     assert.equal(evaluate("window.__routeClones"), 0);
     // A commit that mounts no replacement copy must not leave the old one over the route.
+    // The address bar updates a few ms before the route commits, so wait for the layer.
+    waitFor("document.querySelector('.tool-page-snapshot-layer').childElementCount === 0");
     assert.equal(evaluate("document.querySelector('.tool-page-snapshot-layer').childElementCount"), 0);
   });
 
