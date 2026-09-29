@@ -13,6 +13,7 @@ import {
   exitScrollOffset,
   getExitDurationMs,
   getExitFallbackMs,
+  EXIT_START_TIMEOUT_MS,
   shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "@/lib/page-transition";
@@ -218,6 +219,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   const expiredPreflightPathname = useRef<string | null>(null);
   const pendingTimer = useRef<number | null>(null);
   const exitTimer = useRef<number | null>(null);
+  const exitListeners = useRef<AbortController | null>(null);
   const holdFrame = useRef<number | null>(null);
 
   const cancelAnimation = useCallback(() => {
@@ -229,6 +231,8 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       cancelAnimationFrame(holdFrame.current);
       holdFrame.current = null;
     }
+    exitListeners.current?.abort();
+    exitListeners.current = null;
   }, []);
 
   const removeSnapshot = useCallback((snapshot: HTMLDivElement) => {
@@ -362,18 +366,31 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     };
     holdPosition();
 
-    // The fade is removed once it has actually played; see getExitFallbackMs.
+    // The fade is removed once it has actually played. It can start long after
+    // the commit, so the fallback timer is re-armed by animationstart.
     const finishExit = () => {
       cancelAnimation();
       removeSnapshot(snapshot);
     };
-    snapshot.addEventListener("animationend", (event) => {
-      if (event.target === snapshot) finishExit();
-    });
-    exitTimer.current = window.setTimeout(
-      finishExit,
-      getExitFallbackMs(duration),
+    const armFallback = (delay: number) => {
+      if (exitTimer.current !== null) window.clearTimeout(exitTimer.current);
+      exitTimer.current = window.setTimeout(finishExit, delay);
+    };
+    const listeners = new AbortController();
+    exitListeners.current = listeners;
+    const onSnapshot = (handler: () => void) => (event: Event) => {
+      if (event.target === snapshot) handler();
+    };
+    const options = { signal: listeners.signal };
+    snapshot.addEventListener(
+      "animationstart",
+      onSnapshot(() => armFallback(getExitFallbackMs(duration))),
+      options,
     );
+    snapshot.addEventListener("animationend", onSnapshot(finishExit), options);
+    // A cancelled exit (reduced motion switched on mid-fade) never ends.
+    snapshot.addEventListener("animationcancel", onSnapshot(finishExit), options);
+    armFallback(EXIT_START_TIMEOUT_MS);
   }, [cancelAnimation, pathname, removeSnapshot]);
 
   useEffect(() => {

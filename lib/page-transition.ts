@@ -3,8 +3,9 @@
  *
  * This module deliberately has no DOM access so the timing and scroll rules
  * can be tested in Vitest's Node environment. The component publishes the
- * selected duration as a CSS custom property, keeping its swap timer and the
- * matching animation in lockstep.
+ * selected duration as a CSS custom property so the exit animation and its
+ * fallback timer share one source; the outgoing copy is removed when that
+ * animation ends (see EXIT_FALLBACK_SLACK_MS).
  */
 
 /** Matches the `lg` breakpoint used to switch between mobile and desktop chrome. */
@@ -15,12 +16,15 @@ export const EXIT_DURATION_DESKTOP_MS = 120;
 export const EXIT_DURATION_MOBILE_MS = 150;
 
 /**
- * The outgoing copy is removed when its exit animation ends. A busy main
- * thread at commit time can start that animation a few frames late, so a timer
- * set to the nominal duration would cut the fade short. The timer therefore
- * only guards against `animationend` never being delivered.
+ * The outgoing copy is removed when its exit animation ends or is cancelled.
+ * These bounds only guard against neither event being delivered. A busy main
+ * thread can delay the first animation frame well past the route commit, so a
+ * timer started at commit would cut the fade short: the tighter bound is armed
+ * by `animationstart`, and the looser one only covers an exit that never
+ * starts.
  */
-export const EXIT_FALLBACK_SLACK_MS = 400;
+export const EXIT_FALLBACK_SLACK_MS = 200;
+export const EXIT_START_TIMEOUT_MS = 3_000;
 
 export interface PageTransitionEnvironment {
   viewportWidth: number;

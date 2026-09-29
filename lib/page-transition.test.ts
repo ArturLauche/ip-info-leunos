@@ -4,6 +4,7 @@ import {
   EXIT_DURATION_DESKTOP_MS,
   EXIT_DURATION_MOBILE_MS,
   EXIT_FALLBACK_SLACK_MS,
+  EXIT_START_TIMEOUT_MS,
   MOBILE_BREAKPOINT_PX,
   exitScrollOffset,
   getExitDurationMs,
@@ -64,15 +65,17 @@ describe("exitScrollOffset", () => {
 });
 
 describe("getExitFallbackMs", () => {
-  it("always outlasts the exit animation it guards", () => {
+  it("outlasts the exit animation it guards", () => {
     for (const duration of [EXIT_DURATION_DESKTOP_MS, EXIT_DURATION_MOBILE_MS]) {
       expect(getExitFallbackMs(duration)).toBe(duration + EXIT_FALLBACK_SLACK_MS);
       expect(getExitFallbackMs(duration)).toBeGreaterThan(duration);
     }
   });
 
-  it("leaves room for an animation that starts several frames late", () => {
-    expect(EXIT_FALLBACK_SLACK_MS).toBeGreaterThanOrEqual(250);
+  it("waits longer for an exit that has not started than for one that has", () => {
+    expect(EXIT_START_TIMEOUT_MS).toBeGreaterThan(
+      getExitFallbackMs(EXIT_DURATION_MOBILE_MS),
+    );
   });
 });
 

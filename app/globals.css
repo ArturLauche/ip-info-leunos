@@ -27,6 +27,8 @@
   --motion-fast: 120ms;
   --motion-base: 220ms;
   --motion-slow: 420ms;
+  /* Loop period of the loading sheen. */
+  --motion-sheen: 1800ms;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -382,6 +384,7 @@
     --page-enter-distance: 0.5rem;
     --page-exit-distance: 0.25rem;
     --page-delay-copy: 60ms;
+    --page-delay-icon: 20ms;
     --page-delay-panel: 90ms;
     --page-delay-footer: 150ms;
   }
@@ -425,7 +428,7 @@
   }
 
   .tool-page-current > [data-transition-stage='header'] [data-transition-item='icon'] {
-    animation: tool-icon-enter calc(var(--page-enter-duration) + 60ms) var(--ease-fluid) 20ms both;
+    animation: tool-icon-enter var(--motion-slow) var(--ease-fluid) var(--page-delay-icon) both;
   }
 
   .tool-page-current > [data-transition-stage='header'] [data-transition-item='text'] {
@@ -447,6 +450,7 @@
       --page-enter-distance: 0.75rem;
       --page-exit-distance: 0.375rem;
       --page-delay-copy: 80ms;
+      --page-delay-icon: 30ms;
       --page-delay-panel: 110ms;
       --page-delay-footer: 170ms;
     }
@@ -460,7 +464,7 @@
    * container remounts on every lookup, so the stagger replays each time.
    */
   .tool-reveal > * {
-    animation: tool-reveal 460ms var(--ease-fluid) both;
+    animation: tool-reveal var(--motion-slow) var(--ease-fluid) both;
   }
 
   .tool-reveal > *:nth-child(1) { animation-delay: 0ms; }
@@ -491,7 +495,7 @@
       transparent
     );
     transform: translateX(-100%);
-    animation: tool-skeleton-sheen 1.8s var(--ease-smooth) infinite;
+    animation: tool-skeleton-sheen var(--motion-sheen) var(--ease-smooth) infinite;
   }
 
   [dir='rtl'] .tool-skeleton::after {

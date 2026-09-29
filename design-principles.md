@@ -182,15 +182,16 @@ Every data view designs for four states explicitly:
 ## 8. Interaction & motion
 
 - Motion is **functional and quick**: it shows what changed and never delays
-  reading. Only `opacity` and `transform` animate, everything that arrives uses
-  one decelerating curve (`--ease-fluid`), and durations come from the
-  `--motion-*` tokens in `app/globals.css`. No long or attention-seeking
-  animation.
+  reading. Only `opacity` and `transform` animate, anything that moves into
+  place uses the decelerating `--ease-fluid` curve, and shared durations come
+  from the `--motion-*` tokens in `app/globals.css`. No long or
+  attention-seeking animation.
 - **Page changes** (`PageTransition`): the outgoing route fades and lifts away
   in 120–150 ms while the incoming route settles in stage by stage — header
-  icon, header copy, panel, footer — over about 340 ms. New page chrome opts in
-  with `data-transition-stage` / `data-transition-item`; do not stack a second
-  entrance on top of it.
+  icon, header copy, panel, footer — over about 340 ms (its timings are the
+  `--page-*` custom properties on `.tool-page-transition`). New page chrome opts
+  in with `data-transition-stage` / `data-transition-item`; do not stack a
+  second entrance on top of it.
 - **Content appearance**: async results use `.tool-reveal` (direct children lift
   in with a capped stagger); a single late arrival — an error, raw output, tab
   content — uses `.tool-section-reveal`; loading placeholders use `Skeleton`
