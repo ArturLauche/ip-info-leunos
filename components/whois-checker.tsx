@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/components/i18n-provider";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
-import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -217,17 +216,12 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
           {showRaw && (
             <pre
               id="whois-raw-result"
-              className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground"
+              className="tool-section-reveal max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground"
               tabIndex={0}
             >
               {result.raw || t.noWhoisData}
             </pre>
           )}
-          <ResultActions
-            data={result}
-            copyText={result.raw}
-            filename={`whois-${result.target}`}
-          />
         </ResultPanel>
       )}
     </div>

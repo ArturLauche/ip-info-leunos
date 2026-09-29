@@ -316,3 +316,10 @@ checks against the production build with agent-browser 0.31.1 (the README pins
 drifted further: an ASN fixture without `sources`, a `lang` assertion that never
 matched the `de-DE` document language, and clicks that raced the sheet and
 dropdown animations. Those are repaired.
+
+### Later change — result export removed
+
+The copy / JSON download buttons under the results (`ResultActions`, and the
+earlier DNS and WHOIS variants) were removed from every tool, together with their
+`copyValue` / `downloadJson` catalog entries. The entries above describe the
+state at the time of the audit. `CopyButton` remains for individual values.

@@ -11,7 +11,10 @@ import {
 
 import {
   exitScrollOffset,
+  isExitFadeBlocked,
   getExitDurationMs,
+  getExitFallbackMs,
+  EXIT_START_TIMEOUT_MS,
   shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "@/lib/page-transition";
@@ -217,6 +220,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   const expiredPreflightPathname = useRef<string | null>(null);
   const pendingTimer = useRef<number | null>(null);
   const exitTimer = useRef<number | null>(null);
+  const exitListeners = useRef<AbortController | null>(null);
   const holdFrame = useRef<number | null>(null);
 
   const cancelAnimation = useCallback(() => {
@@ -228,6 +232,8 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       cancelAnimationFrame(holdFrame.current);
       holdFrame.current = null;
     }
+    exitListeners.current?.abort();
+    exitListeners.current = null;
   }, []);
 
   const removeSnapshot = useCallback((snapshot: HTMLDivElement) => {
@@ -334,7 +340,11 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       window.clearTimeout(pendingTimer.current);
       pendingTimer.current = null;
     }
-    if (!layer || !snapshot) return;
+    if (!layer || !snapshot) {
+      // A superseded exit has no timer or listener left to remove its copy.
+      layer?.replaceChildren();
+      return;
+    }
 
     if (snapshot.parentElement !== layer) {
       mountSnapshot(layer, snapshot);
@@ -349,6 +359,19 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 
     startSnapshotExit(snapshot, duration);
 
+    // getAnimations() resolves style first. A fade CSS does not run (a user
+    // stylesheet or extension that disables or pauses animations) dispatches
+    // no event that could end it, so drop the copy now instead of covering
+    // the new route.
+    const animations = snapshot.getAnimations().map((animation) => ({
+      name: "animationName" in animation ? String(animation.animationName) : "",
+      state: animation.playState,
+    }));
+    if (isExitFadeBlocked(animations)) {
+      removeSnapshot(snapshot);
+      return;
+    }
+
     const scrollBefore = Number(snapshot.dataset.scrollBefore || window.scrollY);
     let applied: number | null = null;
     const holdPosition = () => {
@@ -361,10 +384,31 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     };
     holdPosition();
 
-    exitTimer.current = window.setTimeout(() => {
+    // The fade is removed once it has actually played. It can start long after
+    // the commit, so the fallback timer is re-armed by animationstart.
+    const finishExit = () => {
       cancelAnimation();
       removeSnapshot(snapshot);
-    }, duration);
+    };
+    const armFallback = (delay: number) => {
+      if (exitTimer.current !== null) window.clearTimeout(exitTimer.current);
+      exitTimer.current = window.setTimeout(finishExit, delay);
+    };
+    const listeners = new AbortController();
+    exitListeners.current = listeners;
+    const onSnapshot = (handler: () => void) => (event: Event) => {
+      if (event.target === snapshot) handler();
+    };
+    const options = { signal: listeners.signal };
+    snapshot.addEventListener(
+      "animationstart",
+      onSnapshot(() => armFallback(getExitFallbackMs(duration))),
+      options,
+    );
+    snapshot.addEventListener("animationend", onSnapshot(finishExit), options);
+    // A cancelled exit (reduced motion switched on mid-fade) never ends.
+    snapshot.addEventListener("animationcancel", onSnapshot(finishExit), options);
+    armFallback(EXIT_START_TIMEOUT_MS);
   }, [cancelAnimation, pathname, removeSnapshot]);
 
   useEffect(() => {

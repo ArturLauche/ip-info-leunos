@@ -30,8 +30,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Nástroje",
     sidebarLabel: "Navigace webu",
     navClose: "Zavřít nabídku",
-    copyValue: "Kopírovat",
-    downloadJson: "Stáhnout JSON",
     cancelLookup: "Zrušit",
     whoisNoteIana:
       "Nebyl nalezen žádný odkazující server. Zobrazuje se odpověď WHOIS služby IANA.",
@@ -614,8 +612,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Verktyg",
     sidebarLabel: "Webbplatsnavigering",
     navClose: "Stäng menyn",
-    copyValue: "Kopiera",
-    downloadJson: "Ladda ner JSON",
     cancelLookup: "Avbryt",
     whoisNoteIana:
       "Ingen hänvisningsserver hittades. WHOIS-svaret från IANA visas.",
@@ -1193,8 +1189,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Værktøjer",
     sidebarLabel: "Webstedsnavigation",
     navClose: "Luk menu",
-    copyValue: "Kopiér",
-    downloadJson: "Download JSON",
     cancelLookup: "Annullér",
     whoisNoteIana:
       "Der blev ikke fundet en henvisningsserver. IANA-WHOIS-svaret vises.",
@@ -1774,8 +1768,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Verktøy",
     sidebarLabel: "Nettstedsnavigasjon",
     navClose: "Lukk meny",
-    copyValue: "Kopier",
-    downloadJson: "Last ned JSON",
     cancelLookup: "Avbryt",
     whoisNoteIana:
       "Ingen henvisningsserver ble funnet. WHOIS-svaret fra IANA vises.",
@@ -2354,8 +2346,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Työkalut",
     sidebarLabel: "Sivuston navigointi",
     navClose: "Sulje valikko",
-    copyValue: "Kopioi",
-    downloadJson: "Lataa JSON",
     cancelLookup: "Peruuta",
     whoisNoteIana:
       "Viittausserveriä ei löytynyt. Näytetään IANA:n WHOIS-vastaus.",
@@ -2936,8 +2926,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Εργαλεία",
     sidebarLabel: "Πλοήγηση στον ιστότοπο",
     navClose: "Κλείσιμο μενού",
-    copyValue: "Αντιγραφή",
-    downloadJson: "Λήψη JSON",
     cancelLookup: "Ακύρωση",
     whoisNoteIana:
       "Δεν βρέθηκε διακομιστής παραπομπής. Εμφανίζεται η απόκριση WHOIS του IANA.",
@@ -3524,8 +3512,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Instrumente",
     sidebarLabel: "Navigarea site-ului",
     navClose: "Închide meniul",
-    copyValue: "Copiază",
-    downloadJson: "Descarcă JSON",
     cancelLookup: "Anulează",
     whoisNoteIana:
       "Nu a fost găsit niciun server de trimitere. Se afișează răspunsul WHOIS al IANA.",
@@ -4107,8 +4093,6 @@ export const toolsNorthern: Record<
     navToolsLabel: "Araçlar",
     sidebarLabel: "Site gezinmesi",
     navClose: "Menüyü kapat",
-    copyValue: "Kopyala",
-    downloadJson: "JSON indir",
     cancelLookup: "İptal",
     whoisNoteIana:
       "Yönlendirme sunucusu bulunamadı. IANA WHOIS yanıtı gösteriliyor.",

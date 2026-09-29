@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -46,8 +46,6 @@ function installFixtures() {
     window.__calls = [];
     window.__completed = 0;
     window.__plan = [];
-    window.__copied = null;
-    Object.defineProperty(navigator, 'clipboard', {configurable:true,value:{writeText:async text=>{window.__copied=text;}}});
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const url = String(args[0]);
@@ -94,20 +92,9 @@ try {
     assertHealthy();
   });
 
-  check("TXT chunks, filtered copy, and JSON download preserve the result", () => {
+  check("TXT chunks are concatenated in the filtered record table", () => {
     clickRole("radio", "TXT");
     assert.ok(evaluate("document.body.innerText.includes('v=DKIM1; p=MIIBIjANBg')"));
-    clickRole("button", "Copy");
-    assert.equal(evaluate("window.__copied"), "TXT\tv=DKIM1; p=MIIBIjANBg");
-    const path = join(artifacts, "dns.json");
-    const snapshot = browser("snapshot", "-i");
-    const download = Object.entries(snapshot.refs).find(([, entry]) => entry.role === "button" && entry.name === "Download JSON");
-    assert.ok(download, "Download button has an accessible name");
-    browser("download", `@${download[0]}`, path);
-    const data = JSON.parse(readFileSync(path, "utf8"));
-    assert.equal(data.target, "example.com");
-    assert.equal(data.records.length, 1);
-    assert.deepEqual(data.records[0].value, ["v=DKIM1; p=MIIB", "IjANBg"]);
   });
 
   check("cancelled slow lookups cannot overwrite a newer result", () => {
@@ -161,8 +148,12 @@ try {
     assertHealthy();
   });
 
-  check("reduced motion avoids route snapshot cloning", () => {
+  check("reduced motion avoids route snapshot cloning and leaves no stale copy", () => {
     browser("set", "media", "light", "reduced-motion");
+    // A fresh load under reduced motion, so no fallback copy of the page exists.
+    open("/whois");
+    browser("press", "Control+k");
+    waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
     evaluate(`(() => {
       window.__routeClones=0;
       const original=Element.prototype.cloneNode;
@@ -170,13 +161,19 @@ try {
         if(this.classList.contains('tool-page-current')) window.__routeClones++;
         return original.apply(this,args);
       };
+      const stale=document.createElement('div');
+      stale.className='tool-page-snapshot';
+      document.querySelector('.tool-page-snapshot-layer').append(stale);
     })()`);
-    browser("press", "Control+k");
-    waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
     browser("wait", "--url", "**/dns");
     assert.equal(evaluate("window.__routeClones"), 0);
+    // A commit that mounts no replacement copy must not leave the old one over the route.
+    // The address bar updates a few ms before the route commits, so wait for the new page;
+    // the cleanup runs in that same commit, so the layer must already be empty.
+    waitFor("document.querySelector('.tool-page-current:not(.tool-page-snapshot) h1')?.textContent === 'DNS Lookup'");
+    assert.equal(evaluate("document.querySelector('.tool-page-snapshot-layer').childElementCount"), 0);
   });
 
   check("same-tool navigation and history restore or clear lookup state", () => {
@@ -332,7 +329,7 @@ try {
     assertHealthy();
   });
 
-  check("German WHOIS fallback notes, raw disclosure, copy, and export work", () => {
+  check("German WHOIS fallback notes and raw disclosure work", () => {
     browser("set", "headers", JSON.stringify({"accept-language":"de"}));
     open("/whois");
     browser("snapshot", "-i");
@@ -347,17 +344,9 @@ try {
     // The document language is the full BCP 47 tag (see getIntlLocale), not the registry key.
     assert.equal(evaluate("document.documentElement.lang"), "de-DE");
     assert.ok(evaluate("document.body.innerText.includes('WHOIS war nicht verfügbar.')"));
-    clickRole("button", "Kopieren");
-    assert.equal(evaluate("window.__copied"), data.raw);
     browser("click", "button[aria-controls=whois-raw-result]");
     assert.equal(evaluate("document.querySelector('#whois-raw-result').textContent"), data.raw);
     assert.equal(evaluate("document.querySelector('button[aria-controls=whois-raw-result]').getAttribute('aria-expanded')"), "true");
-    const snapshot = browser("snapshot", "-i");
-    const download = Object.entries(snapshot.refs).find(([, entry]) => entry.role === "button" && entry.name === "JSON herunterladen");
-    assert.ok(download);
-    const path = join(artifacts, "whois.json");
-    browser("download", `@${download[0]}`, path);
-    assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), data);
     assertFits();
     assertHealthy();
   });

@@ -6,7 +6,6 @@ import type { UiCopy } from "@/lib/ui-copy";
 import type { CdnReasonCode } from "@/lib/cdn-detection";
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/components/i18n-provider";
-import { ResultActions } from "@/components/result-actions";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
@@ -320,11 +319,6 @@ export function CdnChecker({ initialTarget = "" }: CdnCheckerProps) {
               )}
             </Card>
           </div>
-
-          <ResultActions
-            data={result}
-            filename={`cdn-${result.target}`}
-          />
         </div>
       )}
     </div>

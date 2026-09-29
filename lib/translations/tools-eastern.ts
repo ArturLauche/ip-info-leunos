@@ -28,8 +28,6 @@ export const toolsEastern: Record<
     navToolsLabel: "Narzędzia",
     sidebarLabel: "Nawigacja witryny",
     navClose: "Zamknij menu",
-    copyValue: "Kopiuj",
-    downloadJson: "Pobierz JSON",
     cancelLookup: "Anuluj",
     whoisNoteIana:
       "Nie znaleziono serwera polecen. Wyświetlana jest odpowiedź WHOIS z IANA.",
@@ -621,8 +619,6 @@ export const toolsEastern: Record<
     navToolsLabel: "Ferramentas",
     sidebarLabel: "Navegação do site",
     navClose: "Fechar menu",
-    copyValue: "Copiar",
-    downloadJson: "Baixar JSON",
     cancelLookup: "Cancelar",
     whoisNoteIana:
       "Nenhum servidor de referência foi encontrado. Exibindo a resposta WHOIS da IANA.",
@@ -1200,8 +1196,6 @@ export const toolsEastern: Record<
     navToolsLabel: "Ferramentas",
     sidebarLabel: "Navegação do site",
     navClose: "Fechar o menu",
-    copyValue: "Copiar",
-    downloadJson: "Transferir JSON",
     cancelLookup: "Cancelar",
     whoisNoteIana:
       "Não foi encontrado nenhum servidor de referência. A mostrar a resposta WHOIS da IANA.",
@@ -1787,8 +1781,6 @@ export const toolsEastern: Record<
     navToolsLabel: "ツール",
     sidebarLabel: "サイトナビゲーション",
     navClose: "メニューを閉じる",
-    copyValue: "コピー",
-    downloadJson: "JSON をダウンロード",
     cancelLookup: "キャンセル",
     whoisNoteIana:
       "参照サーバーが見つかりませんでした。IANA の WHOIS 応答を表示しています。",
@@ -2356,8 +2348,6 @@ export const toolsEastern: Record<
     navToolsLabel: "도구",
     sidebarLabel: "사이트 탐색",
     navClose: "메뉴 닫기",
-    copyValue: "복사",
-    downloadJson: "JSON 다운로드",
     cancelLookup: "취소",
     whoisNoteIana: "참조 서버를 찾지 못했습니다. IANA WHOIS 응답을 표시합니다.",
     whoisNoteRdap:
@@ -2914,8 +2904,6 @@ export const toolsEastern: Record<
     navToolsLabel: "Инструменты",
     sidebarLabel: "Навигация сайта",
     navClose: "Закрыть меню",
-    copyValue: "Копировать",
-    downloadJson: "Скачать JSON",
     cancelLookup: "Отмена",
     whoisNoteIana: "Сервер пересылки не найден. Показан ответ WHOIS IANA.",
     whoisNoteRdap:

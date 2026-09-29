@@ -73,7 +73,7 @@ Related conventions (repo-specific, not generic):
 ```text
 app/                  pages (Server Components) + API routes (/api/ip, /api/asn/[asn], /api/dns, /api/whois, /api/cdn, /api/ping POST, /api/reputation, /api/flag/[code])
 app/<tool>/page.tsx   headers() → resolveLocale() → createPageMetadata() → ToolPageShell + Checker
-components/           *-checker.tsx, i18n-provider.tsx, result-actions.tsx (copy / JSON export), shell/ (sidebar/nav/command-palette), ui/ (shadcn), asn/
+components/           *-checker.tsx, i18n-provider.tsx, page-transition.tsx (route enter/exit), shell/ (sidebar/nav/command-palette), ui/ (shadcn), asn/
 hooks/use-tool-lookup.ts  shared checker state machine (loading/error/result, URL sync, stale-guard)
 lib/                  api/ (response, rate-limit, client, error-message), network/ (target SSRF-guard, database-probes), reputation/, providers/ip-api.ts, cdn-detection.ts, connection-type.ts, dns-records.ts, whois.ts, asn.ts, command.ts, clipboard.ts, single-flight.ts, site-config.ts, locale-config.ts, seo.ts, i18n.ts, tool-i18n.ts, ui-copy.ts, i18n-dictionaries.ts (server-only catalogs)
 scripts/              strip-client-maps.mjs (runs in build), generate-icons.mjs, verify-browser.mjs + measure-client-js.mjs (production browser checks, see README)

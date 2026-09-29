@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import {
+  EXIT_ANIMATION_NAME,
   EXIT_DURATION_DESKTOP_MS,
   EXIT_DURATION_MOBILE_MS,
+  EXIT_FALLBACK_SLACK_MS,
+  EXIT_START_TIMEOUT_MS,
   MOBILE_BREAKPOINT_PX,
   exitScrollOffset,
   getExitDurationMs,
+  getExitFallbackMs,
+  isExitFadeBlocked,
   shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "./page-transition";
@@ -58,6 +64,68 @@ describe("exitScrollOffset", () => {
 
   it("ignores sub-pixel drift", () => {
     expect(exitScrollOffset(100, 100.4)).toBe(0);
+  });
+});
+
+describe("getExitFallbackMs", () => {
+  it("outlasts the exit animation it guards", () => {
+    for (const duration of [EXIT_DURATION_DESKTOP_MS, EXIT_DURATION_MOBILE_MS]) {
+      expect(getExitFallbackMs(duration)).toBe(duration + EXIT_FALLBACK_SLACK_MS);
+      expect(getExitFallbackMs(duration)).toBeGreaterThan(duration);
+    }
+  });
+
+  it("keeps a margin of several frames past the nominal end", () => {
+    expect(EXIT_FALLBACK_SLACK_MS).toBeGreaterThanOrEqual(100);
+  });
+
+  it("waits longer for an exit that has not started than for one that has", () => {
+    expect(EXIT_START_TIMEOUT_MS).toBeGreaterThan(
+      getExitFallbackMs(EXIT_DURATION_MOBILE_MS),
+    );
+  });
+});
+
+describe("isExitFadeBlocked", () => {
+  const fade = (state: string, name = EXIT_ANIMATION_NAME) => ({ name, state });
+
+  it("is blocked when CSS created no animation at all", () => {
+    expect(isExitFadeBlocked([])).toBe(true);
+  });
+
+  it("is blocked when the exit fade is paused", () => {
+    expect(isExitFadeBlocked([fade("paused")])).toBe(true);
+  });
+
+  it("is not blocked while the exit fade runs, even before its first frame", () => {
+    expect(isExitFadeBlocked([fade("running")])).toBe(false);
+  });
+
+  it("is blocked once the exit fade can no longer dispatch events", () => {
+    expect(isExitFadeBlocked([fade("finished")])).toBe(true);
+    expect(isExitFadeBlocked([fade("idle")])).toBe(true);
+  });
+
+  it("judges the exit fade alone, whatever else runs on the copy", () => {
+    expect(isExitFadeBlocked([fade("paused"), fade("running", "other")])).toBe(true);
+    expect(isExitFadeBlocked([fade("running"), fade("paused", "other")])).toBe(false);
+  });
+
+  it("leaves the copy to the animation events when no animation has the exit name", () => {
+    expect(isExitFadeBlocked([fade("running", "renamed-fade")])).toBe(false);
+  });
+});
+
+describe("EXIT_ANIMATION_NAME", () => {
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  it("names keyframes that exist in the stylesheet", () => {
+    expect(css).toMatch(new RegExp(`@keyframes\\s+${EXIT_ANIMATION_NAME}\\s*\\{`));
+  });
+
+  it("is the animation the exiting copy plays", () => {
+    const rule = css.match(/\.tool-page-snapshot\[data-phase='exiting'\]\s*\{([^}]*)\}/);
+    expect(rule?.[1]).toMatch(new RegExp(`animation:\\s*${EXIT_ANIMATION_NAME}(?![\\w-])`));
   });
 });
 

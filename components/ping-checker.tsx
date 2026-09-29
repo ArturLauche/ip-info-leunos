@@ -21,7 +21,6 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { useI18n } from "@/components/i18n-provider";
 import { LiveRegion } from "@/components/live-region";
-import { ResultActions } from "@/components/result-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -624,18 +623,13 @@ export function PingChecker({
                   <pre
                     id="ping-details"
                     tabIndex={0}
-                    className="max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground"
+                    className="tool-section-reveal max-h-96 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs text-foreground"
                   >
                     {JSON.stringify(result.details, null, 2)}
                   </pre>
                 )}
               </>
             )}
-
-            <ResultActions
-              data={result}
-              filename={`ping-${result.mode}-${result.target}-${result.port}`}
-            />
           </div>
         </Card>
       )}

@@ -66,7 +66,7 @@ export function LookupError({
   t: ToolTranslation;
 }) {
   return (
-    <Alert variant="destructive">
+    <Alert variant="destructive" className="tool-section-reveal">
       <TriangleAlert />
       <AlertDescription className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <span className="min-w-0">{message}</span>

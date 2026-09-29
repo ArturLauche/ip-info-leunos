@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
 import { CopyButton } from "@/components/copy-button";
 import { LiveRegion } from "@/components/live-region";
-import { ResultActions } from "@/components/result-actions";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
 import {
@@ -355,17 +354,6 @@ function IpDisplayContent({
   useEffect(() => {
     onAnnouncementChange(announcement);
   }, [announcement, onAnnouncementChange]);
-
-  // Keeps the API payload untouched and lists what the page showed, with where
-  // each address came from: browser-discovered fallbacks are not server data.
-  // Memoized so ResultActions keeps a stable identity across re-renders.
-  const exportData = useMemo(
-    () =>
-      data
-        ? { ...data, displayed: resolveDisplayIps(data, clientIpv4, clientIpv6) }
-        : null,
-    [data, clientIpv4, clientIpv6],
-  );
 
   useEffect(() => {
     const reportLoading = (value: boolean) => {
@@ -815,11 +803,6 @@ function IpDisplayContent({
             </>
           ))}
       </div>
-
-      <ResultActions
-        data={exportData}
-        filename={`ip-${reputationIp ?? "lookup"}`}
-      />
     </div>
   );
 }

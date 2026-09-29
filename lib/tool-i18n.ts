@@ -55,8 +55,6 @@ type ToolTranslation = {
   navToolsLabel: string;
   sidebarLabel: string;
   navClose: string;
-  copyValue: string;
-  downloadJson: string;
   cancelLookup: string;
   whoisNoteIana: string;
   whoisNoteRdap: string;
@@ -430,8 +428,6 @@ const en: ToolTranslation = {
   navToolsLabel: "Tools",
   sidebarLabel: "Site navigation",
   navClose: "Close menu",
-  copyValue: "Copy",
-  downloadJson: "Download JSON",
   cancelLookup: "Cancel",
   whoisNoteIana:
     "No referral server was found. Showing the IANA WHOIS response.",
@@ -994,8 +990,6 @@ const de: ToolTranslation = {
   navToolsLabel: "Werkzeuge",
   sidebarLabel: "Seitennavigation",
   navClose: "Menü schließen",
-  copyValue: "Kopieren",
-  downloadJson: "JSON herunterladen",
   cancelLookup: "Abbrechen",
   whoisNoteIana:
     "Kein Verweisserver gefunden. Die IANA-WHOIS-Antwort wird angezeigt.",

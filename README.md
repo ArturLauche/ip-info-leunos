@@ -9,7 +9,6 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Look up ASN profiles at `/asn` and `/asn/AS8881`, combining optional IPinfo ASN data, public RIPEstat routing data, and public PeeringDB peering data.
 - Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) at `/dns`, including reverse (PTR) lookups for IP addresses.
 - Query WHOIS/RDAP data at `/whois`.
-- Copy any result or download it as JSON (DNS, WHOIS, IP, ASN, CDN, Ping, Reputation); DNS exports follow the selected record filter.
 - Cancel pending lookups and retry the same target without reloading the page.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
@@ -109,7 +108,7 @@ node scripts/verify-browser.mjs http://localhost:3001
 node scripts/measure-client-js.mjs http://localhost:3001/dns
 ```
 
-Browser checks cover lookup cancellation/races, request counts, navigation/history, repeated query parameters, clipboard/downloads, Ping credentials/ports, localization, keyboard controls, and narrow layouts. Screenshots, downloads, and results are saved to a temporary directory printed by the script. These fixtures verify the UI; API unit tests and live smoke checks exercise the server separately. The measurement script reports initial script sizes and a reproducible gzip estimate, excluding deferred code until requested.
+Browser checks cover lookup cancellation/races, request counts, navigation/history, repeated query parameters, Ping credentials/ports, localization, keyboard controls, and narrow layouts. Screenshots and results are saved to a temporary directory printed by the script. These fixtures verify the UI; API unit tests and live smoke checks exercise the server separately. The measurement script reports initial script sizes and a reproducible gzip estimate, excluding deferred code until requested.
 
 See [the codebase audit](docs/codebase-audit.md) for the implementation plan, findings, measurements, and remaining deployment decisions.
 

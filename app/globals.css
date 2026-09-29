@@ -27,6 +27,8 @@
   --motion-fast: 120ms;
   --motion-base: 220ms;
   --motion-slow: 420ms;
+  /* Loop period of the loading sheen. */
+  --motion-sheen: 1800ms;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -367,19 +369,24 @@
   }
 
   /*
-   * Page-change transition. The persistent wrapper retains the outgoing route
-   * for a quick fade/lift, then the incoming header, panel and footer settle in
-   * with the existing staged reveal. Mobile travels slightly farther and uses
-   * the fluid curve, while desktop stays quick and subtle. The wrapper clips
-   * horizontally and every animated property is compositor-friendly.
+   * Page-change transition. The persistent wrapper keeps the outgoing route on
+   * screen while it fades and lifts away; the incoming route then settles in
+   * stage by stage (header icon, header copy, panel, footer) on one
+   * decelerating curve. Distances stay small and only opacity and transform
+   * animate, so it runs on the compositor. Mobile travels a little farther and
+   * a little longer. The wrapper clips horizontally.
    */
   .tool-page-transition {
     position: relative;
     overflow-x: clip;
 
-    --page-enter-duration: 260ms;
-    --page-enter-distance: 0.375rem;
+    --page-enter-duration: 340ms;
+    --page-enter-distance: 0.5rem;
     --page-exit-distance: 0.25rem;
+    --page-delay-copy: 60ms;
+    --page-delay-icon: 20ms;
+    --page-delay-panel: 90ms;
+    --page-delay-footer: 150ms;
   }
 
   .tool-page-snapshot-layer {
@@ -398,7 +405,9 @@
 
   /* Cloned descendants must look exactly as they did when captured, not
    * restart their own entrance/loading animations inside the visual copy. */
-  .tool-page-snapshot * {
+  .tool-page-snapshot *,
+  .tool-page-snapshot *::before,
+  .tool-page-snapshot *::after {
     animation: none !important;
     transition: none !important;
   }
@@ -409,35 +418,41 @@
   }
 
   .tool-page-current > [data-transition-stage] {
-    animation: tool-page-enter var(--page-enter-duration) var(--ease-out-soft) both;
+    animation: tool-page-enter var(--page-enter-duration) var(--ease-fluid) both;
+  }
+
+  /* The header only fades as a whole; its icon and copy move on their own so
+   * the two never stack their offsets. */
+  .tool-page-current > [data-transition-stage='header'] {
+    animation: tool-page-fade var(--motion-base) var(--ease-out-soft) both;
+  }
+
+  .tool-page-current > [data-transition-stage='header'] [data-transition-item='icon'] {
+    animation: tool-icon-enter var(--motion-slow) var(--ease-fluid) var(--page-delay-icon) both;
+  }
+
+  .tool-page-current > [data-transition-stage='header'] [data-transition-item='text'] {
+    animation: tool-page-enter var(--page-enter-duration) var(--ease-fluid)
+      var(--page-delay-copy) both;
   }
 
   .tool-page-current > [data-transition-stage='panel'] {
-    animation-delay: 60ms;
+    animation-delay: var(--page-delay-panel);
   }
 
   .tool-page-current > [data-transition-stage='footer'] {
-    animation-delay: 100ms;
+    animation-delay: var(--page-delay-footer);
   }
 
   @media (max-width: 1023px) {
     .tool-page-transition {
-      --page-enter-duration: 300ms;
-      --page-enter-distance: 0.625rem;
+      --page-enter-duration: 380ms;
+      --page-enter-distance: 0.75rem;
       --page-exit-distance: 0.375rem;
-    }
-
-    .tool-page-current > [data-transition-stage] {
-      animation-timing-function: var(--ease-fluid);
-      animation-delay: 20ms;
-    }
-
-    .tool-page-current > [data-transition-stage='panel'] {
-      animation-delay: 85ms;
-    }
-
-    .tool-page-current > [data-transition-stage='footer'] {
-      animation-delay: 130ms;
+      --page-delay-copy: 80ms;
+      --page-delay-icon: 30ms;
+      --page-delay-panel: 110ms;
+      --page-delay-footer: 170ms;
     }
   }
 
@@ -445,19 +460,47 @@
    * Shared reveal for asynchronously loaded results (IP lookups, DNS, WHOIS,
    * ASN, reputation, …). Rather than fading the whole block in at once, the
    * direct children lift in with a short, capped stagger so a result settles
-   * section by section — one easing curve everywhere, calm by design. The
+   * section by section, on the same decelerating curve as the page. The
    * container remounts on every lookup, so the stagger replays each time.
    */
   .tool-reveal > * {
-    animation: tool-reveal var(--motion-slow) var(--ease-out-soft) both;
+    animation: tool-reveal var(--motion-slow) var(--ease-fluid) both;
   }
 
   .tool-reveal > *:nth-child(1) { animation-delay: 0ms; }
-  .tool-reveal > *:nth-child(2) { animation-delay: 60ms; }
-  .tool-reveal > *:nth-child(3) { animation-delay: 120ms; }
-  .tool-reveal > *:nth-child(4) { animation-delay: 180ms; }
-  .tool-reveal > *:nth-child(5) { animation-delay: 240ms; }
-  .tool-reveal > *:nth-child(n + 6) { animation-delay: 280ms; }
+  .tool-reveal > *:nth-child(2) { animation-delay: 55ms; }
+  .tool-reveal > *:nth-child(3) { animation-delay: 110ms; }
+  .tool-reveal > *:nth-child(4) { animation-delay: 165ms; }
+  .tool-reveal > *:nth-child(5) { animation-delay: 220ms; }
+  .tool-reveal > *:nth-child(n + 6) { animation-delay: 260ms; }
+
+  /*
+   * Loading placeholder. A soft band sweeps across each block instead of the
+   * block pulsing; transform-only, and tinted with the foreground so it reads
+   * in both themes. Static under reduced motion.
+   */
+  .tool-skeleton {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tool-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--foreground) 7%, transparent),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: tool-skeleton-sheen var(--motion-sheen) var(--ease-smooth) infinite;
+  }
+
+  [dir='rtl'] .tool-skeleton::after {
+    animation-direction: reverse;
+  }
 
   /*
    * Ping mode-specific fields expand on a 0fr→1fr grid so database/auth
@@ -521,10 +564,32 @@
   }
 }
 
+@keyframes tool-page-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tool-icon-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes tool-reveal {
   from {
     opacity: 0;
-    transform: translateY(0.5rem);
+    transform: translateY(0.625rem);
   }
 
   to {
@@ -542,6 +607,12 @@
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes tool-skeleton-sheen {
+  to {
+    transform: translateX(100%);
   }
 }
 
@@ -566,9 +637,11 @@
 
   .tool-page-snapshot[data-phase='exiting'],
   .tool-page-current > [data-transition-stage],
+  .tool-page-current > [data-transition-stage] [data-transition-item],
   .tool-reveal,
   .tool-reveal > *,
-  .tool-section-reveal {
+  .tool-section-reveal,
+  .tool-skeleton::after {
     animation: none;
   }
 }

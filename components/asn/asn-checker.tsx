@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Building2, Waypoints } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
-import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
@@ -219,11 +218,6 @@ export function AsnChecker({ initialAsn = "" }: AsnCheckerProps) {
               )}
             </AsnDetailTabs>
           </Card>
-
-          <ResultActions
-            data={result}
-            filename={`asn-${result.asn}`}
-          />
         </div>
       )}
 
