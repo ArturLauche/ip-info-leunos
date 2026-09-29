@@ -54,16 +54,29 @@ export function getExitFallbackMs(exitDurationMs: number): number {
 /** Keyframes of the outgoing copy's fade; must match `app/globals.css`. */
 export const EXIT_ANIMATION_NAME = "tool-page-exit";
 
+export interface AnimationProbe {
+  name: string;
+  state: string;
+}
+
 /**
- * Whether the outgoing copy's fade can play, given the play states of that
- * fade alone. Read right after the fade is created, when a healthy one reports
- * `running` even before its first frame. A fade CSS did not create, or one
- * that is paused (a user stylesheet or extension), dispatches no event that
- * would end it; any other state is left to the animation events and the
- * bounds above.
+ * Whether the outgoing copy's fade is already known not to play, judged from
+ * the animations read right after it is created. A healthy fade reports
+ * `running`, even before its first frame. No animation at all, or a fade that
+ * is paused or otherwise not running (a user stylesheet or extension),
+ * dispatches no event that would end it. Only the animation named
+ * EXIT_ANIMATION_NAME counts: if none carries it, the copy is left to the
+ * animation events and the bounds above, so a stale name degrades to the event
+ * path instead of dropping every fade.
  */
-export function exitFadeCanRun(fadeStates: readonly string[]): boolean {
-  return fadeStates.some((state) => state !== "paused");
+export function isExitFadeBlocked(
+  animations: readonly AnimationProbe[],
+): boolean {
+  if (animations.length === 0) return true;
+  const fades = animations.filter(
+    (animation) => animation.name === EXIT_ANIMATION_NAME,
+  );
+  return fades.length > 0 && fades.every((fade) => fade.state !== "running");
 }
 
 /**

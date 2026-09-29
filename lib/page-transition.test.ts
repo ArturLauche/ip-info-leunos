@@ -9,9 +9,9 @@ import {
   EXIT_START_TIMEOUT_MS,
   MOBILE_BREAKPOINT_PX,
   exitScrollOffset,
-  exitFadeCanRun,
   getExitDurationMs,
   getExitFallbackMs,
+  isExitFadeBlocked,
   shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "./page-transition";
@@ -86,25 +86,46 @@ describe("getExitFallbackMs", () => {
   });
 });
 
-describe("exitFadeCanRun", () => {
-  it("is false when CSS produced no fade", () => {
-    expect(exitFadeCanRun([])).toBe(false);
+describe("isExitFadeBlocked", () => {
+  const fade = (state: string, name = EXIT_ANIMATION_NAME) => ({ name, state });
+
+  it("is blocked when CSS created no animation at all", () => {
+    expect(isExitFadeBlocked([])).toBe(true);
   });
 
-  it("is false when the fade is paused", () => {
-    expect(exitFadeCanRun(["paused"])).toBe(false);
+  it("is blocked when the exit fade is paused", () => {
+    expect(isExitFadeBlocked([fade("paused")])).toBe(true);
   });
 
-  it("is true for a running fade, including one waiting for its first frame", () => {
-    expect(exitFadeCanRun(["running"])).toBe(true);
+  it("is not blocked while the exit fade runs, even before its first frame", () => {
+    expect(isExitFadeBlocked([fade("running")])).toBe(false);
+  });
+
+  it("is blocked once the exit fade can no longer dispatch events", () => {
+    expect(isExitFadeBlocked([fade("finished")])).toBe(true);
+    expect(isExitFadeBlocked([fade("idle")])).toBe(true);
+  });
+
+  it("judges the exit fade alone, whatever else runs on the copy", () => {
+    expect(isExitFadeBlocked([fade("paused"), fade("running", "other")])).toBe(true);
+    expect(isExitFadeBlocked([fade("running"), fade("paused", "other")])).toBe(false);
+  });
+
+  it("leaves the copy to the animation events when no animation has the exit name", () => {
+    expect(isExitFadeBlocked([fade("running", "renamed-fade")])).toBe(false);
   });
 });
 
 describe("EXIT_ANIMATION_NAME", () => {
-  it("names the keyframes the stylesheet plays on the outgoing copy", () => {
-    const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
-    expect(css).toContain(`@keyframes ${EXIT_ANIMATION_NAME}`);
-    expect(css).toMatch(new RegExp(`animation:\\s*${EXIT_ANIMATION_NAME}\\b`));
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  it("names keyframes that exist in the stylesheet", () => {
+    expect(css).toMatch(new RegExp(`@keyframes\\s+${EXIT_ANIMATION_NAME}\\s*\\{`));
+  });
+
+  it("is the animation the exiting copy plays", () => {
+    const rule = css.match(/\.tool-page-snapshot\[data-phase='exiting'\]\s*\{([^}]*)\}/);
+    expect(rule?.[1]).toMatch(new RegExp(`animation:\\s*${EXIT_ANIMATION_NAME}(?![\\w-])`));
   });
 });
 

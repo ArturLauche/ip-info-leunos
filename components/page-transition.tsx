@@ -11,8 +11,7 @@ import {
 
 import {
   exitScrollOffset,
-  exitFadeCanRun,
-  EXIT_ANIMATION_NAME,
+  isExitFadeBlocked,
   getExitDurationMs,
   getExitFallbackMs,
   EXIT_START_TIMEOUT_MS,
@@ -364,14 +363,11 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     // stylesheet or extension that disables or pauses animations) dispatches
     // no event that could end it, so drop the copy now instead of covering
     // the new route.
-    const fadeStates = snapshot
-      .getAnimations()
-      .filter(
-        (animation) =>
-          (animation as CSSAnimation).animationName === EXIT_ANIMATION_NAME,
-      )
-      .map((fade) => fade.playState);
-    if (!exitFadeCanRun(fadeStates)) {
+    const animations = snapshot.getAnimations().map((animation) => ({
+      name: "animationName" in animation ? String(animation.animationName) : "",
+      state: animation.playState,
+    }));
+    if (isExitFadeBlocked(animations)) {
       removeSnapshot(snapshot);
       return;
     }
