@@ -67,3 +67,21 @@ describe("GET /api/flag/[code]", () => {
     expect(await response.text()).toBe("");
   });
 });
+
+describe("GET /api/flag/[code] rate limiting", () => {
+  it("answers an exhausted client with an empty 429 and a retry hint", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => chunkedResponse([SVG])));
+    const call = () =>
+      GET(new Request("http://localhost/api/flag/fr", { headers: { "x-real-ip": "203.0.113.77" } }), {
+        params: Promise.resolve({ code: "fr" }),
+      });
+
+    let last: Response | undefined;
+    for (let attempt = 0; attempt < 121; attempt += 1) last = await call();
+
+    expect(last?.status).toBe(429);
+    expect(await last?.text()).toBe("");
+    expect(Number(last?.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect(last?.headers.get("cache-control")).toBe("no-store");
+  });
+});

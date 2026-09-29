@@ -9,6 +9,7 @@ import {
   TargetValidationError,
 } from "@/lib/network/target";
 import { isCacheableDnsResult } from "@/lib/dns-cache";
+import { createSingleFlight } from "@/lib/single-flight";
 import {
   DNS_TIMEOUT_MESSAGE,
   dnsLookupErrorCode,
@@ -47,6 +48,10 @@ const DNS_CACHE_TTL_MS = 120_000;
 const DNS_CACHE_MAX_ENTRIES = 512;
 
 const dnsCache = new Map<string, { storedAt: number; payload: unknown }>();
+
+// Concurrent lookups of one hostname share a single fan-out of resolver
+// queries (up to ten per hostname) instead of each repeating it.
+const dnsFlights = createSingleFlight<unknown>();
 
 function getCachedDns(hostname: string): unknown | null {
   const cached = dnsCache.get(hostname);
@@ -186,6 +191,10 @@ export async function GET(request: Request) {
     return apiOk(cachedPayload);
   }
 
+  return apiOk(await dnsFlights.run(hostname, () => resolveDnsPayload(hostname)));
+}
+
+async function resolveDnsPayload(hostname: string): Promise<unknown> {
   // IP targets only support reverse (PTR) lookups.
   if (isIpAddress(hostname)) {
     const ptrResult = await resolvePtr(hostname);
@@ -216,7 +225,7 @@ export async function GET(request: Request) {
     if (isCacheableDnsResult(null, recordErrors)) {
       setCachedDns(hostname, payload);
     }
-    return apiOk(payload);
+    return payload;
   }
 
   const [lookupResult, recordsByType] = await Promise.all([
@@ -259,5 +268,5 @@ export async function GET(request: Request) {
   if (isCacheableDnsResult(lookupError, recordErrors)) {
     setCachedDns(hostname, payload);
   }
-  return apiOk(payload);
+  return payload;
 }

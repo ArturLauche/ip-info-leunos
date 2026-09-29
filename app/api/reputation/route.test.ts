@@ -142,6 +142,25 @@ afterEach(() => {
 });
 
 describe("reputation API route", () => {
+  it("shares one upstream fan-out between concurrent lookups of the same address", async () => {
+    const fetchMock = stubCleanEnvironment();
+    dnsMock.aRecords.set("40.9.134.84.zen.spamhaus.org", ["127.0.0.10"]);
+
+    // A dedicated address: the route memoizes summaries per address for the file.
+    const [first, second, third] = await Promise.all([
+      invoke("84.134.9.40", "203.0.113.151"),
+      invoke("84.134.9.40", "203.0.113.152"),
+      invoke("84.134.9.40", "203.0.113.153"),
+    ]);
+    const bodies = await Promise.all([first, second, third].map((response) => response.json()));
+
+    expect([first.status, second.status, third.status]).toEqual([200, 200, 200]);
+    expect(bodies[1]).toEqual(bodies[0]);
+    expect(bodies[2]).toEqual(bodies[0]);
+    const ipApiCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes("ip-api.com"));
+    expect(ipApiCalls).toHaveLength(1);
+  });
+
   it("answers a residential PBL-only result as low risk with a policy listing", async () => {
     stubCleanEnvironment();
     dnsMock.aRecords.set("1.0.134.84.zen.spamhaus.org", ["127.0.0.10"]);
