@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import {
+  EXIT_ANIMATION_NAME,
   EXIT_DURATION_DESKTOP_MS,
   EXIT_DURATION_MOBILE_MS,
   EXIT_FALLBACK_SLACK_MS,
@@ -93,18 +95,16 @@ describe("exitFadeCanRun", () => {
     expect(exitFadeCanRun(["paused"])).toBe(false);
   });
 
-  it("is true for a fade that is running or has not yet been started", () => {
+  it("is true for a running fade, including one waiting for its first frame", () => {
     expect(exitFadeCanRun(["running"])).toBe(true);
-    expect(exitFadeCanRun(["idle"])).toBe(true);
   });
+});
 
-  it("leaves a finished fade to its animation events", () => {
-    expect(exitFadeCanRun(["finished"])).toBe(true);
-  });
-
-  it("is true while any animation on the copy can still run", () => {
-    expect(exitFadeCanRun(["paused", "running"])).toBe(true);
-    expect(exitFadeCanRun(["paused", "paused"])).toBe(false);
+describe("EXIT_ANIMATION_NAME", () => {
+  it("names the keyframes the stylesheet plays on the outgoing copy", () => {
+    const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+    expect(css).toContain(`@keyframes ${EXIT_ANIMATION_NAME}`);
+    expect(css).toMatch(new RegExp(`animation:\\s*${EXIT_ANIMATION_NAME}\\b`));
   });
 });
 

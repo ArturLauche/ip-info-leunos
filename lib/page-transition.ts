@@ -51,14 +51,19 @@ export function getExitFallbackMs(exitDurationMs: number): number {
   return exitDurationMs + EXIT_FALLBACK_SLACK_MS;
 }
 
+/** Keyframes of the outgoing copy's fade; must match `app/globals.css`. */
+export const EXIT_ANIMATION_NAME = "tool-page-exit";
+
 /**
- * Whether the outgoing copy's fade can play. A fade CSS did not create, or one
+ * Whether the outgoing copy's fade can play, given the play states of that
+ * fade alone. Read right after the fade is created, when a healthy one reports
+ * `running` even before its first frame. A fade CSS did not create, or one
  * that is paused (a user stylesheet or extension), dispatches no event that
- * would end it. Any other state, including one a browser reports before the
- * first frame, is left to the animation events and the bounds above.
+ * would end it; any other state is left to the animation events and the
+ * bounds above.
  */
-export function exitFadeCanRun(playStates: readonly string[]): boolean {
-  return playStates.some((state) => state !== "paused");
+export function exitFadeCanRun(fadeStates: readonly string[]): boolean {
+  return fadeStates.some((state) => state !== "paused");
 }
 
 /**
