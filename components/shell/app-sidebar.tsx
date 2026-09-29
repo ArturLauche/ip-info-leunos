@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
-import { siteConfig } from "@/lib/seo";
+import { useI18n } from "@/components/i18n-provider";
+import { siteConfig } from "@/lib/site-config";
 import { LanguageSelector } from "@/components/language-selector";
 import { ModeToggle } from "@/components/mode-toggle";
 import { BrandMark } from "./brand-mark";
@@ -10,7 +9,6 @@ import { NavLinks } from "./nav-links";
 import type { ToolKey } from "./nav-config";
 
 interface AppSidebarProps {
-  locale: Locale;
   active?: ToolKey;
 }
 
@@ -18,8 +16,8 @@ interface AppSidebarProps {
  * Fixed desktop sidebar: brand, command trigger, grouped navigation, and the
  * language plus theme controls in the footer.
  */
-export function AppSidebar({ locale, active }: AppSidebarProps) {
-  const toolT = getToolTranslation(locale);
+export function AppSidebar({ active }: AppSidebarProps) {
+  const { tool: toolT } = useI18n();
 
   return (
     <aside
@@ -44,16 +42,16 @@ export function AppSidebar({ locale, active }: AppSidebarProps) {
       </div>
 
       <div className="px-3 pb-1">
-        <CommandTrigger locale={locale} />
+        <CommandTrigger />
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <NavLinks locale={locale} active={active} />
+        <NavLinks active={active} />
       </div>
 
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center justify-between gap-2 px-2">
-          <LanguageSelector locale={locale} />
+          <LanguageSelector />
           <ModeToggle
             labels={{
               toggle: toolT.themeToggle,

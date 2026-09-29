@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { globalErrorCopy } from "@/lib/global-error-copy";
 import {
   DEFAULT_LOCALE,
   getLocaleDirection,
   resolveLocale,
   type Locale,
-} from "@/lib/i18n";
+} from "@/lib/locale-config";
 import { readClientLocalePreference } from "@/lib/locale-preference";
-import { getToolTranslation } from "@/lib/tool-i18n";
 
 /**
  * Root-layout error boundary. Only renders when the root layout itself fails,
@@ -41,7 +41,7 @@ export default function GlobalError({
     console.error(error);
   }, [error]);
 
-  const t = getToolTranslation(locale);
+  const t = globalErrorCopy[locale];
 
   return (
     <html lang={locale} dir={getLocaleDirection(locale)}>
@@ -60,7 +60,7 @@ export default function GlobalError({
         >
           <div style={{ maxWidth: "28rem" }}>
             <h1 style={{ fontSize: "1.125rem", fontWeight: 600 }}>
-              {t.errorTitle}
+              {t.title}
             </h1>
             <p
               style={{
@@ -69,7 +69,7 @@ export default function GlobalError({
                 opacity: 0.7,
               }}
             >
-              {t.errorDescription}
+              {t.description}
             </p>
             {error.digest && (
               <p
@@ -96,7 +96,7 @@ export default function GlobalError({
                 fontWeight: 500,
               }}
             >
-              {t.errorRetry}
+              {t.retry}
             </button>
           </div>
         </main>

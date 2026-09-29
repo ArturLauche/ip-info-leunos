@@ -8,9 +8,10 @@ import type {
   SourceStatus,
 } from "@/lib/asn";
 import { formatNumber, formatTemplate } from "@/lib/format";
-import type { Locale } from "@/lib/i18n";
-import { getApiErrorMessage, type CountForms, type ToolTranslation } from "@/lib/tool-i18n";
-import { getUiCopy } from "@/lib/ui-copy";
+import type { Locale } from "@/lib/locale-config";
+import { getApiErrorMessage } from "@/lib/api/error-message";
+import type { CountForms, ToolTranslation } from "@/lib/tool-i18n";
+import type { UiCopy } from "@/lib/ui-copy";
 
 /** Collapsed list length shared by every ASN list and table. */
 export const ASN_ROW_LIMIT = 10;
@@ -255,11 +256,12 @@ function warningLabel(label: string, t: ToolTranslation) {
 export function formatWarning(
   warning: string | AsnWarningDetail,
   t: ToolTranslation,
+  ui: UiCopy,
   locale: Locale,
 ) {
   // Older cached responses may contain only the legacy string. Never display
   // that prose directly; the API now supplies a stable warning detail code.
-  if (typeof warning === "string") return getUiCopy(locale).asnWarningUnknown;
+  if (typeof warning === "string") return ui.asnWarningUnknown;
 
   switch (warning.code) {
     case "ipinfo_unavailable":
@@ -302,11 +304,11 @@ export function formatWarning(
         total: formatNumber(warning.total ?? 0, locale),
       });
     case "unknown":
-      return getUiCopy(locale).asnWarningUnknown;
+      return ui.asnWarningUnknown;
     default:
       // API data is cast at runtime and can drift from this union during a
       // rolling deploy: a new code must still render a localized row instead
       // of leaving an empty diagnostic cell.
-      return getUiCopy(locale).asnWarningUnknown;
+      return ui.asnWarningUnknown;
   }
 }

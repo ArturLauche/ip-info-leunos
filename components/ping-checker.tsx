@@ -1,13 +1,9 @@
 "use client";
 
-import { type Locale } from "@/lib/i18n";
 import { readApiResponse } from "@/lib/api/client";
-import {
-  getApiErrorMessage,
-  getToolTranslation,
-  type ToolTranslation,
-} from "@/lib/tool-i18n";
-import { getUiCopy } from "@/lib/ui-copy";
+import { getApiErrorMessage } from "@/lib/api/error-message";
+import type { ToolTranslation } from "@/lib/tool-i18n";
+import type { UiCopy } from "@/lib/ui-copy";
 import { formatTemplate } from "@/lib/format";
 import type {
   PingMessageKey,
@@ -23,6 +19,9 @@ import {
 } from "@/lib/ping";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { useI18n } from "@/components/i18n-provider";
+import { LiveRegion } from "@/components/live-region";
+import { ResultActions } from "@/components/result-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -65,7 +64,7 @@ interface PingResult {
 function formatPingMessage(
   result: PingResult,
   t: ToolTranslation,
-  ui: ReturnType<typeof getUiCopy>,
+  ui: UiCopy,
 ): string {
   const params = result.messageParams ?? {};
   // The API reports the display name ("Generic"); match case-insensitively so
@@ -148,21 +147,19 @@ const DATABASE_OPTIONS: Array<{ value: DatabaseType; label: string }> = [
   { value: "generic", label: "TCP" },
 ];
 
-const getDatabaseOptionDetail = (value: DatabaseType, locale: Locale) => {
+const getDatabaseOptionDetail = (value: DatabaseType, ui: UiCopy) => {
   const defaultPort = DB_DEFAULT_PORTS[value];
   if (defaultPort) return `${defaultPort} / TCP`;
-  return getUiCopy(locale).pingCustomPort;
+  return ui.pingCustomPort;
 };
 
 interface PingCheckerProps {
-  locale: Locale;
   initialTarget?: string;
   initialPort?: string;
   initialMode?: PingMode;
 }
 
 export function PingChecker({
-  locale,
   initialTarget = "example.com",
   initialPort = "80",
   initialMode = "tcp",
@@ -199,8 +196,7 @@ export function PingChecker({
     port: string;
     mode: PingMode;
   } | null>(null);
-  const t = getToolTranslation(locale);
-  const ui = getUiCopy(locale);
+  const { tool: t, ui } = useI18n();
   // Derived from the raw error on every render so the message follows locale
   // switches made while it is on screen (same pattern as useToolLookup).
   const error = thrownError
@@ -336,6 +332,11 @@ export function PingChecker({
 
   return (
     <div className="flex w-full flex-col gap-6">
+      <LiveRegion>
+        {result
+          ? `${result.ok ? t.pingStatusSuccess : t.pingStatusFailed}: ${result.target}:${result.port}`
+          : undefined}
+      </LiveRegion>
       <form onSubmit={onSubmit} autoComplete="off">
         <Card className="gap-0 overflow-hidden py-0">
           <div className="flex flex-col p-5">
@@ -371,7 +372,7 @@ export function PingChecker({
                                 : option.label}
                             </span>
                             <span className="text-muted-foreground">
-                              {getDatabaseOptionDetail(option.value, locale)}
+                              {getDatabaseOptionDetail(option.value, ui)}
                             </span>
                           </SelectItem>
                         ))}
@@ -630,6 +631,11 @@ export function PingChecker({
                 )}
               </>
             )}
+
+            <ResultActions
+              data={result}
+              filename={`ping-${result.mode}-${result.target}-${result.port}`}
+            />
           </div>
         </Card>
       )}

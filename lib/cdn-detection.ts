@@ -26,9 +26,22 @@ export interface CdnDetection {
 
 interface CdnSignature {
   provider: string;
+  /** Provider-specific header names (exact match). */
   headerMatches: string[];
+  /**
+   * Generic headers that many stacks emit (`x-cache`, `x-cdn`). They score only next to
+   * provider-specific evidence, or when their own value names the provider.
+   */
+  supportingHeaders?: string[];
   valueMatches: string[];
+  /**
+   * Dotted entries are domain fragments and must match whole DNS labels
+   * (`cloudfront.net` matches `d1.cloudfront.net`, not `notcloudfront.net`).
+   * Bare entries are distinctive keywords matched inside a label (`akamai` -> `e1.akamaiedge.net`).
+   */
   cnameMatches: string[];
+  /** Short tokens too ambiguous for substring matching; they must equal a whole label. */
+  cnameLabels?: string[];
 }
 
 const CDN_SIGNATURES: CdnSignature[] = [
@@ -58,7 +71,8 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
   {
     provider: "Amazon CloudFront",
-    headerMatches: ["x-amz-cf-id", "x-amz-cf-pop", "x-cache"],
+    headerMatches: ["x-amz-cf-id", "x-amz-cf-pop"],
+    supportingHeaders: ["x-cache"],
     valueMatches: ["cloudfront"],
     cnameMatches: ["cloudfront.net"],
   },
@@ -70,7 +84,8 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
   {
     provider: "KeyCDN",
-    headerMatches: ["x-edge-location", "x-cache"],
+    headerMatches: ["x-edge-location"],
+    supportingHeaders: ["x-cache"],
     valueMatches: ["keycdn"],
     cnameMatches: ["kxcdn.com", "keycdn"],
   },
@@ -94,7 +109,8 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
   {
     provider: "CacheFly",
-    headerMatches: ["x-cf-tsc", "x-cache"],
+    headerMatches: ["x-cf-tsc"],
+    supportingHeaders: ["x-cache"],
     valueMatches: ["cachefly"],
     cnameMatches: ["cachefly.net"],
   },
@@ -106,7 +122,8 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
   {
     provider: "Microsoft Azure CDN",
-    headerMatches: ["x-azure-ref", "x-msedge-ref", "x-cache"],
+    headerMatches: ["x-azure-ref", "x-msedge-ref"],
+    supportingHeaders: ["x-cache"],
     valueMatches: ["azure", "microsoft"],
     cnameMatches: ["azureedge.net", "trafficmanager.net"],
   },
@@ -126,7 +143,8 @@ const CDN_SIGNATURES: CdnSignature[] = [
     provider: "Oracle Cloud CDN",
     headerMatches: ["x-oracle-dms-ecid", "x-oracle-dms-rid"],
     valueMatches: ["oracle"],
-    cnameMatches: ["oraclecloud", "oci"],
+    cnameMatches: ["oraclecloud"],
+    cnameLabels: ["oci"],
   },
   {
     provider: "Netlify Edge",
@@ -136,7 +154,8 @@ const CDN_SIGNATURES: CdnSignature[] = [
   },
   {
     provider: "Imperva / Incapsula",
-    headerMatches: ["x-iinfo", "x-cdn", "x-cdn-forward"],
+    headerMatches: ["x-iinfo", "x-cdn-forward"],
+    supportingHeaders: ["x-cdn"],
     valueMatches: ["incapsula", "imperva"],
     cnameMatches: ["incapdns.net", "impervadns.net"],
   },
@@ -172,6 +191,34 @@ function mapScoreToConfidence(score: number): CdnConfidence {
   return "low";
 }
 
+// Only these headers describe the serving stack. Others (CSP, Link, cookies, ...) routinely
+// reference third-party CDN hosts such as cdnjs.cloudflare.com without being served by them.
+const INFRASTRUCTURE_VALUE_HEADERS = new Set([
+  "server",
+  "via",
+  "x-powered-by",
+  "x-served-by",
+  "x-cache",
+  "x-cdn",
+  "cache-status",
+]);
+
+function normalizeHost(host: string): string {
+  return host.trim().toLowerCase().replace(/\.+$/, "");
+}
+
+function matchesCnameFragment(hosts: string[], fragment: string): boolean {
+  if (!fragment.includes(".")) return hosts.some((host) => host.includes(fragment));
+
+  // Pad with dots so the fragment can only match on label boundaries.
+  const needle = `.${fragment}.`;
+  return hosts.some((host) => `.${host}.`.includes(needle));
+}
+
+function hasCnameLabel(hosts: string[], label: string): boolean {
+  return hosts.some((host) => host.split(".").includes(label));
+}
+
 export function detectCdn(headers: Headers, cnameChain: string[], hostname: string): CdnDetection | null {
   const headerPairs = [...headers.entries()].map(([key, value]) => ({
     key: key.toLowerCase(),
@@ -179,8 +226,11 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
   }));
 
   const headerKeys = new Set(headerPairs.map((pair) => pair.key));
-  const headerValues = headerPairs.map((pair) => pair.value);
-  const cnameJoined = cnameChain.join(" ");
+  const headerValueByKey = new Map(headerPairs.map((pair) => [pair.key, pair.value]));
+  const infrastructureValues = headerPairs
+    .filter((pair) => INFRASTRUCTURE_VALUE_HEADERS.has(pair.key))
+    .map((pair) => pair.value);
+  const cnameHosts = cnameChain.map(normalizeHost).filter(Boolean);
   const serverValue = headers.get("server")?.toLowerCase() || "";
 
   let bestMatch: CdnDetection | null = null;
@@ -190,6 +240,11 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
     let score = 0;
     const matchedSignals: string[] = [];
 
+    const cnameHits = [
+      ...signature.cnameMatches.filter((fragment) => matchesCnameFragment(cnameHosts, fragment)),
+      ...(signature.cnameLabels ?? []).filter((label) => hasCnameLabel(cnameHosts, label)),
+    ];
+
     for (const needle of signature.headerMatches) {
       if (headerKeys.has(needle)) {
         score += 5;
@@ -197,18 +252,28 @@ export function detectCdn(headers: Headers, cnameChain: string[], hostname: stri
       }
     }
 
+    // Varnish, nginx and Squid emit x-cache too, so it never identifies a provider on its own.
+    const hasSpecificEvidence = score > 0 || cnameHits.length > 0;
+    for (const needle of signature.supportingHeaders ?? []) {
+      const value = headerValueByKey.get(needle);
+      if (value === undefined) continue;
+
+      if (hasSpecificEvidence || signature.valueMatches.some((token) => value.includes(token))) {
+        score += 5;
+        matchedSignals.push(`header:${needle}`);
+      }
+    }
+
     for (const needle of signature.valueMatches) {
-      if (headerValues.some((value) => value.includes(needle))) {
+      if (infrastructureValues.some((value) => value.includes(needle))) {
         score += 3;
         matchedSignals.push(`header-value:${needle}`);
       }
     }
 
-    for (const needle of signature.cnameMatches) {
-      if (cnameJoined.includes(needle)) {
-        score += 4;
-        matchedSignals.push(`dns:${needle}`);
-      }
+    for (const needle of cnameHits) {
+      score += 4;
+      matchedSignals.push(`dns:${needle}`);
     }
 
     if (score > bestScore) {

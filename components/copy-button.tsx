@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 
 /** Shared clipboard feedback for technical values and complete results. */
@@ -15,7 +16,8 @@ export function CopyButton({
   className,
   showLabel = false,
 }: {
-  text: string;
+  /** A function defers building large text until the button is pressed. */
+  text: string | (() => string);
   label: string;
   copiedLabel: string;
   failedLabel: string;
@@ -32,7 +34,7 @@ export function CopyButton({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      await writeClipboardText(typeof text === "function" ? text() : text);
       setCopied(true);
       toast.success(copiedLabel);
       clearTimeout(resetTimer.current);

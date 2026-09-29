@@ -37,7 +37,6 @@ export default async function WhoisPage({ searchParams }: WhoisPageProps) {
       subtitle={t.whoisSubtitle}
     >
       <WhoisChecker
-        locale={locale}
         initialTarget={firstSearchParam(params.target)}
       />
     </ToolPageShell>

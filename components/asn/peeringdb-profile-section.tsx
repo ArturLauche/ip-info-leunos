@@ -2,10 +2,11 @@
 
 import { useId, type ReactNode } from "react";
 import type { PeeringDbProfile } from "@/lib/asn";
+import { useI18n } from "@/components/i18n-provider";
 import { formatNumber } from "@/lib/format";
-import type { Locale } from "@/lib/i18n";
+import type { Locale } from "@/lib/locale-config";
 import type { ToolTranslation } from "@/lib/tool-i18n";
-import { getUiCopy } from "@/lib/ui-copy";
+import type { UiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import { ExternalLink } from "./external-link";
 import { formatCount, peeringDbUrl } from "./helpers";
@@ -66,10 +67,9 @@ function numberField(value: number | null, locale: Locale): ReactNode {
  */
 function formatPolicyValue(
   value: string | number | null | undefined,
-  locale: Locale,
+  copy: UiCopy,
 ): string | number | null | undefined {
   if (typeof value !== "string") return value;
-  const copy = getUiCopy(locale);
   const trimmed = value.trim();
   const normalized = trimmed.toLowerCase();
   if (normalized === "required" || normalized.startsWith("required ")) {
@@ -100,6 +100,7 @@ function InterconnectionOverview({
   t: ToolTranslation;
   locale: Locale;
 }) {
+  const { ui } = useI18n();
   // Country spread is only honest when the facility list is complete.
   const facilityCountries =
     profile.facilities.length > 0 && profile.facilities.length >= profile.facilitiesTotal
@@ -121,7 +122,7 @@ function InterconnectionOverview({
       detail: facilityCountries > 0 ? formatCount(t.asnCountryCount, facilityCountries, locale) : undefined,
       numeric: true,
     },
-    { key: "policy", label: t.asnLabelPolicy, value: formatPolicyValue(profile.policyGeneral, locale) || null },
+    { key: "policy", label: t.asnLabelPolicy, value: formatPolicyValue(profile.policyGeneral, ui) || null },
     { key: "traffic", label: t.asnLabelTraffic, value: profile.traffic || null },
   ];
 
@@ -156,6 +157,7 @@ export function PeeringDbProfileSection({
   locale: Locale;
 }) {
   const headingId = useId();
+  const { ui } = useI18n();
   const recordUrl = peeringDbUrl("net", profile.netId);
 
   // Headline facts (policy, traffic, counts) live in the overview above, so
@@ -200,9 +202,9 @@ export function PeeringDbProfileSection({
     {
       heading: t.asnProfilePolicyHeading,
       fields: [
-        { label: t.asnLabelPolicyLocations, value: formatPolicyValue(profile.policyLocations, locale) },
-        { label: t.asnLabelPolicyRatio, value: formatPolicyValue(profile.policyRatio, locale) },
-        { label: t.asnLabelPolicyContracts, value: formatPolicyValue(profile.policyContracts, locale) },
+        { label: t.asnLabelPolicyLocations, value: formatPolicyValue(profile.policyLocations, ui) },
+        { label: t.asnLabelPolicyRatio, value: formatPolicyValue(profile.policyRatio, ui) },
+        { label: t.asnLabelPolicyContracts, value: formatPolicyValue(profile.policyContracts, ui) },
       ],
     },
     {

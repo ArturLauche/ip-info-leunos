@@ -1,15 +1,14 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { type Locale, getTranslation } from "@/lib/i18n";
+import type { Locale } from "@/lib/locale-config";
 import { ApiClientError } from "@/lib/api/client";
-import {
-  getApiErrorMessage,
-  getToolTranslation,
-  type ToolTranslation,
-} from "@/lib/tool-i18n";
+import { getApiErrorMessage } from "@/lib/api/error-message";
+import type { ToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { useI18n } from "@/components/i18n-provider";
+import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { formatNumber, formatTemplate } from "@/lib/format";
 import { CountryFlag } from "@/components/country-flag";
 import { getReputationSource } from "@/lib/reputation/model";
-import { getUiCopy } from "@/lib/ui-copy";
+import type { UiCopy } from "@/lib/ui-copy";
 import type {
   EvidenceCategory,
   EvidenceItem,
@@ -44,7 +43,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type ToolT = ToolTranslation;
 
 interface ReputationCheckerProps {
-  locale: Locale;
   initialIp?: string;
 }
 
@@ -112,7 +110,7 @@ function RiskIcon({ level }: { level: RiskLevel }) {
  */
 function formatReputationDetail(
   item: EvidenceItem,
-  ui: ReturnType<typeof getUiCopy>,
+  ui: UiCopy,
 ): string | null {
   if (item.detailKey && item.detailValue) {
     // Exhaustive on purpose: a future ReputationDetailLabel must hit the
@@ -240,7 +238,7 @@ function EvidenceCard({
     item.confidence !== null
       ? `${formatNumber(item.confidence, locale)}%`
       : null;
-  const ui = getUiCopy(locale);
+  const { ui } = useI18n();
 
   return (
     <div className="flex flex-col gap-2 border-b px-5 py-4 last:border-b-0">
@@ -452,12 +450,8 @@ function SourceRow({
   );
 }
 
-export function ReputationChecker({
-  locale,
-  initialIp = "",
-}: ReputationCheckerProps) {
-  const t = getToolTranslation(locale);
-  const baseT = getTranslation(locale);
+export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
+  const { locale, tool: t, core: baseT } = useI18n();
   const [filter, setFilter] = useState<EvidenceFilter>("all");
   const [showHiddenSources, setShowHiddenSources] = useState(false);
 
@@ -521,6 +515,7 @@ export function ReputationChecker({
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}
         loading={loading}
+        resultMessage={result ? `${t.reputationTitle}: ${result.ip}` : undefined}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={run}
@@ -822,6 +817,11 @@ export function ReputationChecker({
               </div>
             )}
           </Card>
+
+          <ResultActions
+            data={result}
+            filename={`reputation-${result.ip}`}
+          />
         </div>
       )}
     </div>

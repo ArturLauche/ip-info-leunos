@@ -37,7 +37,6 @@ export default async function DnsPage({ searchParams }: DnsPageProps) {
       subtitle={t.dnsSubtitle}
     >
       <DnsChecker
-        locale={locale}
         initialTarget={firstSearchParam(params.target)}
       />
     </ToolPageShell>

@@ -6,11 +6,21 @@
 // behind a strict CSP or a network/privacy blocker. Here only the server talks
 // to the upstream, and the result is cached aggressively (flags are immutable).
 
+import { enforceRateLimit, getClientIp } from "@/lib/api/rate-limit";
+
 export const runtime = "nodejs";
 
 const UPSTREAM_TIMEOUT_MS = 5_000;
 // Flag SVGs are a few kilobytes; anything larger is an upstream anomaly.
 const MAX_FLAG_BYTES = 64_000;
+// Limiter headers forwarded on a 429 so this route speaks the same contract as
+// every other public route.
+const RATE_LIMIT_HEADERS = [
+  "retry-after",
+  "x-ratelimit-limit",
+  "x-ratelimit-remaining",
+  "x-ratelimit-reset",
+] as const;
 // One year, immutable — a country's flag asset never changes under its code.
 const CACHE_CONTROL = "public, max-age=31536000, immutable";
 
@@ -47,7 +57,27 @@ interface RouteContext {
   params: Promise<{ code: string }>;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
+  // Browsers cache each flag for a year, and the heaviest page (an ASN: 50
+  // facility rows plus the holder) asks for at most 51 distinct flags, so 120
+  // per minute leaves more than twice the headroom. A request that carries no
+  // client address at all resolves to one shared "unknown" bucket, and a single
+  // budget on an <img> endpoint would starve everyone's flags, so only
+  // identifiable clients are limited.
+  const limited =
+    getClientIp(request) === "unknown"
+      ? null
+      : enforceRateLimit(request, "flag", { limit: 120, windowMs: 60_000 });
+  if (limited) {
+    // Consumers are <img> tags: keep the body empty like the other error responses.
+    const headers = new Headers({ "cache-control": "no-store" });
+    for (const name of RATE_LIMIT_HEADERS) {
+      const value = limited.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+    return new Response(null, { status: 429, headers });
+  }
+
   const { code } = await context.params;
   const normalized = code?.trim().toLowerCase();
 

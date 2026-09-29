@@ -3,6 +3,7 @@ import { Waypoints } from "lucide-react";
 import { AsnChecker } from "@/components/asn/asn-checker";
 import { ToolPageShell } from "@/components/tool-page-shell";
 import { getRequestLocale } from "@/lib/request-locale";
+import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import { createPageMetadata } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 
@@ -20,8 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 interface AsnPageProps {
   searchParams: Promise<{
-    asn?: string;
-    q?: string;
+    asn?: SearchParamValue;
+    q?: SearchParamValue;
   }>;
 }
 
@@ -29,7 +30,7 @@ export default async function AsnPage({ searchParams }: AsnPageProps) {
   const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
-  const initialAsn = params.asn || params.q || "";
+  const initialAsn = firstSearchParam(params.asn) || firstSearchParam(params.q);
 
   return (
     <ToolPageShell
@@ -39,7 +40,7 @@ export default async function AsnPage({ searchParams }: AsnPageProps) {
       title={t.asnTitle}
       subtitle={t.asnSubtitle}
     >
-      <AsnChecker locale={locale} initialAsn={initialAsn} />
+      <AsnChecker initialAsn={initialAsn} />
     </ToolPageShell>
   );
 }

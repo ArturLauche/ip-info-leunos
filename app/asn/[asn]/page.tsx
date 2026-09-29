@@ -66,7 +66,7 @@ export default async function AsnDeepLinkPage({
       title={displayTitle}
       subtitle={t.asnSubtitle}
     >
-      <AsnChecker locale={locale} initialAsn={asn} />
+      <AsnChecker initialAsn={asn} />
     </ToolPageShell>
   );
 }

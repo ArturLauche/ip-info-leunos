@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type MouseEvent } from "react";
 import Link from "next/link";
-import type { Locale } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import {
   getGroupTitle,
@@ -11,19 +11,18 @@ import {
   type NavItem,
   type ToolKey,
 } from "./nav-config";
-import { getToolTranslation } from "@/lib/tool-i18n";
 import { useNavHighlight } from "./use-nav-highlight";
 
 interface NavLinksProps {
-  locale: Locale;
   active?: ToolKey;
   onNavigate?: () => void;
 }
 
 /** The grouped navigation list shared by the desktop sidebar and mobile sheet. */
-export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
+export function NavLinks({ active, onNavigate }: NavLinksProps) {
   const [selected, setSelected] = useState(active);
-  const toolsLabel = getToolTranslation(locale).navToolsLabel;
+  const i18n = useI18n();
+  const toolsLabel = i18n.tool.navToolsLabel;
 
   useEffect(() => {
     setSelected(active);
@@ -48,11 +47,10 @@ export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
       {navGroups.map((group) => (
         <div key={group.id} className="flex flex-col gap-1">
           <p className="px-3 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            {getGroupTitle(group.id, locale)}
+            {getGroupTitle(group.id, i18n)}
           </p>
           <NavGroupList
             items={group.items}
-            locale={locale}
             active={active}
             selected={selected}
             onNavigate={handleNavigate}
@@ -65,7 +63,6 @@ export function NavLinks({ locale, active, onNavigate }: NavLinksProps) {
 
 interface NavGroupListProps {
   items: NavItem[];
-  locale: Locale;
   active?: ToolKey;
   selected?: ToolKey;
   onNavigate: (event: MouseEvent<HTMLAnchorElement>, key: ToolKey) => void;
@@ -73,11 +70,11 @@ interface NavGroupListProps {
 
 function NavGroupList({
   items,
-  locale,
   active,
   selected,
   onNavigate,
 }: NavGroupListProps) {
+  const i18n = useI18n();
   const { listRef, setItemRef, view, canAnimate } = useNavHighlight(selected);
 
   return (
@@ -124,7 +121,7 @@ function NavGroupList({
               <Icon className="size-3.5" aria-hidden />
             </span>
             <span className="min-w-0 truncate">
-              {getNavLabel(item.key, locale)}
+              {getNavLabel(item.key, i18n)}
             </span>
           </Link>
         );

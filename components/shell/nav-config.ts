@@ -9,9 +9,10 @@ import {
   ShieldCheck,
   Waypoints,
 } from "lucide-react";
-import type { Locale } from "@/lib/i18n";
-import { getTranslation } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
+import type { I18nDictionaries } from "@/lib/i18n-types";
+
+/** The catalogs navigation copy is drawn from; callers pass one locale's set. */
+type NavCopy = Pick<I18nDictionaries, "core" | "tool">;
 
 export type ToolKey =
   | "home"
@@ -56,13 +57,10 @@ export const navGroups: NavGroup[] = [
 ];
 
 /** Resolves the short navigation label for a tool key. */
-export function getNavLabel(key: ToolKey, locale: Locale): string {
-  const t = getTranslation(locale);
-  const toolT = getToolTranslation(locale);
-
+export function getNavLabel(key: ToolKey, { core, tool: toolT }: NavCopy): string {
   const labels: Record<ToolKey, string> = {
     home: toolT.navMyIp,
-    check: t.checkTitle,
+    check: core.checkTitle,
     asn: toolT.asnTabLabel,
     ping: toolT.pingTabLabel,
     dns: toolT.dnsTabLabel,
@@ -75,12 +73,13 @@ export function getNavLabel(key: ToolKey, locale: Locale): string {
 }
 
 /** A one-line description shown under each nav item / in the command surface. */
-export function getNavDescription(key: ToolKey, locale: Locale): string {
-  const toolT = getToolTranslation(locale);
-
+export function getNavDescription(
+  key: ToolKey,
+  { core, tool: toolT }: NavCopy,
+): string {
   const descriptions: Record<ToolKey, string> = {
-    home: getTranslation(locale).homeSubtitle,
-    check: getTranslation(locale).checkSubtitle,
+    home: core.homeSubtitle,
+    check: core.checkSubtitle,
     asn: toolT.asnSubtitle,
     ping: toolT.pingSubtitle,
     dns: toolT.dnsSubtitle,
@@ -92,8 +91,10 @@ export function getNavDescription(key: ToolKey, locale: Locale): string {
   return descriptions[key];
 }
 
-export function getGroupTitle(id: NavGroup["id"], locale: Locale): string {
-  const toolT = getToolTranslation(locale);
+export function getGroupTitle(
+  id: NavGroup["id"],
+  { tool: toolT }: Pick<I18nDictionaries, "tool">,
+): string {
   return id === "overview" ? toolT.navOverview : toolT.navDiagnostics;
 }
 

@@ -67,3 +67,40 @@ describe("GET /api/flag/[code]", () => {
     expect(await response.text()).toBe("");
   });
 });
+
+describe("GET /api/flag/[code] rate limiting", () => {
+  it("answers an exhausted client with an empty 429 and a retry hint", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => chunkedResponse([SVG])));
+    const call = () =>
+      GET(new Request("http://localhost/api/flag/fr", { headers: { "x-real-ip": "203.0.113.77" } }), {
+        params: Promise.resolve({ code: "fr" }),
+      });
+
+    let last: Response | undefined;
+    for (let attempt = 0; attempt < 121; attempt += 1) last = await call();
+
+    expect(last?.status).toBe(429);
+    expect(await last?.text()).toBe("");
+    expect(Number(last?.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect(last?.headers.get("cache-control")).toBe("no-store");
+    // The same contract as every other public route.
+    expect(last?.headers.get("x-ratelimit-limit")).toBe("120");
+    expect(last?.headers.get("x-ratelimit-remaining")).toBe("0");
+    expect(Number(last?.headers.get("x-ratelimit-reset"))).toBeGreaterThan(0);
+  });
+
+  it("does not pool visitors it cannot tell apart into one shared budget", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => chunkedResponse([SVG])));
+
+    // No forwarding header at all: getClientIp() can only answer "unknown".
+    const statuses = new Set<number>();
+    for (let attempt = 0; attempt < 130; attempt += 1) {
+      const response = await GET(new Request("http://localhost/api/flag/it"), {
+        params: Promise.resolve({ code: "it" }),
+      });
+      statuses.add(response.status);
+    }
+
+    expect([...statuses]).toEqual([200]);
+  });
+});

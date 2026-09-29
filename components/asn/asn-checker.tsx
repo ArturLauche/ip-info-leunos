@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Building2, Waypoints } from "lucide-react";
+import { useI18n } from "@/components/i18n-provider";
+import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
@@ -10,8 +12,6 @@ import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { AsnValidationError, normalizeAsnInput } from "@/lib/asn-id";
 import type { AsnProfile } from "@/lib/asn";
-import type { Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
 import { AsnDetailTabs, type DetailTab } from "./detail-tabs";
 import { FacilitySection } from "./facility-section";
 import {
@@ -32,7 +32,6 @@ import { SourceDiagnosticsSection } from "./source-diagnostics-section";
 import { AsnSummaryCard } from "./summary-card";
 
 interface AsnCheckerProps {
-  locale: Locale;
   initialAsn?: string;
 }
 
@@ -45,8 +44,8 @@ function isValidAsn(value: string) {
   }
 }
 
-export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
-  const t = getToolTranslation(locale);
+export function AsnChecker({ initialAsn = "" }: AsnCheckerProps) {
+  const { locale, tool: t } = useI18n();
   const [showSourceInfo, setShowSourceInfo] = useState(false);
   const [inputError, setInputError] = useState(false);
   const searchParams = useSearchParams();
@@ -220,6 +219,11 @@ export function AsnChecker({ locale, initialAsn = "" }: AsnCheckerProps) {
               )}
             </AsnDetailTabs>
           </Card>
+
+          <ResultActions
+            data={result}
+            filename={`asn-${result.asn}`}
+          />
         </div>
       )}
 

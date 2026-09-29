@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
-import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { useI18n } from "@/components/i18n-provider";
+import type { Translation } from "@/lib/i18n";
+import { getApiErrorMessage } from "@/lib/api/error-message";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
 import { CopyButton } from "@/components/copy-button";
+import { LiveRegion } from "@/components/live-region";
+import { ResultActions } from "@/components/result-actions";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
 import {
@@ -90,7 +93,6 @@ interface IpData {
 
 interface IpDisplayProps {
   targetIp?: string;
-  locale: Locale;
   /** Notifies the host tool (e.g. IpLookup) so its search form can spin. */
   onLoadingChange?: (loading: boolean) => void;
 }
@@ -276,11 +278,45 @@ function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
   );
 }
 
-export function IpDisplay({
+/** What a finished lookup announces: which lookup it was, and the address it resolved to. */
+export function describeIpLookup(
+  ipv4: string | null,
+  ipv6: string | null,
+  isTargetLookup: boolean,
+  t: Pick<Translation, "queriedIpAddress" | "yourIpAddresses">,
+): string {
+  const title = isTargetLookup ? t.queriedIpAddress : t.yourIpAddresses;
+  const address = ipv4 ?? ipv6;
+  return address ? `${title}: ${address}` : title;
+}
+
+/**
+ * The announcer lives outside the content because the content swaps between a
+ * skeleton, an error and the result: a live region only speaks reliably when it
+ * stays mounted while its text changes.
+ */
+export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
+  const [announcement, setAnnouncement] = useState<string>();
+
+  return (
+    <>
+      <LiveRegion>{announcement}</LiveRegion>
+      <IpDisplayContent
+        targetIp={targetIp}
+        onLoadingChange={onLoadingChange}
+        onAnnouncementChange={setAnnouncement}
+      />
+    </>
+  );
+}
+
+function IpDisplayContent({
   targetIp,
-  locale,
   onLoadingChange,
-}: IpDisplayProps) {
+  onAnnouncementChange,
+}: IpDisplayProps & {
+  onAnnouncementChange: (announcement: string | undefined) => void;
+}) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -297,14 +333,39 @@ export function IpDisplay({
     useState<DetectedBrowserInfo | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [fingerprintReady, setFingerprintReady] = useState(false);
-  const t = getTranslation(locale);
-  const toolT = getToolTranslation(locale);
-  // Ref-held so a new callback identity never re-triggers the fetch effect.
+  const { locale, core: t, tool: toolT } = useI18n();
+  // Ref-held so a new callback or catalog identity never re-triggers the fetch
+  // effect; only a language switch (the API localizes place names) should.
   const onLoadingChangeRef = useRef(onLoadingChange);
+  const errorCopyRef = useRef({ t, toolT });
 
   useEffect(() => {
     onLoadingChangeRef.current = onLoadingChange;
   }, [onLoadingChange]);
+
+  useEffect(() => {
+    errorCopyRef.current = { t, toolT };
+  }, [t, toolT]);
+
+  const announcement =
+    !loading && !error && data
+      ? describeIpLookup(data.ipv4, data.ipv6, Boolean(targetIp), t)
+      : undefined;
+
+  useEffect(() => {
+    onAnnouncementChange(announcement);
+  }, [announcement, onAnnouncementChange]);
+
+  // Keeps the API payload untouched and lists what the page showed, with where
+  // each address came from: browser-discovered fallbacks are not server data.
+  // Memoized so ResultActions keeps a stable identity across re-renders.
+  const exportData = useMemo(
+    () =>
+      data
+        ? { ...data, displayed: resolveDisplayIps(data, clientIpv4, clientIpv6) }
+        : null,
+    [data, clientIpv4, clientIpv6],
+  );
 
   useEffect(() => {
     const reportLoading = (value: boolean) => {
@@ -332,12 +393,13 @@ export function IpDisplay({
         // Ignore the abort triggered when targetIp changes mid-flight so a
         // stale response can never overwrite a newer lookup.
         if (controller.signal.aborted) return;
-        setError(getApiErrorMessage(cause, toolT, t.ipInfoError));
+        const copy = errorCopyRef.current;
+        setError(getApiErrorMessage(cause, copy.toolT, copy.t.ipInfoError));
         reportLoading(false);
       });
 
     return () => controller.abort();
-  }, [targetIp, t, toolT]);
+  }, [targetIp, locale]);
 
   useEffect(() => {
     if (targetIp) return;
@@ -753,6 +815,11 @@ export function IpDisplay({
             </>
           ))}
       </div>
+
+      <ResultActions
+        data={exportData}
+        filename={`ip-${reputationIp ?? "lookup"}`}
+      />
     </div>
   );
 }

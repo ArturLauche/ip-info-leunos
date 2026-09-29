@@ -61,8 +61,11 @@ export async function GET(request: Request) {
 Related conventions (repo-specific, not generic):
 
 - Response envelope is always `{ ok: true, data }` / `{ ok: false, error: { code, message, details? } }` (`lib/api/response.ts`); default header `cache-control: no-store`.
-- Client maps errors by `ApiClientError.code` via `getApiErrorMessage()` (`lib/tool-i18n.ts`) — never match English message strings.
-- Checkers are `"use client"` + `useToolLookup<T>({ buildApiUrl, buildHref, mapError, initialQuery })` (`hooks/use-tool-lookup.ts`); API returns codes/empty strings, UI translates (`lib/i18n.ts`, `lib/tool-i18n.ts`).
+- Client maps errors by `ApiClientError.code` via `getApiErrorMessage()` (`lib/api/error-message.ts`) — never match English message strings.
+- Checkers are `"use client"` + `useToolLookup<T>({ buildApiUrl, buildHref, mapError, initialQuery })` (`hooks/use-tool-lookup.ts`); API returns codes/empty strings, UI translates. Pass `resultMessage` to `ToolSearchForm` so a finished lookup is announced to screen readers (Ping, ASN and `IpDisplay` keep their own live regions).
+- Localization ships **one** language: the root layout resolves the request locale, calls `getI18nDictionaries()` (`lib/i18n-dictionaries.ts`) and wraps the app in `I18nProvider` (`components/i18n-provider.tsx`). Client components read `const { locale, core, tool, ui } = useI18n()`; server components may call `getTranslation` / `getToolTranslation` / `getUiCopy`. A client module must never import `lib/i18n`, `lib/tool-i18n`, `lib/ui-copy`, `lib/translations/*`, `lib/seo`, `lib/privacy` or `lib/terms` (each pulls the catalogs of all 26 languages into every page; the tool catalog alone is ~780 KB raw), nor the server-only `lib/i18n-dictionaries` and `lib/request-locale` — `lib/client-bundle.test.ts` fails the build if one does. Client-safe helpers: `lib/locale-config.ts`, `lib/locale-preference.ts`, `lib/site-config.ts`, `lib/global-error-copy.ts`, `lib/api/error-message.ts`, `components/shell/nav-config.ts`.
+- `app/global-error.tsx` renders outside the layout, so it reads `lib/global-error-copy.ts` (a compact table that `lib/global-error-copy.test.ts` keeps identical to the catalogs).
+- Identical concurrent lookups share one upstream fan-out via `createSingleFlight` (`lib/single-flight.ts`); results are still cached only by each route's own policy.
 - Styling via shadcn/Radix in `components/ui/` + `cn()` (`lib/utils.ts`) and semantic tokens in `app/globals.css` (`:root` / `.dark`); no hardcoded hex for status colors.
 
 ## Structure
@@ -70,10 +73,10 @@ Related conventions (repo-specific, not generic):
 ```text
 app/                  pages (Server Components) + API routes (/api/ip, /api/asn/[asn], /api/dns, /api/whois, /api/cdn, /api/ping POST, /api/reputation, /api/flag/[code])
 app/<tool>/page.tsx   headers() → resolveLocale() → createPageMetadata() → ToolPageShell + Checker
-components/           *-checker.tsx, shell/ (sidebar/nav/command-palette), ui/ (shadcn), asn/
+components/           *-checker.tsx, i18n-provider.tsx, result-actions.tsx (copy / JSON export), shell/ (sidebar/nav/command-palette), ui/ (shadcn), asn/
 hooks/use-tool-lookup.ts  shared checker state machine (loading/error/result, URL sync, stale-guard)
-lib/                  api/ (response, rate-limit, client), network/ (target SSRF-guard, database-probes), reputation/, providers/ip-api.ts, cdn-detection.ts, connection-type.ts, dns-records.ts, whois.ts, asn.ts, command.ts, seo.ts, i18n.ts, tool-i18n.ts
-scripts/              strip-client-maps.mjs (runs in build), generate-icons.mjs
+lib/                  api/ (response, rate-limit, client, error-message), network/ (target SSRF-guard, database-probes), reputation/, providers/ip-api.ts, cdn-detection.ts, connection-type.ts, dns-records.ts, whois.ts, asn.ts, command.ts, clipboard.ts, single-flight.ts, site-config.ts, locale-config.ts, seo.ts, i18n.ts, tool-i18n.ts, ui-copy.ts, i18n-dictionaries.ts (server-only catalogs)
+scripts/              strip-client-maps.mjs (runs in build), generate-icons.mjs, verify-browser.mjs + measure-client-js.mjs (production browser checks, see README)
 ```
 
 Entry points for common tasks: new route → `app/api/dns/route.ts` + `lib/network/target.ts`; new checker → `components/dns-checker.tsx`; nav → `components/shell/nav-config.ts`; SEO → `lib/seo.ts` + `app/sitemap.ts`.

@@ -48,7 +48,6 @@ export default async function PingPage({ searchParams }: PingPageProps) {
       subtitle={t.pingSubtitle}
     >
       <PingChecker
-        locale={locale}
         initialTarget={firstSearchParam(params.target) || "example.com"}
         initialPort={
           firstSearchParam(params.port) ||

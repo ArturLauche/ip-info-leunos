@@ -25,7 +25,8 @@ import { CopyButton } from "@/components/copy-button";
 import { CountryFlag } from "@/components/country-flag";
 import { Card } from "@/components/ui/card";
 import { formatNumber, formatTemplate } from "@/lib/format";
-import { getTranslation, type Locale } from "@/lib/i18n";
+import { useI18n } from "@/components/i18n-provider";
+import type { Locale } from "@/lib/locale-config";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 import {
@@ -68,7 +69,7 @@ interface Fact {
 }
 
 function AsnIdentity({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
-  const baseT = getTranslation(locale);
+  const { core: baseT } = useI18n();
   const { handle, organisation } = splitHolderName(result.name);
 
   const facts: Fact[] = [];

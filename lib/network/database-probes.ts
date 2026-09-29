@@ -58,7 +58,26 @@ type SocketValidation = {
 };
 type SocketValidationResult = SocketValidation | null;
 
+type ProbeIo = {
+  write: (payload: Buffer | string) => void;
+};
+
+type SocketExchange = {
+  /** Prefix for the timeout, transport-error and size-limit messages. */
+  label: string;
+  /** Runs once connected; a result settles the probe immediately. */
+  onConnect?: (io: ProbeIo) => SocketValidationResult;
+  /** Runs on every chunk with all bytes received so far; null means "need more data". */
+  onData: (data: Buffer, io: ProbeIo) => SocketValidationResult;
+};
+
+// Real pre-auth replies are small; the largest is a MongoDB hello from a big replica set (a few KiB).
 const MAX_SOCKET_PROBE_RESPONSE_BYTES = 64_000;
+const REPLY_PREVIEW_CHARS = 80;
+const REPLY_MESSAGE_CHARS = 200;
+const REDIS_PING_COMMAND = Buffer.from("*1\r\n$4\r\nPING\r\n");
+const MYSQL_HANDSHAKE_PROTOCOL_VERSION = 0x0a;
+const MYSQL_ERROR_PACKET_MARKER = 0xff;
 
 export async function probeDatabase({
   target,
@@ -124,12 +143,14 @@ export async function probeDatabase({
   if (databaseType === "redis") {
     const probe = await redisProbe(target, port, timeoutMs);
     const database = databaseDisplayName(databaseType);
+    const authRequired = probe.details?.protocolSignal === "auth-required";
+    const okMessage = authRequired
+      ? "Redis is reachable but requires authentication (no authentication credentials used)."
+      : "Redis responded to a PING probe (no authentication credentials used).";
     return {
       ok: probe.ok,
       latencyMs: Date.now() - started,
-      message: probe.ok
-        ? "Redis responded to a PING probe (no authentication credentials used)."
-        : `Redis probe failed: ${probe.message}`,
+      message: probe.ok ? okMessage : `Redis probe failed: ${probe.message}`,
       messageKey: probe.ok ? "db_protocol_ok" : "db_protocol_failed",
       messageParams: probe.ok ? { database } : { database, error: probe.message },
       details: { databaseType, stage: "protocol", ...(probe.details || {}) },
@@ -213,53 +234,98 @@ function socketProbe(
   payload: Buffer | null,
   validate: (data: Buffer) => SocketValidationResult,
 ): Promise<DatabaseProbeResult> {
+  return runSocketProbe(target, port, timeoutMs, {
+    label: "Probe",
+    onConnect: (io) => {
+      if (payload) io.write(payload);
+      return null;
+    },
+    onData: validate,
+  });
+}
+
+/**
+ * Single lifecycle for every protocol probe: one absolute deadline, one bounded response buffer
+ * and one settle path, so no individual probe can be held open or grown without limit by the peer.
+ */
+function runSocketProbe(
+  target: string,
+  port: number,
+  timeoutMs: number,
+  { label, onConnect, onData }: SocketExchange,
+): Promise<DatabaseProbeResult> {
   return new Promise((resolve) => {
     const started = Date.now();
     const socket = new net.Socket();
-    let settled = false;
-    const chunks: Buffer[] = [];
+    // Fixed-size buffer: memory stays bounded and chunks are never re-concatenated per event.
+    const received = Buffer.alloc(MAX_SOCKET_PROBE_RESPONSE_BYTES);
+    let bufferedBytes = 0;
     let receivedBytes = 0;
+    let settled = false;
 
     const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
       if (settled) return;
       settled = true;
+      clearTimeout(deadline);
       socket.destroy();
       resolve({ ok, latencyMs: Date.now() - started, message, details });
     };
 
+    // Handlers parse untrusted bytes; a bug there must fail the probe instead of crashing the process.
+    const settleWith = (run: () => SocketValidationResult) => {
+      try {
+        const result = run();
+        if (!result) return false;
+        finish(result.ok, result.message, result.details);
+      } catch (error) {
+        finish(false, `${label} failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      return true;
+    };
+
+    const io: ProbeIo = {
+      write: (payload) => {
+        if (!settled) socket.write(payload);
+      },
+    };
+    const onTimeout = () => finish(false, `${label} timeout after ${timeoutMs}ms.`);
+
+    // The socket timeout below is an idle timer that every received chunk resets, so a peer
+    // that keeps sending could hold it open forever. This deadline never resets.
+    const deadline = setTimeout(onTimeout, timeoutMs);
+
     socket.setTimeout(timeoutMs);
-    socket.once("timeout", () => finish(false, `Probe timeout after ${timeoutMs}ms.`));
-    socket.once("error", (error) => {
-      finish(false, `Probe failed: ${error.message}`, {
+    socket.once("timeout", onTimeout);
+    socket.on("error", (error) => {
+      finish(false, `${label} failed: ${error.message}`, {
         code: (error as NodeJS.ErrnoException).code || "UNKNOWN",
       });
     });
     socket.once("close", () => {
-      finish(false, "Probe connection closed before a complete response was received.", {
+      finish(false, `${label} connection closed before a complete response was received.`, {
         receivedBytes,
       });
     });
     socket.on("data", (chunk) => {
+      if (settled) return;
       receivedBytes += chunk.length;
+      const stored = Math.min(chunk.length, received.length - bufferedBytes);
+      chunk.copy(received, bufferedBytes, 0, stored);
+      bufferedBytes += stored;
 
-      if (receivedBytes > MAX_SOCKET_PROBE_RESPONSE_BYTES) {
-        finish(false, "Probe response exceeded the public response size limit.", {
-          maxBytes: MAX_SOCKET_PROBE_RESPONSE_BYTES,
+      if (settleWith(() => onData(received.subarray(0, bufferedBytes), io))) return;
+
+      // A full buffer with no verdict can never improve: more bytes cannot be stored.
+      if (bufferedBytes === received.length) {
+        finish(false, `${label} response exceeded the public response size limit.`, {
+          maxBytes: received.length,
           receivedBytes,
         });
-        return;
       }
-
-      chunks.push(chunk);
-      const buffered = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, receivedBytes);
-      const validated = validate(buffered);
-      if (!validated) return;
-
-      finish(validated.ok, validated.message, validated.details);
     });
 
     socket.connect(port, target, () => {
-      if (payload) socket.write(payload);
+      settleWith(() => onConnect?.(io) ?? null);
     });
   });
 }
@@ -294,13 +360,15 @@ async function mysqlProbe(target: string, port: number, timeoutMs: number) {
     if (data.length < 5) return null;
 
     const protocolVersion = data[4];
-    if (typeof protocolVersion === "number" && protocolVersion > 0) {
+    if (protocolVersion === MYSQL_HANDSHAKE_PROTOCOL_VERSION) {
       return {
         ok: true,
         message: "MySQL handshake packet received.",
         details: { protocolVersion },
       };
     }
+
+    if (protocolVersion === MYSQL_ERROR_PACKET_MARKER) return parseMysqlErrorPacket(data);
 
     return {
       ok: false,
@@ -310,25 +378,91 @@ async function mysqlProbe(target: string, port: number, timeoutMs: number) {
   });
 }
 
-async function redisProbe(target: string, port: number, timeoutMs: number) {
-  return socketProbe(target, port, timeoutMs, Buffer.from("*1\r\n$4\r\nPING\r\n"), (data) => {
-    const text = data.toString("utf8").trim();
-    if (!text.includes("\r\n")) return null;
+/** A server that refuses the connection sends an error packet (blocked host, too many connections…) instead of the handshake. */
+function parseMysqlErrorPacket(data: Buffer): SocketValidationResult {
+  const packetLength = data.readUIntLE(0, 3);
+  if (data.length < 4 + packetLength) return null;
 
-    if (text.startsWith("+PONG") || text.startsWith("-NOAUTH") || text.startsWith("-ERR")) {
-      return {
-        ok: true,
-        message: "Redis command response received.",
-        details: { preview: text.slice(0, 80) },
-      };
-    }
-
+  // Payload: 0xff, 2-byte error code, optional "#" + 5-char SQLSTATE, then the message text.
+  const payload = data.subarray(4, 4 + packetLength);
+  if (payload.length < 3) {
     return {
       ok: false,
-      message: "Unexpected Redis response.",
-      details: { preview: text.slice(0, 80) },
+      message: "MySQL server sent a malformed error packet instead of a handshake.",
+      details: { protocolSignal: "error-packet" },
     };
+  }
+
+  const errorCode = payload.readUInt16LE(1);
+  // Protocol 4.1+ inserts "#" and a 5-character SQLSTATE before the text; older servers do
+  // not, and their message may itself start with "#".
+  const hasSqlState =
+    payload.length >= 9 &&
+    payload[3] === 0x23 &&
+    /^[0-9A-Z]{5}$/.test(payload.toString("latin1", 4, 9));
+  const textOffset = hasSqlState ? 9 : 3;
+  const text = previewText(payload.toString("utf8", textOffset), REPLY_MESSAGE_CHARS).trim();
+
+  return {
+    ok: false,
+    message: `MySQL server sent error ${errorCode} instead of a handshake${text ? `: ${text}` : "."}`,
+    details: { protocolSignal: "error-packet", errorCode },
+  };
+}
+
+async function redisProbe(target: string, port: number, timeoutMs: number) {
+  return socketProbe(target, port, timeoutMs, REDIS_PING_COMMAND, (data) => {
+    const reply = readRespLine(data);
+    return reply && classifyRedisPingReply(reply.line);
   });
+}
+
+/** Reads one CRLF-terminated RESP line starting at `from`; null while the terminator has not arrived. */
+function readRespLine(data: Buffer, from = 0) {
+  const end = data.indexOf("\r\n", from);
+  if (end === -1) return null;
+
+  return { line: data.toString("utf8", from, end), next: end + 2 };
+}
+
+/** Server-controlled text is bounded and stripped of control/format characters before it reaches results. */
+function previewText(text: string, maxChars: number) {
+  return text.slice(0, maxChars).replace(/\p{C}/gu, "?");
+}
+
+function classifyRedisPingReply(line: string): SocketValidation {
+  const preview = previewText(line, REPLY_PREVIEW_CHARS);
+
+  if (line.startsWith("+PONG")) {
+    return {
+      ok: true,
+      message: "Redis command response received.",
+      details: { protocolSignal: "pong", preview },
+    };
+  }
+
+  // Reachable and speaking RESP, but a password is needed (older servers answer "-ERR operation not permitted").
+  if (/^-(?:NOAUTH\b|ERR\b.*(?:operation not permitted|auth(?:entication)?\s+required))/i.test(line)) {
+    return {
+      ok: true,
+      message: "Redis requires authentication.",
+      details: { protocolSignal: "auth-required", preview },
+    };
+  }
+
+  if (line.startsWith("-")) {
+    return {
+      ok: false,
+      message: `Redis replied with an error: ${previewText(line, REPLY_MESSAGE_CHARS)}`,
+      details: { protocolSignal: "error-reply", preview },
+    };
+  }
+
+  return {
+    ok: false,
+    message: "Unexpected Redis response.",
+    details: { preview },
+  };
 }
 
 async function mongodbProbe(target: string, port: number, timeoutMs: number) {
@@ -428,53 +562,61 @@ function databaseAuthProbe(
 }
 
 function redisAuthProbe(target: string, port: number, timeoutMs: number, auth: DatabaseAuth) {
-  return new Promise<SocketValidation>((resolve) => {
-    const socket = new net.Socket();
-    const username = auth.username || "";
-    const password = auth.password || "";
-    let settled = false;
-    let buffer = "";
+  const username = auth.username || "";
+  const password = auth.password || "";
+  let awaitingPing = false;
+  let consumed = 0;
 
-    const finish = (ok: boolean, message: string, details?: Record<string, unknown>) => {
-      if (settled) return;
-      settled = true;
-      socket.destroy();
-      resolve({ ok, message, details });
-    };
-
-    socket.setTimeout(timeoutMs);
-    socket.once("timeout", () => finish(false, `Redis auth probe timeout after ${timeoutMs}ms.`));
-    socket.once("error", (error) => finish(false, `Redis auth probe failed: ${error.message}`));
-    socket.once("close", () => finish(false, "Redis auth probe connection closed before completion."));
-
-    socket.on("data", (chunk) => {
-      buffer += chunk.toString("utf8");
-
-      if (buffer.includes("\r\n")) {
-        if (buffer.startsWith("+OK")) {
-          socket.write("*1\r\n$4\r\nPING\r\n");
-          buffer = "";
-          return;
-        }
-
-        if (buffer.startsWith("+PONG")) {
-          finish(true, "Authenticated Redis connection succeeded.", { stage: "auth", preview: "+PONG" });
-          return;
-        }
-
-        if (buffer.startsWith("-")) {
-          finish(false, `Redis auth failed: ${buffer.trim()}`, { stage: "auth" });
-        }
-      }
-    });
-
-    socket.connect(port, target, () => {
+  return runSocketProbe(target, port, timeoutMs, {
+    label: "Redis auth probe",
+    onConnect: (io) => {
       if (!password) {
-        finish(false, "Password is required for Redis authenticated check.", { stage: "auth" });
-        return;
+        return {
+          ok: false,
+          message: "Password is required for Redis authenticated check.",
+          details: { stage: "auth" },
+        };
       }
-      socket.write(buildRedisAuthCommand(username, password));
-    });
+
+      io.write(buildRedisAuthCommand(username, password));
+      return null;
+    },
+    // Exactly two replies are ever consumed (AUTH, then PING), so a peer cannot keep the exchange going.
+    onData: (data, io) => {
+      for (;;) {
+        const reply = readRespLine(data, consumed);
+        if (!reply) return null;
+        consumed = reply.next;
+
+        if (!awaitingPing && reply.line.startsWith("+OK")) {
+          awaitingPing = true;
+          io.write(REDIS_PING_COMMAND);
+          continue;
+        }
+
+        if (awaitingPing && reply.line.startsWith("+PONG")) {
+          return {
+            ok: true,
+            message: "Authenticated Redis connection succeeded.",
+            details: { stage: "auth", preview: "+PONG" },
+          };
+        }
+
+        if (reply.line.startsWith("-")) {
+          return {
+            ok: false,
+            message: `Redis auth failed: ${previewText(reply.line, REPLY_MESSAGE_CHARS)}`,
+            details: { stage: "auth" },
+          };
+        }
+
+        return {
+          ok: false,
+          message: "Unexpected Redis response.",
+          details: { stage: "auth", preview: previewText(reply.line, REPLY_PREVIEW_CHARS) },
+        };
+      }
+    },
   });
 }
 

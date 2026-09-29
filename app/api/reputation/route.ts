@@ -11,6 +11,7 @@ import { collectReputation } from "@/lib/reputation/query";
 import { aggregateReputation } from "@/lib/reputation/scoring";
 import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import { toIpApiLanguage } from "@/lib/providers/ip-api";
+import { createSingleFlight } from "@/lib/single-flight";
 import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
@@ -28,6 +29,16 @@ interface CacheEntry {
 }
 
 const responseCache = new Map<string, CacheEntry>();
+
+type ReputationOutcome =
+  | { ok: true; summary: ReputationSummary }
+  | { ok: false; sources: Array<{ id: string; status: SourceStatus }> };
+
+// One lookup fans out to about a dozen upstream services; concurrent requests
+// for the same address share that work instead of multiplying it. That includes
+// a total outage: waiters get the same 502 for the same moment, but it is never
+// cached, so the next request runs a fresh fan-out.
+const reputationFlights = createSingleFlight<ReputationOutcome>();
 
 const CHECKED_STATUSES: ReadonlySet<SourceStatus> = new Set([
   "clean",
@@ -104,6 +115,28 @@ export async function GET(request: Request) {
   }
   responseCache.delete(cacheKey);
 
+  const outcome = await reputationFlights.run(cacheKey, () =>
+    computeReputation(ip, family, language, cacheKey),
+  );
+
+  if (!outcome.ok) {
+    return apiError(
+      "upstream_error",
+      "Reputation sources are currently unavailable.",
+      502,
+      { sources: outcome.sources },
+    );
+  }
+
+  return apiOk(outcome.summary);
+}
+
+async function computeReputation(
+  ip: string,
+  family: 4 | 6,
+  language: ReturnType<typeof resolveLocale>,
+  cacheKey: string,
+): Promise<ReputationOutcome> {
   const { sources, evidence, geo, network, networkContext } =
     await collectReputation(ip, family, language);
 
@@ -111,17 +144,13 @@ export async function GET(request: Request) {
     CHECKED_STATUSES.has(source.status),
   );
   if (checkedSources.length === 0) {
-    return apiError(
-      "upstream_error",
-      "Reputation sources are currently unavailable.",
-      502,
-      {
-        sources: sources.map((source) => ({
-          id: source.id,
-          status: source.status,
-        })),
-      },
-    );
+    return {
+      ok: false,
+      sources: sources.map((source) => ({
+        id: source.id,
+        status: source.status,
+      })),
+    };
   }
 
   const aggregated = aggregateReputation(evidence);
@@ -167,5 +196,5 @@ export async function GET(request: Request) {
     responseCache.delete(oldest);
   }
 
-  return apiOk(summary);
+  return { ok: true, summary };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { useI18n } from "@/components/i18n-provider";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ResultActions } from "@/components/result-actions";
@@ -21,9 +22,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
-import { type Locale } from "@/lib/i18n";
-import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
-import { getUiCopy } from "@/lib/ui-copy";
+import { getApiErrorMessage } from "@/lib/api/error-message";
+import type { ToolTranslation } from "@/lib/tool-i18n";
+import type { UiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import { Network, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -35,7 +36,7 @@ interface DnsAddress {
 
 type DnsErrorCode = "timeout" | "not_found" | "temporary" | "unknown";
 
-interface DnsResult {
+export interface DnsResult {
   target: string;
   addresses: DnsAddress[];
   records: DnsRecord[];
@@ -50,7 +51,7 @@ interface DnsResult {
 
 function formatDnsError(
   code: DnsErrorCode | null | undefined,
-  ui: ReturnType<typeof getUiCopy>,
+  ui: UiCopy,
 ): string {
   switch (code) {
     case "timeout":
@@ -64,16 +65,34 @@ function formatDnsError(
   }
 }
 
+/** A completed lookup that produced no usable record or address. */
+function isEmptyLookup(result: DnsResult): boolean {
+  return Boolean(result.lookupError) && result.records.length === 0;
+}
+
+/**
+ * Text announced to assistive technology when a lookup finishes. An empty
+ * lookup states the reason, since the warning mark alone is only visual.
+ */
+export function describeDnsResult(
+  result: DnsResult,
+  t: ToolTranslation,
+  ui: UiCopy,
+): string {
+  const heading = `${t.dnsRecordsFor} ${result.target}`;
+  return isEmptyLookup(result)
+    ? `${heading}: ${formatDnsError(result.lookupErrorCode, ui)}`
+    : heading;
+}
+
 interface DnsCheckerProps {
-  locale: Locale;
   initialTarget?: string;
 }
 
-export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
+export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
   const [selectedType, setSelectedType] = useState("ALL");
   const [showRaw, setShowRaw] = useState(false);
-  const t = getToolTranslation(locale);
-  const ui = getUiCopy(locale);
+  const { tool: t, ui } = useI18n();
 
   const { loading, error, result, run, cancel, querySync } =
     useToolLookup<DnsResult>({
@@ -109,6 +128,7 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
+        resultMessage={result ? describeDnsResult(result, t, ui) : undefined}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={run}
@@ -133,7 +153,10 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <ResultPanel title={`${t.dnsRecordsFor} ${result.target}`}>
+        <ResultPanel
+          title={`${t.dnsRecordsFor} ${result.target}`}
+          status={isEmptyLookup(result) ? "warning" : "success"}
+        >
           <div className="border-b pb-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.resolvedAddresses}
@@ -239,7 +262,6 @@ export function DnsChecker({ locale, initialTarget = "" }: DnsCheckerProps) {
 
           {visibleRecords.length > 0 && (
             <ResultActions
-              locale={locale}
               data={{ ...result, records: visibleRecords }}
               copyText={visibleRecords
                 .map(

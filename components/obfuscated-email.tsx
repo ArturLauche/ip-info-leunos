@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { Locale } from "@/lib/i18n";
-import { getUiCopy } from "@/lib/ui-copy";
+import { useI18n } from "@/components/i18n-provider";
 
 interface ObfuscatedEmailProps {
   /** Local part (before the "@"), passed separately from the domain. */
@@ -11,7 +10,6 @@ interface ObfuscatedEmailProps {
   /** Domain part (after the "@"). */
   domain: string;
   className?: string;
-  locale?: Locale;
 }
 
 /**
@@ -28,9 +26,9 @@ export function ObfuscatedEmail({
   user,
   domain,
   className,
-  locale = "en",
 }: ObfuscatedEmailProps) {
   const [revealed, setRevealed] = useState(false);
+  const { ui: copy } = useI18n();
 
   // Runs only in the browser, so the assembled address is never part of the
   // server response. The initial (revealed === false) render matches the server
@@ -40,7 +38,6 @@ export function ObfuscatedEmail({
   }, []);
 
   if (!revealed) {
-    const copy = getUiCopy(locale);
     return (
       <span className={className}>
         {user} {copy.emailAt} {domain.replace(/\./g, ` ${copy.emailDot} `)}

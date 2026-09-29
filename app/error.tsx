@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DEFAULT_LOCALE, resolveLocale, type Locale } from "@/lib/i18n";
-import { readClientLocalePreference } from "@/lib/locale-preference";
-import { getToolTranslation } from "@/lib/tool-i18n";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -15,27 +13,15 @@ interface ErrorPageProps {
 }
 
 /**
- * Route-level error boundary inside the app shell. Locale comes from the
- * browser (no server context reaches a client boundary), mirroring the
- * Accept-Language negotiation used on the server.
+ * Route-level error boundary inside the app shell, so it shares the layout's
+ * I18nProvider and speaks the language the server negotiated.
  */
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
-
-  useEffect(() => {
-    setLocale(
-      readClientLocalePreference() ??
-        resolveLocale(
-          navigator.languages?.join(",") ?? navigator.language ?? null,
-        ),
-    );
-  }, []);
+  const { tool: t } = useI18n();
 
   useEffect(() => {
     console.error(error);
   }, [error]);
-
-  const t = getToolTranslation(locale);
 
   return (
     <main

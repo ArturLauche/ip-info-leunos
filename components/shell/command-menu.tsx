@@ -11,15 +11,23 @@ import {
   type ReactNode,
 } from "react";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
-import type { Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 
-const CommandPalette = dynamic(
-  () => import("./command-palette").then((module) => module.CommandPalette),
-  { ssr: false },
-);
+const loadCommandPalette = () =>
+  import("./command-palette").then((module) => module.CommandPalette);
+
+const CommandPalette = dynamic(loadCommandPalette, { ssr: false });
+
+/**
+ * Warms the palette chunk when a trigger is approached, so the dialog opens
+ * without a network round trip and the first keystrokes are not lost. The
+ * chunk is still never requested by visitors who do not reach for it.
+ */
+function prefetchCommandPalette() {
+  void loadCommandPalette();
+}
 
 interface CommandMenuContextValue {
   open: boolean;
@@ -38,7 +46,6 @@ export function useCommandMenu(): CommandMenuContextValue {
 }
 
 interface CommandMenuProviderProps {
-  locale: Locale;
   children: ReactNode;
 }
 
@@ -47,10 +54,7 @@ interface CommandMenuProviderProps {
  * global ⌘K / Ctrl+K (and "/") shortcut. Triggers anywhere in the subtree open
  * it through {@link useCommandMenu}.
  */
-export function CommandMenuProvider({
-  locale,
-  children,
-}: CommandMenuProviderProps) {
+export function CommandMenuProvider({ children }: CommandMenuProviderProps) {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
 
@@ -62,7 +66,8 @@ export function CommandMenuProvider({
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen((previous) => !previous);
+        // A held key auto-repeats; toggling on each repeat would flicker.
+        if (!event.repeat) setOpen((previous) => !previous);
         return;
       }
       if (
@@ -87,14 +92,13 @@ export function CommandMenuProvider({
     <CommandMenuContext.Provider value={value}>
       {children}
       {(open || hasOpened) && (
-        <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />
+        <CommandPalette open={open} onOpenChange={setOpen} />
       )}
     </CommandMenuContext.Provider>
   );
 }
 
 interface CommandTriggerProps {
-  locale: Locale;
   /** "bar" renders a full search field (sidebar); "icon" a compact button. */
   variant?: "bar" | "icon";
   className?: string;
@@ -102,12 +106,11 @@ interface CommandTriggerProps {
 
 /** Opens the command palette. Rendered in the sidebar and the mobile top bar. */
 export function CommandTrigger({
-  locale,
   variant = "bar",
   className,
 }: CommandTriggerProps) {
   const { setOpen } = useCommandMenu();
-  const t = getToolTranslation(locale);
+  const { tool: t } = useI18n();
   const [isMac, setIsMac] = useState(true);
 
   useEffect(() => {
@@ -126,6 +129,9 @@ export function CommandTrigger({
         size="icon"
         aria-label={t.commandTriggerLabel}
         onClick={() => setOpen(true)}
+        onPointerEnter={prefetchCommandPalette}
+        onFocus={prefetchCommandPalette}
+        onTouchStart={prefetchCommandPalette}
         className={cn("rounded-md", className)}
       >
         <Search className="size-5" aria-hidden="true" />
@@ -137,6 +143,9 @@ export function CommandTrigger({
     <button
       type="button"
       onClick={() => setOpen(true)}
+      onPointerEnter={prefetchCommandPalette}
+      onFocus={prefetchCommandPalette}
+      onTouchStart={prefetchCommandPalette}
       className={cn(
         "group flex h-11 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground shadow-sm outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
         className,

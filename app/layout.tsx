@@ -13,6 +13,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { StructuredData } from "@/components/structured-data";
 import { AppShell } from "@/components/shell/app-shell";
+import { I18nProvider } from "@/components/i18n-provider";
+import { getI18nDictionaries } from "@/lib/i18n-dictionaries";
 import {
   getIntlLocale,
   getLocaleDirection,
@@ -148,6 +150,9 @@ export default async function RootLayout({
     <html
       lang={getIntlLocale(locale)}
       dir={getLocaleDirection(locale)}
+      // Lets Next.js pin scroll-behavior to auto while a route change scrolls,
+      // so smooth scrolling never animates a new page in from the old offset.
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body
@@ -160,7 +165,12 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AppShell locale={locale}>{children}</AppShell>
+          <I18nProvider
+            locale={locale}
+            dictionaries={getI18nDictionaries(locale)}
+          >
+            <AppShell>{children}</AppShell>
+          </I18nProvider>
           <Toaster position="top-center" />
         </ThemeProvider>
       </body>

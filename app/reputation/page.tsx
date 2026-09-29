@@ -39,7 +39,6 @@ export default async function ReputationPage({
       subtitle={t.reputationSubtitle}
     >
       <ReputationChecker
-        locale={locale}
         initialIp={firstSearchParam(params.ip)}
       />
     </ToolPageShell>

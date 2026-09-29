@@ -43,7 +43,10 @@ interface ToolLookupOptions {
 export function useToolLookup<T>(options: ToolLookupOptions) {
   const router = useRouter();
   const { refreshKey } = options;
-  const [loading, setLoading] = useState(false);
+  // A deep link fetches as soon as it mounts, so the server HTML and first
+  // client render already show the pending state instead of a flash of the
+  // empty state.
+  const [loading, setLoading] = useState(() => Boolean(options.initialQuery?.trim()));
   const [thrownError, setThrownError] = useState<{ value: unknown } | null>(null);
   const [result, setResult] = useState<T | null>(null);
   const requestSeq = useRef(0);

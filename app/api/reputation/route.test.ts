@@ -142,6 +142,25 @@ afterEach(() => {
 });
 
 describe("reputation API route", () => {
+  it("shares one upstream fan-out between concurrent lookups of the same address", async () => {
+    const fetchMock = stubCleanEnvironment();
+    dnsMock.aRecords.set("40.9.134.84.zen.spamhaus.org", ["127.0.0.10"]);
+
+    // A dedicated address: the route memoizes summaries per address for the file.
+    const [first, second, third] = await Promise.all([
+      invoke("84.134.9.40", "203.0.113.151"),
+      invoke("84.134.9.40", "203.0.113.152"),
+      invoke("84.134.9.40", "203.0.113.153"),
+    ]);
+    const bodies = await Promise.all([first, second, third].map((response) => response.json()));
+
+    expect([first.status, second.status, third.status]).toEqual([200, 200, 200]);
+    expect(bodies[1]).toEqual(bodies[0]);
+    expect(bodies[2]).toEqual(bodies[0]);
+    const ipApiCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes("ip-api.com"));
+    expect(ipApiCalls).toHaveLength(1);
+  });
+
   it("answers a residential PBL-only result as low risk with a policy listing", async () => {
     stubCleanEnvironment();
     dnsMock.aRecords.set("1.0.134.84.zen.spamhaus.org", ["127.0.0.10"]);
@@ -379,6 +398,32 @@ describe("reputation API route", () => {
     expect(body.error.details.sources).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "spamhaus-zen", status: "unavailable" })]),
     );
+  });
+
+  it("shares a total outage between concurrent lookups without caching it", async () => {
+    // Reverse-octet DNSBL names for 84.134.9.60.
+    for (const zone of ["zen.spamhaus.org", "bl.spamcop.net", "b.barracudacentral.org", "dnsbl.dronebl.org", "bl.blocklist.de"]) {
+      dnsMock.failures.add(`60.9.134.84.${zone}`);
+    }
+    const outage = stubFetch(() => jsonResponse({ message: "down" }, 500));
+
+    const responses = await Promise.all([
+      invoke("84.134.9.60", "203.0.113.161"),
+      invoke("84.134.9.60", "203.0.113.162"),
+    ]);
+    const single = outage.mock.calls.filter(([url]) => String(url).includes("ip-api.com")).length;
+
+    expect(responses.map((response) => response.status)).toEqual([502, 502]);
+    // One fan-out served both waiters.
+    expect(single).toBeGreaterThan(0);
+    expect(single).toBeLessThanOrEqual(1);
+
+    // The outage passes; the very next request must try again, not replay the 502.
+    dnsMock.failures.clear();
+    stubCleanEnvironment();
+    const recovered = await invoke("84.134.9.60", "203.0.113.163");
+
+    expect(recovered.status).toBe(200);
   });
 
   it("caches per-IP results to protect free provider quotas", async () => {

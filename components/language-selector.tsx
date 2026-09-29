@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,10 +21,8 @@ import {
   getNativeLocaleName,
   SUPPORTED_LOCALES,
   type Locale,
-} from "@/lib/i18n";
+} from "@/lib/locale-config";
 import { persistLocalePreference } from "@/lib/locale-preference";
-import { getToolTranslation } from "@/lib/tool-i18n";
-import { getUiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 
 const PANEL_ID = "language-panel";
@@ -55,7 +54,6 @@ export function localeMatchesQuery(locale: Locale, query: string): boolean {
 }
 
 interface LanguageSelectorProps {
-  locale: Locale;
   /**
    * Called after a new language is stored, with that language, so a surface
    * hosting the picker (the mobile navigation sheet) can close itself and read
@@ -66,13 +64,15 @@ interface LanguageSelectorProps {
 }
 
 /** Shown instead of the list when the filter matches nothing. */
-export function LanguageEmptyState({ locale }: { locale: Locale }) {
+export function LanguageEmptyState() {
+  const { ui } = useI18n();
+
   return (
     <p
       role="status"
       className="px-3 py-8 text-center text-sm text-muted-foreground"
     >
-      {getUiCopy(locale).languageNoMatch}
+      {ui.languageNoMatch}
     </p>
   );
 }
@@ -144,10 +144,8 @@ export function LocaleOptionRow({
  * it, Enter to switch. The choice itself still travels through the locale
  * cookie, so it survives reloads and visits once the server render syncs.
  */
-export function LanguageSelector({
-  locale,
-  onLocaleSelected,
-}: LanguageSelectorProps) {
+export function LanguageSelector({ onLocaleSelected }: LanguageSelectorProps) {
+  const { locale, ui: uiCopy, tool: t } = useI18n();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -158,8 +156,6 @@ export function LanguageSelector({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const uiCopy = getUiCopy(locale);
-  const t = getToolTranslation(locale);
   const currentName = getNativeLocaleName(locale);
   const selectorLabel = uiCopy.languageSelectorLabel;
   const triggerLabel = `${selectorLabel}: ${currentName}`;
@@ -330,7 +326,7 @@ export function LanguageSelector({
                 ))}
               </div>
             ) : (
-              <LanguageEmptyState locale={locale} />
+              <LanguageEmptyState />
             )}
 
             <div className="hidden items-center gap-4 border-t border-border/50 px-4 py-2.5 text-xs text-muted-foreground sm:flex">
