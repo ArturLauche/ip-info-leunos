@@ -16,14 +16,20 @@ export const EXIT_DURATION_DESKTOP_MS = 120;
 export const EXIT_DURATION_MOBILE_MS = 150;
 
 /**
- * The outgoing copy is removed when its exit animation ends or is cancelled.
- * These bounds only guard against neither event being delivered. A busy main
- * thread can delay the first animation frame well past the route commit, so a
- * timer started at commit would cut the fade short: the tighter bound is armed
- * by `animationstart`, and the looser one only covers an exit that never
- * starts.
+ * The outgoing copy is removed when its exit animation ends or is cancelled;
+ * the two bounds below only guard against neither event arriving. A busy main
+ * thread can delay the first animation frame well past the route commit, so
+ * the bound that follows the fade is armed by `animationstart`, not the commit.
  */
+
+/** Margin past the nominal end of a fade that has started (a few frames). */
 export const EXIT_FALLBACK_SLACK_MS = 200;
+
+/**
+ * Bound for a fade that exists but has not started. A fade CSS never creates
+ * is detected directly (`getAnimations()`), so this only covers a document
+ * that is not being rendered.
+ */
 export const EXIT_START_TIMEOUT_MS = 3_000;
 
 export interface PageTransitionEnvironment {

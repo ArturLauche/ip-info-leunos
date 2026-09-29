@@ -188,9 +188,10 @@ Every data view designs for four states explicitly:
   attention-seeking animation.
 - **Page changes** (`PageTransition`): the outgoing route fades and lifts away
   in 120–150 ms while the incoming route settles in stage by stage — header
-  icon, header copy, panel, footer — over about 340 ms (its timings are the
-  `--page-*` custom properties on `.tool-page-transition`). New page chrome opts
-  in with `data-transition-stage` / `data-transition-item`; do not stack a
+  icon, header copy, panel, footer — within about half a second. Stage timings
+  and travel are the `--page-*` custom properties on `.tool-page-transition`;
+  the icon and the header fade reuse the `--motion-*` tokens. New page chrome
+  opts in with `data-transition-stage` / `data-transition-item`; do not stack a
   second entrance on top of it.
 - **Content appearance**: async results use `.tool-reveal` (direct children lift
   in with a capped stagger); a single late arrival — an error, raw output, tab

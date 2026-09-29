@@ -72,6 +72,10 @@ describe("getExitFallbackMs", () => {
     }
   });
 
+  it("keeps a margin of several frames past the nominal end", () => {
+    expect(EXIT_FALLBACK_SLACK_MS).toBeGreaterThanOrEqual(100);
+  });
+
   it("waits longer for an exit that has not started than for one that has", () => {
     expect(EXIT_START_TIMEOUT_MS).toBeGreaterThan(
       getExitFallbackMs(EXIT_DURATION_MOBILE_MS),

@@ -354,6 +354,14 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 
     startSnapshotExit(snapshot, duration);
 
+    // getAnimations() resolves style first. A fade that CSS will not run
+    // (reduced motion began after readEnvironment) dispatches no event that
+    // could end it, so drop the copy now instead of covering the new route.
+    if (snapshot.getAnimations().length === 0) {
+      removeSnapshot(snapshot);
+      return;
+    }
+
     const scrollBefore = Number(snapshot.dataset.scrollBefore || window.scrollY);
     let applied: number | null = null;
     const holdPosition = () => {
