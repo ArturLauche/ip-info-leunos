@@ -216,7 +216,7 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
           {showRaw && (
             <pre
               id="whois-raw-result"
-              className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground"
+              className="tool-section-reveal max-h-[32rem] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-words whitespace-pre-wrap text-foreground"
               tabIndex={0}
             >
               {result.raw || t.noWhoisData}

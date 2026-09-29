@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   EXIT_DURATION_DESKTOP_MS,
   EXIT_DURATION_MOBILE_MS,
+  EXIT_FALLBACK_SLACK_MS,
   MOBILE_BREAKPOINT_PX,
   exitScrollOffset,
   getExitDurationMs,
+  getExitFallbackMs,
   shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "./page-transition";
@@ -58,6 +60,19 @@ describe("exitScrollOffset", () => {
 
   it("ignores sub-pixel drift", () => {
     expect(exitScrollOffset(100, 100.4)).toBe(0);
+  });
+});
+
+describe("getExitFallbackMs", () => {
+  it("always outlasts the exit animation it guards", () => {
+    for (const duration of [EXIT_DURATION_DESKTOP_MS, EXIT_DURATION_MOBILE_MS]) {
+      expect(getExitFallbackMs(duration)).toBe(duration + EXIT_FALLBACK_SLACK_MS);
+      expect(getExitFallbackMs(duration)).toBeGreaterThan(duration);
+    }
+  });
+
+  it("leaves room for an animation that starts several frames late", () => {
+    expect(EXIT_FALLBACK_SLACK_MS).toBeGreaterThanOrEqual(250);
   });
 });
 

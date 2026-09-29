@@ -14,6 +14,14 @@ export const MOBILE_BREAKPOINT_PX = 1024;
 export const EXIT_DURATION_DESKTOP_MS = 120;
 export const EXIT_DURATION_MOBILE_MS = 150;
 
+/**
+ * The outgoing copy is removed when its exit animation ends. A busy main
+ * thread at commit time can start that animation a few frames late, so a timer
+ * set to the nominal duration would cut the fade short. The timer therefore
+ * only guards against `animationend` never being delivered.
+ */
+export const EXIT_FALLBACK_SLACK_MS = 400;
+
 export interface PageTransitionEnvironment {
   viewportWidth: number;
   reducedMotion: boolean;
@@ -27,6 +35,10 @@ export function getExitDurationMs(
   return environment.viewportWidth < MOBILE_BREAKPOINT_PX
     ? EXIT_DURATION_MOBILE_MS
     : EXIT_DURATION_DESKTOP_MS;
+}
+
+export function getExitFallbackMs(exitDurationMs: number): number {
+  return exitDurationMs + EXIT_FALLBACK_SLACK_MS;
 }
 
 /**

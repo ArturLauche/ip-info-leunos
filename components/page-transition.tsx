@@ -12,6 +12,7 @@ import {
 import {
   exitScrollOffset,
   getExitDurationMs,
+  getExitFallbackMs,
   shouldUseFallbackSnapshot,
   type PageTransitionEnvironment,
 } from "@/lib/page-transition";
@@ -361,10 +362,18 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     };
     holdPosition();
 
-    exitTimer.current = window.setTimeout(() => {
+    // The fade is removed once it has actually played; see getExitFallbackMs.
+    const finishExit = () => {
       cancelAnimation();
       removeSnapshot(snapshot);
-    }, duration);
+    };
+    snapshot.addEventListener("animationend", (event) => {
+      if (event.target === snapshot) finishExit();
+    });
+    exitTimer.current = window.setTimeout(
+      finishExit,
+      getExitFallbackMs(duration),
+    );
   }, [cancelAnimation, pathname, removeSnapshot]);
 
   useEffect(() => {
