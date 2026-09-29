@@ -97,6 +97,15 @@ describe("exitFadeCanRun", () => {
     expect(exitFadeCanRun(["running"])).toBe(true);
     expect(exitFadeCanRun(["idle"])).toBe(true);
   });
+
+  it("leaves a finished fade to its animation events", () => {
+    expect(exitFadeCanRun(["finished"])).toBe(true);
+  });
+
+  it("is true while any animation on the copy can still run", () => {
+    expect(exitFadeCanRun(["paused", "running"])).toBe(true);
+    expect(exitFadeCanRun(["paused", "paused"])).toBe(false);
+  });
 });
 
 describe("shouldUseFallbackSnapshot", () => {
