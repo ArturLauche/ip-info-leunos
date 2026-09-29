@@ -339,7 +339,11 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       window.clearTimeout(pendingTimer.current);
       pendingTimer.current = null;
     }
-    if (!layer || !snapshot) return;
+    if (!layer || !snapshot) {
+      // A superseded exit has no timer or listener left to remove its copy.
+      layer?.replaceChildren();
+      return;
+    }
 
     if (snapshot.parentElement !== layer) {
       mountSnapshot(layer, snapshot);
