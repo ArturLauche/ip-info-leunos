@@ -262,6 +262,26 @@ locale: 31–58 KB raw, 10.6–14.2 KB gzip depending on the language.
 Net first-load transfer on `/` drops by about 234 KB gzip (−45%). The catalog is
 inlined once per full page load and not re-sent on client-side navigation.
 
+### Ask-first items decided in this round
+
+`AGENTS.md` asks before changing rate limits, timeouts or caching behavior. The
+repository owner delegated the call to the author on 2026-09-29, and all three
+were kept:
+
+- **Flag proxy limit (new, 120/min per client).** The route was the only public
+  one without `enforceRateLimit`, which the Boundaries section requires. An ASN
+  page shows the holder's flag plus at most 50 facility rows (`withLimit(…, 50)`
+  in `lib/asn.ts`), so it requests at most 51 distinct flags; the largest network
+  sampled (AS2914) needed 19. Browsers cache each flag for a year and
+  `CountryFlag` renders nothing when an image fails, so a rejected flag costs an
+  icon, not information. 120/min leaves more than twice the worst single page.
+- **Database probe deadline.** `timeoutMs` (500–10,000 ms, default 3,000) now
+  bounds the whole probe instead of restarting on every received byte. No value
+  changed, and the 64,000-byte response cap is untouched.
+- **Request coalescing.** Identical concurrent DNS and reputation lookups share
+  one upstream fan-out, as `/api/ip` already did. Nothing is retained after
+  settlement; cache TTLs and sizes are unchanged.
+
 ### Needs a decision (not changed; `AGENTS.md` says ask first)
 
 - **Target validation.** `assertPublicTarget` rejects `_` labels and names with

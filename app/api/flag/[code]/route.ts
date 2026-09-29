@@ -58,10 +58,12 @@ interface RouteContext {
 }
 
 export async function GET(request: Request, context: RouteContext) {
-  // Browsers cache each flag for a year, so a normal visitor makes a handful
-  // of requests. A request that carries no client address at all resolves to
-  // one shared "unknown" bucket, and a single budget on an <img> endpoint would
-  // starve everyone's flags, so only identifiable clients are limited.
+  // Browsers cache each flag for a year, and the heaviest page (an ASN: 50
+  // facility rows plus the holder) asks for at most 51 distinct flags, so 120
+  // per minute leaves more than twice the headroom. A request that carries no
+  // client address at all resolves to one shared "unknown" bucket, and a single
+  // budget on an <img> endpoint would starve everyone's flags, so only
+  // identifiable clients are limited.
   const limited =
     getClientIp(request) === "unknown"
       ? null
