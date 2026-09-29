@@ -1,6 +1,7 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { createElement, type ReactElement } from "react";
+import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { withI18n } from "@/components/i18n-test-utils";
 import type { AsnProfile } from "@/lib/asn";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { ExternalLink } from "./external-link";
@@ -26,6 +27,8 @@ import { SourceDiagnosticsSection } from "./source-diagnostics-section";
 import { AsnSummaryCard } from "./summary-card";
 
 const t = getToolTranslation("en");
+
+const renderToStaticMarkup = (element: ReactElement) => renderMarkup(withI18n(element));
 
 /**
  * Render smoke tests for the redesigned ASN result sections. They guard the

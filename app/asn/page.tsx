@@ -39,7 +39,7 @@ export default async function AsnPage({ searchParams }: AsnPageProps) {
       title={t.asnTitle}
       subtitle={t.asnSubtitle}
     >
-      <AsnChecker locale={locale} initialAsn={initialAsn} />
+      <AsnChecker initialAsn={initialAsn} />
     </ToolPageShell>
   );
 }

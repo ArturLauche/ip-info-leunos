@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { useI18n } from "@/components/i18n-provider";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ResultActions } from "@/components/result-actions";
@@ -9,8 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
-import { type Locale } from "@/lib/i18n";
-import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { getApiErrorMessage } from "@/lib/api/error-message";
 import { Activity } from "lucide-react";
 import { useState } from "react";
 
@@ -33,7 +33,6 @@ interface WhoisResult {
 }
 
 interface WhoisCheckerProps {
-  locale: Locale;
   initialTarget?: string;
 }
 
@@ -52,12 +51,9 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
-export function WhoisChecker({
-  locale,
-  initialTarget = "",
-}: WhoisCheckerProps) {
+export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
   const [showRaw, setShowRaw] = useState(false);
-  const t = getToolTranslation(locale);
+  const { tool: t } = useI18n();
 
   const { loading, error, result, run, cancel, querySync } =
     useToolLookup<WhoisResult>({
@@ -227,7 +223,6 @@ export function WhoisChecker({
             </pre>
           )}
           <ResultActions
-            locale={locale}
             data={result}
             copyText={result.raw}
             filename={`whois-${result.target}`}

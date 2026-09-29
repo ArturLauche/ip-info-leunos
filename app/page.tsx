@@ -30,7 +30,7 @@ export default async function Home() {
       title={t.homeTitle}
       subtitle={t.homeSubtitle}
     >
-      <IpDisplay locale={locale} />
+      <IpDisplay />
     </ToolPageShell>
   );
 }

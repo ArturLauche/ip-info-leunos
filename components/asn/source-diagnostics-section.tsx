@@ -7,8 +7,9 @@ import {
   type SourceCacheStatus,
   type SourceStatus,
 } from "@/lib/asn";
+import { useI18n } from "@/components/i18n-provider";
 import { formatNumber } from "@/lib/format";
-import type { Locale } from "@/lib/i18n";
+import type { Locale } from "@/lib/locale-config";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 import { formatCacheStatus, formatStatus, formatWarning, relativeShare, SOURCE_ORDER, sourceName } from "./helpers";
@@ -68,6 +69,7 @@ export function SourceDiagnosticsSection({
   locale: Locale;
 }) {
   const headingId = useId();
+  const { ui } = useI18n();
   // With the source-info flag the API always ships per-source diagnostics; the
   // fallback keeps a usable availability view if they are ever absent.
   const rows: DiagnosticRow[] = (
@@ -196,7 +198,7 @@ export function SourceDiagnosticsSection({
                 className="flex items-start gap-2.5 border-b border-border/50 px-3 py-2 text-xs leading-relaxed text-foreground/85 last:border-b-0"
               >
                 <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
-                <span className="min-w-0 break-words">{formatWarning(warning, t, locale)}</span>
+                <span className="min-w-0 break-words">{formatWarning(warning, t, ui, locale)}</span>
               </li>
             ))}
           </ul>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import { getPrivacyContent } from "@/lib/privacy";
+import { getToolTranslation } from "@/lib/tool-i18n";
 import { getTermsContent } from "@/lib/terms";
 import {
   getGroupTitle,
@@ -31,7 +32,7 @@ export function ToolPageShell({
   const group = navGroups.find((entry) =>
     entry.items.some((item) => item.key === active),
   );
-  const sectionLabel = group ? getGroupTitle(group.id, locale) : "";
+  const sectionLabel = group ? getGroupTitle(group.id, { tool: getToolTranslation(locale) }) : "";
   const privacyLabel = getPrivacyContent(locale).navLabel;
   const termsLabel = getTermsContent(locale).navLabel;
 

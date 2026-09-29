@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getTranslation, type Locale, type Translation } from "@/lib/i18n";
-import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
+import { useI18n } from "@/components/i18n-provider";
+import type { Translation } from "@/lib/i18n";
+import { getApiErrorMessage } from "@/lib/api/error-message";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
@@ -90,7 +91,6 @@ interface IpData {
 
 interface IpDisplayProps {
   targetIp?: string;
-  locale: Locale;
   /** Notifies the host tool (e.g. IpLookup) so its search form can spin. */
   onLoadingChange?: (loading: boolean) => void;
 }
@@ -276,11 +276,7 @@ function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
   );
 }
 
-export function IpDisplay({
-  targetIp,
-  locale,
-  onLoadingChange,
-}: IpDisplayProps) {
+export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -297,14 +293,19 @@ export function IpDisplay({
     useState<DetectedBrowserInfo | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [fingerprintReady, setFingerprintReady] = useState(false);
-  const t = getTranslation(locale);
-  const toolT = getToolTranslation(locale);
-  // Ref-held so a new callback identity never re-triggers the fetch effect.
+  const { locale, core: t, tool: toolT } = useI18n();
+  // Ref-held so a new callback or catalog identity never re-triggers the fetch
+  // effect; only a language switch (the API localizes place names) should.
   const onLoadingChangeRef = useRef(onLoadingChange);
+  const errorCopyRef = useRef({ t, toolT });
 
   useEffect(() => {
     onLoadingChangeRef.current = onLoadingChange;
   }, [onLoadingChange]);
+
+  useEffect(() => {
+    errorCopyRef.current = { t, toolT };
+  }, [t, toolT]);
 
   useEffect(() => {
     const reportLoading = (value: boolean) => {
@@ -332,12 +333,13 @@ export function IpDisplay({
         // Ignore the abort triggered when targetIp changes mid-flight so a
         // stale response can never overwrite a newer lookup.
         if (controller.signal.aborted) return;
-        setError(getApiErrorMessage(cause, toolT, t.ipInfoError));
+        const copy = errorCopyRef.current;
+        setError(getApiErrorMessage(cause, copy.toolT, copy.t.ipInfoError));
         reportLoading(false);
       });
 
     return () => controller.abort();
-  }, [targetIp, t, toolT]);
+  }, [targetIp, locale]);
 
   useEffect(() => {
     if (targetIp) return;

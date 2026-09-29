@@ -1,10 +1,11 @@
 "use client";
 
-import { type Locale } from "@/lib/i18n";
-import { getApiErrorMessage, getToolTranslation } from "@/lib/tool-i18n";
-import { getUiCopy } from "@/lib/ui-copy";
+import { getApiErrorMessage } from "@/lib/api/error-message";
+import type { ToolTranslation } from "@/lib/tool-i18n";
+import type { UiCopy } from "@/lib/ui-copy";
 import type { CdnReasonCode } from "@/lib/cdn-detection";
 import { EmptyState } from "@/components/empty-state";
+import { useI18n } from "@/components/i18n-provider";
 import { ErrorPanel } from "@/components/error-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,7 @@ interface CdnResult {
 
 function formatCdnReason(
   code: CdnReasonCode | undefined,
-  ui: ReturnType<typeof getUiCopy>,
+  ui: UiCopy,
 ): string {
   switch (code) {
     case "matched_signals":
@@ -67,7 +68,7 @@ function formatCdnReason(
 
 function formatCdnSignal(
   signal: string,
-  ui: ReturnType<typeof getUiCopy>,
+  ui: UiCopy,
 ): string {
   if (signal.startsWith("header-value:")) {
     return `${ui.cdnSignalHeaderValue}: ${signal.slice("header-value:".length)}`;
@@ -83,7 +84,7 @@ function formatCdnSignal(
 
 function confidenceLabel(
   confidence: CdnResult["confidence"],
-  t: ReturnType<typeof getToolTranslation>,
+  t: ToolTranslation,
 ) {
   if (confidence === "high") return t.cdnConfidenceHigh;
   if (confidence === "medium") return t.cdnConfidenceMedium;
@@ -123,13 +124,11 @@ function DetailCard({ icon: Icon, label, value }: DetailCardProps) {
 }
 
 interface CdnCheckerProps {
-  locale: Locale;
   initialTarget?: string;
 }
 
-export function CdnChecker({ locale, initialTarget = "" }: CdnCheckerProps) {
-  const t = getToolTranslation(locale);
-  const ui = getUiCopy(locale);
+export function CdnChecker({ initialTarget = "" }: CdnCheckerProps) {
+  const { tool: t, ui } = useI18n();
 
   const { loading, error, result, run, cancel, querySync } =
     useToolLookup<CdnResult>({

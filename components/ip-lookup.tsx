@@ -6,16 +6,14 @@ import { Search } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { IpDisplay } from "@/components/ip-display";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { getTranslation, type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
+import { useI18n } from "@/components/i18n-provider";
 import { useToolQuery } from "@/hooks/use-tool-query";
 
 interface IpLookupProps {
-  locale: Locale;
   initialQuery?: string;
 }
 
-export function IpLookup({ locale, initialQuery }: IpLookupProps) {
+export function IpLookup({ initialQuery }: IpLookupProps) {
   const router = useRouter();
   const sanitizedInitial = initialQuery?.trim() || "";
   const [submittedIp, setSubmittedIp] = useState<string | null>(
@@ -24,8 +22,7 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
   const [loading, setLoading] = useState(false);
   const [submission, setSubmission] = useState(0);
   const { querySync, markSubmitted } = useToolQuery(initialQuery);
-  const t = getTranslation(locale);
-  const toolT = getToolTranslation(locale);
+  const { core: t, tool: toolT } = useI18n();
 
   // Re-run when the deep-linked query changes on the same route (e.g. the
   // command palette navigating /check → /check?q=…), which keeps the existing
@@ -68,7 +65,6 @@ export function IpLookup({ locale, initialQuery }: IpLookupProps) {
         <IpDisplay
           key={submission}
           targetIp={submittedIp}
-          locale={locale}
           onLoadingChange={setLoading}
         />
       ) : (

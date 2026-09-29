@@ -11,9 +11,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
-import type { Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 
 const CommandPalette = dynamic(
@@ -38,7 +37,6 @@ export function useCommandMenu(): CommandMenuContextValue {
 }
 
 interface CommandMenuProviderProps {
-  locale: Locale;
   children: ReactNode;
 }
 
@@ -47,10 +45,7 @@ interface CommandMenuProviderProps {
  * global ⌘K / Ctrl+K (and "/") shortcut. Triggers anywhere in the subtree open
  * it through {@link useCommandMenu}.
  */
-export function CommandMenuProvider({
-  locale,
-  children,
-}: CommandMenuProviderProps) {
+export function CommandMenuProvider({ children }: CommandMenuProviderProps) {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
 
@@ -87,14 +82,13 @@ export function CommandMenuProvider({
     <CommandMenuContext.Provider value={value}>
       {children}
       {(open || hasOpened) && (
-        <CommandPalette locale={locale} open={open} onOpenChange={setOpen} />
+        <CommandPalette open={open} onOpenChange={setOpen} />
       )}
     </CommandMenuContext.Provider>
   );
 }
 
 interface CommandTriggerProps {
-  locale: Locale;
   /** "bar" renders a full search field (sidebar); "icon" a compact button. */
   variant?: "bar" | "icon";
   className?: string;
@@ -102,12 +96,11 @@ interface CommandTriggerProps {
 
 /** Opens the command palette. Rendered in the sidebar and the mobile top bar. */
 export function CommandTrigger({
-  locale,
   variant = "bar",
   className,
 }: CommandTriggerProps) {
   const { setOpen } = useCommandMenu();
-  const t = getToolTranslation(locale);
+  const { tool: t } = useI18n();
   const [isMac, setIsMac] = useState(true);
 
   useEffect(() => {

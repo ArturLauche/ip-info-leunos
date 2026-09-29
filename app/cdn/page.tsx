@@ -37,7 +37,6 @@ export default async function CdnPage({ searchParams }: CdnPageProps) {
       subtitle={t.cdnSubtitle}
     >
       <CdnChecker
-        locale={locale}
         initialTarget={firstSearchParam(params.target)}
       />
     </ToolPageShell>

@@ -13,18 +13,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useI18n } from "@/components/i18n-provider";
 import { LanguageSelector } from "@/components/language-selector";
 import { ModeToggle } from "@/components/mode-toggle";
-import { getLocaleDirection, type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
-import { siteConfig } from "@/lib/seo";
+import { getLocaleDirection } from "@/lib/locale-config";
+import { siteConfig } from "@/lib/site-config";
 import { BrandMark } from "./brand-mark";
 import { CommandTrigger } from "./command-menu";
 import { NavLinks } from "./nav-links";
 import type { ToolKey } from "./nav-config";
 
 interface MobileNavProps {
-  locale: Locale;
   active?: ToolKey;
 }
 
@@ -33,9 +32,9 @@ interface MobileNavProps {
  * sheet footer carries the language control, keeping the bar to brand, search
  * and theme.
  */
-export function MobileNav({ locale, active }: MobileNavProps) {
+export function MobileNav({ active }: MobileNavProps) {
   const [open, setOpen] = useState(false);
-  const toolT = getToolTranslation(locale);
+  const { locale, tool: toolT } = useI18n();
 
   useEffect(() => {
     const closeOnHistoryNavigation = () => setOpen(false);
@@ -64,7 +63,7 @@ export function MobileNav({ locale, active }: MobileNavProps) {
       </Link>
 
       <div className="flex items-center gap-1">
-        <CommandTrigger locale={locale} variant="icon" />
+        <CommandTrigger variant="icon" />
         <ModeToggle labels={themeLabels} />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
@@ -103,14 +102,12 @@ export function MobileNav({ locale, active }: MobileNavProps) {
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-3 py-5">
               <NavLinks
-                locale={locale}
                 active={active}
                 onNavigate={() => setOpen(false)}
               />
             </div>
             <div className="shrink-0 border-t border-sidebar-border px-4 py-4">
               <LanguageSelector
-                locale={locale}
                 onLocaleSelected={() => setOpen(false)}
               />
             </div>

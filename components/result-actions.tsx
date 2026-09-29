@@ -2,24 +2,20 @@
 
 import { Download } from "lucide-react";
 import { CopyButton } from "@/components/copy-button";
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
-import { getTranslation, type Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
 
 /** Export on demand: serialization and Blob allocation happen only on click. */
 export function ResultActions({
   data,
   copyText,
   filename,
-  locale,
 }: {
   data: unknown;
   copyText: string;
   filename: string;
-  locale: Locale;
 }) {
-  const t = getToolTranslation(locale);
-  const baseT = getTranslation(locale);
+  const { tool: t, core: baseT } = useI18n();
 
   const download = () => {
     const blob = new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json" });

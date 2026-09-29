@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it, expect } from "vitest";
+import { withI18n } from "./i18n-test-utils";
 import { ObfuscatedEmail } from "./obfuscated-email";
 import { splitEmail } from "@/lib/email";
 
@@ -16,7 +17,9 @@ describe("ObfuscatedEmail server output", () => {
     expect(parts).not.toBeNull();
 
     const html = renderToStaticMarkup(
-      createElement(ObfuscatedEmail, { user: parts!.user, domain: parts!.domain }),
+      withI18n(
+        createElement(ObfuscatedEmail, { user: parts!.user, domain: parts!.domain }),
+      ),
     );
 
     expect(html).not.toContain("contact@example.com");

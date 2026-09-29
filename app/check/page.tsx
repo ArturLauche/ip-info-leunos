@@ -41,7 +41,7 @@ export default async function CheckPage({ searchParams }: CheckPageProps) {
       title={t.checkTitle}
       subtitle={t.checkSubtitle}
     >
-      <IpLookup locale={locale} initialQuery={initialQuery} />
+      <IpLookup initialQuery={initialQuery} />
     </ToolPageShell>
   );
 }

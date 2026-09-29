@@ -39,7 +39,6 @@ function renderParagraph(
   text: string,
   controller: string,
   tokens: ParagraphTokens,
-  locale: import("@/lib/i18n").Locale,
 ) {
   const resolved = text.replace("{controller}", controller);
   const parts = resolved.split("{email}");
@@ -55,7 +54,6 @@ function renderParagraph(
           <ObfuscatedEmail
             user={emailParts.user}
             domain={emailParts.domain}
-            locale={locale}
             className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
           />
         ) : (
@@ -120,7 +118,6 @@ export default async function DatenschutzPage() {
                       emailParts,
                       emailFallback: content.contactNotConfigured,
                     },
-                    locale,
                   )}
                 </p>
               ))}

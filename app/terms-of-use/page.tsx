@@ -35,7 +35,6 @@ interface ParagraphTokens {
 function renderParagraph(
   text: string,
   tokens: ParagraphTokens,
-  locale: import("@/lib/i18n").Locale,
 ) {
   const parts = text.split("{email}");
   if (parts.length === 1) return text;
@@ -50,7 +49,6 @@ function renderParagraph(
           <ObfuscatedEmail
             user={emailParts.user}
             domain={emailParts.domain}
-            locale={locale}
             className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
           />
         ) : (
@@ -112,7 +110,6 @@ export default async function TermsOfUsePage() {
                       emailParts,
                       emailFallback: content.contactNotConfigured,
                     },
-                    locale,
                   )}
                 </p>
               ))}

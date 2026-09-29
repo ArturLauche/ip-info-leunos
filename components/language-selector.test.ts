@@ -3,7 +3,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { SUPPORTED_LOCALES, type Locale } from "@/lib/locale-config";
+import { withI18n } from "./i18n-test-utils";
 import {
   LanguageEmptyState,
   LanguageSelector,
@@ -16,7 +17,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const renderSelector = (props: { locale: Locale }): string =>
-  renderToStaticMarkup(createElement(LanguageSelector, props));
+  renderToStaticMarkup(withI18n(createElement(LanguageSelector), props.locale));
 
 const renderRow = (props: LocaleRowProps): string =>
   renderToStaticMarkup(createElement(LocaleOptionRow, props));
@@ -162,8 +163,10 @@ async function renderOpenPanel(
     });
   }
   const picker = await import("./language-selector");
+  // Module registry was reset above: the provider must come from the same one.
+  const { I18nProvider } = await import("@/components/i18n-provider");
   return renderToStaticMarkup(
-    createElement(picker.LanguageSelector, { locale }),
+    withI18n(createElement(picker.LanguageSelector), locale, I18nProvider),
   );
 }
 
@@ -309,7 +312,7 @@ describe("LocaleOptionRow", () => {
 describe("LanguageEmptyState", () => {
   it("replaces the list with a localized status message", () => {
     const html = renderToStaticMarkup(
-      createElement(LanguageEmptyState, { locale: "de" }),
+      withI18n(createElement(LanguageEmptyState), "de"),
     );
     expect(html).toBe(
       '<p role="status" class="px-3 py-8 text-center text-sm text-muted-foreground">Keine Sprache passt zur Suche.</p>',

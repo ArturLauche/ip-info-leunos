@@ -3,9 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import type { Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
-
+import { useI18n } from "@/components/i18n-provider";
 import { PageTransition } from "@/components/page-transition";
 import { AppSidebar } from "./app-sidebar";
 import { CommandMenuProvider } from "./command-menu";
@@ -13,7 +11,6 @@ import { MobileNav } from "./mobile-nav";
 import { activeToolFromPathname } from "./nav-config";
 
 interface AppShellProps {
-  locale: Locale;
   children: ReactNode;
 }
 
@@ -21,13 +18,13 @@ interface AppShellProps {
  * Persistent chrome around every page. Keeping the sidebar mounted is what
  * lets the selection frame finish its slide instead of remounting mid-motion.
  */
-export function AppShell({ locale, children }: AppShellProps) {
+export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const active = activeToolFromPathname(pathname);
-  const t = getToolTranslation(locale);
+  const { tool: t } = useI18n();
 
   return (
-    <CommandMenuProvider locale={locale}>
+    <CommandMenuProvider>
       <div className="relative flex min-h-screen w-full">
         <a
           href="#main-content"
@@ -35,9 +32,9 @@ export function AppShell({ locale, children }: AppShellProps) {
         >
           {t.skipToContent}
         </a>
-        <AppSidebar locale={locale} active={active} />
+        <AppSidebar active={active} />
         <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip lg:ps-64">
-          <MobileNav locale={locale} active={active} />
+          <MobileNav active={active} />
           <PageTransition className="flex flex-1 flex-col">
             {children}
           </PageTransition>

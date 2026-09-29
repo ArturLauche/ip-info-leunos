@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { preparePageTransition } from "@/components/page-transition";
 import {
@@ -16,8 +17,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { buildActionTargets, classifyQuery, matchesQuery } from "@/lib/command";
-import type { Locale } from "@/lib/i18n";
-import { getToolTranslation } from "@/lib/tool-i18n";
 import { cn } from "@/lib/utils";
 
 import {
@@ -45,7 +44,6 @@ interface ResolvedItem {
 }
 
 interface CommandPaletteProps {
-  locale: Locale;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -55,12 +53,9 @@ interface CommandPaletteProps {
  * query into smart deep links (IP / domain / ASN) and filters the tool pages as
  * navigation destinations. Built on the shared Radix dialog primitive.
  */
-export function CommandPalette({
-  locale,
-  open,
-  onOpenChange,
-}: CommandPaletteProps) {
-  const t = getToolTranslation(locale);
+export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const i18n = useI18n();
+  const t = i18n.tool;
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -74,25 +69,25 @@ export function CommandPalette({
       buildActionTargets(classification).map((target) => ({
         id: `action:${target.href}`,
         icon: TOOL_ICONS[target.tool],
-        title: getNavLabel(target.tool, locale),
+        title: getNavLabel(target.tool, i18n),
         subtitle: classification.value,
         href: target.href,
       })),
-    [classification, locale],
+    [classification, i18n],
   );
 
   const pageItems = useMemo<ResolvedItem[]>(() => {
     const items = ALL_DESTINATIONS.map((item) => ({
       id: `page:${item.key}`,
       icon: item.icon,
-      title: getNavLabel(item.key, locale),
-      subtitle: getNavDescription(item.key, locale),
+      title: getNavLabel(item.key, i18n),
+      subtitle: getNavDescription(item.key, i18n),
       href: item.href,
     }));
     return items.filter((item) =>
       matchesQuery(`${item.title} ${item.subtitle} ${item.href}`, query),
     );
-  }, [locale, query]);
+  }, [i18n, query]);
 
   const items = useMemo(
     () => [...actionItems, ...pageItems],
