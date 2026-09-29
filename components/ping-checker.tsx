@@ -21,7 +21,6 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { useI18n } from "@/components/i18n-provider";
 import { LiveRegion } from "@/components/live-region";
-import { ResultActions } from "@/components/result-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -631,11 +630,6 @@ export function PingChecker({
                 )}
               </>
             )}
-
-            <ResultActions
-              data={result}
-              filename={`ping-${result.mode}-${result.target}-${result.port}`}
-            />
           </div>
         </Card>
       )}

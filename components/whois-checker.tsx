@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/components/i18n-provider";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
-import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -223,11 +222,6 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
               {result.raw || t.noWhoisData}
             </pre>
           )}
-          <ResultActions
-            data={result}
-            copyText={result.raw}
-            filename={`whois-${result.target}`}
-          />
         </ResultPanel>
       )}
     </div>

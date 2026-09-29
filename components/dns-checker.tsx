@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/components/i18n-provider";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
-import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -258,18 +257,6 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
             >
               {JSON.stringify(visibleRecords, null, 2)}
             </pre>
-          )}
-
-          {visibleRecords.length > 0 && (
-            <ResultActions
-              data={{ ...result, records: visibleRecords }}
-              copyText={visibleRecords
-                .map(
-                  (record) => `${record.type}\t${formatDnsRecordValue(record)}`,
-                )
-                .join("\n")}
-              filename={`dns-${result.target}-${selectedType.toLowerCase()}`}
-            />
           )}
 
           {result.recordErrors && result.recordErrors.length > 0 && (

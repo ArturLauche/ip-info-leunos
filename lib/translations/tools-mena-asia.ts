@@ -29,8 +29,6 @@ export const toolsMenaAsia: Record<
     navToolsLabel: "Інструменти",
     sidebarLabel: "Навігація сайтом",
     navClose: "Закрити меню",
-    copyValue: "Копіювати",
-    downloadJson: "Завантажити JSON",
     cancelLookup: "Скасувати",
     whoisNoteIana:
       "Реферальний сервер не знайдено. Показано відповідь IANA WHOIS.",
@@ -614,8 +612,6 @@ export const toolsMenaAsia: Record<
     navToolsLabel: "工具",
     sidebarLabel: "网站导航",
     navClose: "关闭菜单",
-    copyValue: "复制",
-    downloadJson: "下载 JSON",
     cancelLookup: "取消",
     whoisNoteIana: "未找到推荐服务器，正在显示 IANA WHOIS 响应。",
     whoisNoteRdap: "WHOIS 不可用，正在改为显示 RDAP 注册数据。",
@@ -1137,8 +1133,6 @@ export const toolsMenaAsia: Record<
     navToolsLabel: "工具",
     sidebarLabel: "網站導覽",
     navClose: "關閉選單",
-    copyValue: "複製",
-    downloadJson: "下載 JSON",
     cancelLookup: "取消",
     whoisNoteIana: "找不到轉介伺服器，正在顯示 IANA WHOIS 回應。",
     whoisNoteRdap: "WHOIS 無法使用，正在改顯示 RDAP 註冊資料。",
@@ -1665,8 +1659,6 @@ export const toolsMenaAsia: Record<
     navToolsLabel: "الأدوات",
     sidebarLabel: "التنقل في الموقع",
     navClose: "إغلاق القائمة",
-    copyValue: "نسخ",
-    downloadJson: "تنزيل JSON",
     cancelLookup: "إلغاء",
     whoisNoteIana: "لم يُعثر على خادم إحالة. يتم عرض استجابة IANA WHOIS.",
     whoisNoteRdap:
@@ -2243,8 +2235,6 @@ export const toolsMenaAsia: Record<
     navToolsLabel: "टूल",
     sidebarLabel: "साइट नेविगेशन",
     navClose: "मेन्यू बंद करें",
-    copyValue: "कॉपी करें",
-    downloadJson: "JSON डाउनलोड करें",
     cancelLookup: "रद्द करें",
     whoisNoteIana:
       "कोई रेफ़रल सर्वर नहीं मिला। IANA WHOIS प्रतिक्रिया दिखाई जा रही है।",
@@ -2806,8 +2796,6 @@ export const toolsMenaAsia: Record<
     navToolsLabel: "Perkakas",
     sidebarLabel: "Navigasi situs",
     navClose: "Tutup menu",
-    copyValue: "Salin",
-    downloadJson: "Unduh JSON",
     cancelLookup: "Batal",
     whoisNoteIana:
       "Server rujukan tidak ditemukan. Menampilkan respons WHOIS IANA.",

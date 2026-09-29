@@ -8,7 +8,6 @@ import type { ToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { useI18n } from "@/components/i18n-provider";
-import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -817,11 +816,6 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
               </div>
             )}
           </Card>
-
-          <ResultActions
-            data={result}
-            filename={`reputation-${result.ip}`}
-          />
         </div>
       )}
     </div>

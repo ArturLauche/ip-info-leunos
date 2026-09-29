@@ -30,8 +30,6 @@ export const toolsWestern: Record<"es" | "fr" | "it" | "nl", ToolTranslation> =
       navToolsLabel: "Herramientas",
       sidebarLabel: "Navegación del sitio",
       navClose: "Cerrar menú",
-      copyValue: "Copiar",
-      downloadJson: "Descargar JSON",
       cancelLookup: "Cancelar",
       whoisNoteIana:
         "No se encontró ningún servidor de referencia. Se muestra la respuesta WHOIS de IANA.",
@@ -624,8 +622,6 @@ export const toolsWestern: Record<"es" | "fr" | "it" | "nl", ToolTranslation> =
       navToolsLabel: "Outils",
       sidebarLabel: "Navigation du site",
       navClose: "Fermer le menu",
-      copyValue: "Copier",
-      downloadJson: "Télécharger le JSON",
       cancelLookup: "Annuler",
       whoisNoteIana:
         "Aucun serveur de référence n’a été trouvé. La réponse WHOIS de l’IANA est affichée.",
@@ -1212,8 +1208,6 @@ export const toolsWestern: Record<"es" | "fr" | "it" | "nl", ToolTranslation> =
       navToolsLabel: "Strumenti",
       sidebarLabel: "Navigazione del sito",
       navClose: "Chiudi menu",
-      copyValue: "Copia",
-      downloadJson: "Scarica JSON",
       cancelLookup: "Annulla",
       whoisNoteIana:
         "Nessun server di riferimento trovato. Viene mostrata la risposta WHOIS di IANA.",
@@ -1798,8 +1792,6 @@ export const toolsWestern: Record<"es" | "fr" | "it" | "nl", ToolTranslation> =
       navToolsLabel: "Gereedschappen",
       sidebarLabel: "Sitenavigatie",
       navClose: "Menu sluiten",
-      copyValue: "Kopiëren",
-      downloadJson: "JSON downloaden",
       cancelLookup: "Annuleren",
       whoisNoteIana:
         "Er is geen verwijzingsserver gevonden. De IANA-WHOIS-respons wordt weergegeven.",

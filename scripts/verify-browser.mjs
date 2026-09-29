@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -46,8 +46,6 @@ function installFixtures() {
     window.__calls = [];
     window.__completed = 0;
     window.__plan = [];
-    window.__copied = null;
-    Object.defineProperty(navigator, 'clipboard', {configurable:true,value:{writeText:async text=>{window.__copied=text;}}});
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const url = String(args[0]);
@@ -94,20 +92,9 @@ try {
     assertHealthy();
   });
 
-  check("TXT chunks, filtered copy, and JSON download preserve the result", () => {
+  check("TXT chunks are concatenated in the filtered record table", () => {
     clickRole("radio", "TXT");
     assert.ok(evaluate("document.body.innerText.includes('v=DKIM1; p=MIIBIjANBg')"));
-    clickRole("button", "Copy");
-    assert.equal(evaluate("window.__copied"), "TXT\tv=DKIM1; p=MIIBIjANBg");
-    const path = join(artifacts, "dns.json");
-    const snapshot = browser("snapshot", "-i");
-    const download = Object.entries(snapshot.refs).find(([, entry]) => entry.role === "button" && entry.name === "Download JSON");
-    assert.ok(download, "Download button has an accessible name");
-    browser("download", `@${download[0]}`, path);
-    const data = JSON.parse(readFileSync(path, "utf8"));
-    assert.equal(data.target, "example.com");
-    assert.equal(data.records.length, 1);
-    assert.deepEqual(data.records[0].value, ["v=DKIM1; p=MIIB", "IjANBg"]);
   });
 
   check("cancelled slow lookups cannot overwrite a newer result", () => {
@@ -332,7 +319,7 @@ try {
     assertHealthy();
   });
 
-  check("German WHOIS fallback notes, raw disclosure, copy, and export work", () => {
+  check("German WHOIS fallback notes and raw disclosure work", () => {
     browser("set", "headers", JSON.stringify({"accept-language":"de"}));
     open("/whois");
     browser("snapshot", "-i");
@@ -347,17 +334,9 @@ try {
     // The document language is the full BCP 47 tag (see getIntlLocale), not the registry key.
     assert.equal(evaluate("document.documentElement.lang"), "de-DE");
     assert.ok(evaluate("document.body.innerText.includes('WHOIS war nicht verfügbar.')"));
-    clickRole("button", "Kopieren");
-    assert.equal(evaluate("window.__copied"), data.raw);
     browser("click", "button[aria-controls=whois-raw-result]");
     assert.equal(evaluate("document.querySelector('#whois-raw-result').textContent"), data.raw);
     assert.equal(evaluate("document.querySelector('button[aria-controls=whois-raw-result]').getAttribute('aria-expanded')"), "true");
-    const snapshot = browser("snapshot", "-i");
-    const download = Object.entries(snapshot.refs).find(([, entry]) => entry.role === "button" && entry.name === "JSON herunterladen");
-    assert.ok(download);
-    const path = join(artifacts, "whois.json");
-    browser("download", `@${download[0]}`, path);
-    assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), data);
     assertFits();
     assertHealthy();
   });
