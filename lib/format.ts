@@ -1,4 +1,6 @@
-import type { Locale } from "@/lib/i18n";
+import type { Locale } from "@/lib/locale-config";
+
+const numberFormats = new Map<Locale, Intl.NumberFormat>();
 
 /** Replaces `{key}` placeholders in a translation template. */
 export function formatTemplate(template: string, values: Record<string, string | number>): string {
@@ -10,7 +12,12 @@ export function formatTemplate(template: string, values: Record<string, string |
 
 export function formatNumber(value: number | null | undefined, locale: Locale): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "-";
-  return new Intl.NumberFormat(locale).format(value);
+  let format = numberFormats.get(locale);
+  if (!format) {
+    format = new Intl.NumberFormat(locale);
+    numberFormats.set(locale, format);
+  }
+  return format.format(value);
 }
 
 export function valueOrDash(value: string | number | null | undefined): string {

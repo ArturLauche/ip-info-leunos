@@ -31,12 +31,34 @@ describe("client IP discovery", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ error: "missing ip" }))
-      .mockResolvedValueOnce(textResponse("2001:db8::2\n"));
+      .mockResolvedValueOnce(textResponse("203.0.113.2\n"));
 
     await expect(
-      discoverClientIp({ preferredVersion: 6, fetchImpl }),
-    ).resolves.toEqual({ ip: "2001:db8::2", version: 6, source: "aws-check-ip" });
+      discoverClientIp({ preferredVersion: 4, fetchImpl }),
+    ).resolves.toEqual({ ip: "203.0.113.2", version: 4, source: "aws-check-ip" });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("never asks the IPv4-only AWS endpoint for an IPv6 address", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ ip: "203.0.113.9" }));
+
+    await expect(discoverClientIp({ preferredVersion: 6, fetchImpl })).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.stringContaining("ipify.org"),
+      expect.anything(),
+    );
+  });
+
+  it("sends no referrer to the third-party services", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ ip: "203.0.113.4" }));
+
+    await discoverClientIp({ fetchImpl });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ referrerPolicy: "no-referrer", cache: "no-store" }),
+    );
   });
 
   it("returns null when all providers fail or return invalid values", async () => {

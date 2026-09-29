@@ -107,6 +107,7 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
+        resultMessage={result ? `${t.dnsRecordsFor} ${result.target}` : undefined}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={run}
@@ -131,7 +132,14 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
       {error && <ErrorPanel message={error} />}
 
       {result && (
-        <ResultPanel title={`${t.dnsRecordsFor} ${result.target}`}>
+        <ResultPanel
+          title={`${t.dnsRecordsFor} ${result.target}`}
+          status={
+            result.lookupError && result.records.length === 0
+              ? "warning"
+              : "success"
+          }
+        >
           <div className="border-b pb-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.resolvedAddresses}

@@ -15,10 +15,19 @@ import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const CommandPalette = dynamic(
-  () => import("./command-palette").then((module) => module.CommandPalette),
-  { ssr: false },
-);
+const loadCommandPalette = () =>
+  import("./command-palette").then((module) => module.CommandPalette);
+
+const CommandPalette = dynamic(loadCommandPalette, { ssr: false });
+
+/**
+ * Warms the palette chunk when a trigger is approached, so the dialog opens
+ * without a network round trip and the first keystrokes are not lost. The
+ * chunk is still never requested by visitors who do not reach for it.
+ */
+function prefetchCommandPalette() {
+  void loadCommandPalette();
+}
 
 interface CommandMenuContextValue {
   open: boolean;
@@ -57,7 +66,8 @@ export function CommandMenuProvider({ children }: CommandMenuProviderProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen((previous) => !previous);
+        // A held key auto-repeats; toggling on each repeat would flicker.
+        if (!event.repeat) setOpen((previous) => !previous);
         return;
       }
       if (
@@ -119,6 +129,9 @@ export function CommandTrigger({
         size="icon"
         aria-label={t.commandTriggerLabel}
         onClick={() => setOpen(true)}
+        onPointerEnter={prefetchCommandPalette}
+        onFocus={prefetchCommandPalette}
+        onTouchStart={prefetchCommandPalette}
         className={cn("rounded-md", className)}
       >
         <Search className="size-5" aria-hidden="true" />
@@ -130,6 +143,9 @@ export function CommandTrigger({
     <button
       type="button"
       onClick={() => setOpen(true)}
+      onPointerEnter={prefetchCommandPalette}
+      onFocus={prefetchCommandPalette}
+      onTouchStart={prefetchCommandPalette}
       className={cn(
         "group flex h-11 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground shadow-sm outline-none transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
         className,

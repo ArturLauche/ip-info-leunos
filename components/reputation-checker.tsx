@@ -8,6 +8,7 @@ import type { ToolTranslation } from "@/lib/tool-i18n";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { useI18n } from "@/components/i18n-provider";
+import { ResultActions } from "@/components/result-actions";
 import { ToolSearchForm } from "@/components/tool-search-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -514,6 +515,7 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
         submitLabel={t.reputationCheckButton}
         loadingLabel={t.reputationChecking}
         loading={loading}
+        resultMessage={result ? `${t.reputationTitle}: ${result.ip}` : undefined}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={run}
@@ -815,6 +817,12 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
               </div>
             )}
           </Card>
+
+          <ResultActions
+            data={result}
+            copyText={JSON.stringify(result, null, 2)}
+            filename={`reputation-${result.ip}`}
+          />
         </div>
       )}
     </div>

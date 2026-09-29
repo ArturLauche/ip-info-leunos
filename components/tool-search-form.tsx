@@ -3,6 +3,7 @@
 import { Loader2, Search } from "lucide-react";
 import { useEffect, useId, useState, type FormEvent } from "react";
 
+import { LiveRegion } from "@/components/live-region";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,11 @@ interface ToolSearchFormProps {
   submitLabel: string;
   loadingLabel?: string;
   loading?: boolean;
+  /**
+   * Announced once a result replaces the loading skeleton (which announces the
+   * pending state itself). Leave undefined while there is no result.
+   */
+  resultMessage?: string;
   onSubmit: (value: string) => void;
   onCancel?: () => void;
   cancelLabel?: string;
@@ -38,6 +44,7 @@ export function ToolSearchForm({
   submitLabel,
   loadingLabel,
   loading = false,
+  resultMessage,
   onSubmit,
   onCancel,
   cancelLabel,
@@ -78,10 +85,13 @@ export function ToolSearchForm({
         <label htmlFor={inputId} className="sr-only">
           {inputLabel}
         </label>
+        {/* Targets are IPs, hostnames and ASNs: always left-to-right. In an RTL
+            page bidi rules would reorder "::1" or a trailing dot, so the field
+            and its icon use physical sides on purpose. */}
         <Search
           className={cn(
-            "pointer-events-none absolute top-1/2 start-3.5 size-4 -translate-y-1/2 text-muted-foreground",
-            compact && "start-3",
+            "pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground",
+            compact && "left-3",
           )}
           aria-hidden="true"
         />
@@ -96,9 +106,10 @@ export function ToolSearchForm({
           autoCapitalize="off"
           enterKeyHint="search"
           spellCheck={false}
+          dir="ltr"
           className={cn(
-            "h-11 bg-card ps-10 text-sm dark:bg-card",
-            compact && "h-9 ps-9 text-[13px] pointer-coarse:h-11",
+            "h-11 bg-card pl-10 text-sm dark:bg-card",
+            compact && "h-9 pl-9 text-[13px] pointer-coarse:h-11",
           )}
         />
       </div>
@@ -128,6 +139,7 @@ export function ToolSearchForm({
           {cancelLabel}
         </Button>
       )}
+      <LiveRegion>{resultMessage}</LiveRegion>
     </form>
   );
 }

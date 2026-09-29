@@ -76,6 +76,7 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
         submitLabel={t.whoisLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
+        resultMessage={result ? `${t.whoisFor} ${result.target}` : undefined}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={run}

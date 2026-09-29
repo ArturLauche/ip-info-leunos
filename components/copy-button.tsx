@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 
 /** Shared clipboard feedback for technical values and complete results. */
@@ -32,7 +33,7 @@ export function CopyButton({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      await writeClipboardText(text);
       setCopied(true);
       toast.success(copiedLabel);
       clearTimeout(resetTimer.current);

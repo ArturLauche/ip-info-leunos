@@ -14,6 +14,7 @@ import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
 import { CopyButton } from "@/components/copy-button";
+import { ResultActions } from "@/components/result-actions";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
 import {
@@ -494,6 +495,8 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
   const connectionTypeLabel =
     t.connectionTypes[data.connectionType] ?? t.unknown;
   const reputationIp = displayIpv4 || displayIpv6;
+  // Export what the page shows, including addresses found by the browser.
+  const exportData = { ...data, ipv4: displayIpv4, ipv6: displayIpv6 };
   const displayedProxyHints = targetIp
     ? null
     : mergeProxyHintAssessments(data.proxyHints, localProxyHints);
@@ -755,6 +758,12 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
             </>
           ))}
       </div>
+
+      <ResultActions
+        data={exportData}
+        copyText={JSON.stringify(exportData, null, 2)}
+        filename={`ip-${reputationIp ?? "lookup"}`}
+      />
     </div>
   );
 }

@@ -150,6 +150,9 @@ export default async function RootLayout({
     <html
       lang={getIntlLocale(locale)}
       dir={getLocaleDirection(locale)}
+      // Lets Next.js pin scroll-behavior to auto while a route change scrolls,
+      // so smooth scrolling never animates a new page in from the old offset.
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body

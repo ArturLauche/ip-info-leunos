@@ -20,6 +20,8 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { useI18n } from "@/components/i18n-provider";
+import { LiveRegion } from "@/components/live-region";
+import { ResultActions } from "@/components/result-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -330,6 +332,11 @@ export function PingChecker({
 
   return (
     <div className="flex w-full flex-col gap-6">
+      <LiveRegion>
+        {result
+          ? `${result.ok ? t.pingStatusSuccess : t.pingStatusFailed}: ${result.target}:${result.port}`
+          : undefined}
+      </LiveRegion>
       <form onSubmit={onSubmit} autoComplete="off">
         <Card className="gap-0 overflow-hidden py-0">
           <div className="flex flex-col p-5">
@@ -624,6 +631,12 @@ export function PingChecker({
                 )}
               </>
             )}
+
+            <ResultActions
+              data={result}
+              copyText={JSON.stringify(result, null, 2)}
+              filename={`ping-${result.mode}-${result.target}-${result.port}`}
+            />
           </div>
         </Card>
       )}

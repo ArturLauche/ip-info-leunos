@@ -9,6 +9,8 @@ export type ClientIpDiscoveryResult = {
 type ClientIpProvider = {
   id: ClientIpProviderId;
   url: string;
+  /** Address families the endpoint can report for a dual-stack visitor. */
+  versions: readonly (4 | 6)[];
   parse: (response: Response) => Promise<string | null>;
 };
 
@@ -43,6 +45,7 @@ const CLIENT_IP_PROVIDERS: ClientIpProvider[] = [
   {
     id: "ipify",
     url: "https://api64.ipify.org?format=json",
+    versions: [4, 6],
     parse: async (response) => {
       const json = (await response.json()) as { ip?: unknown };
       return typeof json.ip === "string" ? json.ip.trim() : null;
@@ -51,6 +54,8 @@ const CLIENT_IP_PROVIDERS: ClientIpProvider[] = [
   {
     id: "aws-check-ip",
     url: "https://checkip.amazonaws.com",
+    // The hostname has no AAAA record, so it can never return an IPv6 address.
+    versions: [4],
     parse: async (response) => (await response.text()).trim(),
   },
 ];
@@ -121,7 +126,11 @@ export async function discoverClientIp({
   timeoutMs = 2_800,
   fetchImpl = fetch,
 }: DiscoverClientIpOptions = {}): Promise<ClientIpDiscoveryResult | null> {
-  for (const provider of CLIENT_IP_PROVIDERS) {
+  const providers = CLIENT_IP_PROVIDERS.filter(
+    (provider) => !preferredVersion || provider.versions.includes(preferredVersion),
+  );
+
+  for (const provider of providers) {
     const result = await tryProvider(provider, timeoutMs, fetchImpl);
 
     if (!result) continue;
@@ -144,6 +153,8 @@ async function tryProvider(
   try {
     const response = await fetchImpl(provider.url, {
       cache: "no-store",
+      // These services only need the request, not which site it came from.
+      referrerPolicy: "no-referrer",
       signal: controller.signal,
     });
 
