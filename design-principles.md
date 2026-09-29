@@ -228,7 +228,7 @@ Every data view designs for four states explicitly:
 
 ## 12. Internationalisation
 
-- The UI is translated (8 locales) and must never assume English string length.
+- The UI is translated (26 locales, see `lib/locale-config.ts`) and must never assume English string length.
   Allow labels to wrap/truncate gracefully.
 - UI strings live in `lib/i18n.ts` and `lib/tool-i18n.ts`; never hardcode
   user-facing copy in components. API responses return codes, the UI translates.

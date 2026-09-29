@@ -67,7 +67,7 @@ function installFixtures() {
         records:[{type:'A',value:'93.184.215.14'},{type:'TXT',value:['v=DKIM1; p=MIIB','IjANBg']}]
       } : url.startsWith('/api/ping') ? {
         ok:true,mode:'tcp',target:'example.com',port:80,latencyMs:12,message:'',messageKey:'tcp_ok'
-      } : url.startsWith('/api/asn') ? {found:false,asn:'AS13335'} : {};
+      } : url.startsWith('/api/asn') ? {found:false,asn:'AS13335',sources:{ipinfo:'unavailable',ripestat:'unavailable',peeringdb:'unavailable'}} : {};
       // Deliberately ignore AbortSignal: stale-result guards must work even
       // when the transport has already received/parsed a superseded response.
       return Response.json({ok:true,data:plan.data ?? data});
@@ -75,7 +75,7 @@ function installFixtures() {
   })()`);
 }
 function submit(query) {
-  browser("fill", "#tool-query", query);
+  browser("fill", "input[name=q]", query);
   browser("click", "button[type=submit]");
 }
 
@@ -207,8 +207,9 @@ try {
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
     browser("wait", "--url", "**/dns");
-    waitFor("document.querySelector('#tool-query')?.value === ''");
-    assert.equal(evaluate("document.body.innerText.includes('DNS records for')"), false);
+    waitFor("document.querySelector('input[name=q]')?.value === ''");
+    // The screen-reader-only field label also reads "DNS records for", so look for the result heading.
+    assert.equal(evaluate("[...document.querySelectorAll('h2')].some(h=>h.textContent.includes('DNS records for'))"), false);
     assert.equal(evaluate("window.__calls.length"), 4);
     assertHealthy();
   });
@@ -231,10 +232,10 @@ try {
     evaluate("window.__rscDelay=1500; window.__plan.push({delay:1800})");
     submit("submitted.example.com");
     clickRole("button", "Cancel");
-    browser("fill", "#tool-query", "draft.example.com");
+    browser("fill", "input[name=q]", "draft.example.com");
     browser("wait", "--url", "**/dns?target=submitted.example.com");
     waitFor("window.__completed === window.__calls.length");
-    assert.equal(evaluate("document.querySelector('#tool-query').value"), "draft.example.com");
+    assert.equal(evaluate("document.querySelector('input[name=q]').value"), "draft.example.com");
     assert.equal(evaluate("window.__calls.length"), 1);
     evaluate("window.__rscDelay=0");
     browser("press", "Control+k");
@@ -242,15 +243,17 @@ try {
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
     browser("wait", "--url", "**/dns");
-    waitFor("document.querySelector('#tool-query')?.value === ''");
+    waitFor("document.querySelector('input[name=q]')?.value === ''");
     browser("back");
     waitFor("document.querySelector('h2')?.textContent.includes('submitted.example.com')");
-    assert.equal(evaluate("document.querySelector('#tool-query').value"), "submitted.example.com");
+    assert.equal(evaluate("document.querySelector('input[name=q]').value"), "submitted.example.com");
     assert.equal(evaluate("window.__calls.length"), 2);
     assertHealthy();
   });
 
   check("Ping preserves explicitly edited preset ports and omits disabled credentials", () => {
+    // Earlier checks leave the browser at a phone width; this form is a desktop flow.
+    browser("set", "viewport", "1440", "1000");
     open("/ping");
     browser("snapshot", "-i");
     installFixtures();
@@ -258,10 +261,15 @@ try {
     clickRole("tab", "UDP");
     assert.equal(evaluate("document.querySelector('#ping-port').value"), "80");
     clickRole("tab", "Database");
+    // The database options expand with a short animation; clicking while they
+    // move is rejected as "covered" by stricter agent-browser versions.
+    browser("wait", "600");
     browser("click", "#ping-use-auth");
+    browser("wait", "600");
     browser("fill", "#ping-username", "test-user");
     browser("fill", "#ping-password", "browser-test-secret");
     browser("click", "#ping-use-auth");
+    browser("wait", "600");
     browser("click", "button[type=submit]");
     waitFor("window.__completed === 1");
     const request = JSON.parse(evaluate("window.__calls[0].body"));
@@ -283,11 +291,11 @@ try {
     evaluate("window.__rscDelay=1500; window.__plan.push({delay:1800})");
     submit("8.8.8.8");
     clickRole("button", "Cancel");
-    browser("fill", "#tool-query", "1.0.0.1");
+    browser("fill", "input[name=q]", "1.0.0.1");
     browser("wait", "--url", "**/check?q=8.8.8.8");
     waitFor("window.__completed === window.__calls.length");
     assert.equal(evaluate("window.__calls.length"), 1);
-    assert.equal(evaluate("document.querySelector('#tool-query').value"), "1.0.0.1");
+    assert.equal(evaluate("document.querySelector('input[name=q]').value"), "1.0.0.1");
     assert.equal(evaluate("document.body.innerText.includes('Queried IP address')"), false);
     assertHealthy();
   });
@@ -296,7 +304,7 @@ try {
     const ipData = {ipv4:'1.1.1.1',ipv6:null,ipVersion:4,country:'Australia',countryCode:'AU',region:'',regionName:'',city:'',zip:'',lat:0,lon:0,timezone:'',isp:'Cloudflare',org:'Cloudflare',as:'AS13335 Cloudflare',asname:'CLOUDFLARENET',reverse:'one.one.one.one',mobile:false,proxy:false,hosting:true,connectionType:'datacenter'};
     browser("network", "route", "**/api/ip*", "--body", JSON.stringify({ok:true,data:ipData}));
     open("/check?q=1.1.1.1&q=8.8.8.8");
-    waitFor("document.querySelector('#tool-query')?.value === '1.1.1.1'");
+    waitFor("document.querySelector('input[name=q]')?.value === '1.1.1.1'");
     waitFor("!document.querySelector('button[type=submit]').disabled");
     assertHealthy();
     const before = evaluate("performance.getEntriesByType('resource').filter(r=>r.name.includes('/api/ip?')).length");
@@ -309,13 +317,15 @@ try {
 
   check("light theme and mobile navigation remain usable", () => {
     browser("set", "viewport", "390", "844");
-    clickRole("button", "Toggle theme");
+    // Scope to the phone header: the desktop sidebar keeps its own (hidden) copies
+    // of these controls, which a role search can match first.
+    browser("click", "header.sticky button[aria-label='Toggle theme']");
     clickRole("menuitem", "Light");
     waitFor("document.documentElement.classList.contains('light')");
     assertFits();
     browser("screenshot", join(artifacts, "ip-mobile-light.png"));
-    clickRole("button", "Menu");
-    clickRole("link", "DNS Lookup");
+    browser("click", "header.sticky button[aria-label='Menu']");
+    browser("click", "[role=dialog] a[href='/dns']");
     browser("wait", "--url", "**/dns");
     assertHealthy();
   });

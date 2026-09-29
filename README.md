@@ -9,7 +9,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 - Look up ASN profiles at `/asn` and `/asn/AS8881`, combining optional IPinfo ASN data, public RIPEstat routing data, and public PeeringDB peering data.
 - Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) at `/dns`, including reverse (PTR) lookups for IP addresses.
 - Query WHOIS/RDAP data at `/whois`.
-- Copy DNS/WHOIS results or download JSON; DNS exports follow the selected record filter.
+- Copy any result or download it as JSON (DNS, WHOIS, IP, ASN, CDN, Ping, Reputation); DNS exports follow the selected record filter.
 - Cancel pending lookups and retry the same target without reloading the page.
 - Detect common CDN and edge-provider signals at `/cdn`.
 - Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.

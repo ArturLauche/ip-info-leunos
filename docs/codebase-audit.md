@@ -216,3 +216,83 @@ request and reduced-motion improvements remain directly measured wins.
   does not enable the affected browser mode or standalone mocker/interceptor
   plugins. A Vitest 4 migration remains a maintenance follow-up; these findings
   are documented rather than suppressed.
+
+## Round 2 — 2026-09-29
+
+Baseline: `6e55f2a` (main). Assessment before: **7.5/10** — careful transport and
+scoring code, weakened by what the 26-language expansion did to delivery, a few
+crash and correctness edges, and a regression script that no longer ran. After
+this round: **8/10** (subjective). Three read-only audits (server, client,
+i18n/tooling) supplied the findings; every fix below was reproduced or traced
+before it was changed.
+
+### Delivered
+
+| Priority | Finding | Treatment |
+| --- | --- | --- |
+| P1 (perf) | Every `"use client"` module imported `getToolTranslation` / `getTranslation` / `getUiCopy`, so one 779 KB (199 KB gzip) chunk holding all 26 catalogs loaded on every route. | The root layout resolves one locale and serves it through `I18nProvider`; client code uses `useI18n()`. `lib/client-bundle.test.ts` walks the client import graph and fails on any catalog import. `global-error.tsx` uses a compact table kept identical to the catalogs by a test. |
+| P1 | `/asn?asn=A&asn=B` (and repeated `q`) returned HTTP 500: the page typed the values as `string` and `AsnChecker` called `.trim()` on an array. | `firstSearchParam`, like every other page, plus a page test. |
+| P1 | Redis probe without credentials never succeeded (CRLF test ran after `trim()`); MySQL accepted error packets as a handshake; probe timeouts were idle timers and the Redis-auth buffer was unbounded. | One socket lifecycle with an absolute deadline, the existing 64,000-byte response cap, at most AUTH + PING, protocol-version-10 check, and 40 tests against local servers. |
+| P2 | CDN detection: bare `x-cache` scored CloudFront, CSP/Link values matched providers, CNAMEs matched by substring (`oci` in `social-…`). | Generic headers only support provider evidence, values are read from infrastructure headers only, CNAMEs match on label boundaries. Verified identical on 89 canonical inputs and by a differential fuzz against the old code. |
+| P2 | Deep links (`/dns?target=x`) painted the empty state before the lookup started. | `useToolLookup` starts in the loading state when an initial query exists; server and client agree. |
+| P2 | Results were not announced to assistive technology; the search field inherited RTL bidi rules (`::1` reorders). | Persistent live region in `ToolSearchForm`; the field is `dir="ltr"`. |
+| P2 | A DNS lookup that found nothing was shown under a green success mark. | `ResultPanel` takes a `status`; DNS passes `warning`. |
+| P2 | `scroll-behavior: smooth` without `data-scroll-behavior` animates route changes. | Attribute added to `<html>`. |
+| P2 | Concurrent identical DNS and reputation lookups each repeated the upstream fan-out (10 and ~12 queries). | `createSingleFlight`; nothing is retained after settlement. |
+| P2 | `/api/flag/[code]` was the only public route without `enforceRateLimit`. | 120 requests/minute per client, empty 429. |
+| P3 | IPv6 discovery asked the IPv4-only `checkip.amazonaws.com` for an IPv6 address; third-party fetches sent a referrer. | That provider is skipped for IPv6; `referrerPolicy: "no-referrer"`. |
+| P3 | Copy failed on plain-HTTP deployments (`navigator.clipboard` undefined). | Selection-based fallback in `lib/clipboard.ts`. |
+| Feature | Copy / JSON export existed only for DNS and WHOIS. | `ResultActions` on IP, ASN, CDN, Ping and Reputation results. |
+| Tooling | `scripts/verify-browser.mjs` targeted a removed `#tool-query` id and a stale ASN fixture, so it could not run. | Selectors and fixture updated; see the verification note. |
+
+### Measurements
+
+Production build, Node 24, `scripts/measure-client-js.mjs`-style accounting
+(unique `<script src>` bodies, gzip level default). Dictionary payload is one
+locale: 31–58 KB raw, 10.6–14.2 KB gzip depending on the language.
+
+| Route | Client JS raw | Client JS gzip | HTML gzip |
+| --- | ---: | ---: | ---: |
+| `/` before → after | 1,779,105 → 832,606 | 510,893 → 264,187 | 10,026 → 21,390 |
+| `/dns` before → after | 1,770,105 → 822,619 | 508,036 → 260,972 | 10,218 → 21,636 |
+| `/asn` before → after | 1,825,169 → 878,721 | 521,583 → 274,945 | 10,563 → 21,925 |
+| `/reputation` before → after | 1,775,192 → 829,811 | 508,839 → 262,534 | 10,251 → 21,670 |
+| `/privacy-policy` before → after | 1,743,934 → 794,009 | 499,581 → 251,613 | 14,458 → 28,203 |
+
+Net first-load transfer on `/` drops by about 236 KB gzip (−45%). The catalog is
+inlined once per full page load and not re-sent on client-side navigation.
+
+### Needs a decision (not changed; `AGENTS.md` says ask first)
+
+- **Target validation.** `assertPublicTarget` rejects `_` labels and names with
+  no A/AAAA record, so `_dmarc.x`, `_sip._tcp.x` and mail-only domains cannot be
+  queried, and single-label names act as an internal-DNS existence oracle that
+  echoes private addresses in error details.
+- **Resolver.** Target validation uses `dns.lookup` (libuv threadpool of 4); a
+  slow-DNS domain can starve it. A shared c-ares `Resolver` avoids that.
+- **Rate limiting.** Buckets are per full IPv6 address, honor client-writable
+  headers first, and sweep on every request; `/api/ip` auto-detect is uncached
+  against a shared 40/minute upstream budget.
+- **Caching.** Reputation stores degraded summaries for 10 minutes; WHOIS has no
+  cache and accepts empty or throttled answers as success; provider bodies in
+  `lib/reputation/query.ts` are read outside their timeout.
+- **Other behavior.** UDP ping cannot see ICMP unreachable on an unconnected
+  socket; the CDN check returns 413 for pages over 1 MB although it needs only
+  headers; AbuseIPDB entries with 0% confidence score as medium risk.
+- **Deployment.** `Dockerfile` (root user, Node 20 end-of-life, no health check),
+  CI (`permissions`, `concurrency`, audit step), CSP `script-src`, immutable cache
+  headers for `public/` assets, `/api/health`, `sandbox` CSP on the flag proxy.
+- **Follow-ups.** Per-route dictionary scoping would shrink the +11 KB gzip HTML
+  payload; light-theme `--warning`/`--success` fall below WCAG AA on white;
+  shadcn dialog/sheet/select animations ignore `prefers-reduced-motion`.
+
+### Verification note
+
+`pnpm lint`, `pnpm typecheck`, `pnpm test` (53 files) and `pnpm build` pass, and
+no client `.map` remains. `scripts/verify-browser.mjs` was run with
+agent-browser 0.31.1 (the README pins 0.37.1); 15 of its 17 checks pass. The
+last two (phone-width theme/navigation and the German WHOIS fallback with a
+download comparison) did not complete on this CLI version, so those flows were
+replayed by hand against the same build: theme switch, sheet navigation, and the
+German WHOIS result with its announcement and export buttons all behaved
+correctly.
