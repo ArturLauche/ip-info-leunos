@@ -23,6 +23,7 @@ import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { formatDnsRecordValue, type DnsRecord } from "@/lib/dns-records";
 import { getApiErrorMessage } from "@/lib/api/error-message";
+import type { ToolTranslation } from "@/lib/tool-i18n";
 import type { UiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import { Network, TriangleAlert } from "lucide-react";
@@ -35,7 +36,7 @@ interface DnsAddress {
 
 type DnsErrorCode = "timeout" | "not_found" | "temporary" | "unknown";
 
-interface DnsResult {
+export interface DnsResult {
   target: string;
   addresses: DnsAddress[];
   records: DnsRecord[];
@@ -62,6 +63,26 @@ function formatDnsError(
     default:
       return ui.dnsErrorUnknown;
   }
+}
+
+/** A completed lookup that produced no usable record or address. */
+function isEmptyLookup(result: DnsResult): boolean {
+  return Boolean(result.lookupError) && result.records.length === 0;
+}
+
+/**
+ * Text announced to assistive technology when a lookup finishes. An empty
+ * lookup states the reason, since the warning mark alone is only visual.
+ */
+export function describeDnsResult(
+  result: DnsResult,
+  t: ToolTranslation,
+  ui: UiCopy,
+): string {
+  const heading = `${t.dnsRecordsFor} ${result.target}`;
+  return isEmptyLookup(result)
+    ? `${heading}: ${formatDnsError(result.lookupErrorCode, ui)}`
+    : heading;
 }
 
 interface DnsCheckerProps {
@@ -107,7 +128,7 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
         submitLabel={t.dnsLookupButton}
         loadingLabel={t.lookupInProgress}
         loading={loading}
-        resultMessage={result ? `${t.dnsRecordsFor} ${result.target}` : undefined}
+        resultMessage={result ? describeDnsResult(result, t, ui) : undefined}
         onCancel={cancel}
         cancelLabel={t.cancelLookup}
         onSubmit={run}
@@ -134,11 +155,7 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
       {result && (
         <ResultPanel
           title={`${t.dnsRecordsFor} ${result.target}`}
-          status={
-            result.lookupError && result.records.length === 0
-              ? "warning"
-              : "success"
-          }
+          status={isEmptyLookup(result) ? "warning" : "success"}
         >
           <div className="border-b pb-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

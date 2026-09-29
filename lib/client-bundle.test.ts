@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -26,10 +26,13 @@ const SERVER_ONLY_MODULES = [
 ];
 const SERVER_ONLY_PREFIXES = ["lib/translations/"];
 
+/** Every module path in this test is repo-relative with forward slashes, on any OS. */
+const toPosix = (path: string) => path.split(sep).join("/");
+
 function listSources(directory: string): string[] {
   return readdirSync(join(ROOT, directory), { withFileTypes: true }).flatMap(
     (entry) => {
-      const path = join(directory, entry.name);
+      const path = `${directory}/${entry.name}`;
       if (entry.isDirectory()) return listSources(path);
       return /\.(ts|tsx)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)
         ? [path]
@@ -98,7 +101,7 @@ function resolveSpecifier(from: string, specifier: string): string | null {
   const base = specifier.startsWith("@/")
     ? specifier.slice(2)
     : specifier.startsWith(".")
-      ? relative(ROOT, resolve(ROOT, dirname(from), specifier))
+      ? toPosix(relative(ROOT, resolve(ROOT, dirname(from), specifier)))
       : null;
   if (base === null) return null;
   const candidates = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`];
@@ -114,7 +117,21 @@ function isServerOnly(path: string): boolean {
 
 describe("client bundle", () => {
   const files = SOURCE_DIRECTORIES.flatMap(listSources);
-  const parsed = new Map(files.map((path) => [path, parse(path)]));
+  // Parsed on demand: an import can reach a module outside the scanned folders.
+  const parsed = new Map<string, ts.SourceFile>();
+  const sourceOf = (path: string) => {
+    let source = parsed.get(path);
+    if (!source) {
+      source = parse(path);
+      parsed.set(path, source);
+    }
+    return source;
+  };
+
+  it("identifies modules by forward-slash paths on every platform", () => {
+    expect(files.length).toBeGreaterThan(50);
+    expect(files.filter((path) => path.includes("\\"))).toEqual([]);
+  });
 
   it("names only server-only modules that still exist", () => {
     for (const path of SERVER_ONLY_MODULES) {
@@ -123,7 +140,7 @@ describe("client bundle", () => {
   });
 
   it("keeps every locale catalog out of client-reachable modules", () => {
-    const clientModules = files.filter((path) => isClientModule(parsed.get(path)!));
+    const clientModules = files.filter((path) => isClientModule(sourceOf(path)));
     expect(clientModules.length).toBeGreaterThan(20);
 
     const via = new Map<string, string | null>(clientModules.map((path) => [path, null]));
@@ -132,7 +149,7 @@ describe("client bundle", () => {
 
     while (queue.length > 0) {
       const current = queue.shift()!;
-      for (const specifier of runtimeSpecifiers(parsed.get(current)!)) {
+      for (const specifier of runtimeSpecifiers(sourceOf(current))) {
         const target = resolveSpecifier(current, specifier);
         if (!target || via.has(target)) continue;
         via.set(target, current);

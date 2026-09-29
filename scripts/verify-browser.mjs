@@ -342,7 +342,8 @@ try {
     evaluate(`window.__plan.push({data:${JSON.stringify(data)}})`);
     submit("example.com");
     waitFor("window.__completed === 1 && !document.querySelector('button[type=submit]').disabled");
-    assert.equal(evaluate("document.documentElement.lang"), "de");
+    // The document language is the full BCP 47 tag (see getIntlLocale), not the registry key.
+    assert.equal(evaluate("document.documentElement.lang"), "de-DE");
     assert.ok(evaluate("document.body.innerText.includes('WHOIS war nicht verfügbar.')"));
     clickRole("button", "Kopieren");
     assert.equal(evaluate("window.__copied"), data.raw);

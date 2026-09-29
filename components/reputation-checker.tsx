@@ -820,7 +820,6 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
 
           <ResultActions
             data={result}
-            copyText={JSON.stringify(result, null, 2)}
             filename={`reputation-${result.ip}`}
           />
         </div>

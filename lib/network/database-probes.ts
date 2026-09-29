@@ -394,7 +394,13 @@ function parseMysqlErrorPacket(data: Buffer): SocketValidationResult {
   }
 
   const errorCode = payload.readUInt16LE(1);
-  const textOffset = payload[3] === 0x23 ? 9 : 3;
+  // Protocol 4.1+ inserts "#" and a 5-character SQLSTATE before the text; older servers do
+  // not, and their message may itself start with "#".
+  const hasSqlState =
+    payload.length >= 9 &&
+    payload[3] === 0x23 &&
+    /^[0-9A-Z]{5}$/.test(payload.toString("latin1", 4, 9));
+  const textOffset = hasSqlState ? 9 : 3;
   const text = previewText(payload.toString("utf8", textOffset), REPLY_MESSAGE_CHARS).trim();
 
   return {

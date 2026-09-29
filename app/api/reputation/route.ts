@@ -35,7 +35,9 @@ type ReputationOutcome =
   | { ok: false; sources: Array<{ id: string; status: SourceStatus }> };
 
 // One lookup fans out to about a dozen upstream services; concurrent requests
-// for the same address share that work instead of multiplying it.
+// for the same address share that work instead of multiplying it. That includes
+// a total outage: waiters get the same 502 for the same moment, but it is never
+// cached, so the next request runs a fresh fan-out.
 const reputationFlights = createSingleFlight<ReputationOutcome>();
 
 const CHECKED_STATUSES: ReadonlySet<SourceStatus> = new Set([

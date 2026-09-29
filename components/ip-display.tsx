@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
 import { CopyButton } from "@/components/copy-button";
+import { LiveRegion } from "@/components/live-region";
 import { ResultActions } from "@/components/result-actions";
 import { normalizeAsnInput } from "@/lib/asn-id";
 import { formatTemplate } from "@/lib/format";
@@ -277,7 +278,45 @@ function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
   );
 }
 
+/** What a finished lookup announces: which lookup it was, and the address it resolved to. */
+export function describeIpLookup(
+  ipv4: string | null,
+  ipv6: string | null,
+  isTargetLookup: boolean,
+  t: Pick<Translation, "queriedIpAddress" | "yourIpAddresses">,
+): string {
+  const title = isTargetLookup ? t.queriedIpAddress : t.yourIpAddresses;
+  const address = ipv4 ?? ipv6;
+  return address ? `${title}: ${address}` : title;
+}
+
+/**
+ * The announcer lives outside the content because the content swaps between a
+ * skeleton, an error and the result: a live region only speaks reliably when it
+ * stays mounted while its text changes.
+ */
 export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
+  const [announcement, setAnnouncement] = useState<string>();
+
+  return (
+    <>
+      <LiveRegion>{announcement}</LiveRegion>
+      <IpDisplayContent
+        targetIp={targetIp}
+        onLoadingChange={onLoadingChange}
+        onAnnouncementChange={setAnnouncement}
+      />
+    </>
+  );
+}
+
+function IpDisplayContent({
+  targetIp,
+  onLoadingChange,
+  onAnnouncementChange,
+}: IpDisplayProps & {
+  onAnnouncementChange: (announcement: string | undefined) => void;
+}) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -307,6 +346,26 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
   useEffect(() => {
     errorCopyRef.current = { t, toolT };
   }, [t, toolT]);
+
+  const announcement =
+    !loading && !error && data
+      ? describeIpLookup(data.ipv4, data.ipv6, Boolean(targetIp), t)
+      : undefined;
+
+  useEffect(() => {
+    onAnnouncementChange(announcement);
+  }, [announcement, onAnnouncementChange]);
+
+  // Keeps the API payload untouched and lists what the page showed, with where
+  // each address came from: browser-discovered fallbacks are not server data.
+  // Memoized so ResultActions keeps a stable identity across re-renders.
+  const exportData = useMemo(
+    () =>
+      data
+        ? { ...data, displayed: resolveDisplayIps(data, clientIpv4, clientIpv6) }
+        : null,
+    [data, clientIpv4, clientIpv6],
+  );
 
   useEffect(() => {
     const reportLoading = (value: boolean) => {
@@ -495,8 +554,6 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
   const connectionTypeLabel =
     t.connectionTypes[data.connectionType] ?? t.unknown;
   const reputationIp = displayIpv4 || displayIpv6;
-  // Export what the page shows, including addresses found by the browser.
-  const exportData = { ...data, ipv4: displayIpv4, ipv6: displayIpv6 };
   const displayedProxyHints = targetIp
     ? null
     : mergeProxyHintAssessments(data.proxyHints, localProxyHints);
@@ -761,7 +818,6 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
 
       <ResultActions
         data={exportData}
-        copyText={JSON.stringify(exportData, null, 2)}
         filename={`ip-${reputationIp ?? "lookup"}`}
       />
     </div>

@@ -3,7 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { getToolTranslation } from "@/lib/tool-i18n";
-import { DnsChecker } from "./dns-checker";
+import { getUiCopy } from "@/lib/ui-copy";
+import { describeDnsResult, DnsChecker } from "./dns-checker";
 import { withI18n } from "./i18n-test-utils";
 import { ResultPanel } from "./result-panel";
 import { ToolSearchForm } from "./tool-search-form";
@@ -62,5 +63,34 @@ describe("ResultPanel", () => {
     expect(ok).not.toContain("text-warning");
     expect(empty).toContain("text-warning");
     expect(empty).not.toContain("text-success");
+  });
+});
+
+describe("describeDnsResult", () => {
+  const ui = getUiCopy("en");
+  const found = {
+    target: "example.com",
+    addresses: [],
+    records: [{ type: "A", value: "93.184.216.34" }],
+  };
+
+  it("announces the target for a lookup that found records", () => {
+    expect(describeDnsResult(found, t, ui)).toBe("DNS records for example.com");
+  });
+
+  it("states why an empty lookup found nothing, since the warning mark is only visual", () => {
+    const message = describeDnsResult(
+      { target: "nope.example", addresses: [], records: [], lookupError: "ENOTFOUND", lookupErrorCode: "not_found" },
+      t,
+      ui,
+    );
+
+    expect(message).toBe(`DNS records for nope.example: ${ui.dnsErrorNotFound}`);
+  });
+
+  it("keeps the plain heading when records exist even if the address lookup failed", () => {
+    expect(
+      describeDnsResult({ ...found, lookupError: "ETIMEOUT", lookupErrorCode: "timeout" }, t, ui),
+    ).toBe("DNS records for example.com");
   });
 });

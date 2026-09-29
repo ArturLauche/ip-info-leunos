@@ -1,24 +1,30 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { useCallback } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 
-/** Export on demand: serialization and Blob allocation happen only on click. */
+/**
+ * Export on demand: serialization and Blob allocation happen only on click.
+ * Without `copyText` the button copies the same JSON that Download saves.
+ */
 export function ResultActions({
   data,
   copyText,
   filename,
 }: {
   data: unknown;
-  copyText: string;
+  copyText?: string;
   filename: string;
 }) {
   const { tool: t, core: baseT } = useI18n();
+  // Stable per `data`, so re-renders neither serialize nor reset the "copied" mark.
+  const serialize = useCallback(() => JSON.stringify(data, null, 2), [data]);
 
   const download = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json" });
+    const blob = new Blob([serialize() + "\n"], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -33,7 +39,7 @@ export function ResultActions({
   return (
     <div className="flex flex-wrap gap-2">
       <CopyButton
-        text={copyText}
+        text={copyText ?? serialize}
         label={t.copyValue}
         copiedLabel={baseT.copiedToClipboard}
         failedLabel={baseT.copyFailed}

@@ -400,6 +400,32 @@ describe("reputation API route", () => {
     );
   });
 
+  it("shares a total outage between concurrent lookups without caching it", async () => {
+    // Reverse-octet DNSBL names for 84.134.9.60.
+    for (const zone of ["zen.spamhaus.org", "bl.spamcop.net", "b.barracudacentral.org", "dnsbl.dronebl.org", "bl.blocklist.de"]) {
+      dnsMock.failures.add(`60.9.134.84.${zone}`);
+    }
+    const outage = stubFetch(() => jsonResponse({ message: "down" }, 500));
+
+    const responses = await Promise.all([
+      invoke("84.134.9.60", "203.0.113.161"),
+      invoke("84.134.9.60", "203.0.113.162"),
+    ]);
+    const single = outage.mock.calls.filter(([url]) => String(url).includes("ip-api.com")).length;
+
+    expect(responses.map((response) => response.status)).toEqual([502, 502]);
+    // One fan-out served both waiters.
+    expect(single).toBeGreaterThan(0);
+    expect(single).toBeLessThanOrEqual(1);
+
+    // The outage passes; the very next request must try again, not replay the 502.
+    dnsMock.failures.clear();
+    stubCleanEnvironment();
+    const recovered = await invoke("84.134.9.60", "203.0.113.163");
+
+    expect(recovered.status).toBe(200);
+  });
+
   it("caches per-IP results to protect free provider quotas", async () => {
     const fetchMock = stubCleanEnvironment();
 

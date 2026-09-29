@@ -235,14 +235,14 @@ before it was changed.
 | P1 | Redis probe without credentials never succeeded (CRLF test ran after `trim()`); MySQL accepted error packets as a handshake; probe timeouts were idle timers and the Redis-auth buffer was unbounded. | One socket lifecycle with an absolute deadline, the existing 64,000-byte response cap, at most AUTH + PING, protocol-version-10 check, and 40 tests against local servers. |
 | P2 | CDN detection: bare `x-cache` scored CloudFront, CSP/Link values matched providers, CNAMEs matched by substring (`oci` in `social-…`). | Generic headers only support provider evidence, values are read from infrastructure headers only, CNAMEs match on label boundaries. Verified identical on 89 canonical inputs and by a differential fuzz against the old code. |
 | P2 | Deep links (`/dns?target=x`) painted the empty state before the lookup started. | `useToolLookup` starts in the loading state when an initial query exists; server and client agree. |
-| P2 | Results were not announced to assistive technology; the search field inherited RTL bidi rules (`::1` reorders). | Persistent live region in `ToolSearchForm`; the field is `dir="ltr"`. |
+| P2 | Results were not announced to assistive technology; the search field inherited RTL bidi rules (`::1` reorders). | Persistent live region in `ToolSearchForm` (Ping, ASN and `IpDisplay` keep their own); an empty DNS lookup announces its reason; the field is `dir="ltr"`. |
 | P2 | A DNS lookup that found nothing was shown under a green success mark. | `ResultPanel` takes a `status`; DNS passes `warning`. |
 | P2 | `scroll-behavior: smooth` without `data-scroll-behavior` animates route changes. | Attribute added to `<html>`. |
-| P2 | Concurrent identical DNS and reputation lookups each repeated the upstream fan-out (10 and ~12 queries). | `createSingleFlight`; nothing is retained after settlement. |
-| P2 | `/api/flag/[code]` was the only public route without `enforceRateLimit`. | 120 requests/minute per client, empty 429. |
+| P2 | Concurrent identical DNS and reputation lookups each repeated the upstream fan-out (10 and ~12 queries). | `createSingleFlight`; nothing is retained after settlement. DNS shares the address lookup and nine record queries; every request still validates its target with one `dns.lookup` first (see the threadpool item below). A total reputation outage is shared by concurrent waiters but never cached. |
+| P2 | `/api/flag/[code]` was the only public route without `enforceRateLimit`. | 120 requests/minute per client, empty 429 with the standard `retry-after` / `x-ratelimit-*` headers. Visitors the limiter cannot tell apart (no proxy header) are not limited, so they cannot share one budget and starve each other's flags. |
 | P3 | IPv6 discovery asked the IPv4-only `checkip.amazonaws.com` for an IPv6 address; third-party fetches sent a referrer. | That provider is skipped for IPv6; `referrerPolicy: "no-referrer"`. |
 | P3 | Copy failed on plain-HTTP deployments (`navigator.clipboard` undefined). | Selection-based fallback in `lib/clipboard.ts`. |
-| Feature | Copy / JSON export existed only for DNS and WHOIS. | `ResultActions` on IP, ASN, CDN, Ping and Reputation results. |
+| Feature | Copy / JSON export existed only for DNS and WHOIS. | `ResultActions` on IP, ASN, CDN, Ping and Reputation results; JSON is built only when a button is pressed. The IP export keeps the API payload and lists the addresses shown with their source. |
 | Tooling | `scripts/verify-browser.mjs` targeted a removed `#tool-query` id and a stale ASN fixture, so it could not run. | Selectors and fixture updated; see the verification note. |
 
 ### Measurements
@@ -271,7 +271,8 @@ inlined once per full page load and not re-sent on client-side navigation.
 - **Resolver.** Target validation uses `dns.lookup` (libuv threadpool of 4); a
   slow-DNS domain can starve it. A shared c-ares `Resolver` avoids that.
 - **Rate limiting.** Buckets are per full IPv6 address, honor client-writable
-  headers first, and sweep on every request; `/api/ip` auto-detect is uncached
+  headers first, and (once 10,000 buckets are live) sweep the whole map on every
+  request; `/api/ip` auto-detect is uncached
   against a shared 40/minute upstream budget.
 - **Caching.** Reputation stores degraded summaries for 10 minutes; WHOIS has no
   cache and accepts empty or throttled answers as success; provider bodies in

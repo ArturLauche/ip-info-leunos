@@ -10,7 +10,7 @@ export type GlobalErrorCopy = {
  * The only strings the root error boundary needs. It renders outside the
  * layout, so it cannot read the I18nProvider, and importing the full tool
  * catalog would ship all 26 languages to every visitor for a page almost
- * nobody sees. lib/i18n.test.ts keeps this table identical to the catalogs.
+ * nobody sees. lib/global-error-copy.test.ts keeps this table identical to the catalogs.
  */
 export const globalErrorCopy: Record<Locale, GlobalErrorCopy> = {
   de: {

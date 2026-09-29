@@ -83,5 +83,24 @@ describe("GET /api/flag/[code] rate limiting", () => {
     expect(await last?.text()).toBe("");
     expect(Number(last?.headers.get("retry-after"))).toBeGreaterThan(0);
     expect(last?.headers.get("cache-control")).toBe("no-store");
+    // The same contract as every other public route.
+    expect(last?.headers.get("x-ratelimit-limit")).toBe("120");
+    expect(last?.headers.get("x-ratelimit-remaining")).toBe("0");
+    expect(Number(last?.headers.get("x-ratelimit-reset"))).toBeGreaterThan(0);
+  });
+
+  it("does not pool visitors it cannot tell apart into one shared budget", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => chunkedResponse([SVG])));
+
+    // No forwarding header at all: getClientIp() can only answer "unknown".
+    const statuses = new Set<number>();
+    for (let attempt = 0; attempt < 130; attempt += 1) {
+      const response = await GET(new Request("http://localhost/api/flag/it"), {
+        params: Promise.resolve({ code: "it" }),
+      });
+      statuses.add(response.status);
+    }
+
+    expect([...statuses]).toEqual([200]);
   });
 });

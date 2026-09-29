@@ -58,7 +58,17 @@ describe("GET /api/dns coalescing", () => {
     const bodies = await Promise.all((await Promise.all(pending)).map((r) => r.json()));
 
     expect(dnsMock.lookup).toHaveBeenCalledTimes(1);
-    expect(dnsMock.resolve).toHaveBeenCalledTimes(9);
+    expect(dnsMock.resolve.mock.calls.map(([, type]) => type).sort()).toEqual([
+      "A",
+      "AAAA",
+      "CAA",
+      "CNAME",
+      "MX",
+      "NS",
+      "SOA",
+      "SRV",
+      "TXT",
+    ]);
     for (const body of bodies) {
       expect(body.ok).toBe(true);
       expect(body.data).toEqual(bodies[0].data);

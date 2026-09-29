@@ -634,7 +634,6 @@ export function PingChecker({
 
             <ResultActions
               data={result}
-              copyText={JSON.stringify(result, null, 2)}
               filename={`ping-${result.mode}-${result.target}-${result.port}`}
             />
           </div>

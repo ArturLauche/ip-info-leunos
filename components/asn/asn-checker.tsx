@@ -222,7 +222,6 @@ export function AsnChecker({ initialAsn = "" }: AsnCheckerProps) {
 
           <ResultActions
             data={result}
-            copyText={JSON.stringify(result, null, 2)}
             filename={`asn-${result.asn}`}
           />
         </div>

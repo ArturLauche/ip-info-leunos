@@ -323,7 +323,6 @@ export function CdnChecker({ initialTarget = "" }: CdnCheckerProps) {
 
           <ResultActions
             data={result}
-            copyText={JSON.stringify(result, null, 2)}
             filename={`cdn-${result.target}`}
           />
         </div>

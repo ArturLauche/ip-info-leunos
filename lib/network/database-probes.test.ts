@@ -495,6 +495,20 @@ describe("MySQL handshake probe", () => {
     expect(result.message).toContain("error 1040 instead of a handshake: Too many connections");
   });
 
+  it("keeps text that only looks like a SQLSTATE marker", async () => {
+    // A pre-4.1 server has no SQLSTATE, and its message may itself start with "#".
+    const legacy = mysqlErrorPacket(1045, "#legacy servers print this verbatim");
+    const short = mysqlErrorPacket(1040, "#AB");
+    const legacyServer = await listen((socket) => socket.end(legacy));
+    const shortServer = await listen((socket) => socket.end(short));
+
+    const legacyResult = await probeLocal("mysql", legacyServer.port);
+    const shortResult = await probeLocal("mysql", shortServer.port);
+
+    expect(legacyResult.message).toContain("instead of a handshake: #legacy servers print this verbatim");
+    expect(shortResult.message).toContain("instead of a handshake: #AB");
+  });
+
   it.each([
     ["an unsupported protocol version", mysqlPacket(Buffer.from([0x09, 0x00, 0x00, 0x00, 0x00, 0x00]))],
     ["an SSH banner", Buffer.from("SSH-2.0-OpenSSH_9.6\r\n")],

@@ -16,7 +16,8 @@ export function CopyButton({
   className,
   showLabel = false,
 }: {
-  text: string;
+  /** A function defers building large text until the button is pressed. */
+  text: string | (() => string);
   label: string;
   copiedLabel: string;
   failedLabel: string;
@@ -33,7 +34,7 @@ export function CopyButton({
 
   const handleCopy = async () => {
     try {
-      await writeClipboardText(text);
+      await writeClipboardText(typeof text === "function" ? text() : text);
       setCopied(true);
       toast.success(copiedLabel);
       clearTimeout(resetTimer.current);

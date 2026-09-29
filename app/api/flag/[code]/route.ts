@@ -6,13 +6,21 @@
 // behind a strict CSP or a network/privacy blocker. Here only the server talks
 // to the upstream, and the result is cached aggressively (flags are immutable).
 
-import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { enforceRateLimit, getClientIp } from "@/lib/api/rate-limit";
 
 export const runtime = "nodejs";
 
 const UPSTREAM_TIMEOUT_MS = 5_000;
 // Flag SVGs are a few kilobytes; anything larger is an upstream anomaly.
 const MAX_FLAG_BYTES = 64_000;
+// Limiter headers forwarded on a 429 so this route speaks the same contract as
+// every other public route.
+const RATE_LIMIT_HEADERS = [
+  "retry-after",
+  "x-ratelimit-limit",
+  "x-ratelimit-remaining",
+  "x-ratelimit-reset",
+] as const;
 // One year, immutable — a country's flag asset never changes under its code.
 const CACHE_CONTROL = "public, max-age=31536000, immutable";
 
@@ -51,17 +59,21 @@ interface RouteContext {
 
 export async function GET(request: Request, context: RouteContext) {
   // Browsers cache each flag for a year, so a normal visitor makes a handful
-  // of requests. Consumers are <img> tags: keep the body empty like the
-  // other error responses and expose only the status and retry hint.
-  const limited = enforceRateLimit(request, "flag", { limit: 120, windowMs: 60_000 });
+  // of requests. Without a trusted proxy header every visitor resolves to the
+  // same "unknown" bucket, and one shared budget on an <img> endpoint would
+  // starve everyone's flags, so only identifiable clients are limited.
+  const limited =
+    getClientIp(request) === "unknown"
+      ? null
+      : enforceRateLimit(request, "flag", { limit: 120, windowMs: 60_000 });
   if (limited) {
-    return new Response(null, {
-      status: 429,
-      headers: {
-        "cache-control": "no-store",
-        "retry-after": limited.headers.get("retry-after") ?? "60",
-      },
-    });
+    // Consumers are <img> tags: keep the body empty like the other error responses.
+    const headers = new Headers({ "cache-control": "no-store" });
+    for (const name of RATE_LIMIT_HEADERS) {
+      const value = limited.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+    return new Response(null, { status: 429, headers });
   }
 
   const { code } = await context.params;
