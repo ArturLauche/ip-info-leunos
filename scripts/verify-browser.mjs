@@ -148,8 +148,12 @@ try {
     assertHealthy();
   });
 
-  check("reduced motion avoids route snapshot cloning", () => {
+  check("reduced motion avoids route snapshot cloning and leaves no stale copy", () => {
     browser("set", "media", "light", "reduced-motion");
+    // A fresh load under reduced motion, so no fallback copy of the page exists.
+    open("/whois");
+    browser("press", "Control+k");
+    waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
     evaluate(`(() => {
       window.__routeClones=0;
       const original=Element.prototype.cloneNode;
@@ -157,13 +161,16 @@ try {
         if(this.classList.contains('tool-page-current')) window.__routeClones++;
         return original.apply(this,args);
       };
+      const stale=document.createElement('div');
+      stale.className='tool-page-snapshot';
+      document.querySelector('.tool-page-snapshot-layer').append(stale);
     })()`);
-    browser("press", "Control+k");
-    waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
     browser("wait", "--url", "**/dns");
     assert.equal(evaluate("window.__routeClones"), 0);
+    // A commit that mounts no replacement copy must not leave the old one over the route.
+    assert.equal(evaluate("document.querySelector('.tool-page-snapshot-layer').childElementCount"), 0);
   });
 
   check("same-tool navigation and history restore or clear lookup state", () => {
