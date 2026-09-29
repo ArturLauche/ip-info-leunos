@@ -59,8 +59,8 @@ interface RouteContext {
 
 export async function GET(request: Request, context: RouteContext) {
   // Browsers cache each flag for a year, so a normal visitor makes a handful
-  // of requests. Without a trusted proxy header every visitor resolves to the
-  // same "unknown" bucket, and one shared budget on an <img> endpoint would
+  // of requests. A request that carries no client address at all resolves to
+  // one shared "unknown" bucket, and a single budget on an <img> endpoint would
   // starve everyone's flags, so only identifiable clients are limited.
   const limited =
     getClientIp(request) === "unknown"

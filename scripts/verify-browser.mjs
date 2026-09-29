@@ -325,6 +325,8 @@ try {
     assertFits();
     browser("screenshot", join(artifacts, "ip-mobile-light.png"));
     browser("click", "header.sticky button[aria-label='Menu']");
+    // The sheet slides in for ~500 ms; a click while it moves can land on the overlay.
+    browser("wait", "700");
     browser("click", "[role=dialog] a[href='/dns']");
     browser("wait", "--url", "**/dns");
     assertHealthy();

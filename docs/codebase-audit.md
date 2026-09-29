@@ -239,7 +239,7 @@ before it was changed.
 | P2 | A DNS lookup that found nothing was shown under a green success mark. | `ResultPanel` takes a `status`; DNS passes `warning`. |
 | P2 | `scroll-behavior: smooth` without `data-scroll-behavior` animates route changes. | Attribute added to `<html>`. |
 | P2 | Concurrent identical DNS and reputation lookups each repeated the upstream fan-out (10 and ~12 queries). | `createSingleFlight`; nothing is retained after settlement. DNS shares the address lookup and nine record queries; every request still validates its target with one `dns.lookup` first (see the threadpool item below). A total reputation outage is shared by concurrent waiters but never cached. |
-| P2 | `/api/flag/[code]` was the only public route without `enforceRateLimit`. | 120 requests/minute per client, empty 429 with the standard `retry-after` / `x-ratelimit-*` headers. Visitors the limiter cannot tell apart (no proxy header) are not limited, so they cannot share one budget and starve each other's flags. |
+| P2 | `/api/flag/[code]` was the only public route without `enforceRateLimit`. | 120 requests/minute per client, empty 429 with the standard `retry-after` / `x-ratelimit-*` headers. A request with no client address at all is not limited, so such requests cannot share one budget and starve each other's flags; behind a proxy that does not forward client IPs every visitor still shares one bucket, as on every other route (see Rate limiting below). |
 | P3 | IPv6 discovery asked the IPv4-only `checkip.amazonaws.com` for an IPv6 address; third-party fetches sent a referrer. | That provider is skipped for IPv6; `referrerPolicy: "no-referrer"`. |
 | P3 | Copy failed on plain-HTTP deployments (`navigator.clipboard` undefined). | Selection-based fallback in `lib/clipboard.ts`. |
 | Feature | Copy / JSON export existed only for DNS and WHOIS. | `ResultActions` on IP, ASN, CDN, Ping and Reputation results; JSON is built only when a button is pressed. The IP export keeps the API payload and lists the addresses shown with their source. |
@@ -253,13 +253,13 @@ locale: 31–58 KB raw, 10.6–14.2 KB gzip depending on the language.
 
 | Route | Client JS raw | Client JS gzip | HTML gzip |
 | --- | ---: | ---: | ---: |
-| `/` before → after | 1,779,105 → 832,606 | 510,893 → 264,187 | 10,026 → 21,390 |
-| `/dns` before → after | 1,770,105 → 822,619 | 508,036 → 260,972 | 10,218 → 21,636 |
-| `/asn` before → after | 1,825,169 → 878,721 | 521,583 → 274,945 | 10,563 → 21,925 |
-| `/reputation` before → after | 1,775,192 → 829,811 | 508,839 → 262,534 | 10,251 → 21,670 |
-| `/privacy-policy` before → after | 1,743,934 → 794,009 | 499,581 → 251,613 | 14,458 → 28,203 |
+| `/` before → after | 1,779,105 → 833,461 | 510,893 → 265,106 | 10,026 → 21,434 |
+| `/dns` before → after | 1,770,105 → 822,844 | 508,036 → 261,050 | 10,218 → 21,634 |
+| `/asn` before → after | 1,825,169 → 878,780 | 521,583 → 274,921 | 10,563 → 21,929 |
+| `/reputation` before → after | 1,775,192 → 829,870 | 508,839 → 262,534 | 10,251 → 21,668 |
+| `/privacy-policy` before → after | 1,743,934 → 794,009 | 499,581 → 251,613 | 14,458 → 28,204 |
 
-Net first-load transfer on `/` drops by about 236 KB gzip (−45%). The catalog is
+Net first-load transfer on `/` drops by about 234 KB gzip (−45%). The catalog is
 inlined once per full page load and not re-sent on client-side navigation.
 
 ### Needs a decision (not changed; `AGENTS.md` says ask first)
@@ -289,11 +289,10 @@ inlined once per full page load and not re-sent on client-side navigation.
 
 ### Verification note
 
-`pnpm lint`, `pnpm typecheck`, `pnpm test` (53 files) and `pnpm build` pass, and
-no client `.map` remains. `scripts/verify-browser.mjs` was run with
-agent-browser 0.31.1 (the README pins 0.37.1); 15 of its 17 checks pass. The
-last two (phone-width theme/navigation and the German WHOIS fallback with a
-download comparison) did not complete on this CLI version, so those flows were
-replayed by hand against the same build: theme switch, sheet navigation, and the
-German WHOIS result with its announcement and export buttons all behaved
-correctly.
+`pnpm lint`, `pnpm typecheck`, `pnpm test` (55 files, 618 tests) and `pnpm build`
+pass, and no client `.map` remains. `scripts/verify-browser.mjs` passes all 17
+checks against the production build with agent-browser 0.31.1 (the README pins
+0.37.1). The script could not run on `main` at all (a removed field id) and had
+drifted further: an ASN fixture without `sources`, a `lang` assertion that never
+matched the `de-DE` document language, and clicks that raced the sheet and
+dropdown animations. Those are repaired.
