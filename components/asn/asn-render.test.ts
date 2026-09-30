@@ -3,6 +3,7 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { withI18n } from "@/components/i18n-test-utils";
+import { getI18nDictionaries } from "@/lib/i18n-dictionaries";
 import type { AsnProfile } from "@/lib/asn";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { ExternalLink } from "./external-link";
@@ -12,6 +13,7 @@ import {
   displayUrl,
   exchangesTab,
   formatCount,
+  formatPolicyValue,
   formatSpeed,
   ipv4EquivalentBits,
   isUrl,
@@ -257,6 +259,16 @@ describe("AsnSummaryCard", () => {
     expect(html).not.toContain("javascript:");
     expect(html).not.toContain("Website");
   });
+
+  it("words the policy exactly as the profile tab does", () => {
+    const profile = createProfile();
+    profile.peeringdb!.policyGeneral = "Required - EU";
+    const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: profile, t, locale: "en" }));
+
+    expect(html).toContain("Required – EU");
+    expect(html).not.toContain("Required - EU");
+    expect(html).not.toContain("– -");
+  });
 });
 
 describe("RoutingSection", () => {
@@ -293,6 +305,30 @@ describe("RoutingSection", () => {
     expect(html.match(/RIPEstat RIS/g)?.length).toBe(1);
     // Terse cells, descriptive link names.
     expect(html).toContain('aria-label="AS6939, power 658, IPv4 peers 120, IPv6 peers 130"');
+  });
+
+  it("sizes the v4, v6 and power columns from the longest figure in each list", () => {
+    // Header and list share a template per column; report each distinct one in order.
+    const templates = (html: string) => [...new Set([...html.matchAll(/--rel-cols:([^";]+)/g)].map((m) => m[1]))];
+
+    // Each list is sized on its own figures (upstreams 30/31, peers 120/130),
+    // and 6rem is the floor for the power cell.
+    expect(templates(renderToStaticMarkup(createElement(RoutingSection, { result: createProfile(), t, locale: "en" })))).toEqual([
+      "minmax(0,1fr) 1rem 1rem 6rem",
+      "minmax(0,1fr) 1.5rem 1.5rem 6rem",
+    ]);
+
+    // Seven-digit peer counts and a seven-digit power (bar 2.5rem + gap 0.5rem
+    // + nine characters) get their own room instead of colliding.
+    const large = createProfile({
+      peers: [{ asn: "AS3320", asnNumber: 3320, power: 1_376_839, v4Peers: 1_376_839, v6Peers: 186_635 }],
+      peersTotal: 1,
+      upstreams: [],
+      downstreams: [],
+    });
+    expect(templates(renderToStaticMarkup(createElement(RoutingSection, { result: large, t, locale: "en" })))).toEqual([
+      "minmax(0,1fr) 4.5rem 3.5rem 7.5rem",
+    ]);
   });
 });
 
@@ -567,10 +603,19 @@ describe("lookup states", () => {
       t.asnRoutingDescription,
       t.asnTabPrefixes,
       t.asnPrefixesDescription,
-      t.asnTabPeering,
+      t.asnPeeringDb,
       t.asnPeeringDbDescription,
     ]) {
       expect(html).toContain(copy);
+    }
+  });
+
+  it("only advertises tabs a PeeringDB-backed lookup actually shows", () => {
+    const labels = buildDetailTabs(createProfile(), t, false).map((tab) => tab.label);
+
+    for (const title of [t.asnTabRouting, t.asnTabPrefixes, t.asnPeeringDb]) {
+      expect(labels).toContain(title);
+      expect(renderToStaticMarkup(createElement(AsnCapabilities, { t }))).toContain(title);
     }
   });
 
@@ -651,6 +696,20 @@ describe("ASN presentation helpers", () => {
     expect(isUrl("javascript:alert(1)")).toBe(false);
     expect(displayUrl("https://www.example.com/")).toBe("example.com");
     expect(displayUrl("http://lg.example.net/path/")).toBe("lg.example.net/path");
+  });
+
+  it("translates the closed policy answers and normalises the separator before free text", () => {
+    const en = getI18nDictionaries("en").ui;
+    const de = getI18nDictionaries("de").ui;
+
+    expect(formatPolicyValue("Required - EU", en)).toBe("Required – EU");
+    expect(formatPolicyValue("Required", en)).toBe(en.asnPolicyRequired);
+    expect(formatPolicyValue("Not Required", de)).toBe(de.asnPolicyNotRequired);
+    expect(formatPolicyValue("not_required", en)).toBe(en.asnPolicyNotRequired);
+    // Open-ended answers and missing values pass through untouched.
+    expect(formatPolicyValue("Selective", en)).toBe("Selective");
+    expect(formatPolicyValue(null, en)).toBeNull();
+    expect(formatPolicyValue(undefined, en)).toBeUndefined();
   });
 
   it("sends the exchange figure to its own tab, or to the single peering tab", () => {
@@ -770,6 +829,23 @@ describe("AsnResultView", () => {
     expect(html.match(/role="tab"/g)?.length).toBe(6);
     expect(html).toContain("Power and peer counts observed via RIPEstat RIS.");
   });
+
+  it("wires every tab to a tabpanel that names it back", () => {
+    const html = renderToStaticMarkup(
+      createElement(AsnResultView, { result: createProfile(), t, locale: "en", showSourceInfo: true }),
+    );
+    const attributes = (tag: string) => Object.fromEntries([...tag.matchAll(/([a-z-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]));
+    const tabs = [...html.matchAll(/<[a-z]+\b[^>]*\brole="tab"[^>]*>/g)].map((m) => attributes(m[0]));
+    const panels = [...html.matchAll(/<[a-z]+\b[^>]*\brole="tabpanel"[^>]*>/g)].map((m) => attributes(m[0]));
+
+    expect(tabs).toHaveLength(6);
+    expect(panels).toHaveLength(6);
+    for (const tab of tabs) {
+      const panel = panels.find((candidate) => candidate.id === tab["aria-controls"]);
+      expect(panel, `panel for ${tab["aria-controls"]}`).toBeDefined();
+      expect(panel?.["aria-labelledby"]).toBe(tab.id);
+    }
+  });
 });
 
 describe("PeeringUnavailable", () => {
@@ -796,7 +872,7 @@ describe("PeeringUnavailable", () => {
   it("falls back to a generic outage message when a failed provider gave no warning", () => {
     const failed = createProfile({
       ...sparse,
-      sources: { ipinfo: "not_configured", peeringdb: "unavailable", ripestat: "available" },
+      sources: { ipinfo: "not_configured", peeringdb: "error", ripestat: "available" },
       warningDetails: [],
     });
     const html = renderToStaticMarkup(createElement(PeeringUnavailable, { result: failed, t, locale: "en" }));
@@ -805,10 +881,35 @@ describe("PeeringUnavailable", () => {
     expect(html).not.toContain(t.asnWarningNoPeeringDbProfile);
   });
 
-  it("says only that there is no profile when PeeringDB answered without a record", () => {
-    const html = renderToStaticMarkup(createElement(PeeringUnavailable, { result: sparse, t, locale: "en" }));
+  it("matches the provider whether the warning names it by label or by source key", () => {
+    const failedWith = (provider: string) =>
+      createProfile({
+        ...sparse,
+        sources: { ipinfo: "not_configured", peeringdb: "error", ripestat: "available" },
+        warningDetails: [{ code: "provider_timeout", provider }],
+      });
+
+    for (const provider of ["PeeringDB", "peeringdb"]) {
+      const html = renderToStaticMarkup(
+        createElement(PeeringUnavailable, { result: failedWith(provider), t, locale: "en" }),
+      );
+      expect(html).toContain(`${provider} request timed out.`);
+    }
+  });
+
+  it("treats the API's 'answered, no record' shape as a neutral statement, not an outage", () => {
+    // A PeeringDB 404 or empty payload is reported as `unavailable` with a
+    // provider-less warning (app/api/asn/[asn]/route.ts).
+    const noRecord = createProfile({
+      ...sparse,
+      sources: { ipinfo: "not_configured", peeringdb: "unavailable", ripestat: "available" },
+      warnings: ["No public PeeringDB network profile was found for this ASN."],
+      warningDetails: [{ code: "peeringdb_no_profile" }],
+    });
+    const html = renderToStaticMarkup(createElement(PeeringUnavailable, { result: noRecord, t, locale: "en" }));
 
     expect(html).toContain(t.asnWarningNoPeeringDbProfile);
+    expect(html).not.toContain("currently unavailable");
     expect(html).not.toContain("<ul");
     expect(html).not.toContain("text-warning");
   });

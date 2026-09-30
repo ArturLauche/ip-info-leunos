@@ -6,13 +6,15 @@ import type { AsnProfile } from "@/lib/asn";
 import { formatTemplate } from "@/lib/format";
 import type { Locale } from "@/lib/locale-config";
 import type { ToolTranslation } from "@/lib/tool-i18n";
-import { formatWarning } from "./helpers";
+import { formatWarning, sourceName } from "./helpers";
 
 /**
- * The Peering tab when PeeringDB has nothing to show. A provider failure (rate
- * limit, timeout) and a network that simply has no record are different
- * answers: a failure says what went wrong using the API's structured warnings
- * (never the raw provider prose) and never claims the record does not exist.
+ * The Peering tab when PeeringDB has nothing to show. The API reports a
+ * provider failure (rate limit, timeout, HTTP error) as `error`, and "answered
+ * but has no record for this ASN" as `unavailable`. A failure says what went
+ * wrong using the structured warnings (never the raw provider prose) and never
+ * claims the record does not exist; a missing record is a neutral statement,
+ * not a warning.
  */
 export function PeeringUnavailable({
   result,
@@ -24,18 +26,22 @@ export function PeeringUnavailable({
   locale: Locale;
 }) {
   const { ui } = useI18n();
-  const failed = result.sources.peeringdb !== "available";
-  const notes = [
-    ...new Set(
-      (result.warningDetails ?? [])
-        .filter((warning) => warning.provider === "PeeringDB" && warning.code !== "truncated")
-        .map((warning) => formatWarning(warning, t, ui, locale)),
-    ),
-  ];
+  const failed = result.sources.peeringdb === "error";
+  const provider = sourceName("peeringdb");
+  const notes = failed
+    ? [
+        ...new Set(
+          (result.warningDetails ?? [])
+            // Warnings name the provider by display label; accept the source key too.
+            .filter((warning) => sourceName(warning.provider ?? "") === provider && warning.code !== "truncated")
+            .map((warning) => formatWarning(warning, t, ui, locale)),
+        ),
+      ]
+    : [];
   const [lead, ...rest] = failed
     ? notes.length > 0
       ? notes
-      : [formatTemplate(t.asnWarningProviderUnavailable, { provider: "PeeringDB" })]
+      : [formatTemplate(t.asnWarningProviderUnavailable, { provider })]
     : [t.asnWarningNoPeeringDbProfile];
   const Icon = failed ? TriangleAlert : Building2;
 

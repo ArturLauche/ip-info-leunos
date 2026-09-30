@@ -16,18 +16,22 @@ import { ShowMoreButton } from "./show-more-button";
 
 // One template for the header and every row keeps the numeric columns on a
 // shared grid, sized per column from its longest figure (`--rel-cols`) so
-// seven-digit peer counts never collide. Below ~20rem of column width the
-// peer counts move to a second line instead of squeezing the ASN.
+// long peer counts and power figures never collide. Below ~20rem of column
+// width the peer counts move to a second line instead of squeezing the ASN.
 const WIDE_ROW = "@min-[20rem]:grid-cols-[var(--rel-cols)]";
 
-/** Column template for the widest v4/v6 figures; a mono digit is ~0.45rem at text-xs. */
+/**
+ * Column template for the widest v4 / v6 / power figures. A mono digit is
+ * ~0.45rem at text-xs, so half a rem per character is a safe upper bound. The
+ * power cell also holds its scale bar (2.5rem) and gap (0.5rem), and never
+ * gets narrower than the 6rem it started from.
+ */
 function relationColumns(relations: AsnRelation[], locale: Locale): CSSProperties {
-  const width = (pick: (relation: AsnRelation) => number | null | undefined) => {
-    const chars = Math.max(2, ...relations.map((r) => formatNumber(pick(r) ?? 0, locale).length));
-    return `${chars / 2}rem`;
-  };
+  const chars = (pick: (relation: AsnRelation) => number | null | undefined) =>
+    Math.max(2, ...relations.map((r) => formatNumber(pick(r) ?? 0, locale).length));
+  const power = Math.max(6, 3 + chars((r) => r.power) / 2);
   return {
-    "--rel-cols": `minmax(0,1fr) ${width((r) => r.v4Peers)} ${width((r) => r.v6Peers)} 6rem`,
+    "--rel-cols": `minmax(0,1fr) ${chars((r) => r.v4Peers) / 2}rem ${chars((r) => r.v6Peers) / 2}rem ${power}rem`,
   } as CSSProperties;
 }
 

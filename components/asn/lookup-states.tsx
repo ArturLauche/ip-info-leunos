@@ -62,14 +62,15 @@ export function ExampleAsns({
 
 /**
  * What a lookup returns, one column per detail area, built from the copy the
- * result tabs already use. It sits under the empty state so the first screen
- * explains the tool instead of leaving a blank form.
+ * result tabs already use (titles match the tabs a typical lookup shows). It
+ * sits under the empty state so the first screen explains the tool instead of
+ * leaving a blank form.
  */
 export function AsnCapabilities({ t }: { t: ToolTranslation }) {
   const items: { key: string; icon: LucideIcon; title: string; description: string }[] = [
     { key: "routing", icon: Share2, title: t.asnTabRouting, description: t.asnRoutingDescription },
     { key: "prefixes", icon: Route, title: t.asnTabPrefixes, description: t.asnPrefixesDescription },
-    { key: "peering", icon: Building2, title: t.asnTabPeering, description: t.asnPeeringDbDescription },
+    { key: "peering", icon: Building2, title: t.asnPeeringDb, description: t.asnPeeringDbDescription },
   ];
 
   return (

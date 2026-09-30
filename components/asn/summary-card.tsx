@@ -29,12 +29,14 @@ import { formatNumber, formatTemplate } from "@/lib/format";
 import { useI18n } from "@/components/i18n-provider";
 import type { Locale } from "@/lib/locale-config";
 import type { ToolTranslation } from "@/lib/tool-i18n";
+import type { UiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import {
   countryName,
   displayUrl,
   exchangesTab,
   formatCount,
+  formatPolicyValue,
   hasRoutingSource,
   ipv4EquivalentBits,
   isCompleteProfile,
@@ -79,7 +81,7 @@ interface Fact {
  * before opening any tab. PeeringDB's website stands in for the domain when
  * IPinfo is not configured, so the row is rarely empty.
  */
-function buildFacts(result: AsnProfile, t: ToolTranslation, locale: Locale): Fact[] {
+function buildFacts(result: AsnProfile, t: ToolTranslation, ui: UiCopy, locale: Locale): Fact[] {
   const facts: Fact[] = [];
 
   if (result.country) {
@@ -133,7 +135,7 @@ function buildFacts(result: AsnProfile, t: ToolTranslation, locale: Locale): Fac
     facts.push({
       key: "policy",
       label: t.asnProfilePolicyHeading,
-      value: result.peeringdb.policyGeneral,
+      value: formatPolicyValue(result.peeringdb.policyGeneral, ui),
     });
   }
   if (result.peeringdb?.traffic) {
@@ -144,9 +146,9 @@ function buildFacts(result: AsnProfile, t: ToolTranslation, locale: Locale): Fac
 }
 
 function AsnIdentity({ result, t, locale }: { result: AsnProfile; t: ToolTranslation; locale: Locale }) {
-  const { core: baseT } = useI18n();
+  const { core: baseT, ui } = useI18n();
   const { handle, organisation } = splitHolderName(result.name);
-  const facts = buildFacts(result, t, locale);
+  const facts = buildFacts(result, t, ui, locale);
 
   return (
     <div className="flex flex-col gap-4 p-5 sm:p-6">
