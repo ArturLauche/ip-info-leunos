@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Heading block for a detail section. Single-section tabs (routing, prefixes,
- * sources) already name themselves in the tab bar, so they keep the h3 for
- * the document outline but hide it visually; the peering tab stacks several
- * sections and shows each title with an optional quiet meta line.
+ * Intro line for a detail panel. Every panel is named by its tab, so the h3
+ * stays in the document outline but is hidden visually; what remains is the
+ * one-sentence description with an optional quiet meta figure (counts,
+ * provenance) aligned opposite it.
  */
 export function SectionHeading({
   id,
@@ -23,13 +23,14 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <div
-        className={cn(
-          "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5",
-          hideTitle && !meta && "sr-only",
-        )}
-      >
+    <div
+      className={cn(
+        "flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1",
+        hideTitle && !description && !meta && "sr-only",
+        className,
+      )}
+    >
+      <div className="flex min-w-0 flex-1 basis-72 flex-col gap-1">
         <h3
           id={id}
           className={cn(
@@ -39,11 +40,11 @@ export function SectionHeading({
         >
           {title}
         </h3>
-        {meta && <p className="text-xs text-muted-foreground tabular-nums">{meta}</p>}
+        {description && (
+          <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">{description}</p>
+        )}
       </div>
-      {description && (
-        <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">{description}</p>
-      )}
+      {meta && <p className="shrink-0 text-xs text-muted-foreground tabular-nums">{meta}</p>}
     </div>
   );
 }

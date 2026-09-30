@@ -2,33 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Building2, Waypoints } from "lucide-react";
+import { Waypoints } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { ToolSearchForm } from "@/components/tool-search-form";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
-import { TabsContent } from "@/components/ui/tabs";
 import { useToolLookup } from "@/hooks/use-tool-lookup";
 import { AsnValidationError, normalizeAsnInput } from "@/lib/asn-id";
 import type { AsnProfile } from "@/lib/asn";
-import { AsnDetailTabs, type DetailTab } from "./detail-tabs";
-import { FacilitySection } from "./facility-section";
-import {
-  hasSourceInfoFlag,
-  knownTotal,
-  lookupErrorMessage,
-  prefixTotal,
-  routingTotal,
-  validationErrorMessage,
-} from "./helpers";
-import { IxPresenceSection } from "./ix-presence-section";
+import { hasSourceInfoFlag, lookupErrorMessage, validationErrorMessage } from "./helpers";
 import { LoadingSkeleton } from "./loading-skeleton";
-import { ExampleAsns, LookupError, NotFoundState } from "./lookup-states";
-import { PeeringDbProfileSection } from "./peeringdb-profile-section";
-import { PrefixSection } from "./prefix-section";
-import { RoutingSection } from "./routing-section";
-import { SourceDiagnosticsSection } from "./source-diagnostics-section";
-import { AsnSummaryCard } from "./summary-card";
+import { AsnCapabilities, ExampleAsns, LookupError, NotFoundState } from "./lookup-states";
+import { AsnResultView } from "./result-view";
 
 interface AsnCheckerProps {
   initialAsn?: string;
@@ -115,23 +99,6 @@ export function AsnChecker({ initialAsn = "" }: AsnCheckerProps) {
   // lookup loads avoids the form growing and shrinking around the skeleton.
   const compact = loading || Boolean(result);
 
-  const tabs: DetailTab[] = result
-    ? [
-        { value: "routing", label: t.asnTabRouting, count: knownTotal(result, routingTotal(result)) },
-        { value: "prefixes", label: t.asnTabPrefixes, count: knownTotal(result, prefixTotal(result)) },
-        { value: "peering", label: t.asnTabPeering },
-      ]
-    : [];
-  if (result && showSourceInfo) {
-    tabs.push({
-      value: "sources",
-      label: t.asnTabSources,
-      count: result.warnings.length > 0 ? result.warnings.length : null,
-      countLabel: t.asnWarnings,
-      tone: "warning",
-    });
-  }
-
   const announcement = result
     ? result.found
       ? `${result.asn} ${result.name}`.trim()
@@ -155,7 +122,12 @@ export function AsnChecker({ initialAsn = "" }: AsnCheckerProps) {
       />
 
       {!loading && !error && !result && (
-        <EmptyState icon={Waypoints} title={t.asnEmptyTitle} description={t.asnEmptyDescription}>
+        <EmptyState
+          icon={Waypoints}
+          title={t.asnEmptyTitle}
+          description={t.asnEmptyDescription}
+          footer={<AsnCapabilities t={t} />}
+        >
           <ExampleAsns t={t} sourceInfo={showSourceInfo} />
         </EmptyState>
       )}
@@ -166,58 +138,13 @@ export function AsnChecker({ initialAsn = "" }: AsnCheckerProps) {
 
       {result && !result.found && (
         <div className="tool-reveal">
-          <NotFoundState result={result} t={t} />
+          <NotFoundState result={result} t={t} sourceInfo={showSourceInfo} />
         </div>
       )}
 
       {result && result.found && (
-        <div className="tool-reveal flex flex-col gap-4">
-          <section aria-label={`${result.asn} — ${t.asnTitle}`} className="flex flex-col">
-            <AsnSummaryCard result={result} t={t} locale={locale} />
-          </section>
-
-          <Card className="gap-0 p-0">
-            <AsnDetailTabs tabs={tabs} label={t.asnDetailNavLabel} locale={locale}>
-              <TabsContent value="routing">
-                <RoutingSection result={result} t={t} locale={locale} />
-              </TabsContent>
-
-              <TabsContent value="prefixes">
-                <PrefixSection result={result} t={t} locale={locale} />
-              </TabsContent>
-
-              <TabsContent value="peering">
-                {result.peeringdb ? (
-                  <div className="flex flex-col gap-8">
-                    <PeeringDbProfileSection profile={result.peeringdb} t={t} locale={locale} />
-                    <div className="border-t border-border/60 pt-8">
-                      <IxPresenceSection result={result} t={t} locale={locale} />
-                    </div>
-                    <div className="border-t border-border/60 pt-8">
-                      <FacilitySection
-                        facilities={result.peeringdb.facilities}
-                        total={result.peeringdb.facilitiesTotal}
-                        asnNumber={result.asnNumber}
-                        t={t}
-                        locale={locale}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/80 px-6 py-10 text-center">
-                    <Building2 className="size-5 text-muted-foreground/60" aria-hidden />
-                    <p className="max-w-sm text-sm text-muted-foreground">{t.asnWarningNoPeeringDbProfile}</p>
-                  </div>
-                )}
-              </TabsContent>
-
-              {showSourceInfo && (
-                <TabsContent value="sources">
-                  <SourceDiagnosticsSection result={result} t={t} locale={locale} />
-                </TabsContent>
-              )}
-            </AsnDetailTabs>
-          </Card>
+        <div className="tool-reveal flex flex-col gap-6">
+          <AsnResultView result={result} t={t} locale={locale} showSourceInfo={showSourceInfo} />
         </div>
       )}
 

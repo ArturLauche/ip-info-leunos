@@ -2,19 +2,26 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Mirrors the result layout piece for piece — identity block, metrics band,
-// provenance strip, then the tabbed detail card with its underline bar and
-// three routing columns — so nothing jumps when the data lands.
+// provenance strip, then the flat tab bar and three routing columns — so
+// nothing jumps when the data lands.
 export function LoadingSkeleton({ label }: { label: string }) {
   return (
-    <div className="flex flex-col gap-4" role="status" aria-busy="true">
+    <div className="flex flex-col gap-6" role="status" aria-busy="true">
       <span className="sr-only">{label}</span>
 
       <Card className="gap-0 overflow-hidden p-0" aria-hidden="true">
         <div className="flex flex-col gap-5 p-5 sm:p-6">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-3 w-28" />
-            <Skeleton className="h-[1.625rem] w-36 sm:h-[1.875rem] sm:w-40" />
-            <Skeleton className="mt-1 h-5 w-56 max-w-full sm:h-6" />
+          <div className="flex flex-col gap-2.5">
+            <Skeleton className="h-6 w-64 max-w-full sm:h-7" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="flex flex-wrap gap-x-10 gap-y-3.5 border-t border-border/60 pt-4">
+            {["w-24", "w-14", "w-16", "w-24", "w-28"].map((width, i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <Skeleton className="h-2.5 w-14" />
+                <Skeleton className={`h-4 ${width}`} />
+              </div>
+            ))}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-px border-t border-border/60 bg-border/60 md:grid-cols-4">
@@ -32,23 +39,23 @@ export function LoadingSkeleton({ label }: { label: string }) {
         </div>
       </Card>
 
-      <Card className="gap-0 p-0" aria-hidden="true">
-        <div className="grid grid-cols-3 gap-1 border-b border-border/70 px-2 sm:flex sm:gap-1 sm:px-3">
-          {["w-16", "w-20", "w-16"].map((width, i) => (
-            <div key={i} className="flex min-h-14 flex-col items-center justify-center gap-1.5 px-1.5 sm:min-h-12 sm:flex-row sm:px-3">
+      <div aria-hidden="true" className="flex flex-col">
+        <div className="flex gap-1 overflow-hidden border-b border-border">
+          {["w-14", "w-16", "w-20", "w-16", "w-24"].map((width, i) => (
+            <div key={i} className="flex min-h-11 items-center gap-2 px-3 sm:min-h-10">
               <Skeleton className={`h-3.5 ${width}`} />
-              <Skeleton className="h-3.5 w-8 rounded-full" />
+              {i < 4 && <Skeleton className="h-3 w-6" />}
             </div>
           ))}
         </div>
-        <div className="flex flex-col gap-5 p-4 sm:p-6">
+        <div className="flex flex-col gap-5 pt-5 sm:pt-6">
           <Skeleton className="h-3 w-full max-w-lg" />
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6 xl:gap-8">
             {Array.from({ length: 3 }).map((_, column) => (
               <div key={column} className="flex flex-col">
-                <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
                   <div className="flex items-center gap-2">
-                    <Skeleton className="size-6 rounded-md" />
+                    <Skeleton className="size-4 rounded-sm" />
                     <Skeleton className="h-3.5 w-20" />
                   </div>
                   <Skeleton className="h-4 w-10" />
@@ -65,7 +72,7 @@ export function LoadingSkeleton({ label }: { label: string }) {
             ))}
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

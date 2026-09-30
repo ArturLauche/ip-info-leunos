@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
+import { getLocaleDirection } from "@/lib/locale-config";
 import { cn } from "@/lib/utils";
 
 export interface DetailTab {
@@ -18,91 +19,117 @@ export interface DetailTab {
   tone?: "default" | "warning";
 }
 
+function activeTrigger(container: HTMLElement | null) {
+  return (
+    container?.querySelector<HTMLElement>('[data-slot="tabs-trigger"][data-state="active"]') ?? null
+  );
+}
+
 /**
- * Section navigation for a loaded ASN, drawn as the header of the detail
- * card. The underline indicator reuses the measured sliding model of the
- * segment chip so switching sections reads as one continuous motion; on
- * phones the triggers share the full width in an equal grid (label over
- * count) so the bar never needs to scroll.
+ * Section navigation for a loaded ASN: an underline tab bar that sits directly
+ * on the page above the panel it controls. The underline reuses the measured
+ * sliding model of the segment chip so switching sections reads as one
+ * continuous motion. Labels never truncate: when a locale's labels outgrow the
+ * width (phones) the strip scrolls and keeps the active tab in view.
+ *
+ * The measured container is the scroll *content* wrapper, so the indicator
+ * scrolls with the tabs and needs no scroll compensation.
  */
 export function AsnDetailTabs({
   tabs,
+  value,
+  onValueChange,
   label,
   locale,
+  focusRequest = 0,
   children,
 }: {
   tabs: DetailTab[];
+  value: string;
+  onValueChange: (value: string) => void;
   label: string;
   locale: Locale;
+  /** Bumped by callers that select a tab from elsewhere, to move focus to it. */
+  focusRequest?: number;
   children: ReactNode;
 }) {
-  const [tab, setTab] = useState(tabs[0]?.value ?? "");
-  const { containerRef, view, canAnimate } = useSegmentHighlight(tab);
-  const values = tabs.map((item) => item.value).join("|");
+  const { containerRef, view, canAnimate } = useSegmentHighlight(value);
+  const previousValue = useRef(value);
+  const handledFocus = useRef(focusRequest);
 
-  // Optional tabs (sources) can disappear while selected when the
-  // source-info flag is removed; fall back to the first section.
+  // Keep the selected tab visible: horizontally in the scrolling strip, and
+  // vertically when a summary shortcut selected it from further up the page.
+  // Never on first render.
   useEffect(() => {
-    const available = values.split("|");
-    setTab((current) => (available.includes(current) ? current : available[0] ?? ""));
-  }, [values]);
+    if (previousValue.current === value) return;
+    previousValue.current = value;
+    activeTrigger(containerRef.current)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [value, containerRef]);
+
+  useEffect(() => {
+    if (handledFocus.current === focusRequest) return;
+    handledFocus.current = focusRequest;
+    activeTrigger(containerRef.current)?.focus();
+  }, [focusRequest, containerRef]);
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className="gap-0">
-      <div ref={containerRef} className="relative border-b border-border/70 px-2 sm:px-3">
-        <span
-          className="tool-tab-indicator"
-          style={{
-            transform: `translate3d(${view.box.x}px, 0, 0)`,
-            width: view.box.width,
-            opacity: view.visible ? 1 : 0,
-          }}
-          data-animate={canAnimate ? "true" : undefined}
-          data-slide={view.slide ? "true" : undefined}
-          aria-hidden
-        />
-        <TabsList
-          aria-label={label}
-          className={cn(
-            "grid h-auto w-full items-stretch gap-1 rounded-none bg-transparent p-0 sm:flex sm:w-auto sm:items-center sm:justify-start",
-            tabs.length >= 4 ? "grid-cols-4" : "grid-cols-3",
-          )}
-        >
-          {tabs.map((item) => (
-            <TabsTrigger
-              key={item.value}
-              value={item.value}
-              className={cn(
-                "group my-1.5 h-auto min-h-11 min-w-0 flex-col justify-start gap-1 rounded-md sm:justify-center border-0 px-1.5 py-1.5 text-[13px] font-medium text-muted-foreground shadow-none transition-colors duration-200 ease-[var(--ease-smooth)] hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none sm:min-h-9 sm:flex-none sm:flex-row sm:gap-2 sm:px-3",
-                "data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:hover:bg-muted/70",
-                "dark:text-muted-foreground dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-foreground",
-                // Without a measured indicator (first paint, no JS) the active
-                // tab still needs a visible marker.
-                !view.visible && "data-[state=active]:underline data-[state=active]:underline-offset-8",
-              )}
-            >
-              <span className="max-w-full truncate">{item.label}</span>
-              {typeof item.count === "number" && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-0.5 rounded-full px-1.5 font-mono text-[10.5px] leading-4 font-medium tabular-nums transition-colors",
-                    item.tone === "warning"
-                      ? "bg-warning/12 text-warning"
-                      : "bg-muted text-muted-foreground group-data-[state=active]:bg-foreground/10 group-data-[state=active]:text-foreground",
-                  )}
-                >
-                  {item.tone === "warning" && <TriangleAlert className="size-2.5" aria-hidden />}
-                  {formatNumber(item.count, locale)}
-                  {item.countLabel && <span className="sr-only"> {item.countLabel}</span>}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+    // Radix defaults to LTR; follow the page so RTL locales get a mirrored
+    // strip and arrow-key order.
+    <Tabs value={value} onValueChange={onValueChange} dir={getLocaleDirection(locale)} className="gap-0">
+      <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+        <div ref={containerRef} className="relative w-max min-w-full">
+          <span
+            className="tool-tab-indicator"
+            style={{
+              bottom: 0,
+              transform: `translate3d(${view.box.x}px, 0, 0)`,
+              width: view.box.width,
+              opacity: view.visible ? 1 : 0,
+            }}
+            data-animate={canAnimate ? "true" : undefined}
+            data-slide={view.slide ? "true" : undefined}
+            aria-hidden
+          />
+          <TabsList
+            aria-label={label}
+            className="h-auto w-full min-w-max justify-start gap-1 rounded-none border-b border-border bg-transparent p-0"
+          >
+            {tabs.map((item) => (
+              <TabsTrigger
+                key={item.value}
+                value={item.value}
+                className={cn(
+                  "group h-auto min-h-11 flex-none scroll-mx-4 gap-2 rounded-none border-0 px-3 py-2 text-[13px] font-medium text-muted-foreground shadow-none transition-colors duration-200 ease-[var(--ease-smooth)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset focus-visible:outline-none sm:min-h-10",
+                  "data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none",
+                  "dark:text-muted-foreground dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-foreground",
+                  // Without a measured indicator (first paint, no JS) the
+                  // active tab still needs a visible marker.
+                  !view.visible && "data-[state=active]:underline data-[state=active]:underline-offset-8",
+                )}
+              >
+                <span className="whitespace-nowrap">{item.label}</span>
+                {typeof item.count === "number" && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 font-mono text-[11px] leading-none font-medium tabular-nums transition-colors",
+                      item.tone === "warning"
+                        ? "text-warning"
+                        : "text-muted-foreground group-data-[state=active]:text-foreground",
+                    )}
+                  >
+                    {item.tone === "warning" && <TriangleAlert className="size-3" aria-hidden />}
+                    {formatNumber(item.count, locale)}
+                    {item.countLabel && <span className="sr-only"> {item.countLabel}</span>}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </div>
       {/* Content settles in with the shared section reveal (fade + small lift
           on the soft-deceleration curve), continuous with the sliding bar. */}
-      <div key={tab} className="tool-section-reveal p-4 sm:p-6">
+      <div key={value} className="tool-section-reveal pt-5 sm:pt-6">
         {children}
       </div>
     </Tabs>

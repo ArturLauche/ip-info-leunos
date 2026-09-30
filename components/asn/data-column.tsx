@@ -33,13 +33,9 @@ export function DataColumn({
 }) {
   return (
     <section className="@container flex min-w-0 flex-col">
-      <h4 className="flex items-center justify-between gap-3 border-b border-border/70 pb-2.5">
+      <h4 className="flex items-center justify-between gap-3 border-b border-border pb-2.5">
         <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-foreground">
-          {Icon && (
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-              <Icon className="size-3.5" aria-hidden />
-            </span>
-          )}
+          {Icon && <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
           <span className={cn("min-w-0 break-words", monoTitle && "font-mono")}>{title}</span>
         </span>
         {typeof total === "number" && (

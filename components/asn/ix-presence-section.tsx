@@ -175,7 +175,13 @@ export function IxPresenceSection({
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <SectionHeading id={headingId} title={t.asnIxPresence} meta={meta} description={t.asnIxDescription} />
+      <SectionHeading
+        id={headingId}
+        title={t.asnIxPresence}
+        meta={meta}
+        description={t.asnIxDescription}
+        hideTitle
+      />
 
       {ixlan.length === 0 ? (
         <EmptyColumn text={t.asnNoIxLanRecords} />

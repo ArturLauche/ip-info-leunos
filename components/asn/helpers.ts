@@ -16,6 +16,36 @@ import type { UiCopy } from "@/lib/ui-copy";
 /** Collapsed list length shared by every ASN list and table. */
 export const ASN_ROW_LIMIT = 10;
 
+/** Detail tab ids, shared by the summary shortcuts and the tab bar. */
+export const TAB = {
+  routing: "routing",
+  prefixes: "prefixes",
+  exchanges: "exchanges",
+  facilities: "facilities",
+  profile: "profile",
+  peering: "peering",
+  sources: "sources",
+} as const;
+
+export type TabId = (typeof TAB)[keyof typeof TAB];
+
+/**
+ * PeeringDB data is split into exchanges, facilities and profile tabs; when
+ * PeeringDB has nothing to show a single "Peering" tab explains why instead
+ * of three empty ones.
+ */
+export function exchangesTab(result: AsnProfile): TabId {
+  return result.peeringdb ? TAB.exchanges : TAB.peering;
+}
+
+export function isUrl(value: string) {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
+export function displayUrl(url: string) {
+  return url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+}
+
 const SOURCE_NAMES: Record<AsnSource, string> = {
   ipinfo: "IPinfo",
   peeringdb: "PeeringDB",

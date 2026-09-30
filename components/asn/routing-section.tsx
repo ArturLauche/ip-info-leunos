@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpRight, Share2, type LucideIcon } from "lucide-react";
 import type { AsnProfile, AsnRelation } from "@/lib/asn";
 import { formatNumber, formatTemplate } from "@/lib/format";
@@ -15,9 +15,21 @@ import { SectionHeading } from "./section-heading";
 import { ShowMoreButton } from "./show-more-button";
 
 // One template for the header and every row keeps the numeric columns on a
-// shared grid. Below ~17.5rem of column width the peer counts move to a
-// second line instead of squeezing the ASN.
-const WIDE_ROW = "@min-[17.5rem]:grid-cols-[minmax(0,1fr)_3rem_3rem_5.25rem]";
+// shared grid, sized per column from its longest figure (`--rel-cols`) so
+// seven-digit peer counts never collide. Below ~20rem of column width the
+// peer counts move to a second line instead of squeezing the ASN.
+const WIDE_ROW = "@min-[20rem]:grid-cols-[var(--rel-cols)]";
+
+/** Column template for the widest v4/v6 figures; a mono digit is ~0.45rem at text-xs. */
+function relationColumns(relations: AsnRelation[], locale: Locale): CSSProperties {
+  const width = (pick: (relation: AsnRelation) => number | null | undefined) => {
+    const chars = Math.max(2, ...relations.map((r) => formatNumber(pick(r) ?? 0, locale).length));
+    return `${chars / 2}rem`;
+  };
+  return {
+    "--rel-cols": `minmax(0,1fr) ${width((r) => r.v4Peers)} ${width((r) => r.v6Peers)} 6rem`,
+  } as CSSProperties;
+}
 
 function hasValue(value: number | null | undefined): value is number {
   return value !== null && value !== undefined;
@@ -70,14 +82,14 @@ function RelationRow({
 
         {showMetrics && (
           <>
-            <span className="hidden text-end font-mono text-xs text-muted-foreground tabular-nums @min-[17.5rem]:block">
+            <span className="hidden text-end font-mono text-xs text-muted-foreground tabular-nums @min-[20rem]:block">
               {v4 ?? "—"}
             </span>
-            <span className="hidden text-end font-mono text-xs text-muted-foreground tabular-nums @min-[17.5rem]:block">
+            <span className="hidden text-end font-mono text-xs text-muted-foreground tabular-nums @min-[20rem]:block">
               {v6 ?? "—"}
             </span>
             <span className="flex items-center justify-end gap-2">
-              {power && <ScaleBar pct={relativeShare(relation.power, maxPower, 6)} className="w-7" />}
+              {power && <ScaleBar pct={relativeShare(relation.power, maxPower, 6)} className="w-10" />}
               <span
                 className={cn(
                   "min-w-[2.75rem] text-end font-mono text-xs tabular-nums",
@@ -88,7 +100,7 @@ function RelationRow({
               </span>
             </span>
             {(v4 || v6) && (
-              <span className="col-span-2 font-mono text-[11px] text-muted-foreground tabular-nums @min-[17.5rem]:hidden">
+              <span className="col-span-2 font-mono text-[11px] text-muted-foreground tabular-nums @min-[20rem]:hidden">
                 {[v4 && `v4 ${v4}`, v6 && `v6 ${v6}`].filter(Boolean).join(" · ")}
               </span>
             )}
@@ -123,6 +135,9 @@ function RelationColumn({
   const showMetrics = relations.some(
     (r) => hasValue(r.power) || hasValue(r.v4Peers) || hasValue(r.v6Peers),
   );
+  // Sized over every relation, not only the visible ones, so expanding the
+  // list never shifts the columns.
+  const columns = useMemo(() => relationColumns(relations, locale), [relations, locale]);
 
   return (
     <DataColumn
@@ -148,22 +163,23 @@ function RelationColumn({
           {showMetrics && (
             <div
               aria-hidden
+              style={columns}
               className={cn(
                 "grid grid-cols-[minmax(0,1fr)_auto] gap-x-2.5 pt-2.5 pb-1 text-[10.5px] font-medium tracking-wider text-muted-foreground/80 uppercase",
                 WIDE_ROW,
               )}
             >
               <span>ASN</span>
-              <span className="hidden text-end @min-[17.5rem]:block" title={t.asnRelationV4Peers}>
+              <span className="hidden text-end @min-[20rem]:block" title={t.asnRelationV4Peers}>
                 v4
               </span>
-              <span className="hidden text-end @min-[17.5rem]:block" title={t.asnRelationV6Peers}>
+              <span className="hidden text-end @min-[20rem]:block" title={t.asnRelationV6Peers}>
                 v6
               </span>
               <span className="text-end">{t.asnRelationPower}</span>
             </div>
           )}
-          <ul id={listId} className={cn("flex flex-col", !showMetrics && "pt-1.5")}>
+          <ul id={listId} style={columns} className={cn("flex flex-col", !showMetrics && "pt-1.5")}>
             {visible.map((relation) => (
               <RelationRow
                 key={relation.asn}

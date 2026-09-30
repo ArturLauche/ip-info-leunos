@@ -9,16 +9,8 @@ import type { ToolTranslation } from "@/lib/tool-i18n";
 import type { UiCopy } from "@/lib/ui-copy";
 import { cn } from "@/lib/utils";
 import { ExternalLink } from "./external-link";
-import { formatCount, peeringDbUrl } from "./helpers";
+import { displayUrl, isUrl, peeringDbUrl } from "./helpers";
 import { SectionHeading } from "./section-heading";
-
-function displayUrl(url: string) {
-  return url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
-}
-
-function isUrl(value: string) {
-  return value.startsWith("http://") || value.startsWith("https://");
-}
 
 interface ProfileField {
   label: string;
@@ -31,14 +23,14 @@ function ProfileGroup({ heading, fields }: { heading: string; fields: ProfileFie
 
   return (
     <div className="flex min-w-0 flex-col">
-      <h4 className="pb-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+      <h4 className="pb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
         {heading}
       </h4>
-      <dl className="flex flex-col border-t border-border/70">
+      <dl className="flex flex-col border-t border-border">
         {visible.map((field) => (
           <div
             key={field.label}
-            className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] items-baseline gap-3 border-b border-border/50 py-2 last:border-b-0 sm:grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] sm:gap-4"
+            className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] items-baseline gap-3 border-b border-border/50 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)] sm:gap-4"
           >
             <dt className="text-xs text-muted-foreground">{field.label}</dt>
             <dd className="min-w-0 text-sm font-medium break-words text-foreground tabular-nums">
@@ -73,7 +65,7 @@ function formatPolicyValue(
   const trimmed = value.trim();
   const normalized = trimmed.toLowerCase();
   if (normalized === "required" || normalized.startsWith("required ")) {
-    const suffix = trimmed.slice("required".length).trim();
+    const suffix = policySuffix(trimmed, "required");
     return suffix ? `${copy.asnPolicyRequired} – ${suffix}` : copy.asnPolicyRequired;
   }
   if (
@@ -81,72 +73,22 @@ function formatPolicyValue(
     normalized === "not_required" ||
     normalized.startsWith("not required ")
   ) {
-    const suffix = trimmed.slice("not required".length).trim();
+    const suffix = policySuffix(trimmed, "not required");
     return suffix ? `${copy.asnPolicyNotRequired} – ${suffix}` : copy.asnPolicyNotRequired;
   }
   return value;
 }
 
-/**
- * At-a-glance interconnection footprint: how many exchanges and facilities,
- * how open the network is to peering, and how much traffic it declares.
- */
-function InterconnectionOverview({
-  profile,
-  t,
-  locale,
-}: {
-  profile: PeeringDbProfile;
-  t: ToolTranslation;
-  locale: Locale;
-}) {
-  const { ui } = useI18n();
-  // Country spread is only honest when the facility list is complete.
-  const facilityCountries =
-    profile.facilities.length > 0 && profile.facilities.length >= profile.facilitiesTotal
-      ? new Set(profile.facilities.map((facility) => facility.country).filter(Boolean)).size
-      : 0;
-
-  const stats: { key: string; label: string; value: ReactNode; detail?: string; numeric?: boolean }[] = [
-    {
-      key: "exchanges",
-      label: t.asnLabelExchanges,
-      value: formatNumber(profile.ixCount || 0, locale),
-      detail: profile.ixlanTotal > 0 ? formatCount(t.asnConnectionCount, profile.ixlanTotal, locale) : undefined,
-      numeric: true,
-    },
-    {
-      key: "facilities",
-      label: t.asnLabelFacilities,
-      value: formatNumber(profile.facilityCount || 0, locale),
-      detail: facilityCountries > 0 ? formatCount(t.asnCountryCount, facilityCountries, locale) : undefined,
-      numeric: true,
-    },
-    { key: "policy", label: t.asnLabelPolicy, value: formatPolicyValue(profile.policyGeneral, ui) || null },
-    { key: "traffic", label: t.asnLabelTraffic, value: profile.traffic || null },
-  ];
-
-  return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-5 lg:grid-cols-4">
-      {stats.map((stat) => (
-        <div key={stat.key} className="flex min-w-0 flex-col gap-1 border-s-2 border-border ps-3">
-          <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{stat.label}</dt>
-          <dd
-            className={cn(
-              "text-lg leading-tight font-semibold tracking-tight break-words",
-              stat.numeric && "tabular-nums",
-              stat.value === null ? "font-normal text-muted-foreground/60" : "text-foreground",
-            )}
-          >
-            {stat.value ?? "—"}
-          </dd>
-          {stat.detail && <dd className="text-[11px] text-muted-foreground tabular-nums">{stat.detail}</dd>}
-        </div>
-      ))}
-    </dl>
-  );
+/** Free text after the closed answer, minus the separator PeeringDB writes ("Required - EU"). */
+function policySuffix(value: string, answer: string) {
+  return value.slice(answer.length).replace(/^[\s\-–—:]+/, "");
 }
 
+/**
+ * The PeeringDB record as a spec sheet. The overview card already carries the
+ * headline policy and traffic facts, so this is the complete, grouped detail
+ * behind them; groups and rows without a value are not rendered.
+ */
 export function PeeringDbProfileSection({
   profile,
   t,
@@ -160,8 +102,6 @@ export function PeeringDbProfileSection({
   const { ui } = useI18n();
   const recordUrl = peeringDbUrl("net", profile.netId);
 
-  // Headline facts (policy, traffic, counts) live in the overview above, so
-  // the groups only carry the supporting detail.
   const groups: { heading: string; fields: ProfileField[] }[] = [
     {
       heading: t.asnProfileIdentityHeading,
@@ -202,6 +142,7 @@ export function PeeringDbProfileSection({
     {
       heading: t.asnProfilePolicyHeading,
       fields: [
+        { label: t.asnLabelPolicyGeneral, value: formatPolicyValue(profile.policyGeneral, ui) },
         { label: t.asnLabelPolicyLocations, value: formatPolicyValue(profile.policyLocations, ui) },
         { label: t.asnLabelPolicyRatio, value: formatPolicyValue(profile.policyRatio, ui) },
         { label: t.asnLabelPolicyContracts, value: formatPolicyValue(profile.policyContracts, ui) },
@@ -210,6 +151,7 @@ export function PeeringDbProfileSection({
     {
       heading: t.asnProfileInterconnectionHeading,
       fields: [
+        { label: t.asnLabelTraffic, value: profile.traffic },
         { label: t.asnProfilePrefixes4, value: numberField(profile.infoPrefixes4, locale) },
         { label: t.asnProfilePrefixes6, value: numberField(profile.infoPrefixes6, locale) },
       ],
@@ -226,11 +168,14 @@ export function PeeringDbProfileSection({
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-6">
-      <SectionHeading id={headingId} title={t.asnPeeringDb} description={t.asnPeeringDbDescription} />
+      <SectionHeading
+        id={headingId}
+        title={t.asnPeeringDb}
+        description={t.asnPeeringDbDescription}
+        hideTitle
+      />
 
-      <InterconnectionOverview profile={profile} t={t} locale={locale} />
-
-      <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2">
         {groups.map((group) => (
           <ProfileGroup key={group.heading} heading={group.heading} fields={group.fields} />
         ))}

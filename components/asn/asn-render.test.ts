@@ -1,4 +1,5 @@
 import { createElement, type ReactElement } from "react";
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { withI18n } from "@/components/i18n-test-utils";
@@ -8,20 +9,26 @@ import { ExternalLink } from "./external-link";
 import { FacilitySection } from "./facility-section";
 import {
   countryName,
+  displayUrl,
+  exchangesTab,
   formatCount,
   formatSpeed,
   ipv4EquivalentBits,
+  isUrl,
   knownTotal,
   peeringDbUrl,
   registryName,
   splitHolderName,
   splitIxName,
 } from "./helpers";
+import { AsnDetailTabs } from "./detail-tabs";
 import { IxPresenceSection } from "./ix-presence-section";
 import { LoadingSkeleton } from "./loading-skeleton";
-import { ExampleAsns, LookupError, NotFoundState } from "./lookup-states";
+import { AsnCapabilities, ExampleAsns, LookupError, NotFoundState } from "./lookup-states";
+import { PeeringUnavailable } from "./peering-unavailable";
 import { PeeringDbProfileSection } from "./peeringdb-profile-section";
 import { PrefixSection } from "./prefix-section";
+import { AsnResultView, buildDetailTabs } from "./result-view";
 import { RoutingSection } from "./routing-section";
 import { SourceDiagnosticsSection } from "./source-diagnostics-section";
 import { AsnSummaryCard } from "./summary-card";
@@ -132,7 +139,7 @@ const sparse = createProfile({
 });
 
 describe("AsnSummaryCard", () => {
-  it("leads with the ASN identity, then name, geography and domain", () => {
+  it("leads with the organisation and ASN, then geography, domain and the metrics", () => {
     const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: createProfile(), t, locale: "en" }));
 
     expect(html).toContain("AS8881");
@@ -140,7 +147,9 @@ describe("AsnSummaryCard", () => {
     expect(html).toContain("/api/flag/de");
     expect(html).toContain("Mar 4, 1999");
     expect(html).toContain('href="https://versatel.de"');
-    // Identity precedes the metrics band in document order.
+    // The organisation names the network, its ASN follows, and identity
+    // precedes the metrics band in document order.
+    expect(html.indexOf("VERSATEL 1&amp;1 Versatel GmbH")).toBeLessThan(html.indexOf("AS8881"));
     expect(html.indexOf("AS8881")).toBeLessThan(html.indexOf("1,048,576"));
   });
 
@@ -212,6 +221,41 @@ describe("AsnSummaryCard", () => {
     );
 
     expect(html.indexOf("Cloudflare, Inc.")).toBeLessThan(html.indexOf("CLOUDFLARENET<"));
+  });
+
+  it("turns each headline figure into a shortcut only when a navigator is given", () => {
+    const buttons = (html: string) => html.match(/<button/g)?.length ?? 0;
+    const passive = renderToStaticMarkup(createElement(AsnSummaryCard, { result: createProfile(), t, locale: "en" }));
+    const interactive = renderToStaticMarkup(
+      createElement(AsnSummaryCard, { result: createProfile(), t, locale: "en", onNavigate: () => {} }),
+    );
+
+    // The copy button is the only control without a navigator; each of the
+    // four figures adds one with it.
+    expect(buttons(passive)).toBe(1);
+    expect(buttons(interactive)).toBe(5);
+  });
+
+  it("surfaces the PeeringDB policy and traffic, with the website standing in for a missing domain", () => {
+    const html = renderToStaticMarkup(
+      createElement(AsnSummaryCard, { result: createProfile({ domain: "" }), t, locale: "en" }),
+    );
+
+    expect(html).toContain("Peering policy");
+    expect(html).toContain("Selective");
+    expect(html).toContain("5-10Tbps");
+    expect(html).toContain("Website");
+    expect(html).toContain('href="https://www.1und1.net/"');
+    expect(html).not.toContain(">Domain<");
+  });
+
+  it("never links a website that is not http(s)", () => {
+    const profile = createProfile({ domain: "" });
+    profile.peeringdb!.website = "javascript:alert(1)";
+    const html = renderToStaticMarkup(createElement(AsnSummaryCard, { result: profile, t, locale: "en" }));
+
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("Website");
   });
 });
 
@@ -315,17 +359,27 @@ describe("PeeringDbProfileSection", () => {
     expect(html).toContain('href="https://www.peeringdb.com/net/684"');
   });
 
-  it("opens with an interconnection overview of the headline facts", () => {
+  it("lists the general policy and declared traffic as profile rows", () => {
     const html = renderToStaticMarkup(
       createElement(PeeringDbProfileSection, { profile: createProfile().peeringdb!, t, locale: "en" }),
     );
 
-    expect(html).toContain("Exchanges");
-    expect(html).toContain("14 connections");
     expect(html).toContain("Selective");
     expect(html).toContain("5-10Tbps");
-    // Country spread is withheld while the facility list is truncated (1 of 13).
-    expect(html).not.toContain("in 1 country");
+    // Exchange and facility counts belong to their own tabs, not the profile.
+    expect(html).not.toContain("Exchanges");
+    expect(html).not.toContain("connections");
+  });
+
+  it("keeps the free text after a closed policy answer without doubling the separator", () => {
+    const html = renderToStaticMarkup(
+      createElement(PeeringDbProfileSection, { profile: createProfile().peeringdb!, t, locale: "en" }),
+    );
+
+    // PeeringDB writes "Required - EU"; the answer is translated and the
+    // separator normalised.
+    expect(html).toContain("Required – EU");
+    expect(html).not.toContain("– -");
   });
 
   it("hides fields and groups without values", () => {
@@ -358,9 +412,8 @@ describe("PeeringDbProfileSection", () => {
     expect(html).not.toContain("Peering policy");
     expect(html).not.toContain("External profiles");
     expect(html).not.toContain("Interconnection details");
-    // The overview still answers "how interconnected" with real zeroes.
-    expect(html).toContain("Exchanges");
-    expect(html).toContain(">0<");
+    // No group means no empty definition lists either.
+    expect(html).not.toContain("<dl");
   });
 });
 
@@ -436,6 +489,25 @@ describe("FacilitySection", () => {
     expect(html).not.toContain('href="/asn/AS8881"');
     expect(html).toContain('title="Same as this ASN"');
   });
+
+  it("summarises country spread only when the facility list is complete", () => {
+    const facility = (id: number, city: string, country: string) => ({
+      id,
+      facilityId: id,
+      name: `Site ${id}`,
+      city,
+      country,
+      localAsn: 8881,
+      status: "ok",
+    });
+    const facilities = [facility(1, "Frankfurt", "DE"), facility(2, "Berlin", "DE"), facility(3, "Paris", "FR")];
+    const complete = renderToStaticMarkup(createElement(FacilitySection, { facilities, total: 3, t, locale: "en" }));
+    const truncated = renderToStaticMarkup(createElement(FacilitySection, { facilities, total: 13, t, locale: "en" }));
+
+    expect(complete).toContain("3 facilities in 2 countries");
+    expect(truncated).toContain("13 facilities");
+    expect(truncated).not.toContain("countries");
+  });
 });
 
 describe("SourceDiagnosticsSection", () => {
@@ -463,6 +535,13 @@ describe("lookup states", () => {
     expect(html).toContain("AS64512");
     expect(html).toContain("No ASN profile found");
     expect(html).toContain("RIPEstat");
+    // A dead end offers known-good ASNs, keeping the source-info flag.
+    expect(html).toContain('href="/asn/AS13335"');
+    expect(
+      renderToStaticMarkup(
+        createElement(NotFoundState, { result: createProfile({ ...sparse, found: false }), t, sourceInfo: true }),
+      ),
+    ).toContain('href="/asn/AS13335?source-info=1"');
   });
 
   it("keeps the source-info flag on example links", () => {
@@ -470,6 +549,29 @@ describe("lookup states", () => {
     expect(renderToStaticMarkup(createElement(ExampleAsns, { t, sourceInfo: true }))).toContain(
       'href="/asn/AS13335?source-info=1"',
     );
+  });
+
+  it("names each example network next to its ASN", () => {
+    const html = renderToStaticMarkup(createElement(ExampleAsns, { t }));
+
+    expect(html).toContain("Cloudflare");
+    expect(html).toContain("Google");
+    expect(html).toContain("Deutsche Telekom");
+  });
+
+  it("previews the three detail areas with the copy their tabs use", () => {
+    const html = renderToStaticMarkup(createElement(AsnCapabilities, { t }));
+
+    for (const copy of [
+      t.asnTabRouting,
+      t.asnRoutingDescription,
+      t.asnTabPrefixes,
+      t.asnPrefixesDescription,
+      t.asnTabPeering,
+      t.asnPeeringDbDescription,
+    ]) {
+      expect(html).toContain(copy);
+    }
   });
 
   it("offers a retry only when one is provided", () => {
@@ -543,17 +645,171 @@ describe("ASN presentation helpers", () => {
     expect(formatCount(t.asnFacilityCount, 1, "en")).toBe("1 facility");
     expect(formatCount(t.asnFacilityCount, 1200, "en")).toBe("1,200 facilities");
   });
+
+  it("classifies and shortens outbound URLs", () => {
+    expect(isUrl("https://example.com")).toBe(true);
+    expect(isUrl("javascript:alert(1)")).toBe(false);
+    expect(displayUrl("https://www.example.com/")).toBe("example.com");
+    expect(displayUrl("http://lg.example.net/path/")).toBe("lg.example.net/path");
+  });
+
+  it("sends the exchange figure to its own tab, or to the single peering tab", () => {
+    expect(exchangesTab(createProfile())).toBe("exchanges");
+    expect(exchangesTab(sparse)).toBe("peering");
+  });
 });
 
 describe("LoadingSkeleton", () => {
-  it("mirrors the summary card and tabbed detail card shape", () => {
+  it("mirrors the summary card, the flat tab bar and the routing columns", () => {
     const html = renderToStaticMarkup(createElement(LoadingSkeleton, { label: "Looking up" }));
 
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-busy="true"');
     expect(html).toContain("Looking up");
-    // Two cards: summary (identity + metrics band) and the tabbed detail card.
-    expect(html.match(/data-slot="card"/g)?.length).toBe(2);
+    // One card for the summary; the tab bar and panel sit flat on the page.
+    expect(html.match(/data-slot="card"/g)?.length).toBe(1);
     expect(html).toContain("md:grid-cols-4");
+    expect(html).toContain("md:grid-cols-3");
+  });
+});
+
+describe("AsnDetailTabs", () => {
+  const tabs = [
+    { value: "routing", label: "Routing", count: 2512 },
+    { value: "prefixes", label: "Prefixes", count: 0 },
+    { value: "peering", label: "Peering" },
+    { value: "sources", label: "Sources", count: 3, countLabel: "warnings", tone: "warning" as const },
+  ];
+  type TabsProps = ComponentProps<typeof AsnDetailTabs>;
+  const render = (value: string) => {
+    const props: Omit<TabsProps, "children"> = {
+      tabs,
+      value,
+      onValueChange: () => {},
+      label: "ASN details",
+      locale: "en",
+    };
+    // Children go in as the trailing argument, as React expects.
+    return renderToStaticMarkup(createElement(AsnDetailTabs, props as TabsProps, "panel body"));
+  };
+
+  it("renders a labelled tablist with one tab per section and formatted counts", () => {
+    const html = render("prefixes");
+
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('aria-label="ASN details"');
+    expect(html.match(/role="tab"/g)?.length).toBe(4);
+    expect(html).toContain("2,512");
+    // A real zero is shown; a tab without a count shows none.
+    expect(html).toContain(">0<");
+    expect(html).toContain("panel body");
+  });
+
+  it("marks exactly the selected tab and tones the warning count", () => {
+    const html = render("peering");
+
+    expect(html.match(/aria-selected="true"/g)?.length).toBe(1);
+    expect(html).toMatch(/aria-selected="true"[^>]*data-state="active"[^>]*>[^<]*<span[^>]*>Peering/);
+    expect(html).toContain("text-warning");
+    // The bare number is ambiguous, so it carries a screen-reader noun.
+    expect(html).toContain("warnings</span>");
+  });
+});
+
+describe("buildDetailTabs", () => {
+  it("splits PeeringDB into exchanges, facilities and profile when it has a record", () => {
+    const tabs = buildDetailTabs(createProfile(), t, false);
+
+    expect(tabs.map((tab) => tab.value)).toEqual(["routing", "prefixes", "exchanges", "facilities", "profile"]);
+    expect(tabs.find((tab) => tab.value === "exchanges")?.count).toBe(7);
+    expect(tabs.find((tab) => tab.value === "facilities")?.count).toBe(13);
+  });
+
+  it("collapses to one explanatory peering tab without a PeeringDB record", () => {
+    expect(buildDetailTabs(sparse, t, false).map((tab) => tab.value)).toEqual(["routing", "prefixes", "peering"]);
+  });
+
+  it("adds the sources tab, with the warning count, only behind the source-info flag", () => {
+    const warned = createProfile({ warnings: ["a", "b"] });
+
+    expect(buildDetailTabs(warned, t, true).at(-1)).toMatchObject({ value: "sources", count: 2, tone: "warning" });
+    expect(buildDetailTabs(warned, t, false).some((tab) => tab.value === "sources")).toBe(false);
+    expect(buildDetailTabs(createProfile(), t, true).at(-1)?.count).toBeNull();
+  });
+
+  it("reports unknown routing totals as no count rather than zero", () => {
+    const offline = createProfile({
+      ...sparse,
+      sources: { ipinfo: "not_configured", peeringdb: "available", ripestat: "error" },
+    });
+
+    expect(buildDetailTabs(offline, t, false)[0].count).toBeNull();
+    expect(buildDetailTabs(offline, t, false)[1].count).toBeNull();
+  });
+});
+
+describe("AsnResultView", () => {
+  it("opens on routing with the overview and only the selected panel mounted", () => {
+    const html = renderToStaticMarkup(
+      createElement(AsnResultView, { result: createProfile(), t, locale: "en", showSourceInfo: false }),
+    );
+
+    expect(html).toContain('aria-label="AS8881 — ASN Information"');
+    expect(html.match(/role="tab"/g)?.length).toBe(5);
+    expect(html).toContain("Power and peer counts observed via RIPEstat RIS.");
+    // The prefix, exchange and profile panels are not mounted until selected.
+    expect(html).not.toContain("2 of 566 listed");
+    expect(html).not.toContain("BCIX Peering LAN");
+  });
+
+  it("adds a sources tab behind the flag without changing the default panel", () => {
+    const html = renderToStaticMarkup(
+      createElement(AsnResultView, { result: createProfile(), t, locale: "en", showSourceInfo: true }),
+    );
+
+    expect(html.match(/role="tab"/g)?.length).toBe(6);
+    expect(html).toContain("Power and peer counts observed via RIPEstat RIS.");
+  });
+});
+
+describe("PeeringUnavailable", () => {
+  it("reports a provider failure from the structured warning, not raw provider text", () => {
+    const failed = createProfile({
+      ...sparse,
+      sources: { ipinfo: "not_configured", peeringdb: "error", ripestat: "available" },
+      warnings: ["PeeringDB returned HTTP 429."],
+      warningDetails: [
+        { code: "provider_http", provider: "PeeringDB", status: 429 },
+        { code: "truncated", label: "RIPEstat IPv4 prefixes", limit: 100, total: 566 },
+      ],
+    });
+    const html = renderToStaticMarkup(createElement(PeeringUnavailable, { result: failed, t, locale: "en" }));
+
+    expect(html).toContain("PeeringDB returned HTTP 429.");
+    // A failure never claims the record does not exist.
+    expect(html).not.toContain(t.asnWarningNoPeeringDbProfile);
+    // Only PeeringDB's own warnings belong on this tab.
+    expect(html).not.toContain("truncated");
+    expect(html).toContain("text-warning");
+  });
+
+  it("falls back to a generic outage message when a failed provider gave no warning", () => {
+    const failed = createProfile({
+      ...sparse,
+      sources: { ipinfo: "not_configured", peeringdb: "unavailable", ripestat: "available" },
+      warningDetails: [],
+    });
+    const html = renderToStaticMarkup(createElement(PeeringUnavailable, { result: failed, t, locale: "en" }));
+
+    expect(html).toContain("PeeringDB data is currently unavailable.");
+    expect(html).not.toContain(t.asnWarningNoPeeringDbProfile);
+  });
+
+  it("says only that there is no profile when PeeringDB answered without a record", () => {
+    const html = renderToStaticMarkup(createElement(PeeringUnavailable, { result: sparse, t, locale: "en" }));
+
+    expect(html).toContain(t.asnWarningNoPeeringDbProfile);
+    expect(html).not.toContain("<ul");
+    expect(html).not.toContain("text-warning");
   });
 });

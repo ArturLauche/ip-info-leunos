@@ -92,6 +92,20 @@ export function FacilitySection({
   const tableId = useId();
   const listId = useId();
   const listedTotal = Math.max(total, facilities.length);
+  // Country spread is only honest when the facility list is complete.
+  const countries =
+    facilities.length > 0 && facilities.length >= listedTotal
+      ? new Set(facilities.map((facility) => facility.country).filter(Boolean)).size
+      : 0;
+  const meta =
+    listedTotal > 0
+      ? [
+          formatCount(t.asnFacilityCount, listedTotal, locale),
+          countries > 0 ? formatCount(t.asnCountryCount, countries, locale) : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : undefined;
   const [expanded, setExpanded] = useState(false);
   const [sort, setSort] = useState<SortState<FacilitySortKey>>({ key: null, direction: null });
 
@@ -118,8 +132,9 @@ export function FacilitySection({
       <SectionHeading
         id={headingId}
         title={t.asnFacilities}
-        meta={listedTotal > 0 ? formatCount(t.asnFacilityCount, listedTotal, locale) : undefined}
+        meta={meta}
         description={t.asnFacilitiesDescription}
+        hideTitle
       />
 
       {facilities.length === 0 ? (

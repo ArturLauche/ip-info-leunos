@@ -8,10 +8,10 @@ export function ScaleBar({ pct, className }: { pct: number; className?: string }
   return (
     <span
       aria-hidden
-      className={cn("block h-1 shrink-0 overflow-hidden rounded-full bg-foreground/10", className)}
+      className={cn("block h-1.5 shrink-0 overflow-hidden rounded-full bg-foreground/10", className)}
     >
       <span
-        className="block h-full rounded-full bg-foreground/55"
+        className="block h-full rounded-full bg-foreground/60"
         style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
       />
     </span>

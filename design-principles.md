@@ -141,11 +141,20 @@ Rules:
   `bg-muted/30` tint when a panel needs a titled header (see `ResultPanel`).
 - **Tables** (`components/ui/table.tsx`) for tabular data on desktop; on mobile,
   collapse wide tables into stacked cards (see the ASN IX / facility sections).
+- **Detail tabs** for a result with several distinct lenses (see the ASN page):
+  a flat underline tab bar sits directly on the page above the panel it
+  controls — no card wrapper. Counts are quiet mono numbers beside the label,
+  the strip scrolls sideways instead of truncating labels, and it follows the
+  page direction. Headline figures in the summary card are shortcuts to their
+  tab, so the summary and the detail read as one object.
+- **Size columns from their data.** Numeric columns in lists take the width of
+  their longest figure (mono), so real-world values never collide.
 - **Forms:** every input has a `Label`; use `Select`, `Switch`, `Tabs`, and
   `ToggleGroup` instead of bespoke controls. Inputs are full-width within their
   grid cell.
 - Shared building blocks: `ToolSearchForm`, `ResultPanel`, `ErrorPanel`,
-  `EmptyState`, and `components/asn/show-more-button.tsx`.
+  `EmptyState` (with an optional `footer` band, e.g. a preview of what a lookup
+  returns), and `components/asn/show-more-button.tsx`.
 
 ---
 
@@ -170,7 +179,8 @@ Every data view designs for four states explicitly:
 - **Loading:** `Skeleton` placeholders that mirror the real layout — never a
   bare spinner for whole-page loads. Inline actions show a spinner + label.
 - **Empty:** a centred `Card` with the `bg-grid` texture, an icon tile, a title,
-  and a one-line hint (see the ASN and reputation empty states).
+  and a one-line hint; add example queries and, when it helps, a `footer` that
+  previews what a lookup returns (see the ASN and reputation empty states).
 - **Error:** `ErrorPanel` (an `Alert` with the `destructive` variant). Messages
   are resolved from API **error codes** via i18n — never from raw English
   strings.
