@@ -46,6 +46,10 @@ export function displayUrl(url: string) {
   return url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
 }
 
+// The answer and the separator before any free text are matched together, so
+// what is recognised and what is stripped can never drift apart.
+const CLOSED_POLICY = /^(required|not[\s_-]+required)(?:[\s\-–—:]+(.*))?$/i;
+
 /**
  * PeeringDB stores policy answers as English prose ("Required", "Not required").
  * Map the two closed answers to translated wording and keep any free-text
@@ -57,26 +61,11 @@ export function formatPolicyValue(
   copy: UiCopy,
 ): string | number | null | undefined {
   if (typeof value !== "string") return value;
-  const trimmed = value.trim();
-  const normalized = trimmed.toLowerCase();
-  if (normalized === "required" || normalized.startsWith("required ")) {
-    const suffix = policySuffix(trimmed, "required");
-    return suffix ? `${copy.asnPolicyRequired} – ${suffix}` : copy.asnPolicyRequired;
-  }
-  if (
-    normalized === "not required" ||
-    normalized === "not_required" ||
-    normalized.startsWith("not required ")
-  ) {
-    const suffix = policySuffix(trimmed, "not required");
-    return suffix ? `${copy.asnPolicyNotRequired} – ${suffix}` : copy.asnPolicyNotRequired;
-  }
-  return value;
-}
-
-/** Free text after the closed answer, minus the separator PeeringDB writes ("Required - EU"). */
-function policySuffix(value: string, answer: string) {
-  return value.slice(answer.length).replace(/^[\s\-–—:]+/, "");
+  const match = CLOSED_POLICY.exec(value.trim());
+  if (!match) return value;
+  const label = match[1].toLowerCase().startsWith("not") ? copy.asnPolicyNotRequired : copy.asnPolicyRequired;
+  const suffix = match[2]?.trim();
+  return suffix ? `${label} – ${suffix}` : label;
 }
 
 const SOURCE_NAMES: Record<AsnSource, string> = {

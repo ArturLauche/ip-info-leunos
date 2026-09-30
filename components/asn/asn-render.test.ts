@@ -611,12 +611,23 @@ describe("lookup states", () => {
   });
 
   it("only advertises tabs a PeeringDB-backed lookup actually shows", () => {
-    const labels = buildDetailTabs(createProfile(), t, false).map((tab) => tab.label);
+    // The tabs a normal, PeeringDB-backed lookup renders are the source of truth.
+    const tabLabels = buildDetailTabs(createProfile(), t, false).map((tab) => tab.label);
+    expect(tabLabels).toEqual([
+      t.asnTabRouting,
+      t.asnTabPrefixes,
+      t.asnLabelExchanges,
+      t.asnLabelFacilities,
+      t.asnPeeringDb,
+    ]);
 
-    for (const title of [t.asnTabRouting, t.asnTabPrefixes, t.asnPeeringDb]) {
-      expect(labels).toContain(title);
-      expect(renderToStaticMarkup(createElement(AsnCapabilities, { t }))).toContain(title);
-    }
+    // Read the preview's own headings, so an extra or stale title fails here
+    // instead of passing because the expected three happen to be present.
+    const advertised = [
+      ...renderToStaticMarkup(createElement(AsnCapabilities, { t })).matchAll(/<h3[^>]*>([^<]*)<\/h3>/g),
+    ].map((match) => match[1]);
+    expect(advertised).toEqual([t.asnTabRouting, t.asnTabPrefixes, t.asnPeeringDb]);
+    for (const title of advertised) expect(tabLabels).toContain(title);
   });
 
   it("offers a retry only when one is provided", () => {
@@ -702,14 +713,36 @@ describe("ASN presentation helpers", () => {
     const en = getI18nDictionaries("en").ui;
     const de = getI18nDictionaries("de").ui;
 
+    // Values PeeringDB returned in live lookups (AS3320, AS15169, AS8881).
+    expect(formatPolicyValue("Required - International", en)).toBe("Required – International");
     expect(formatPolicyValue("Required - EU", en)).toBe("Required – EU");
     expect(formatPolicyValue("Required", en)).toBe(en.asnPolicyRequired);
+    expect(formatPolicyValue("Not required", en)).toBe(en.asnPolicyNotRequired);
     expect(formatPolicyValue("Not Required", de)).toBe(de.asnPolicyNotRequired);
     expect(formatPolicyValue("not_required", en)).toBe(en.asnPolicyNotRequired);
-    // Open-ended answers and missing values pass through untouched.
-    expect(formatPolicyValue("Selective", en)).toBe("Selective");
     expect(formatPolicyValue(null, en)).toBeNull();
     expect(formatPolicyValue(undefined, en)).toBeUndefined();
+  });
+
+  it("recognises the answer whatever separator precedes the free text", () => {
+    const en = getI18nDictionaries("en").ui;
+    const de = getI18nDictionaries("de").ui;
+
+    for (const value of ["Required: EU", "Required-EU", "Required – EU", "Required — EU", "required  -  EU", "  Required - EU  "]) {
+      expect(formatPolicyValue(value, en), value).toBe("Required – EU");
+    }
+    expect(formatPolicyValue("not_required - EU", en)).toBe("Not required – EU");
+    expect(formatPolicyValue("Not-Required", de)).toBe(de.asnPolicyNotRequired);
+    // Free text that merely follows a space still counts as a suffix.
+    expect(formatPolicyValue("Required for transit", en)).toBe("Required – for transit");
+  });
+
+  it("leaves open-ended answers and near misses exactly as PeeringDB wrote them", () => {
+    const en = getI18nDictionaries("en").ui;
+
+    for (const value of ["Selective", "Restrictive", "Preferred", "Private Only", "Requires a contract", "Requirements: none", "Required.", "Requiredx"]) {
+      expect(formatPolicyValue(value, en), value).toBe(value);
+    }
   });
 
   it("sends the exchange figure to its own tab, or to the single peering tab", () => {
