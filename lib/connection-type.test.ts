@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessConnectionType,
   assessLocalProxyHints,
   assessNetworkProxyHints,
   assessProxyRisk,
@@ -49,6 +50,122 @@ describe("detectConnectionType", () => {
 
   it("falls back to fixed for unrecognized providers", () => {
     expect(detectConnectionType({ ...baseSignals, isp: "Some Local Provider" })).toBe("fixed");
+  });
+});
+
+describe("assessConnectionType", () => {
+  const telekom = { ...baseSignals, isp: "Deutsche Telekom AG", org: "Deutsche Telekom AG" };
+
+  it("reports provider short-circuits with high confidence", () => {
+    expect(
+      assessConnectionType({ ...baseSignals, hosting: true, reverse: "ftth-1-2-3-4.example.net" }),
+    ).toEqual({ connectionType: "datacenter", confidence: "high", evidence: ["provider-hosting"] });
+    expect(
+      assessConnectionType({ ...baseSignals, proxy: true, proxyType: "vpn" }),
+    ).toEqual({ connectionType: "vpn", confidence: "high", evidence: ["provider-proxy"] });
+    expect(
+      assessConnectionType({ ...baseSignals, mobile: true, reverse: "c-1-2-3-4.hsd1.example.net" }),
+    ).toEqual({ connectionType: "mobile", confidence: "high", evidence: ["provider-mobile"] });
+  });
+
+  it("reads the medium from a DSL PTR label, not from the operator", () => {
+    const result = assessConnectionType({
+      ...telekom,
+      reverse: "dslb-088-076-001-002.pool.example.net",
+    });
+    expect(result.connectionType).toBe("dsl");
+    expect(result.confidence).toBe("high");
+    expect(result.evidence).toContain("ptr-dsl");
+  });
+
+  it("keeps a dynamic pool without a technology token as fixed", () => {
+    const result = assessConnectionType({ ...telekom, reverse: "p4FD8E8E8.dip0.t-ipconnect.de" });
+    expect(result).toEqual({
+      connectionType: "fixed",
+      confidence: "low",
+      evidence: ["unspecified-fixed"],
+    });
+  });
+
+  it("detects cable from PTR labels", () => {
+    expect(
+      detectConnectionType({ ...baseSignals, reverse: "ip-1-2-3-4.pool.kabel.example.net" }),
+    ).toBe("cable");
+
+    const comcast = assessConnectionType({
+      ...baseSignals,
+      isp: "Comcast Cable Communications",
+      reverse: "customer.hsd1.ca.comcast.net",
+    });
+    expect(comcast.connectionType).toBe("cable");
+    expect(comcast.evidence).toEqual(["ptr-cable", "name-cable"]);
+
+    const unbranded = assessConnectionType({
+      ...baseSignals,
+      isp: "Example Networks",
+      reverse: "c-1-2-3-4.hsd1.example.net",
+    });
+    expect(unbranded).toEqual({ connectionType: "cable", confidence: "high", evidence: ["ptr-cable"] });
+  });
+
+  it("keeps technology-named providers and falls back to low-confidence fixed", () => {
+    expect(assessConnectionType({ ...baseSignals, isp: "Deutsche Glasfaser GmbH" })).toEqual({
+      connectionType: "fiber",
+      confidence: "high",
+      evidence: ["name-fiber"],
+    });
+    expect(detectConnectionType({ ...baseSignals, isp: "Telekom VDSL" })).toBe("dsl");
+    expect(assessConnectionType({ ...baseSignals, isp: "Some Local Provider" })).toMatchObject({
+      connectionType: "fixed",
+      confidence: "low",
+    });
+  });
+
+  it("does not infer a medium from a mixed operator brand", () => {
+    for (const isp of ["Vodafone GmbH", "Comcast", "AT&T Services", "BT", "Telefonica", "Verizon"]) {
+      expect(detectConnectionType({ ...baseSignals, isp })).toBe("fixed");
+    }
+  });
+
+  it("matches tokens on word and label boundaries only", () => {
+    expect(detectConnectionType({ ...baseSignals, isp: "Media Company" })).toBe("fixed");
+    expect(detectConnectionType({ ...baseSignals, reverse: "host.nocable.example.net" })).toBe("fixed");
+    expect(detectConnectionType({ ...baseSignals, reverse: "fiberoptic-host.example.net" })).toBe("fixed");
+    expect(detectConnectionType({ ...baseSignals, reverse: "vdsl2-1-2-3-4.example.net" })).toBe("dsl");
+  });
+
+  it("lowers confidence and records both codes when strong tokens disagree", () => {
+    const result = assessConnectionType({
+      ...baseSignals,
+      isp: "Example Kabel GmbH",
+      reverse: "ftth-1-2-3-4.example.net",
+    });
+    expect(result).toEqual({
+      connectionType: "fiber",
+      confidence: "medium",
+      evidence: ["ptr-fiber", "name-cable"],
+    });
+  });
+
+  it("accepts a mobile label only from PTR or AS name, below fixed media", () => {
+    expect(
+      assessConnectionType({ ...baseSignals, isp: "Example Telecom", reverse: "1-2-3-4.lte.example.net" }),
+    ).toEqual({ connectionType: "mobile", confidence: "medium", evidence: ["ptr-mobile"] });
+    expect(
+      assessConnectionType({ ...baseSignals, isp: "Example Telecom", asname: "EXAMPLE-MOBILE-AS" }),
+    ).toMatchObject({ connectionType: "mobile", evidence: ["name-mobile"] });
+    expect(detectConnectionType({ ...baseSignals, isp: "T-Mobile US" })).toBe("fixed");
+    expect(
+      assessConnectionType({ ...baseSignals, reverse: "1-2-3-4.lte.ftth.example.net" }),
+    ).toMatchObject({ connectionType: "fiber", confidence: "medium" });
+  });
+
+  it("treats FTTC as DSL and CGNAT as no medium", () => {
+    expect(detectConnectionType({ ...baseSignals, reverse: "fttc-1-2-3-4.example.net" })).toBe("dsl");
+    expect(assessConnectionType({ ...baseSignals, reverse: "cgnat-1-2-3-4.example.net" })).toMatchObject({
+      connectionType: "fixed",
+      confidence: "low",
+    });
   });
 });
 

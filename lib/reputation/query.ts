@@ -4,7 +4,7 @@ import {
 } from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
 import { lookupIpApi } from "@/lib/providers/ip-api";
-import { detectConnectionType } from "@/lib/connection-type";
+import { assessConnectionType, type ConnectionType } from "@/lib/connection-type";
 import { REPUTATION_SOURCES } from "./model";
 import type {
   NetworkContext,
@@ -394,6 +394,7 @@ interface IpApiOutcome extends ProviderOutcome {
   network: ReputationNetwork | null;
   flags: { proxy: boolean; hosting: boolean; mobile: boolean };
   reverse: string | null;
+  connectionType: ConnectionType;
 }
 
 async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
@@ -408,6 +409,7 @@ async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
       network: null,
       flags: { proxy: false, hosting: false, mobile: false },
       reverse: null,
+      connectionType: "unknown",
     };
   }
 
@@ -415,10 +417,12 @@ async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
   const hosting = Boolean(data.hosting);
   const mobile = Boolean(data.mobile);
   const reverse = data.reverse || null;
-  const connectionType = detectConnectionType({
+  const { connectionType, evidence: connectionEvidence } = assessConnectionType({
     isp: data.isp || "",
     org: data.org || "",
     as: data.as || "",
+    asname: data.asname || "",
+    reverse: reverse || "",
     mobile,
     hosting,
     proxy,
@@ -456,13 +460,17 @@ async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
     });
   }
 
+  // A household medium, or a dynamic PTR on a network not classified as
+  // business, satellite or mobile (that PTR alone leaves the type `fixed`).
+  // A business name next to a medium token (business fiber) is not household.
   const residentialEstimated =
     !proxy &&
     !hosting &&
     !mobile &&
-    (connectionType === "dsl" ||
-      connectionType === "cable" ||
-      isDynamicReverseDns(reverse));
+    !connectionEvidence.includes("name-business") &&
+    (HOUSEHOLD_CONNECTION_TYPES.has(connectionType) ||
+      (!NON_RESIDENTIAL_CONNECTION_TYPES.has(connectionType) &&
+        isDynamicReverseDns(reverse)));
 
   if (residentialEstimated) {
     evidence.push({
@@ -494,8 +502,18 @@ async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
     },
     flags: { proxy, hosting, mobile },
     reverse,
+    connectionType,
   };
 }
+
+const HOUSEHOLD_CONNECTION_TYPES = new Set<ConnectionType>(["fiber", "cable", "dsl"]);
+const NON_RESIDENTIAL_CONNECTION_TYPES = new Set<ConnectionType>([
+  "business",
+  "datacenter",
+  "mobile",
+  "starlink",
+  "satellite",
+]);
 
 const DYNAMIC_REVERSE_DNS =
   /(^|[-.])(dip|dipo|dyn|dynamic|pool|pools|ppp|pppoe|pppd|dhcp|dial|dialup|modem|dslb|dsl|cable)\d*([-.]|$)/i;
@@ -583,14 +601,7 @@ export async function collectReputation(
       network = ipApi.network;
       if (ipApi.status === "available") {
         networkContext = {
-          connectionType: detectConnectionType({
-            isp: network?.isp ?? "",
-            org: network?.org ?? "",
-            as: network?.as ?? "",
-            mobile: ipApi.flags.mobile,
-            hosting: ipApi.flags.hosting,
-            proxy: ipApi.flags.proxy,
-          }),
+          connectionType: ipApi.connectionType,
           hosting: ipApi.flags.hosting,
           mobile: ipApi.flags.mobile,
           proxy: ipApi.flags.proxy,

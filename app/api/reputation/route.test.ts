@@ -221,6 +221,30 @@ describe("reputation API route", () => {
     });
   });
 
+  it("estimates a fiber PTR as residential and business networks as not", async () => {
+    const lookup = async (overrides: Record<string, unknown>, ip: string, clientIp: string) => {
+      stubFetch((href) => {
+        if (href.includes("feodotracker.abuse.ch")) return jsonResponse([]);
+        if (href.includes("spamhaus.org/drop/drop_v4.json")) return new Response(DROP_V4_BODY, { status: 200 });
+        if (href.includes("api.greynoise.io")) return jsonResponse({ noise: false, riot: false }, 404);
+        if (href.includes("ip-api.com")) return jsonResponse(ipApiPayload({ query: ip, ...overrides }));
+        if (href.includes("api.blocklist.de")) return jsonResponse({ attacks: "0", reports: "0" });
+        return null;
+      });
+      return (await (await invoke(ip, clientIp)).json()).data.networkContext;
+    };
+
+    expect(
+      await lookup({ isp: "Example Telecom", reverse: "ftth-1-2-3-4.dyn.example.net" }, "84.134.9.80", "203.0.113.181"),
+    ).toMatchObject({ connectionType: "fiber", residentialEstimated: true });
+    expect(
+      await lookup({ isp: "Example Business Internet", reverse: "dyn-1-2-3-4.example.net" }, "84.134.9.81", "203.0.113.182"),
+    ).toMatchObject({ connectionType: "business", residentialEstimated: false });
+    expect(
+      await lookup({ isp: "Example Business Internet", reverse: "ftth-1-2-3-4.example.net" }, "84.134.9.82", "203.0.113.183"),
+    ).toMatchObject({ connectionType: "fiber", residentialEstimated: false });
+  });
+
   it("rates an active Feodo botnet C2 as high risk", async () => {
     stubFetch((href) => {
       if (href.includes("feodotracker.abuse.ch")) {

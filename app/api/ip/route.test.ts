@@ -128,6 +128,23 @@ describe("IP route proxy hints", () => {
     expect(lookupIpApiMock).toHaveBeenCalledTimes(1);
   });
 
+  it("returns connection-type confidence and evidence codes", async () => {
+    lookupIpApiMock.mockResolvedValue({
+      ...ipApiResult,
+      isp: "Deutsche Telekom AG",
+      reverse: "dslb-088-076-001-002.pool.example.net",
+    });
+
+    const response = await GET(new Request("http://localhost/api/ip?ip=8.8.8.8"));
+    const body = await response.json();
+
+    expect(body.data).toMatchObject({
+      connectionType: "dsl",
+      connectionTypeConfidence: "high",
+      connectionTypeEvidence: ["ptr-dsl"],
+    });
+  });
+
   it("does not memoize upstream failures", async () => {
     lookupIpApiMock.mockResolvedValue(null);
 
@@ -137,6 +154,11 @@ describe("IP route proxy hints", () => {
 
     expect(body.ok).toBe(true);
     expect(body.data.country).toBe("");
+    expect(body.data).toMatchObject({
+      connectionType: "unknown",
+      connectionTypeConfidence: "none",
+      connectionTypeEvidence: [],
+    });
     expect(lookupIpApiMock).toHaveBeenCalledTimes(2);
   });
 
