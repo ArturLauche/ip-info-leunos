@@ -3,9 +3,9 @@ import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import {
+  assessConnectionType,
   assessNetworkProxyHints,
   assessProxyRisk,
-  detectConnectionType,
   mergeProxyHintAssessments,
   type ProxyHintAssessment,
 } from "@/lib/connection-type";
@@ -121,6 +121,8 @@ function getUnknownResult() {
     proxyReasons: [] as string[],
     hosting: false,
     connectionType: "unknown",
+    connectionTypeConfidence: "none",
+    connectionTypeEvidence: [] as string[],
   };
 }
 
@@ -140,6 +142,18 @@ function toResponsePayload(
     proxy: Boolean(source.proxy),
     hosting: Boolean(source.hosting),
     mobile: Boolean(source.mobile),
+  });
+
+  const connection = assessConnectionType({
+    isp: source.isp || "",
+    org: source.org || "",
+    as: source.as || "",
+    asname: source.asname || "",
+    reverse: source.reverse || "",
+    mobile: Boolean(source.mobile),
+    proxy: proxyAssessment.isProxy,
+    hosting: Boolean(source.hosting),
+    proxyType: proxyAssessment.proxyType,
   });
 
   const resolvedQuery = source.query || ip;
@@ -197,15 +211,9 @@ function toResponsePayload(
     proxyConfidence: proxyAssessment.confidence,
     proxyReasons: proxyAssessment.reasons,
     hosting: Boolean(source.hosting),
-    connectionType: detectConnectionType({
-      isp: source.isp || "",
-      org: source.org || "",
-      as: source.as || "",
-      mobile: Boolean(source.mobile),
-      proxy: proxyAssessment.isProxy,
-      hosting: Boolean(source.hosting),
-      proxyType: proxyAssessment.proxyType,
-    }),
+    connectionType: connection.connectionType,
+    connectionTypeConfidence: connection.confidence,
+    connectionTypeEvidence: connection.evidence,
     ...(proxyHints ? { proxyHints } : {}),
   };
 }

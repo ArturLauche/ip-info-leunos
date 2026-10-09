@@ -228,34 +228,30 @@ const RESIDENTIAL_KEYWORDS = [
   "bt",
 ];
 
-const STARLINK_KEYWORDS = ["starlink", "spacex"];
+// Access-medium tokens. Each entry names a technology (or a brand that is
+// itself one technology, e.g. "deutsche glasfaser", "unitymedia"); mixed
+// operators such as Telekom, Vodafone or Comcast are deliberately absent, so
+// their customers fall through to `fixed` unless a technology token is present.
+const STARLINK_KEYWORDS = ["starlink", "starlinkisp", "spacex"];
 const SATELLITE_KEYWORDS = ["satellite", "satellit", "viasat", "hughesnet", "ses astra"];
 const FIBER_KEYWORDS = [
-  "fiber",
-  "fibre",
-  "glasfaser",
   "ftth",
   "fttb",
+  "fttc",
   "fttp",
-  "xgs-pon",
+  "fttx",
   "gpon",
+  "xgspon",
+  "xgs-pon",
+  "glasfaser",
+  "fiberglas",
+  "fiber",
+  "fibre",
+  "fios",
   "deutsche glasfaser",
   "init7",
 ];
-const CABLE_KEYWORDS = [
-  "cable",
-  "kabel",
-  "docsis",
-  "vodafone kabel",
-  "unitymedia",
-  "liberty global",
-  "comcast",
-  "charter",
-  "cox",
-  "cablevision",
-  "pyur",
-  "tele columbus",
-];
+const CABLE_KEYWORDS = ["docsis", "cable", "kabel", "hsd1", "vodafone kabel", "unitymedia"];
 const FIXED_WIRELESS_KEYWORDS = [
   "fwa",
   "fixed wireless",
@@ -264,23 +260,10 @@ const FIXED_WIRELESS_KEYWORDS = [
   "richtfunk",
   "wimax",
 ];
-const DSL_KEYWORDS = [
-  "dsl",
-  "t-online",
-  "adsl",
-  "vdsl",
-  "xdsl",
-  "pppoe",
-  "1&1",
-  "o2",
-  "ewe tel",
-  "netcologne",
-  "m-net",
-  "easybell",
-  "at&t",
-  "centurylink",
-  "bt ",
-];
+const DSL_KEYWORDS = ["dsl", "adsl", "vdsl", "sdsl", "xdsl", "dslb"];
+// Read only from hostname / AS-name labels, never from ISP brand text
+// ("T-Mobile", "Mobilcom" are brands, not a radio).
+const MOBILE_LABEL_KEYWORDS = ["lte", "umts", "cgnat", "mobile", "mobil"];
 const BUSINESS_KEYWORDS = [
   "leased line",
   "dedicated internet",
@@ -711,30 +694,138 @@ export function assessProxyRisk(signals: NetworkSignals): ProxyAssessment {
   return { isProxy, proxyType, confidence, reasons };
 }
 
-export function detectConnectionType(
-  signals: Pick<NetworkSignals, "isp" | "org" | "as" | "mobile" | "hosting"> & {
-    proxy: boolean;
-    proxyType?: ProxyType;
-  },
-): ConnectionType {
-  const combined = combineSignals(signals);
-  const hasAnyKeyword = (keywords: string[]) => keywords.some((keyword) => combined.includes(keyword));
+export type ConnectionTypeConfidence = "high" | "medium" | "low" | "none";
 
-  if (signals.hosting) return "datacenter";
-  if (signals.proxy) {
-    if (signals.proxyType === "tor") return "tor";
-    if (signals.proxyType === "vpn") return "vpn";
-    return "proxy";
+type EvidenceMedium = "starlink" | "satellite" | "fiber" | "cable" | "wireless" | "dsl" | "mobile";
+
+/** Stable evidence codes (data for callers and tests, never shown as copy). */
+export type ConnectionTypeEvidence =
+  | "provider-hosting"
+  | "provider-proxy"
+  | "provider-mobile"
+  | `${"ptr" | "name"}-${EvidenceMedium}`
+  | "name-business"
+  | "unspecified-fixed";
+
+export interface ConnectionTypeAssessment {
+  connectionType: ConnectionType;
+  confidence: ConnectionTypeConfidence;
+  evidence: ConnectionTypeEvidence[];
+}
+
+export type ConnectionTypeSignals = Pick<
+  NetworkSignals,
+  "isp" | "org" | "as" | "mobile" | "hosting"
+> & {
+  proxy: boolean;
+  proxyType?: ProxyType;
+  asname?: string;
+  reverse?: string;
+};
+
+type AccessMedium = "starlink" | "satellite" | "fiber" | "cable" | "fixed_wireless" | "dsl" | "mobile";
+
+/** Precedence order: the first matching medium wins. */
+const ACCESS_MEDIA: ReadonlyArray<{
+  type: AccessMedium;
+  code: EvidenceMedium;
+  keywords: readonly string[];
+  labelsOnly?: boolean;
+}> = [
+  { type: "starlink", code: "starlink", keywords: STARLINK_KEYWORDS },
+  { type: "satellite", code: "satellite", keywords: SATELLITE_KEYWORDS },
+  { type: "fiber", code: "fiber", keywords: FIBER_KEYWORDS },
+  { type: "cable", code: "cable", keywords: CABLE_KEYWORDS },
+  { type: "fixed_wireless", code: "wireless", keywords: FIXED_WIRELESS_KEYWORDS },
+  { type: "dsl", code: "dsl", keywords: DSL_KEYWORDS },
+  { type: "mobile", code: "mobile", keywords: MOBILE_LABEL_KEYWORDS, labelsOnly: true },
+];
+
+function toLabels(hostname: string | undefined) {
+  return (hostname || "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+/**
+ * Whole-label match for hostnames and AS names: `cable` matches
+ * `x.cable.example` but not `nocable.example`. A numeric suffix on the last
+ * label is tolerated (`vdsl2`, `cable3`).
+ */
+function labelsInclude(labels: readonly string[], term: string) {
+  const parts = toLabels(term);
+  for (let start = 0; start + parts.length <= labels.length; start += 1) {
+    const matches = parts.every((part, offset) => {
+      const label = labels[start + offset];
+      if (label === part) return true;
+      return (
+        offset === parts.length - 1 &&
+        label.startsWith(part) &&
+        /^\d+$/.test(label.slice(part.length))
+      );
+    });
+    if (matches) return true;
   }
-  if (signals.mobile) return "mobile";
+  return false;
+}
 
-  if (hasAnyKeyword(STARLINK_KEYWORDS)) return "starlink";
-  if (hasAnyKeyword(SATELLITE_KEYWORDS)) return "satellite";
-  if (hasAnyKeyword(FIBER_KEYWORDS)) return "fiber";
-  if (hasAnyKeyword(CABLE_KEYWORDS)) return "cable";
-  if (hasAnyKeyword(FIXED_WIRELESS_KEYWORDS)) return "fixed_wireless";
-  if (hasAnyKeyword(DSL_KEYWORDS)) return "dsl";
-  if (hasAnyKeyword(BUSINESS_KEYWORDS)) return "business";
+/**
+ * Last-mile classifier. Provider flags (hosting, proxy, mobile) short-circuit;
+ * below them a medium is accepted only from a technology token on a word or
+ * label boundary in the PTR, AS name or ISP/org text. An operator brand alone
+ * never selects a medium: mixed ISPs and dynamic pools stay `fixed`.
+ *
+ * A later pass may add evidence codes from a cached RDAP lookup. It must fail
+ * open, go through the existing public-target and response-size limits, and
+ * stay server-only (this module ships to the client).
+ */
+export function assessConnectionType(signals: ConnectionTypeSignals): ConnectionTypeAssessment {
+  if (signals.hosting) {
+    return { connectionType: "datacenter", confidence: "high", evidence: ["provider-hosting"] };
+  }
+  if (signals.proxy) {
+    const connectionType =
+      signals.proxyType === "tor" ? "tor" : signals.proxyType === "vpn" ? "vpn" : "proxy";
+    return { connectionType, confidence: "high", evidence: ["provider-proxy"] };
+  }
+  if (signals.mobile) {
+    return { connectionType: "mobile", confidence: "high", evidence: ["provider-mobile"] };
+  }
 
-  return "fixed";
+  const nameText = combineSignals(signals);
+  const nameLabels = toLabels(signals.asname);
+  const ptrLabels = toLabels(signals.reverse);
+  const evidence: ConnectionTypeEvidence[] = [];
+  const matched: AccessMedium[] = [];
+
+  for (const medium of ACCESS_MEDIA) {
+    const inPtr = medium.keywords.some((term) => labelsInclude(ptrLabels, term));
+    const inName = medium.keywords.some(
+      (term) =>
+        labelsInclude(nameLabels, term) || (!medium.labelsOnly && includesTerm(nameText, term)),
+    );
+    if (inPtr) evidence.push(`ptr-${medium.code}`);
+    if (inName) evidence.push(`name-${medium.code}`);
+    if (inPtr || inName) matched.push(medium.type);
+  }
+
+  const business = includesAnyTerm(nameText, BUSINESS_KEYWORDS);
+  if (business) evidence.push("name-business");
+
+  // Starlink is a satellite service, so naming both is not a disagreement.
+  const conflicting = new Set(matched.map((type) => (type === "starlink" ? "satellite" : type))).size > 1;
+  const fixedMedium = matched.find((type) => type !== "mobile");
+
+  if (fixedMedium) {
+    return { connectionType: fixedMedium, confidence: conflicting ? "medium" : "high", evidence };
+  }
+  if (business) return { connectionType: "business", confidence: "high", evidence };
+  if (matched.includes("mobile")) {
+    // A radio label without the provider's mobile flag: plausible, not certain.
+    return { connectionType: "mobile", confidence: "medium", evidence };
+  }
+
+  return { connectionType: "fixed", confidence: "low", evidence: ["unspecified-fixed"] };
+}
+
+export function detectConnectionType(signals: ConnectionTypeSignals): ConnectionType {
+  return assessConnectionType(signals).connectionType;
 }
