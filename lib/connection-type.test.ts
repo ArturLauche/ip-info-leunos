@@ -156,8 +156,16 @@ describe("assessConnectionType", () => {
     ).toMatchObject({ connectionType: "mobile", evidence: ["name-mobile"] });
     expect(detectConnectionType({ ...baseSignals, isp: "T-Mobile US" })).toBe("fixed");
     expect(
-      assessConnectionType({ ...baseSignals, reverse: "cgnat.ftth.example.net" }),
+      assessConnectionType({ ...baseSignals, reverse: "1-2-3-4.lte.ftth.example.net" }),
     ).toMatchObject({ connectionType: "fiber", confidence: "medium" });
+  });
+
+  it("treats FTTC as DSL and CGNAT as no medium", () => {
+    expect(detectConnectionType({ ...baseSignals, reverse: "fttc-1-2-3-4.example.net" })).toBe("dsl");
+    expect(assessConnectionType({ ...baseSignals, reverse: "cgnat-1-2-3-4.example.net" })).toMatchObject({
+      connectionType: "fixed",
+      confidence: "low",
+    });
   });
 });
 

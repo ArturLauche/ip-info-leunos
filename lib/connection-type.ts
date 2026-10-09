@@ -237,7 +237,6 @@ const SATELLITE_KEYWORDS = ["satellite", "satellit", "viasat", "hughesnet", "ses
 const FIBER_KEYWORDS = [
   "ftth",
   "fttb",
-  "fttc",
   "fttp",
   "fttx",
   "gpon",
@@ -260,10 +259,12 @@ const FIXED_WIRELESS_KEYWORDS = [
   "richtfunk",
   "wimax",
 ];
-const DSL_KEYWORDS = ["dsl", "adsl", "vdsl", "sdsl", "xdsl", "dslb"];
+// FTTC ends in a street cabinet; the last mile is VDSL over copper.
+const DSL_KEYWORDS = ["dsl", "adsl", "vdsl", "sdsl", "xdsl", "dslb", "fttc"];
 // Read only from hostname / AS-name labels, never from ISP brand text
-// ("T-Mobile", "Mobilcom" are brands, not a radio).
-const MOBILE_LABEL_KEYWORDS = ["lte", "umts", "cgnat", "mobile", "mobil"];
+// ("T-Mobile", "Mobilcom" are brands, not a radio). `cgnat` is deliberately
+// absent: fixed fiber, DSL and cable pools use carrier-grade NAT too.
+const MOBILE_LABEL_KEYWORDS = ["lte", "umts", "mobile", "mobil"];
 const BUSINESS_KEYWORDS = [
   "leased line",
   "dedicated internet",
