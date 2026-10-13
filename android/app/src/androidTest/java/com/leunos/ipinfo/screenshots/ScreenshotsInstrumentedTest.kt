@@ -17,8 +17,8 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Captures the main screens in light and dark mode for reviewers. Gradle copies everything written to
- * `additionalTestOutputDir` from the device into the test results, so CI can publish the images.
+ * Captures the main screens in light and dark mode for reviewers. It only runs when started with
+ * `-e captureScreenshots true` (android/scripts/capture-screenshots.sh) and writes to `additionalTestOutputDir`.
  * Capturing is best effort and never fails the suite.
  */
 @RunWith(AndroidJUnit4::class)
@@ -27,6 +27,7 @@ class ScreenshotsInstrumentedTest {
 
     @Test
     fun captureMainScreens() {
+        if (InstrumentationRegistry.getArguments().getString("captureScreenshots") != "true") return
         val dir = outputDir()
         try {
             for (night in listOf(false, true)) {
