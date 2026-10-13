@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="network_diagnostics"
+        android:enabled="true"
+        android:icon="@drawable/ic_wifi"
+        android:shortcutShortLabel="@string/shortcut_diagnostics_short"
+        android:shortcutLongLabel="@string/shortcut_diagnostics_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.leunos.ipinfo.diagnostics.NetworkDiagnosticsActivity"
+            android:targetPackage="@string/shortcut_package" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_settings"
+        android:shortcutShortLabel="@string/shortcut_settings_short"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.leunos.ipinfo.settings.SettingsActivity"
+            android:targetPackage="@string/shortcut_package" />
+    </shortcut>
+</shortcuts>

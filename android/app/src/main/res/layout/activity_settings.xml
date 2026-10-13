@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/settings_title" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="24dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- App updates -->
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.SectionTitle"
+                        android:text="@string/settings_section_updates" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/settings_installed_label" />
+
+                    <TextView
+                        android:id="@+id/installed_version"
+                        style="@style/Widget.IPInfo.Body" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/settings_latest_label" />
+
+                    <TextView
+                        android:id="@+id/latest_version"
+                        style="@style/Widget.IPInfo.Body" />
+
+                    <TextView
+                        android:id="@+id/last_check"
+                        style="@style/Widget.IPInfo.Hint"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:id="@+id/channel_note"
+                        style="@style/Widget.IPInfo.Hint"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/settings_channel_note"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/status_text"
+                        style="@style/Widget.IPInfo.Body"
+                        android:layout_marginTop="16dp"
+                        android:accessibilityLiveRegion="polite"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/metered_note"
+                        style="@style/Widget.IPInfo.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/update_metered_note"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/install_permission_note"
+                        style="@style/Widget.IPInfo.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/update_install_permission_note"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/restart_note"
+                        style="@style/Widget.IPInfo.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/update_restart_note"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/install_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:minHeight="48dp"
+                        android:text="@string/update_install"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/download_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:minHeight="48dp"
+                        android:text="@string/update_download"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/retry_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:minHeight="48dp"
+                        android:text="@string/update_retry"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/cancel_button"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:minHeight="48dp"
+                        android:text="@string/update_cancel"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/check_button"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="48dp"
+                        android:text="@string/update_check" />
+
+                    <LinearLayout
+                        android:id="@+id/notes_group"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            style="@style/Widget.IPInfo.Label"
+                            android:accessibilityHeading="true"
+                            android:text="@string/update_release_notes" />
+
+                        <TextView
+                            android:id="@+id/notes_text"
+                            style="@style/Widget.IPInfo.Body"
+                            android:layout_marginTop="4dp"
+                            android:ellipsize="end"
+                            android:maxLines="12" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/notes_button"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minHeight="48dp"
+                            android:text="@string/update_open_notes" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/releases_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:minHeight="48dp"
+                        android:text="@string/update_open_releases" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Automatic updates -->
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.SectionTitle"
+                        android:text="@string/settings_section_automatic" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_auto_check"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="48dp"
+                        android:text="@string/switch_auto_check" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Hint"
+                        android:text="@string/switch_auto_check_hint" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_auto_download"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="48dp"
+                        android:text="@string/switch_auto_download" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Hint"
+                        android:text="@string/switch_auto_download_hint" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_metered"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="48dp"
+                        android:text="@string/switch_metered" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Hint"
+                        android:text="@string/switch_metered_hint" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_notifications"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="48dp"
+                        android:text="@string/switch_notifications" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Hint"
+                        android:text="@string/switch_notifications_hint" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Permissions -->
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.SectionTitle"
+                        android:text="@string/settings_section_permissions" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Widget.IPInfo.Body"
+                                android:text="@string/permission_install_label" />
+
+                            <TextView
+                                android:id="@+id/install_permission_status"
+                                style="@style/Widget.IPInfo.Label" />
+
+                            <TextView
+                                style="@style/Widget.IPInfo.Hint"
+                                android:text="@string/permission_install_hint" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/install_permission_button"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:minHeight="48dp"
+                            android:text="@string/action_manage" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Widget.IPInfo.Body"
+                                android:text="@string/permission_notifications_label" />
+
+                            <TextView
+                                android:id="@+id/notification_permission_status"
+                                style="@style/Widget.IPInfo.Label" />
+
+                            <TextView
+                                style="@style/Widget.IPInfo.Hint"
+                                android:text="@string/permission_notifications_hint" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/notification_permission_button"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:minHeight="48dp"
+                            android:text="@string/action_manage" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/Widget.IPInfo.Body"
+                                android:text="@string/permission_location_label" />
+
+                            <TextView
+                                android:id="@+id/location_permission_status"
+                                style="@style/Widget.IPInfo.Label" />
+
+                            <TextView
+                                style="@style/Widget.IPInfo.Hint"
+                                android:text="@string/permission_location_hint" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/location_permission_button"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:minHeight="48dp"
+                            android:text="@string/action_manage" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Privacy and about -->
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.SectionTitle"
+                        android:text="@string/settings_section_privacy" />
+
+                    <TextView
+                        android:id="@+id/privacy_summary"
+                        style="@style/Widget.IPInfo.Body"
+                        android:layout_marginTop="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/privacy_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="48dp"
+                        android:text="@string/action_privacy_policy" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/clear_data_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="@string/action_clear_data" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.SectionTitle"
+                        android:text="@string/settings_section_about" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/about_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="48dp"
+                        android:text="@string/action_about" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/source_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="@string/action_source" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

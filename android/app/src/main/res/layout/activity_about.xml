@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/about_title" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="24dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:text="@string/about_version_label" />
+
+                    <TextView
+                        android:id="@+id/version_value"
+                        style="@style/Widget.IPInfo.Body" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/about_channel_label" />
+
+                    <TextView
+                        android:id="@+id/channel_value"
+                        style="@style/Widget.IPInfo.Body" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/about_application_id_label" />
+
+                    <TextView
+                        android:id="@+id/application_id_value"
+                        style="@style/Widget.IPInfo.Body"
+                        android:textIsSelectable="true" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/about_license_label" />
+
+                    <TextView
+                        android:id="@+id/license_value"
+                        style="@style/Widget.IPInfo.Body" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/certificate_card"
+                style="@style/Widget.IPInfo.Card"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Label"
+                        android:text="@string/about_certificate_label" />
+
+                    <TextView
+                        android:id="@+id/certificate_value"
+                        style="@style/Widget.IPInfo.Body"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="monospace" />
+
+                    <TextView
+                        style="@style/Widget.IPInfo.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/about_certificate_hint" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.IPInfo.Card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/Widget.IPInfo.SectionTitle"
+                        android:text="@string/about_privacy_title" />
+
+                    <TextView
+                        android:id="@+id/privacy_text"
+                        style="@style/Widget.IPInfo.Body"
+                        android:layout_marginTop="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/privacy_policy_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="48dp"
+                        android:text="@string/action_privacy_policy" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/source_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="@string/action_source" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/settings_button"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="@string/menu_settings" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

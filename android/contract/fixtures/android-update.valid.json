@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "applicationId": "com.leunos.ipinfo",
+  "tag": "android-v1.0.0",
+  "versionName": "1.0.0",
+  "versionCode": 1000000,
+  "minSdk": 29,
+  "publishedAt": "2026-10-13T12:00:00Z",
+  "releaseNotesUrl": "https://github.com/ArturLauche/ip-info-leunos/releases/tag/android-v1.0.0",
+  "apk": {
+    "fileName": "ip-info-android-v1.0.0.apk",
+    "downloadUrl": "https://github.com/ArturLauche/ip-info-leunos/releases/download/android-v1.0.0/ip-info-android-v1.0.0.apk",
+    "sizeBytes": 20,
+    "sha256": "1fad2632cbad7bf5bcf894e3397373b11f1e2fb83a06f579822c07e34ee8c5de"
+  },
+  "signing": {
+    "certificateSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
