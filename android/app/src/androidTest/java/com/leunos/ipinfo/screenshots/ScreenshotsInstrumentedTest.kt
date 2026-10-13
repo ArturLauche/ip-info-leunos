@@ -18,7 +18,8 @@ import java.io.File
 
 /**
  * Captures the main screens in light and dark mode for reviewers. It only runs when started with
- * `-e captureScreenshots true` (android/scripts/capture-screenshots.sh) and writes to `additionalTestOutputDir`.
+ * `-e captureScreenshots true` (android/scripts/capture-screenshots.sh) and writes into the test package's own
+ * external files directory, which the test process may write on every API level.
  * Capturing is best effort and never fails the suite.
  */
 @RunWith(AndroidJUnit4::class)
@@ -44,8 +45,8 @@ class ScreenshotsInstrumentedTest {
     }
 
     private fun outputDir(): File {
-        val requested = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
-        val dir = requested?.let(::File) ?: File(TestUtils.context.getExternalFilesDir(null), "screenshots")
+        val dir = File(InstrumentationRegistry.getInstrumentation().context.getExternalFilesDir(null), "screenshots")
+        dir.deleteRecursively()
         dir.mkdirs()
         return dir
     }
