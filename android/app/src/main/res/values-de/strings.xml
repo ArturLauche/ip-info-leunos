@@ -186,6 +186,7 @@
     <string name="update_check_skipped">Eine Prüfung läuft bereits oder pausiert derzeit.</string>
     <string name="failure_download_interrupted">Der Download wurde unterbrochen. Versuche es erneut; er wird sicher fortgesetzt.</string>
     <string name="failure_download_server">Der Download-Server meldet ein Problem. Versuche es später erneut.</string>
+    <string name="failure_download_rejected">GitHub hat die Update-Datei nicht ausgeliefert. Versuche es später erneut oder lade das APK von der Releases-Seite herunter.</string>
     <string name="failure_download_not_found">Die Update-Datei ist auf GitHub nicht mehr verfügbar.</string>
     <string name="failure_storage">Nicht genug freier Speicher für das Update. Gib Speicher frei und versuche es erneut.</string>
     <string name="failure_checksum">Die heruntergeladene Datei stimmte nicht mit ihrer Prüfsumme überein und wurde verworfen.</string>

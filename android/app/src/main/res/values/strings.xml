@@ -187,6 +187,7 @@
     <string name="update_check_skipped">A check is already running or is paused for now.</string>
     <string name="failure_download_interrupted">The download was interrupted. Try again; it resumes safely.</string>
     <string name="failure_download_server">The download server reported a problem. Try again later.</string>
+    <string name="failure_download_rejected">GitHub refused to serve the update file. Try again later, or get the APK from the releases page.</string>
     <string name="failure_download_not_found">The update file is no longer available on GitHub.</string>
     <string name="failure_storage">Not enough free storage for the update. Free some space and try again.</string>
     <string name="failure_checksum">The downloaded file didn’t match its checksum and was discarded.</string>

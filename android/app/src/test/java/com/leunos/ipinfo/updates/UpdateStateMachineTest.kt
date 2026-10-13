@@ -65,6 +65,7 @@ class UpdateStateMachineTest {
             UpdateFailure.VERIFICATION_FAILED,
             UpdateFailure.INSUFFICIENT_STORAGE,
             UpdateFailure.DOWNLOAD_NOT_FOUND,
+            UpdateFailure.DOWNLOAD_REJECTED,
             UpdateFailure.INSTALL_FAILED,
         )
         for (failure in permanent) {
@@ -73,6 +74,23 @@ class UpdateStateMachineTest {
             assertEquals(failure.name, UpdatePhase.FAILED, again.phase)
             assertEquals(failure, again.failure)
         }
+    }
+
+    @Test
+    fun skippingAQueuedAutomaticDownloadClearsOnlyAStaleDownloadingPhase() {
+        val downloading = UpdateStateMachine.downloadStarted(available)
+        val cleared = UpdateStateMachine.staleDownloadCleared(downloading)
+        assertEquals(UpdatePhase.AVAILABLE, cleared.phase)
+        assertEquals(downloading.candidate, cleared.candidate)
+
+        val ready = UpdateStateMachine.downloadVerified(downloading)
+        val untouched = listOf(
+            available,
+            ready,
+            UpdateStateMachine.installStarted(ready, 3),
+            UpdateStateMachine.downloadFailed(downloading, UpdateFailure.CHECKSUM_MISMATCH),
+        )
+        for (state in untouched) assertEquals(state.phase.name, state, UpdateStateMachine.staleDownloadCleared(state))
     }
 
     @Test

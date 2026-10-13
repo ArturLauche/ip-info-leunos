@@ -362,6 +362,7 @@ class SettingsActivity : BaseNativeActivity() {
         when (failure) {
             UpdateFailure.DOWNLOAD_INTERRUPTED -> R.string.failure_download_interrupted
             UpdateFailure.DOWNLOAD_SERVER -> R.string.failure_download_server
+            UpdateFailure.DOWNLOAD_REJECTED -> R.string.failure_download_rejected
             UpdateFailure.DOWNLOAD_NOT_FOUND -> R.string.failure_download_not_found
             UpdateFailure.INSUFFICIENT_STORAGE -> R.string.failure_storage
             UpdateFailure.CHECKSUM_MISMATCH -> R.string.failure_checksum

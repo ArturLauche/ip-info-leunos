@@ -84,8 +84,9 @@ network changes during the session.
 2. **Download.** Automatic downloads (on by default) wait for an unmetered network unless the user opts in to metered
    data. A manual download is always possible and the UI says it may use mobile data. Switching automatic downloads
    off also stops a request that is still waiting for its network, and an automatic install only ever follows an
-   automatic download. An interrupted or server-side download failure is retried by the next successful check. Downloads go to app-private storage
-   with a size cap, over HTTPS, to the expected GitHub URLs only.
+   automatic download. A download that was interrupted or hit a server error (HTTP 5xx or 429) is retried by the next
+   successful check; any other refusal stays visible until the user taps Try again. Downloads go to app-private
+   storage with a size cap, over HTTPS, to the expected GitHub URLs only.
 3. **Verify.** Before installing, the APK must match the published size and SHA-256 and be readable by Android's package
    parser; its package, `versionCode`, `versionName` and `minSdk` must match the metadata; it must be newer than the
    installed version; it must have exactly one signer that equals the metadata and, once the owner has recorded the

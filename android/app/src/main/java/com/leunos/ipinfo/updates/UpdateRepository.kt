@@ -169,6 +169,13 @@ class UpdateRepository(
             }
             if (store.current.phase == UpdatePhase.INSTALLING) return DownloadRun.NothingToDo
 
+            // The user may have switched automatic downloads off while this request waited for its network, or the
+            // process may have died mid-download. A manual download is never held back by the opt-out.
+            if (!userInitiated && !UpdatePolicy.automaticDownloadAllowed(preferences.updatePreferences())) {
+                store.update { UpdateStateMachine.staleDownloadCleared(it) }
+                return DownloadRun.NothingToDo
+            }
+
             store.update { UpdateStateMachine.downloadStarted(it) }
             progressFlow.value = DownloadProgress(0, candidate.metadata.apkSizeBytes)
             val job = currentCoroutineContext()[Job]
@@ -195,10 +202,9 @@ class UpdateRepository(
             is DownloadResult.Completed -> verifyAndFinish(candidate, result, userInitiated)
             is DownloadResult.InsufficientStorage -> fail(UpdateFailure.INSUFFICIENT_STORAGE, null, retryable = false)
             is DownloadResult.Interrupted -> fail(UpdateFailure.DOWNLOAD_INTERRUPTED, null, retryable = true)
-            is DownloadResult.HttpError -> when {
-                result.status == 404 -> fail(UpdateFailure.DOWNLOAD_NOT_FOUND, null, retryable = false)
-                result.status in 500..599 || result.status == 429 -> fail(UpdateFailure.DOWNLOAD_SERVER, result.status.toString(), retryable = true)
-                else -> fail(UpdateFailure.DOWNLOAD_SERVER, result.status.toString(), retryable = false)
+            is DownloadResult.HttpError -> {
+                val classified = classifyDownloadStatus(result.status)
+                fail(classified.failure, result.status.takeIf { it != 404 }?.toString(), classified.retryable)
             }
             is DownloadResult.ChecksumMismatch -> fail(UpdateFailure.CHECKSUM_MISMATCH, null, retryable = false)
             is DownloadResult.UnexpectedContent -> fail(UpdateFailure.VERIFICATION_FAILED, result.detail, retryable = false)

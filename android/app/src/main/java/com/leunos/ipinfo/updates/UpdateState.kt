@@ -8,6 +8,7 @@ enum class UpdatePhase { IDLE, AVAILABLE, DOWNLOADING, READY_TO_INSTALL, INSTALL
 enum class UpdateFailure {
     DOWNLOAD_INTERRUPTED,
     DOWNLOAD_SERVER,
+    DOWNLOAD_REJECTED,
     DOWNLOAD_NOT_FOUND,
     INSUFFICIENT_STORAGE,
     CHECKSUM_MISMATCH,
@@ -23,6 +24,16 @@ enum class UpdateFailure {
 /** Failures that a later attempt can resolve without any change on the user's side. */
 val UpdateFailure.isTransient: Boolean
     get() = this == UpdateFailure.DOWNLOAD_INTERRUPTED || this == UpdateFailure.DOWNLOAD_SERVER
+
+/** How a failed download response is explained to the user and whether the download worker retries it. */
+data class DownloadFailureClass(val failure: UpdateFailure, val retryable: Boolean)
+
+/** Server errors and throttling may pass; a missing file or any other refusal will not. */
+fun classifyDownloadStatus(status: Int): DownloadFailureClass = when {
+    status == 404 -> DownloadFailureClass(UpdateFailure.DOWNLOAD_NOT_FOUND, retryable = false)
+    status == 429 || status in 500..599 -> DownloadFailureClass(UpdateFailure.DOWNLOAD_SERVER, retryable = true)
+    else -> DownloadFailureClass(UpdateFailure.DOWNLOAD_REJECTED, retryable = false)
+}
 
 /** Why the last update check did not produce a result. */
 enum class CheckError { NETWORK, RATE_LIMITED, SERVER, INVALID_RELEASE, UNSUPPORTED_DEVICE }
@@ -116,6 +127,13 @@ object UpdateStateMachine {
 
     fun downloadFailed(state: UpdateState, failure: UpdateFailure, detail: String? = null): UpdateState =
         state.copy(phase = UpdatePhase.FAILED, failure = failure, failureDetail = detail)
+
+    /**
+     * A queued automatic download that will not run (the user switched automatic downloads off): the release stays
+     * available for a manual download, and a DOWNLOADING phase left behind by a killed attempt is cleared.
+     */
+    fun staleDownloadCleared(state: UpdateState): UpdateState =
+        if (state.phase == UpdatePhase.DOWNLOADING) downloadCancelled(state) else state
 
     /** The user cancelled or the download was paused: the release is still available. */
     fun downloadCancelled(state: UpdateState): UpdateState =

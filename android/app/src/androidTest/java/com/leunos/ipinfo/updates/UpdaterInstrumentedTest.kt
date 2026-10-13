@@ -1,6 +1,7 @@
 package com.leunos.ipinfo.updates
 
 import android.content.Context
+import android.net.ConnectivityManager
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -10,7 +11,14 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.leunos.ipinfo.TestUtils
+import com.leunos.ipinfo.settings.AppPreferences
+import com.leunos.ipinfo.updates.http.HttpRequest
+import com.leunos.ipinfo.updates.http.HttpResponse
+import com.leunos.ipinfo.updates.http.HttpTransport
+import com.leunos.ipinfo.util.ForegroundTracker
+import com.leunos.ipinfo.util.NetworkStatusProvider
 import com.leunos.ipinfo.util.Sha256
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,6 +28,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 @MediumTest
@@ -36,6 +45,10 @@ class UpdaterInstrumentedTest {
     @After
     fun tearDown() {
         workManager.cancelAllWork().result.get()
+        File(context.cacheDir, "guard-test").deleteRecursively()
+        listOf("test_guard_state", "test_guard_settings").forEach { name ->
+            context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()
+        }
     }
 
     private fun ownApk() = File(context.applicationInfo.sourceDir)
@@ -134,6 +147,65 @@ class UpdaterInstrumentedTest {
 
         scheduler.cancelDownload()
         assertTrue(workManager.getWorkInfosForUniqueWork(UpdateScheduler.UNIQUE_DOWNLOAD).get().all { it.state.isFinished })
+    }
+
+    /** Counts requests instead of reaching the network, so a test can prove whether a download was attempted. */
+    private class CountingTransport : HttpTransport {
+        var requests = 0
+
+        override fun execute(request: HttpRequest): HttpResponse {
+            requests++
+            throw IOException("no network access expected in this test")
+        }
+    }
+
+    /** A real repository over isolated preferences and storage whose state is a download killed with its process. */
+    private fun repositoryWithInterruptedDownload(autoDownloadOn: Boolean, transport: HttpTransport): Pair<UpdateRepository, UpdateStateStore> {
+        val statePrefs = context.getSharedPreferences("test_guard_state", Context.MODE_PRIVATE).also { it.edit().clear().commit() }
+        val settingsPrefs = context.getSharedPreferences("test_guard_settings", Context.MODE_PRIVATE).also { it.edit().clear().commit() }
+        val preferences = AppPreferences(settingsPrefs).apply { autoDownload = autoDownloadOn }
+        val store = UpdateStateStore(statePrefs)
+        val json = Fixtures.metadataJson("1.1.0")
+        val candidate = UpdateCandidate(UpdateMetadataParser.parse(json), json, "notes", "https://github.com/x", null)
+        store.update { UpdateStateMachine.downloadStarted(UpdateStateMachine.checkSucceeded(it, CheckOutcome.Available(candidate), 1)) }
+        val directory = File(context.cacheDir, "guard-test").also { it.deleteRecursively() }
+        val repository = UpdateRepository(
+            context = context,
+            store = store,
+            preferences = preferences,
+            transport = transport,
+            releasesCache = FileReleasesCache(File(directory, "releases.json")),
+            storage = UpdateStorage(File(directory, "apks")),
+            installer = PackageInstallerController(context),
+            scheduler = UpdateScheduler(context, updaterEnabled = true),
+            notifier = UpdateNotifier(context, store, preferences),
+            foreground = ForegroundTracker(),
+            network = NetworkStatusProvider(context.getSystemService(ConnectivityManager::class.java)),
+        )
+        return repository to store
+    }
+
+    @Test
+    fun aQueuedAutomaticDownloadIsSkippedAfterOptOutAndLeavesNoStalePhase() {
+        val transport = CountingTransport()
+        val (repository, store) = repositoryWithInterruptedDownload(autoDownloadOn = false, transport = transport)
+        assertEquals(UpdatePhase.DOWNLOADING, store.current.phase)
+
+        val run = runBlocking { repository.runDownload(userInitiated = false) }
+
+        assertEquals(UpdateRepository.DownloadRun.NothingToDo, run)
+        assertEquals("the release stays available for a manual download", UpdatePhase.AVAILABLE, store.current.phase)
+        assertEquals("an opted-out automatic download must not touch the network", 0, transport.requests)
+    }
+
+    @Test
+    fun aManualDownloadIsNeverHeldBackByTheAutomaticDownloadOptOut() {
+        val transport = CountingTransport()
+        val (repository, _) = repositoryWithInterruptedDownload(autoDownloadOn = false, transport = transport)
+
+        runBlocking { repository.runDownload(userInitiated = true) }
+
+        assertTrue("a manual download must reach the network", transport.requests >= 1)
     }
 
     @Test
