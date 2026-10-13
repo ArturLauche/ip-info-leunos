@@ -31,5 +31,11 @@ class SeedSettingsInstrumentedTest {
         prefs.lastWebBackground = UpgradeMarkers.BACKGROUND
         val store = UpdateStateStore(context.getSharedPreferences(UpdateStateStore.FILE_NAME, Context.MODE_PRIVATE))
         store.update { it.copy(rateLimitedUntil = UpgradeMarkers.RATE_LIMIT_UNTIL) }
+
+        // AppPreferences writes with apply(), and this process is killed once the instrumentation ends.
+        // An empty commit() returns only after every queued write has reached disk.
+        listOf(AppPreferences.FILE_NAME, UpdateStateStore.FILE_NAME).forEach { name ->
+            check(context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().commit()) { "could not persist $name" }
+        }
     }
 }

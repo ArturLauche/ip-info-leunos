@@ -114,7 +114,10 @@ The only network peers are `ip-info.leunos.com` (WebView) and `api.github.com` /
 
 ## Known limits
 
-- Instrumentation tests need an emulator or device; CI runs them on API 29 and API 37, and none run in a plain JVM.
+- The website is compiled for Chrome 111 or newer (the Next.js default), so it needs a current Android System WebView.
+  Devices whose WebView was never updated cannot run its JavaScript; the stock API 29 emulator image ships WebView 74
+  and shows exactly that. Instrumentation tests therefore check navigation and native behaviour, not page content.
+- Instrumentation tests need an emulator or device; CI runs them on emulators and none run in a plain JVM.
 - Installing an update normally needs one tap of confirmation from the user.
 - The Wi-Fi name stays unavailable if the user declines precise location or turns location services off.
 - Release publishing stays disabled until the owner generates the signing key and records its certificate fingerprint
