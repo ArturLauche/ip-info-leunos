@@ -338,9 +338,9 @@ jobs:
           working-directory: android
           # The action runs each line separately under sh (dash), so keep these lines free of bash-only options.
           script: |
+            ./scripts/capture-screenshots.sh
             ./gradlew connectedDebugAndroidTest --stacktrace
             ./scripts/emulator-upgrade-test.sh
-            ./scripts/capture-screenshots.sh
 
       - name: Upload UI screenshots
         if: always()
