@@ -35,6 +35,7 @@
     <string name="webview_unavailable_title">Web-Ansicht nicht verfügbar</string>
     <string name="webview_unavailable_message">Android System WebView ist derzeit nicht verfügbar. Aktualisiere oder aktiviere es in den Systemeinstellungen und starte IP Info neu. Die native Netzwerkdiagnose funktioniert weiterhin.</string>
     <string name="external_link_failed">Keine App kann diesen Link öffnen</string>
+    <string name="settings_screen_unavailable">Dieses Gerät kann diese Einstellungen nicht öffnen</string>
     <string name="blocked_link">Dieser Link wurde blockiert</string>
     <string name="renderer_crashed">Die Seite reagierte nicht mehr und wurde neu geladen.</string>
     <string name="update_ready_banner">Update %1$s ist installationsbereit</string>

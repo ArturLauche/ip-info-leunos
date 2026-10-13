@@ -1,6 +1,7 @@
 package com.leunos.ipinfo.settings
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -143,12 +144,10 @@ class SettingsActivity : BaseNativeActivity() {
         }
         binding.installPermissionButton.setOnClickListener { openInstallSettings() }
         binding.notificationPermissionButton.setOnClickListener {
-            startActivity(
-                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
-            )
+            openSystemScreen(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
         }
         binding.locationPermissionButton.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+            openSystemScreen(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
         }
         binding.privacyButton.setOnClickListener { AppNavigator.website(this, "/privacy-policy") }
         binding.clearDataButton.setOnClickListener { confirmClearWebData() }
@@ -213,7 +212,16 @@ class SettingsActivity : BaseNativeActivity() {
     }
 
     private fun openInstallSettings() {
-        startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:$packageName".toUri()))
+        openSystemScreen(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:$packageName".toUri()))
+    }
+
+    /** Some devices (TVs, stripped-down builds) lack the system screen behind these buttons. */
+    private fun openSystemScreen(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Snackbar.make(binding.root, R.string.settings_screen_unavailable, Snackbar.LENGTH_SHORT).show()
+        }
     }
 
     private fun openUrl(url: String) {

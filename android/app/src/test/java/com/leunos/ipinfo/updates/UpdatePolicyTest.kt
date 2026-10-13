@@ -30,6 +30,20 @@ class UpdatePolicyTest {
     }
 
     @Test
+    fun automaticDownloadsNeedBothAutomaticSwitches() {
+        assertTrue(UpdatePolicy.automaticDownloadAllowed(defaults))
+        assertFalse(UpdatePolicy.automaticDownloadAllowed(defaults.copy(autoDownload = false)))
+        assertFalse(UpdatePolicy.automaticDownloadAllowed(defaults.copy(autoCheck = false)))
+    }
+
+    @Test
+    fun optedInUsersStartWithoutANetworkBecauseTheQueuedRequestWaitsForOne() {
+        // START means "enqueue": UpdateScheduler gives the request a CONNECTED constraint, so it waits for any network.
+        // Reporting WAIT_FOR_UNMETERED here would wrongly tell the user the app is waiting for Wi-Fi.
+        assertEquals(AutoDownloadDecision.START, UpdatePolicy.autoDownload(defaults.copy(allowMeteredAutoDownload = true), offline))
+    }
+
+    @Test
     fun usersCanOptInToMeteredAutomaticDownloads() {
         val optIn = defaults.copy(allowMeteredAutoDownload = true)
         assertEquals(AutoDownloadDecision.START, UpdatePolicy.autoDownload(optIn, metered))

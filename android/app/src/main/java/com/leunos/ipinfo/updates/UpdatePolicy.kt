@@ -37,8 +37,11 @@ object UpdatePolicy {
         return now - last >= CHECK_COOLDOWN_MS || now < last
     }
 
+    /** Automatic downloads (and any unattended install that follows) need both automatic switches on. */
+    fun automaticDownloadAllowed(preferences: UpdatePreferences): Boolean = preferences.autoCheck && preferences.autoDownload
+
     fun autoDownload(preferences: UpdatePreferences, network: NetworkTraits): AutoDownloadDecision = when {
-        !preferences.autoCheck || !preferences.autoDownload -> AutoDownloadDecision.DISABLED
+        !automaticDownloadAllowed(preferences) -> AutoDownloadDecision.DISABLED
         preferences.allowMeteredAutoDownload -> AutoDownloadDecision.START
         network.connected && !network.metered -> AutoDownloadDecision.START
         else -> AutoDownloadDecision.WAIT_FOR_UNMETERED

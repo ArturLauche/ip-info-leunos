@@ -49,6 +49,33 @@ class UpdateStateMachineTest {
     }
 
     @Test
+    fun aTransientDownloadFailureGetsAFreshAutomaticAttemptOnTheNextCheck() {
+        for (failure in listOf(UpdateFailure.DOWNLOAD_INTERRUPTED, UpdateFailure.DOWNLOAD_SERVER)) {
+            val failed = UpdateStateMachine.downloadFailed(UpdateStateMachine.downloadStarted(available), failure)
+            val again = UpdateStateMachine.checkSucceeded(failed, CheckOutcome.Available(candidate()), 500)
+            assertEquals(failure.name, UpdatePhase.AVAILABLE, again.phase)
+            assertNull(failure.name, again.failure)
+        }
+    }
+
+    @Test
+    fun failuresThatNeedTheUserStayVisibleInsteadOfBeingRetriedByEveryCheck() {
+        val permanent = listOf(
+            UpdateFailure.CHECKSUM_MISMATCH,
+            UpdateFailure.VERIFICATION_FAILED,
+            UpdateFailure.INSUFFICIENT_STORAGE,
+            UpdateFailure.DOWNLOAD_NOT_FOUND,
+            UpdateFailure.INSTALL_FAILED,
+        )
+        for (failure in permanent) {
+            val failed = UpdateStateMachine.downloadFailed(UpdateStateMachine.downloadStarted(available), failure)
+            val again = UpdateStateMachine.checkSucceeded(failed, CheckOutcome.Available(candidate()), 500)
+            assertEquals(failure.name, UpdatePhase.FAILED, again.phase)
+            assertEquals(failure, again.failure)
+        }
+    }
+
+    @Test
     fun cancelledInstallKeepsTheVerifiedApkReady() {
         val installing = UpdateStateMachine.installStarted(UpdateStateMachine.downloadVerified(available), 7)
         val aborted = UpdateStateMachine.installAborted(installing)

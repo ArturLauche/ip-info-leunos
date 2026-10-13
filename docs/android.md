@@ -82,7 +82,9 @@ network changes during the session.
    releases and keep only `android-vMAJOR.MINOR.PATCH` stable releases that are not drafts. Each candidate must have an
    `android-update.json` asset that matches the contract in [android-release.md](android-release.md).
 2. **Download.** Automatic downloads (on by default) wait for an unmetered network unless the user opts in to metered
-   data. A manual download is always possible and the UI says it may use mobile data. Downloads go to app-private storage
+   data. A manual download is always possible and the UI says it may use mobile data. Switching automatic downloads
+   off also stops a request that is still waiting for its network, and an automatic install only ever follows an
+   automatic download. An interrupted or server-side download failure is retried by the next successful check. Downloads go to app-private storage
    with a size cap, over HTTPS, to the expected GitHub URLs only.
 3. **Verify.** Before installing, the APK must match the published size and SHA-256 and be readable by Android's package
    parser; its package, `versionCode`, `versionName` and `minSdk` must match the metadata; it must be newer than the

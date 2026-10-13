@@ -220,7 +220,7 @@ class UpdateRepository(
         store.update { UpdateStateMachine.downloadVerified(it) }
         progressFlow.value = DownloadProgress()
 
-        if (!userInitiated && canInstallUnattended()) {
+        if (!userInitiated && UpdatePolicy.automaticDownloadAllowed(preferences.updatePreferences()) && canInstallUnattended()) {
             val started = installNow(unattended = true)
             if (started is PackageInstallerController.StartResult.Committed) return DownloadRun.Verified
         }

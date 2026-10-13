@@ -20,6 +20,10 @@ enum class UpdateFailure {
     INSTALL_FAILED,
 }
 
+/** Failures that a later attempt can resolve without any change on the user's side. */
+val UpdateFailure.isTransient: Boolean
+    get() = this == UpdateFailure.DOWNLOAD_INTERRUPTED || this == UpdateFailure.DOWNLOAD_SERVER
+
 /** Why the last update check did not produce a result. */
 enum class CheckError { NETWORK, RATE_LIMITED, SERVER, INVALID_RELEASE, UNSUPPORTED_DEVICE }
 
@@ -83,7 +87,9 @@ object UpdateStateMachine {
         val current = state.candidate
         val sameRelease = current != null && current.metadata.versionCode == candidate.metadata.versionCode
         if (state.phase == UpdatePhase.INSTALLING && sameRelease) return state.copy(candidate = candidate)
-        if (sameRelease && state.phase != UpdatePhase.IDLE) return state.copy(candidate = candidate)
+        // A download that failed for a transient reason gets a fresh automatic attempt on the next successful check.
+        val retryable = state.phase == UpdatePhase.FAILED && state.failure?.isTransient == true
+        if (sameRelease && state.phase != UpdatePhase.IDLE && !retryable) return state.copy(candidate = candidate)
         return state.copy(
             phase = UpdatePhase.AVAILABLE,
             candidate = candidate,

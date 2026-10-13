@@ -188,7 +188,9 @@ class UpdateChecker(
             return when {
                 response.status == 200 -> response.readText(UpdateMetadataParser.MAX_BYTES)
                 response.status == 404 -> null
-                response.status in 500..599 -> throw IOException("HTTP ${response.status} while fetching metadata")
+                // Throttling and gateway answers say nothing about the release itself, so the check is retried later.
+                response.status == 403 || response.status == 408 || response.status == 429 || response.status in 500..599 ->
+                    throw IOException("HTTP ${response.status} while fetching metadata")
                 else -> null
             }
         }

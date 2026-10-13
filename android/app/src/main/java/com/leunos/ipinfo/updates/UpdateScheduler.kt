@@ -107,6 +107,8 @@ class UpdateDownloadWorker(context: Context, params: WorkerParameters) : Corouti
         val graph = (applicationContext as IpInfoApplication).graph
         if (!BuildConfig.UPDATER_ENABLED) return Result.success()
         val userInitiated = inputData.getBoolean(KEY_USER_INITIATED, false)
+        // The user may have switched automatic downloads off while this request was waiting for its network.
+        if (!userInitiated && !UpdatePolicy.automaticDownloadAllowed(graph.preferences.updatePreferences())) return Result.success()
         return when (val run = graph.updates.runDownload(userInitiated)) {
             is UpdateRepository.DownloadRun.Failed ->
                 if (run.retryable && runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()

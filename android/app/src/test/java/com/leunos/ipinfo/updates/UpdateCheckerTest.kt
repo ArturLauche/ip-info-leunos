@@ -134,6 +134,22 @@ class UpdateCheckerTest {
     }
 
     @Test
+    fun throttledMetadataRequestsAreRetryableAndNotReportedAsAMissingAsset() {
+        for (status in listOf(403, 408, 429)) {
+            val (checker, _) = checker(Scripted(releases("1.1.0"), metadataFor("1.1.0"), metadataStatus = status))
+            val error = (checker.check() as CheckOutcome.Failed).error
+            assertTrue("HTTP $status", error is UpdateError.Network && error.retryable)
+        }
+    }
+
+    @Test
+    fun aMissingMetadataAssetIsAnInvalidReleaseNotANetworkFailure() {
+        val (checker, _) = checker(Scripted(releases("1.1.0"), emptyMap()))
+        val error = (checker.check() as CheckOutcome.Failed).error as UpdateError.InvalidMetadata
+        assertEquals(InvalidReason.ASSET_MISSING, error.reason)
+    }
+
+    @Test
     fun devicesBelowTheMinimumSdkGetAnExplicitOutcome() {
         val (checker, _) = checker(Scripted(releases("1.1.0"), metadataFor("1.1.0")), sdk = 28)
         assertEquals(CheckOutcome.UnsupportedDevice(AppVersion(1, 1, 0), 29), checker.check())
