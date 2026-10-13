@@ -268,6 +268,8 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
+      # Oldest supported API and the newest image the emulator runner boots reliably. The API 37.0 image
+      # restarts its runtime during first boot, which races the runner's unlock step ("Can't find service: input").
       matrix:
         include:
           - api-level: '29'
@@ -280,11 +282,6 @@ jobs:
             ram-size: 3072M
             cores: 2
             emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          - api-level: '37.0'
-            system-image-api-level: '37.0'
-            ram-size: 4096M
-            cores: 4
-            emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -show-kernel
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -341,7 +338,6 @@ jobs:
           working-directory: android
           # The action runs each line separately under sh (dash), so keep these lines free of bash-only options.
           script: |
-            ./scripts/capture-screenshots.sh
             ./gradlew connectedDebugAndroidTest --stacktrace
             ./scripts/emulator-upgrade-test.sh
 
@@ -350,7 +346,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-ui-screenshots-api-${{ matrix.api-level }}
-          path: android/app/build/ui-screenshots/*.png
+          path: android/app/build/outputs/androidTest-results/**/*.png
           if-no-files-found: warn
           retention-days: 7
 
