@@ -13,14 +13,24 @@ pkg=$(sed -n 's/.*"applicationId": *"\([^"]*\)".*/\1/p' "$metadata" 2>/dev/null 
 [[ -n "$pkg" ]] || { warn "cannot read the application ID from $metadata."; exit 0; }
 # Test classes live under the namespace, which is the application ID without the debug suffix.
 ns=${pkg%.debug}
-# The test process runs as the instrumentation package, so it writes to that package's external files directory.
-remote="/sdcard/Android/data/$pkg.test/files/screenshots"
-
 "$adb_bin" shell am instrument -w \
   -e class "$ns.screenshots.ScreenshotsInstrumentedTest" \
   -e captureScreenshots true \
   "$pkg.test/androidx.test.runner.AndroidJUnitRunner" || warn "the instrumentation run failed."
+
+# The test runs inside the app's process and saves to its private files directory; debug builds allow run-as.
 mkdir -p "$out"
-"$adb_bin" pull "$remote/." "$out" >/dev/null || warn "no screenshots to pull."
-echo "capture-screenshots: wrote $(find "$out" -name '*.png' | wc -l | tr -d ' ') screenshots to $out"
+count=0
+for name in $("$adb_bin" shell run-as "$pkg" ls files/screenshots 2>/dev/null | tr -d '\r'); do
+  case "$name" in
+    *.png)
+      if "$adb_bin" exec-out run-as "$pkg" cat "files/screenshots/$name" > "$out/$name"; then
+        count=$((count + 1))
+      else
+        warn "could not read $name."
+      fi
+      ;;
+  esac
+done
+echo "capture-screenshots: wrote $count screenshots to $out"
 exit 0

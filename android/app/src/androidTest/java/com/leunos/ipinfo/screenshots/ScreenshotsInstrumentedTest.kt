@@ -18,8 +18,8 @@ import java.io.File
 
 /**
  * Captures the main screens in light and dark mode for reviewers. It only runs when started with
- * `-e captureScreenshots true` (android/scripts/capture-screenshots.sh) and writes into the test package's own
- * external files directory, which the test process may write on every API level.
+ * `-e captureScreenshots true` (android/scripts/capture-screenshots.sh). The test runs inside the app's process,
+ * so the images go to the app's private files directory, which the script reads back with `run-as`.
  * Capturing is best effort and never fails the suite.
  */
 @RunWith(AndroidJUnit4::class)
@@ -45,7 +45,7 @@ class ScreenshotsInstrumentedTest {
     }
 
     private fun outputDir(): File {
-        val dir = File(InstrumentationRegistry.getInstrumentation().context.getExternalFilesDir(null), "screenshots")
+        val dir = File(TestUtils.context.filesDir, "screenshots")
         dir.deleteRecursively()
         dir.mkdirs()
         return dir
