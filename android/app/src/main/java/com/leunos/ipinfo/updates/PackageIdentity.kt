@@ -12,7 +12,9 @@ import java.io.File
 class PackageManagerApkInspector(private val context: Context) : ApkInspector {
     override fun inspect(file: File): ApkInfo? = try {
         val info = archiveInfo(file.path) ?: return null
-        val signing = info.signingInfo ?: return null
+        val signing = info.signingInfo
+        @Suppress("DEPRECATION")
+        val current = (signing?.apkContentsSigners ?: info.signatures)?.takeIf { it.isNotEmpty() } ?: return null
         val application = info.applicationInfo
         ApkInfo(
             packageName = info.packageName,
@@ -20,9 +22,9 @@ class PackageManagerApkInspector(private val context: Context) : ApkInspector {
             versionName = info.versionName,
             minSdk = application?.minSdkVersion ?: 0,
             targetSdk = application?.targetSdkVersion ?: 0,
-            signers = signing.apkContentsSigners.orEmpty().map(::fingerprint),
-            hasMultipleSigners = signing.hasMultipleSigners(),
-            signerHistory = if (signing.hasPastSigningCertificates()) {
+            signers = current.map(::fingerprint),
+            hasMultipleSigners = signing?.hasMultipleSigners() ?: (current.size > 1),
+            signerHistory = if (signing?.hasPastSigningCertificates() == true) {
                 signing.signingCertificateHistory.orEmpty().map(::fingerprint)
             } else {
                 emptyList()
@@ -32,13 +34,18 @@ class PackageManagerApkInspector(private val context: Context) : ApkInspector {
         null
     }
 
+    /**
+     * Android collects an archive's certificates only for GET_SIGNATURES on some releases (API 28-29 observed on
+     * emulators), so both flags are passed and the deprecated field is the fallback for the current signer.
+     */
     @Suppress("DEPRECATION")
     private fun archiveInfo(path: String): PackageInfo? {
         val pm = context.packageManager
+        val flags = PackageManager.GET_SIGNING_CERTIFICATES or PackageManager.GET_SIGNATURES
         return if (Build.VERSION.SDK_INT >= 33) {
-            pm.getPackageArchiveInfo(path, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong()))
+            pm.getPackageArchiveInfo(path, PackageManager.PackageInfoFlags.of(flags.toLong()))
         } else {
-            pm.getPackageArchiveInfo(path, PackageManager.GET_SIGNING_CERTIFICATES)
+            pm.getPackageArchiveInfo(path, flags)
         }
     }
 }

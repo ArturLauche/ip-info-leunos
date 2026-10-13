@@ -39,8 +39,9 @@ import org.junit.runners.MethodSorters
 class DiagnosticsInstrumentedTest {
     private val context get() = TestUtils.context
 
-    private fun snapshot(timeoutMs: Long = 20_000): NetworkSnapshot? = runBlocking {
-        withTimeoutOrNull(timeoutMs) { NetworkSnapshotSource(context).snapshots().first() }
+    /** The first emission can precede the link properties callback, so callers may wait for a complete snapshot. */
+    private fun snapshot(timeoutMs: Long = 20_000, accept: (NetworkSnapshot) -> Boolean = { true }): NetworkSnapshot? = runBlocking {
+        withTimeoutOrNull(timeoutMs) { NetworkSnapshotSource(context).snapshots().first(accept) }
     }
 
     private fun locationGranted() =
@@ -104,6 +105,13 @@ class DiagnosticsInstrumentedTest {
         ActivityScenario.launch(NetworkDiagnosticsActivity::class.java).use { scenario ->
             assertTrue(TestUtils.waitFor(30_000) { rows(scenario).isNotEmpty() })
             assumeTrue("no Wi-Fi permission notice on this network", TestUtils.waitFor(5_000) { rows(scenario).any { it is DiagnosticsRow.Notice && it.action == NoticeAction.REQUEST_LOCATION_PERMISSION } })
+            // The notice sits below the fold on small screens; UiAutomator only sees visible views.
+            scenario.onActivity { activity ->
+                val list = activity.findViewById<RecyclerView>(R.id.list)
+                val index = rows(scenario).indexOfFirst { it is DiagnosticsRow.Notice && it.action == NoticeAction.REQUEST_LOCATION_PERMISSION }
+                list.scrollToPosition(index)
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             val button = TestUtils.device.wait(Until.findObject(By.text(context.getString(R.string.diag_action_allow_wifi_name))), 10_000)
             assertNotNull(button)
             button.click()
@@ -168,8 +176,8 @@ class DiagnosticsInstrumentedTest {
 
     @Test
     fun d1_privateAddressesAreNotLabelledAsPublic() {
-        val snap = snapshot()
-        assumeTrue(snap?.defaultNetwork?.link != null)
+        val snap = snapshot { it.defaultNetwork?.link != null }
+        assumeTrue("no default network with link properties", snap != null)
         val model = com.leunos.ipinfo.diagnostics.model.DiagnosticsModelBuilder.build(
             snap, com.leunos.ipinfo.diagnostics.model.LocationAccess(LocationPermissionState.NOT_ASKED, false), android.os.Build.VERSION.SDK_INT,
         )

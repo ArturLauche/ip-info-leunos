@@ -272,8 +272,19 @@ jobs:
         include:
           - api-level: '29'
             system-image-api-level: '29'
+            ram-size: 2048M
+            cores: 2
+            emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          - api-level: '36'
+            system-image-api-level: '36'
+            ram-size: 3072M
+            cores: 2
+            emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           - api-level: '37.0'
             system-image-api-level: '37.0'
+            ram-size: 4096M
+            cores: 4
+            emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -show-kernel
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -322,6 +333,9 @@ jobs:
           system-image-api-level: ${{ matrix.system-image-api-level }}
           target: google_apis
           arch: x86_64
+          ram-size: ${{ matrix.ram-size }}
+          cores: ${{ matrix.cores }}
+          emulator-options: ${{ matrix.emulator-options }}
           disable-animations: true
           emulator-boot-timeout: 600
           working-directory: android

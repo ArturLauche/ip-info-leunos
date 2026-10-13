@@ -9,7 +9,6 @@ import com.leunos.ipinfo.TestUtils.webView
 import com.leunos.ipinfo.navigation.AppNavigator
 import com.leunos.ipinfo.web.TrustedOrigin
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -23,25 +22,43 @@ class MainActivityTest {
     @Test
     fun startsAndHostsAHardenedWebView() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            val settings = scenario.read { activity ->
-                (activity.findViewById<android.view.ViewGroup>(R.id.web_container).getChildAt(0) as android.webkit.WebView).settings
+            // WebView accessors must run on the UI thread; collect the values there and assert afterwards.
+            val observed = scenario.read { activity ->
+                val settings = (activity.findViewById<android.view.ViewGroup>(R.id.web_container).getChildAt(0) as android.webkit.WebView).settings
+                listOf(
+                    settings.javaScriptEnabled,
+                    settings.domStorageEnabled,
+                    settings.allowFileAccess,
+                    settings.allowContentAccess,
+                    settings.javaScriptCanOpenWindowsAutomatically,
+                    settings.supportMultipleWindows(),
+                    settings.mixedContentMode == WebSettings.MIXED_CONTENT_NEVER_ALLOW,
+                    settings.builtInZoomControls,
+                )
             }
-            assertTrue("the website needs JavaScript", settings.javaScriptEnabled)
-            assertTrue("theme and language live in localStorage", settings.domStorageEnabled)
-            assertFalse(settings.allowFileAccess)
-            assertFalse(settings.allowContentAccess)
-            assertFalse(settings.javaScriptCanOpenWindowsAutomatically)
-            assertFalse(settings.supportMultipleWindows())
-            assertEquals(WebSettings.MIXED_CONTENT_NEVER_ALLOW, settings.mixedContentMode)
-            assertTrue(settings.safeBrowsingEnabled)
-            assertFalse(settings.builtInZoomControls)
+            assertEquals(
+                "JS on, DOM storage on, no file/content access, no popups, no mixed content, no zoom controls",
+                listOf(true, true, false, false, false, false, true, false),
+                observed,
+            )
         }
+    }
+
+    /** The runtime getter depends on the installed WebView build, so the opt-in itself is what is verified. */
+    @Test
+    fun safeBrowsingIsOptedInByTheManifest() {
+        val pm = TestUtils.context.packageManager
+        val meta = pm.getApplicationInfo(TestUtils.context.packageName, android.content.pm.PackageManager.GET_META_DATA).metaData
+        assertTrue(meta.getBoolean("android.webkit.WebView.EnableSafeBrowsing", false))
+        assertTrue(meta.getBoolean("android.webkit.WebView.MetricsOptOut", false))
     }
 
     @Test
     fun theUserAgentIsNotDisguised() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            val userAgent = scenario.webView()!!.settings.userAgentString
+            val userAgent = scenario.read { activity ->
+                (activity.findViewById<android.view.ViewGroup>(R.id.web_container).getChildAt(0) as android.webkit.WebView).settings.userAgentString
+            }
             assertTrue("WebView must identify itself honestly, was: $userAgent", userAgent.contains("wv"))
         }
     }
@@ -50,8 +67,10 @@ class MainActivityTest {
     fun loadsTheProductionWebsiteOrShowsTheOfflineScreen() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             val settled = TestUtils.waitFor(60_000) {
-                val web = scenario.webView()
-                val trusted = TrustedOrigin.isTrusted(web?.url)
+                val url = scenario.read { activity ->
+                    (activity.findViewById<android.view.ViewGroup>(R.id.web_container).getChildAt(0) as? android.webkit.WebView)?.url
+                }
+                val trusted = TrustedOrigin.isTrusted(url)
                 trusted || scenario.read { it.findViewById<android.view.View>(R.id.offline_panel).visibility == android.view.View.VISIBLE }
             }
             assertTrue("neither the website nor the native error screen appeared", settled)
