@@ -215,13 +215,19 @@ class SettingsActivity : BaseNativeActivity() {
         openSystemScreen(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:$packageName".toUri()))
     }
 
-    /** Some devices (TVs, stripped-down builds) lack the system screen behind these buttons. */
+    /** Some devices (TVs, stripped-down builds) lack the system screen behind these buttons or refuse to start it. */
     private fun openSystemScreen(intent: Intent) {
         try {
             startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            Snackbar.make(binding.root, R.string.settings_screen_unavailable, Snackbar.LENGTH_SHORT).show()
+            showSystemScreenUnavailable()
+        } catch (e: SecurityException) {
+            showSystemScreenUnavailable()
         }
+    }
+
+    private fun showSystemScreenUnavailable() {
+        Snackbar.make(binding.root, R.string.settings_screen_unavailable, Snackbar.LENGTH_SHORT).show()
     }
 
     private fun openUrl(url: String) {

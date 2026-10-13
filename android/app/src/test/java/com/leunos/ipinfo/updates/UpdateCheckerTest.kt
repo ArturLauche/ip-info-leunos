@@ -143,7 +143,19 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun aMissingMetadataAssetIsAnInvalidReleaseNotANetworkFailure() {
+    fun metadataAndApkDownloadsTreatTheSameStatusesAsTransient() {
+        for (status in 400..599) {
+            if (status == 404) continue
+            val (checker, _) = checker(Scripted(releases("1.1.0"), metadataFor("1.1.0"), metadataStatus = status))
+            val error = (checker.check() as CheckOutcome.Failed).error
+            assertEquals("HTTP $status", isTransientHttpStatus(status), error is UpdateError.Network)
+            assertEquals("HTTP $status", classifyDownloadStatus(status).retryable, error is UpdateError.Network)
+            if (error is UpdateError.InvalidMetadata) assertEquals("HTTP $status", InvalidReason.ASSET_MISSING, error.reason)
+        }
+    }
+
+    @Test
+    fun aMissingMetadataAssetIsInvalidMetadataNotANetworkFailure() {
         val (checker, _) = checker(Scripted(releases("1.1.0"), emptyMap()))
         val error = (checker.check() as CheckOutcome.Failed).error as UpdateError.InvalidMetadata
         assertEquals(InvalidReason.ASSET_MISSING, error.reason)

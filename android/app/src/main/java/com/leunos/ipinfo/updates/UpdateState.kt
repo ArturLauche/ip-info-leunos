@@ -28,10 +28,16 @@ val UpdateFailure.isTransient: Boolean
 /** How a failed download response is explained to the user and whether the download worker retries it. */
 data class DownloadFailureClass(val failure: UpdateFailure, val retryable: Boolean)
 
-/** Server errors and throttling may pass; a missing file or any other refusal will not. */
+/**
+ * Statuses that mean "try again later" rather than "this will not work": timeouts, throttling (GitHub also answers
+ * secondary rate limits with 403) and server errors. The metadata check and the APK download share this rule.
+ */
+fun isTransientHttpStatus(status: Int): Boolean = status == 403 || status == 408 || status == 429 || status in 500..599
+
+/** Transient statuses may pass; a missing file or any other refusal will not. */
 fun classifyDownloadStatus(status: Int): DownloadFailureClass = when {
     status == 404 -> DownloadFailureClass(UpdateFailure.DOWNLOAD_NOT_FOUND, retryable = false)
-    status == 429 || status in 500..599 -> DownloadFailureClass(UpdateFailure.DOWNLOAD_SERVER, retryable = true)
+    isTransientHttpStatus(status) -> DownloadFailureClass(UpdateFailure.DOWNLOAD_SERVER, retryable = true)
     else -> DownloadFailureClass(UpdateFailure.DOWNLOAD_REJECTED, retryable = false)
 }
 
