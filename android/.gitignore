@@ -1,0 +1,27 @@
+# Gradle / Android build output
+.gradle/
+.kotlin/
+build/
+captures/
+local.properties
+*.iml
+.idea/
+.cxx/
+.externalNativeBuild/
+
+# Signing material must never be committed.
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.b64
+*-credentials.txt
+signing-secrets/
+
+# Locally produced APKs / bundles / dry-run output
+*.apk
+*.aab
+*.apks
+release-out/

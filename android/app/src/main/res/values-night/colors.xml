@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark variant of the website's design tokens. -->
+<resources>
+    <color name="brand_background">#0A0A0A</color>
+    <color name="brand_foreground">#FAFAFA</color>
+    <color name="brand_primary">#FAFAFA</color>
+    <color name="brand_on_primary">#171717</color>
+    <color name="brand_card">#171717</color>
+    <color name="brand_muted">#262626</color>
+    <color name="brand_muted_foreground">#A3A3A3</color>
+    <color name="brand_border">#2E2E2E</color>
+    <color name="brand_destructive">#F87171</color>
+    <color name="splash_background">#0A0A0A</color>
+</resources>

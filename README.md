@@ -112,6 +112,10 @@ Browser checks cover lookup cancellation/races, request counts, navigation/histo
 
 See [the codebase audit](docs/codebase-audit.md) for the implementation plan, findings, measurements, and remaining deployment decisions.
 
+## Android App
+
+`android/` contains a native Android app (Kotlin, API 29+) that shows this website in a hardened WebView and adds on-device network diagnostics and an updater for APKs published on GitHub Releases. It does not change the web app or its API. See [docs/android.md](docs/android.md) for architecture, build and test commands, and [docs/android-release.md](docs/android-release.md) for signing and the release process. Android CI only runs for changes under `android/`; releases are built from `android-v*` tags.
+
 ## Deployment
 
 This app is not purely static because the tools use server-side API routes. Deploy it to a Node-capable target such as Vercel, Railway, Render, Fly.io, or Docker/VPS.

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Globe with locator dot from the website brand mark (scripts/generate-icons.mjs), inside the adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="1.3"
+        android:scaleY="1.3"
+        android:translateX="12.4"
+        android:translateY="12.4">
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M13,32a19,19 0 1,0 38,0a19,19 0 1,0 -38,0"
+            android:strokeColor="#FAFAFA"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="3.4" />
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M13,32H51"
+            android:strokeColor="#FAFAFA"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.4" />
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M32,13A10,19 0 0,1 32,51"
+            android:strokeColor="#FAFAFA"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.4" />
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M32,13A10,19 0 0,0 32,51"
+            android:strokeColor="#FAFAFA"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.4" />
+        <path
+            android:fillColor="#FAFAFA"
+            android:pathData="M27,32a5,5 0 1,0 10,0a5,5 0 1,0 -10,0" />
+    </group>
+</vector>

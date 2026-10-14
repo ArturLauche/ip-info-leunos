@@ -1,0 +1,490 @@
+# Trust model: tag builds are untrusted until their exact commit is verified on main;
+# only then may the protected android-release environment expose signing secrets.
+name: Android Release
+
+on:
+  push:
+    # GitHub tag filters are glob-like; release-version.mjs enforces the complete semver and range contract.
+    tags:
+      - 'android-v[0-9]+.[0-9]+.[0-9]+'
+
+permissions: {}
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate trusted tag and release contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.contract.outputs.version }}
+      version_code: ${{ steps.contract.outputs.version_code }}
+      tag: ${{ steps.contract.outputs.tag }}
+      apk_name: ${{ steps.contract.outputs.apk_name }}
+      checksum_name: ${{ steps.contract.outputs.checksum_name }}
+      release_title: ${{ steps.contract.outputs.release_title }}
+    steps:
+      - name: Check out exact tagged commit and history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+
+      - name: Validate tag, version, changelog, and published release history
+        id: contract
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PUSHED_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_TYPE" == tag ]] || { echo 'Android Release only accepts tag pushes.' >&2; exit 1; }
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          TAG_COMMIT="$(git rev-parse "refs/tags/$TAG^{commit}")"
+          [[ "$TAG_COMMIT" == "$PUSHED_SHA" ]] || { echo 'Tag does not resolve to the pushed commit.' >&2; exit 1; }
+          git merge-base --is-ancestor "$TAG_COMMIT" refs/remotes/origin/main || {
+            echo 'Refusing a release tag whose commit is not on origin/main.' >&2
+            exit 1
+          }
+          gh release list --repo "$REPOSITORY" --limit 1000 --json tagName,isDraft,isPrerelease > "$RUNNER_TEMP/android-releases.json"
+          node android/scripts/release-version.mjs \
+            --tag "$TAG" \
+            --version-file android/version.properties \
+            --changelog android/CHANGELOG.md \
+            --releases-json "$RUNNER_TEMP/android-releases.json" \
+            --github-output
+          node --input-type=module <<'NODE'
+          import { readSigningIdentity } from './android/scripts/lib/contract.mjs';
+          const identity = await readSigningIdentity('android/release/signing-identity.json');
+          if (identity.certificateSha256.length === 0) {
+            throw new Error('Stable release signing is disabled until the owner records the production certificate fingerprint in android/release/signing-identity.json.');
+          }
+          NODE
+
+  test:
+    name: Android tests and lint without release credentials
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - name: Check out exact tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+
+      - name: Install Android SDK packages and accept licenses
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          set +e
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -e
+          [[ "$license_status" -eq 0 ]]
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            'platforms;android-37.0' \
+            'build-tools;36.0.0'
+
+      - name: Set up Gradle and dependency cache
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Run release script tests
+        run: node --test android/scripts/*.test.mjs android/scripts/lib/*.test.mjs
+
+      - name: Run Android unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Run Android lint
+        working-directory: android
+        run: ./gradlew lintDebug --stacktrace
+
+  build-sign:
+    name: Sign and verify immutable release assets
+    needs: [validate, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: android-release
+    permissions:
+      contents: read
+    steps:
+      - name: Check out exact tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Fail closed when signing secrets are missing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [[ -n "${!name:-}" ]] || { echo "Required android-release secret is missing: $name" >&2; exit 1; }
+          done
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+
+      - name: Install Android SDK packages and accept licenses
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          set +e
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -e
+          [[ "$license_status" -eq 0 ]]
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            'platforms;android-37.0' \
+            'build-tools;36.0.0'
+
+      - name: Set up Gradle and dependency cache
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Reconstruct protected keystore in runner temp
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PATH: ${{ runner.temp }}/ip-info-release.p12
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+
+      - name: Create staging directory and verify key is outside workspace/artifacts
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/ip-info-release.p12
+          ARTIFACT_DIR: ${{ runner.temp }}/android-release-assets
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$ARTIFACT_DIR"
+          KEYSTORE_REAL="$(realpath -m "$KEYSTORE_PATH")"
+          WORKSPACE_REAL="$(realpath -m "$GITHUB_WORKSPACE")"
+          ARTIFACT_REAL="$(realpath -m "$ARTIFACT_DIR")"
+          case "$KEYSTORE_REAL" in
+            "$WORKSPACE_REAL"|"$WORKSPACE_REAL"/*|"$ARTIFACT_REAL"|"$ARTIFACT_REAL"/*)
+              echo 'Refusing to build with signing material inside the workspace or artifact directory.' >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ip-info-release.p12
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Verify signature, package, version, and SDK
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          FACTS: ${{ runner.temp }}/android-release-facts.json
+        run: |
+          set -euo pipefail
+          node android/scripts/verify-apk.mjs \
+            --apk android/app/build/outputs/apk/release/app-release.apk \
+            --version "$VERSION" \
+            --identity android/release/signing-identity.json \
+            --build-tools-dir "$ANDROID_HOME/build-tools/36.0.0" \
+            --json-out "$FACTS"
+
+      - name: Generate APK checksum and update metadata
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          ARTIFACT_DIR: ${{ runner.temp }}/android-release-assets
+          FACTS: ${{ runner.temp }}/android-release-facts.json
+        run: |
+          set -euo pipefail
+          node android/scripts/generate-update-metadata.mjs \
+            --apk android/app/build/outputs/apk/release/app-release.apk \
+            --facts "$FACTS" \
+            --tag "$TAG" \
+            --out-dir "$ARTIFACT_DIR"
+
+      - name: Extract release notes from Android changelog
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          ARTIFACT_DIR: ${{ runner.temp }}/android-release-assets
+          FACTS: ${{ runner.temp }}/android-release-facts.json
+        run: |
+          set -euo pipefail
+          node android/scripts/extract-release-notes.mjs \
+            --version "$VERSION" \
+            --changelog android/CHANGELOG.md \
+            --footer-json "$FACTS" \
+            --out "$ARTIFACT_DIR/release-notes.md"
+
+      - name: Upload finalized release assets only
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-release-assets
+          path: |
+            ${{ runner.temp }}/android-release-assets/ip-info-android-v*.apk
+            ${{ runner.temp }}/android-release-assets/ip-info-android-v*.apk.sha256
+            ${{ runner.temp }}/android-release-assets/android-update.json
+            ${{ runner.temp }}/android-release-assets/release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Securely remove reconstructed keystore
+        if: always()
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/ip-info-release.p12
+        run: |
+          set -euo pipefail
+          if [[ -f "$KEYSTORE_PATH" ]]; then
+            if command -v shred >/dev/null; then shred -u "$KEYSTORE_PATH" || rm -f "$KEYSTORE_PATH"; else rm -f "$KEYSTORE_PATH"; fi
+          fi
+
+  publish:
+    name: Publish verified assets as a stable GitHub Release
+    needs: [validate, build-sign]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tagged contract scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+
+      - name: Download finalized release asset artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-release-assets
+          path: ${{ runner.temp }}/android-publish-assets
+
+      - name: Re-verify checksum, metadata, and release-note consistency
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          APK_NAME: ${{ needs.validate.outputs.apk_name }}
+          CHECKSUM_NAME: ${{ needs.validate.outputs.checksum_name }}
+          RELEASE_TITLE: ${{ needs.validate.outputs.release_title }}
+          ASSET_DIR: ${{ runner.temp }}/android-publish-assets
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile, stat } from 'node:fs/promises';
+          import path from 'node:path';
+          import { apkName, checksumName, parseTag, readSigningIdentity, releaseTitle, sha256File, validateUpdateMetadata } from './android/scripts/lib/contract.mjs';
+          const { TAG, VERSION, APK_NAME, CHECKSUM_NAME, RELEASE_TITLE, ASSET_DIR, REPOSITORY } = process.env;
+          const parsed = parseTag(TAG);
+          if (parsed.versionName !== VERSION || APK_NAME !== apkName(VERSION) || CHECKSUM_NAME !== checksumName(VERSION) || RELEASE_TITLE !== releaseTitle(VERSION)) {
+            throw new Error('Validated job outputs do not agree with the Android release tag.');
+          }
+          const apkPath = path.join(ASSET_DIR, APK_NAME);
+          const apkStat = await stat(apkPath);
+          const metadataBytes = await readFile(path.join(ASSET_DIR, 'android-update.json'));
+          const metadata = JSON.parse(metadataBytes.toString('utf8'));
+          validateUpdateMetadata(metadata, { repository: REPOSITORY, tag: TAG });
+          if (metadata.versionName !== VERSION || metadata.apk.fileName !== APK_NAME || metadata.apk.sizeBytes !== apkStat.size) {
+            throw new Error('Published metadata version, filename, or size does not match the release artifact.');
+          }
+          const checksumBytes = await readFile(path.join(ASSET_DIR, CHECKSUM_NAME), 'utf8');
+          const actualSha256 = await sha256File(apkPath);
+          if (metadata.apk.sha256 !== actualSha256 || checksumBytes !== `${actualSha256}  ${APK_NAME}\n`) {
+            throw new Error('Release APK SHA-256 does not match both metadata and the checksum file.');
+          }
+          const identity = await readSigningIdentity('android/release/signing-identity.json');
+          if (!identity.certificateSha256.includes(metadata.signing.certificateSha256)) {
+            throw new Error('Release metadata signing certificate is not in the protected signing identity.');
+          }
+          if (!(await readFile(path.join(ASSET_DIR, 'release-notes.md'), 'utf8')).trim()) {
+            throw new Error('Release notes are empty.');
+          }
+          NODE
+
+      - name: Replace a stale draft only; never replace a published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RELEASES="$RUNNER_TEMP/android-releases-for-tag.json"
+          gh api --paginate "repos/$REPOSITORY/releases?per_page=100" \
+            | jq -s --arg tag "$TAG" '[.[][] | select(.tag_name == $tag)]' > "$RELEASES"
+          if [[ "$(jq '[.[] | select(.draft == false)] | length' "$RELEASES")" != 0 ]]; then
+            echo "Refusing to overwrite published release $TAG." >&2
+            exit 1
+          fi
+          while IFS= read -r release_id; do
+            gh api --method DELETE "repos/$REPOSITORY/releases/$release_id"
+          done < <(jq -r '.[].id' "$RELEASES")
+
+      - name: Create GitHub Release as a draft with all assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_TITLE: ${{ needs.validate.outputs.release_title }}
+          APK_NAME: ${{ needs.validate.outputs.apk_name }}
+          CHECKSUM_NAME: ${{ needs.validate.outputs.checksum_name }}
+          ASSET_DIR: ${{ runner.temp }}/android-publish-assets
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --repo "$REPOSITORY" \
+            --draft \
+            --verify-tag \
+            --title "$RELEASE_TITLE" \
+            --notes-file "$ASSET_DIR/release-notes.md" \
+            "$ASSET_DIR/$APK_NAME" \
+            "$ASSET_DIR/$CHECKSUM_NAME" \
+            "$ASSET_DIR/android-update.json"
+
+      - name: Verify draft title and all uploaded asset states and sizes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_TITLE: ${{ needs.validate.outputs.release_title }}
+          APK_NAME: ${{ needs.validate.outputs.apk_name }}
+          CHECKSUM_NAME: ${{ needs.validate.outputs.checksum_name }}
+          ASSET_DIR: ${{ runner.temp }}/android-publish-assets
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/$REPOSITORY/releases?per_page=100" \
+            | jq -s --arg tag "$TAG" '[.[][] | select(.tag_name == $tag)] | if length == 1 then .[0] else error("expected exactly one release for the tag") end' \
+            > "$RUNNER_TEMP/android-draft-release.json"
+          RELEASE_JSON="$RUNNER_TEMP/android-draft-release.json" node --input-type=module <<'NODE'
+          import { readFile, stat, writeFile } from 'node:fs/promises';
+          import path from 'node:path';
+          const release = JSON.parse(await readFile(process.env.RELEASE_JSON, 'utf8'));
+          const { TAG, RELEASE_TITLE, APK_NAME, CHECKSUM_NAME, ASSET_DIR, REPOSITORY } = process.env;
+          if (release.tag_name !== TAG || release.name !== RELEASE_TITLE || release.draft !== true) {
+            throw new Error('Draft release tag, title, or state does not match the validated contract.');
+          }
+          const expected = new Map([
+            [APK_NAME, await stat(path.join(ASSET_DIR, APK_NAME)).then((item) => item.size)],
+            [CHECKSUM_NAME, await stat(path.join(ASSET_DIR, CHECKSUM_NAME)).then((item) => item.size)],
+            ['android-update.json', await stat(path.join(ASSET_DIR, 'android-update.json')).then((item) => item.size)],
+          ]);
+          if (release.assets.length !== expected.size) throw new Error('Draft release does not contain exactly the three contract assets.');
+          const urls = {};
+          for (const [name, size] of expected) {
+            const asset = release.assets.find((candidate) => candidate.name === name);
+            if (!asset || asset.state !== 'uploaded' || asset.size !== size) throw new Error(`Draft asset ${name} is missing, not uploaded, or has the wrong size.`);
+            const expectedUrl = `https://github.com/${REPOSITORY}/releases/download/${TAG}/${name}`;
+            if (asset.browser_download_url !== expectedUrl) throw new Error(`Draft asset ${name} has an unexpected public download URL.`);
+            urls[name] = asset.browser_download_url;
+          }
+          await writeFile(path.join(process.env.RUNNER_TEMP, 'android-public-asset-urls.json'), `${JSON.stringify(urls, null, 2)}\n`);
+          NODE
+
+      - name: Publish release but keep it out of generic latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --repo "$REPOSITORY" --draft=false --latest=false
+
+      - name: Verify public unauthenticated asset downloads; redraft on failure
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          APK_NAME: ${{ needs.validate.outputs.apk_name }}
+          CHECKSUM_NAME: ${{ needs.validate.outputs.checksum_name }}
+          RELEASE_TITLE: ${{ needs.validate.outputs.release_title }}
+          ASSET_DIR: ${{ runner.temp }}/android-publish-assets
+          PUBLIC_DIR: ${{ runner.temp }}/android-public-assets
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RELEASE_API_TOKEN="$GH_TOKEN"
+          mkdir -m 700 "$PUBLIC_DIR"
+          URLS_JSON="$RUNNER_TEMP/android-public-asset-urls.json"
+          APK_URL="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8'))[process.argv[2]])" "$URLS_JSON" "$APK_NAME")"
+          CHECKSUM_URL="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8'))[process.argv[2]])" "$URLS_JSON" "$CHECKSUM_NAME")"
+          METADATA_URL="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8'))['android-update.json'])" "$URLS_JSON")"
+          public_download_and_compare() {
+            unset GH_TOKEN GITHUB_TOKEN
+            GH_TOKEN="$RELEASE_API_TOKEN" gh api "repos/$REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/android-published-release.json" || return 1
+            RELEASE_JSON="$RUNNER_TEMP/android-published-release.json" node --input-type=module <<'NODE' || return 1
+          import { readFile } from 'node:fs/promises';
+          const release = JSON.parse(await readFile(process.env.RELEASE_JSON, 'utf8'));
+          if (release.tag_name !== process.env.TAG || release.name !== process.env.RELEASE_TITLE || release.draft !== false || release.prerelease !== false) {
+            throw new Error('Published Android release is not public, stable, or tagged as expected.');
+          }
+          NODE
+            curl --fail --location --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 --max-time 1200 --proto '=https' --proto-redir '=https' "$APK_URL" --output "$PUBLIC_DIR/$APK_NAME" || return 1
+            curl --fail --location --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 --max-time 1200 --proto '=https' --proto-redir '=https' "$CHECKSUM_URL" --output "$PUBLIC_DIR/$CHECKSUM_NAME" || return 1
+            curl --fail --location --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 --max-time 1200 --proto '=https' --proto-redir '=https' "$METADATA_URL" --output "$PUBLIC_DIR/android-update.json" || return 1
+            cmp -s "$ASSET_DIR/$CHECKSUM_NAME" "$PUBLIC_DIR/$CHECKSUM_NAME" || return 1
+            cmp -s "$ASSET_DIR/android-update.json" "$PUBLIC_DIR/android-update.json" || return 1
+            (cd "$PUBLIC_DIR" && sha256sum --check "$CHECKSUM_NAME") || return 1
+            cmp -s "$ASSET_DIR/$APK_NAME" "$PUBLIC_DIR/$APK_NAME" || return 1
+          }
+          if ! public_download_and_compare; then
+            echo "Unauthenticated public verification failed for $TAG; reverting the release to draft." >&2
+            if ! GH_TOKEN="$RELEASE_API_TOKEN" gh release edit "$TAG" --repo "$REPOSITORY" --draft; then
+              echo 'GitHub refused to restore the release to draft (for example, repository release immutability may already apply); inspect the published tag and issue a new patch release if needed.' >&2
+            fi
+            exit 1
+          fi
+          echo "Public APK, checksum, and update metadata verified for $TAG."

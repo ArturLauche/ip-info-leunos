@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Neutral palette mirroring the website's design tokens (app/globals.css), light variant. -->
+<resources>
+    <color name="brand_background">#FFFFFF</color>
+    <color name="brand_foreground">#0A0A0A</color>
+    <color name="brand_primary">#171717</color>
+    <color name="brand_on_primary">#FAFAFA</color>
+    <color name="brand_card">#FFFFFF</color>
+    <color name="brand_muted">#F5F5F5</color>
+    <color name="brand_muted_foreground">#737373</color>
+    <color name="brand_border">#E5E5E5</color>
+    <color name="brand_destructive">#DC2626</color>
+    <color name="splash_background">#0A0A0A</color>
+</resources>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="16dp">
+
+    <TextView
+        android:id="@+id/row_update"
+        style="@style/Widget.IPInfo.MenuRow"
+        app:drawableStartCompat="@drawable/ic_update"
+        android:text="@string/menu_update_available"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/row_home"
+        style="@style/Widget.IPInfo.MenuRow"
+        app:drawableStartCompat="@drawable/ic_home"
+        android:text="@string/menu_website" />
+
+    <TextView
+        android:id="@+id/row_reload"
+        style="@style/Widget.IPInfo.MenuRow"
+        app:drawableStartCompat="@drawable/ic_refresh"
+        android:text="@string/menu_reload" />
+
+    <TextView
+        android:id="@+id/row_diagnostics"
+        style="@style/Widget.IPInfo.MenuRow"
+        app:drawableStartCompat="@drawable/ic_wifi"
+        android:text="@string/menu_diagnostics" />
+
+    <TextView
+        android:id="@+id/row_settings"
+        style="@style/Widget.IPInfo.MenuRow"
+        app:drawableStartCompat="@drawable/ic_settings"
+        android:text="@string/menu_settings" />
+
+    <TextView
+        android:id="@+id/row_about"
+        style="@style/Widget.IPInfo.MenuRow"
+        app:drawableStartCompat="@drawable/ic_info"
+        android:text="@string/menu_about" />
+</LinearLayout>
