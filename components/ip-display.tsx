@@ -13,6 +13,7 @@ import { getApiErrorMessage } from "@/lib/api/error-message";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
+import { BrowserFingerprint } from "@/components/browser-fingerprint";
 import { CopyButton } from "@/components/copy-button";
 import { LiveRegion } from "@/components/live-region";
 import { normalizeAsnInput } from "@/lib/asn-id";
@@ -42,7 +43,6 @@ import {
   hashFingerprintMaterial,
   readUserAgentClientHints,
   resolveVisitorBrowserInfo,
-  splitFingerprintGroups,
   type DetectedBrowserInfo,
 } from "@/lib/browser-info";
 import {
@@ -165,57 +165,6 @@ function DetailRow({
       <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-end text-sm font-medium break-words text-foreground">
         {children}
-      </dd>
-    </div>
-  );
-}
-
-/** Hex fingerprint value block: the groups wrap naturally with the panel
- *  width (no hard line breaks) and the copy action floats top-right over it. */
-function FingerprintRow({
-  label,
-  value,
-  ready,
-  unknownLabel,
-  copyLabel,
-  copiedLabel,
-  failedLabel,
-}: {
-  label: string;
-  value: string | null;
-  ready: boolean;
-  unknownLabel: string;
-  copyLabel: string;
-  copiedLabel: string;
-  failedLabel: string;
-}) {
-  return (
-    <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="mt-2 min-w-0">
-        {!ready ? (
-          <Skeleton className="h-24 w-full rounded-lg sm:h-20" />
-        ) : value ? (
-          <div className="relative overflow-hidden rounded-lg border bg-muted/40">
-            <CopyButton
-              text={value}
-              label={copyLabel}
-              copiedLabel={copiedLabel}
-              failedLabel={failedLabel}
-              className="absolute top-1 end-1 size-7 bg-muted/40 [&_svg]:size-3.5"
-            />
-            <code
-              title={value}
-              className="block px-3.5 py-3 pe-11 font-mono text-xs font-medium leading-6 tracking-[0.04em] break-words text-foreground select-all"
-            >
-              {splitFingerprintGroups(value).join(" ")}
-            </code>
-          </div>
-        ) : (
-          <span className="text-sm font-medium text-foreground">
-            {unknownLabel}
-          </span>
-        )}
       </dd>
     </div>
   );
@@ -771,14 +720,9 @@ function IpDisplayContent({
                 <DetailRow label={t.browserVersion}>
                   {orUnknown(formatBrowserVersion(visitorBrowser) ?? "")}
                 </DetailRow>
-                <FingerprintRow
-                  label={t.browserFingerprint}
+                <BrowserFingerprint
                   value={fingerprint}
                   ready={fingerprintReady}
-                  unknownLabel={t.unknown}
-                  copyLabel={t.copyFingerprintLabel}
-                  copiedLabel={t.copiedToClipboard}
-                  failedLabel={t.copyFailed}
                 />
               </DetailCard>
 
