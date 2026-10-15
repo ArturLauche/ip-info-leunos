@@ -12,6 +12,8 @@ import type { BrowserDeviceHints } from "@/lib/connection-type";
 
 export const FINGERPRINT_SCHEMA_VERSION = 1;
 export const FINGERPRINT_HASH_ALGORITHM = "SHA-256";
+/** Hex characters in one digest of FINGERPRINT_HASH_ALGORITHM (SHA-256 is 32 bytes). */
+export const FINGERPRINT_DIGEST_HEX_LENGTH = 64;
 
 export type DeviceType = "desktop" | "mobile" | "tablet";
 

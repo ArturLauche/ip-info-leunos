@@ -5,13 +5,16 @@ import { CopyButton } from "@/components/copy-button";
 import { useI18n } from "@/components/i18n-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  FINGERPRINT_DIGEST_HEX_LENGTH,
   FINGERPRINT_HASH_ALGORITHM,
   splitFingerprintGroups,
 } from "@/lib/browser-info";
 import type { Translation } from "@/lib/i18n";
 
-/** SHA-256 renders as 64 hex characters, i.e. eight 8-character groups. */
-const HASH_GROUP_COUNT = 8;
+/** Loading cells mirror the groups of a full digest, so the placeholder matches a loaded hash. */
+const PLACEHOLDER_GROUPS = splitFingerprintGroups(
+  "0".repeat(FINGERPRINT_DIGEST_HEX_LENGTH),
+);
 
 interface BrowserFingerprintProps {
   /** Lowercase SHA-256 hex, or `null` when the browser cannot hash it. */
@@ -39,7 +42,7 @@ export function BrowserFingerprintView({
   const groups = value ? splitFingerprintGroups(value) : [];
 
   return (
-    <div className="border-b border-border/60 py-4 last:border-b-0">
+    <div className="border-b border-border/60 py-3 last:border-b-0">
       <dt className="text-sm text-muted-foreground">{t.browserFingerprint}</dt>
       <dd className="mt-2.5 min-w-0">
         <div className="overflow-hidden rounded-lg border bg-muted/40">
@@ -71,7 +74,7 @@ export function BrowserFingerprintView({
                 aria-hidden="true"
                 className="grid w-full grid-cols-2 gap-x-3 gap-y-2 min-[380px]:grid-cols-4"
               >
-                {Array.from({ length: HASH_GROUP_COUNT }, (_, index) => (
+                {PLACEHOLDER_GROUPS.map((_, index) => (
                   <span key={index} className="flex h-6 items-center">
                     <Skeleton className="h-3.5 w-full" />
                   </span>

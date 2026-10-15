@@ -7,6 +7,10 @@ import {
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import {
+  FINGERPRINT_DIGEST_HEX_LENGTH,
+  splitFingerprintGroups,
+} from "@/lib/browser-info";
 import { getTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/locale-config";
 import { CopyButton } from "./copy-button";
@@ -86,10 +90,16 @@ describe("BrowserFingerprint states", () => {
 
     expect(loading).toContain('aria-busy="true"');
     expect(loading).not.toContain(HASH);
-    // One skeleton for the copy action plus one per hash group.
-    expect(loading.split('data-slot="skeleton"')).toHaveLength(10);
+    // One skeleton for the copy action plus one per group of a real hash.
+    const skeletons = loading.split('data-slot="skeleton"').length - 1;
+    expect(skeletons).toBe(splitFingerprintGroups(HASH).length + 1);
     expect(ready.split("data-fingerprint-group").length - 1).toBe(8);
     expect(ready).not.toContain("aria-busy");
+  });
+
+  it("sizes the placeholder from the SHA-256 digest length", () => {
+    expect(HASH).toHaveLength(FINGERPRINT_DIGEST_HEX_LENGTH);
+    expect(splitFingerprintGroups(HASH)).toHaveLength(8);
   });
 
   it("explains an unavailable hash instead of rendering a grid", () => {
