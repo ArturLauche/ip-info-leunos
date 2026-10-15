@@ -15,6 +15,7 @@ export function CopyButton({
   failedLabel,
   className,
   showLabel = false,
+  visibleLabel,
 }: {
   /** A function defers building large text until the button is pressed. */
   text: string | (() => string);
@@ -23,6 +24,8 @@ export function CopyButton({
   failedLabel: string;
   className?: string;
   showLabel?: boolean;
+  /** Short text shown with `showLabel`; `label` remains the accessible name. */
+  visibleLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -59,7 +62,7 @@ export function CopyButton({
       ) : (
         <Copy className="size-4" aria-hidden="true" />
       )}
-      {showLabel && label}
+      {showLabel && (visibleLabel ?? label)}
     </Button>
   );
 }

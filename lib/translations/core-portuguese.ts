@@ -89,6 +89,9 @@ export const corePortuguese: Record<"pt-BR" | "pt-PT", Translation> = {
     browserTimezone: "Fuso horário (navegador)",
     browserFingerprint: "Impressão digital",
     copyFingerprintLabel: "Copiar impressão digital",
+    copyAction: "Copiar",
+    fingerprintUnavailable:
+      "Indisponível: o hash SHA-256 não está disponível nesta conexão. É necessário HTTPS.",
     deviceTypes: {
       desktop: "Computador de mesa",
       mobile: "Celular",
@@ -202,6 +205,9 @@ export const corePortuguese: Record<"pt-BR" | "pt-PT", Translation> = {
     browserTimezone: "Fuso horário (navegador)",
     browserFingerprint: "Impressão digital",
     copyFingerprintLabel: "Copiar impressão digital",
+    copyAction: "Copiar",
+    fingerprintUnavailable:
+      "Indisponível: o hash SHA-256 não está disponível nesta ligação. É necessário HTTPS.",
     deviceTypes: {
       desktop: "Computador de secretária",
       mobile: "Telemóvel",

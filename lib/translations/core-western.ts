@@ -91,6 +91,9 @@ export const coreWestern = {
     browserTimezone: "Fuso orario (browser)",
     browserFingerprint: "Impronta digitale",
     copyFingerprintLabel: "Copia impronta digitale",
+    copyAction: "Copia",
+    fingerprintUnavailable:
+      "Non disponibile: l’hashing SHA-256 non è disponibile su questa connessione. Richiede HTTPS.",
     deviceTypes: {
       desktop: "Desktop",
       mobile: "Dispositivo mobile",
@@ -203,6 +206,9 @@ export const coreWestern = {
     browserTimezone: "Tijdzone (browser)",
     browserFingerprint: "Vingerafdruk",
     copyFingerprintLabel: "Vingerafdruk kopiëren",
+    copyAction: "Kopiëren",
+    fingerprintUnavailable:
+      "Niet beschikbaar: SHA-256-hashing is op deze verbinding niet beschikbaar. HTTPS is vereist.",
     deviceTypes: {
       desktop: "Desktop",
       mobile: "Mobiel",
@@ -315,6 +321,9 @@ export const coreWestern = {
     browserTimezone: "Strefa czasowa (przeglądarka)",
     browserFingerprint: "Odcisk przeglądarki",
     copyFingerprintLabel: "Kopiuj odcisk przeglądarki",
+    copyAction: "Kopiuj",
+    fingerprintUnavailable:
+      "Niedostępne: haszowanie SHA-256 nie jest dostępne w tym połączeniu. Wymagane jest HTTPS.",
     deviceTypes: {
       desktop: "Komputer stacjonarny",
       mobile: "Telefon",
