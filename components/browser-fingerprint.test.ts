@@ -9,7 +9,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   FINGERPRINT_DIGEST_HEX_LENGTH,
+  hashFingerprintMaterial,
   splitFingerprintGroups,
+  type FingerprintMaterial,
 } from "@/lib/browser-info";
 import { getTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/locale-config";
@@ -22,6 +24,24 @@ import { withI18n } from "./i18n-test-utils";
 
 const HASH = "ddb2b258340ac3677b8737627d28c0cc6a556a10512fe90d642bfa3ac3650287";
 const t = getTranslation("en");
+
+const FIXTURE_MATERIAL: FingerprintMaterial = {
+  v: 1,
+  browserName: "Chrome",
+  browserMajor: "141",
+  osName: "macOS",
+  deviceType: "desktop",
+  timeZone: "Europe/Berlin",
+  language: "en-US",
+  languages: ["en-US"],
+  platform: "MacIntel",
+  hardwareConcurrency: 8,
+  deviceMemory: 8,
+  screenWidth: 1440,
+  screenHeight: 900,
+  colorDepth: 24,
+  maxTouchPoints: 0,
+};
 
 type AnyElement = ReactElement<Record<string, unknown>>;
 
@@ -97,9 +117,11 @@ describe("BrowserFingerprint states", () => {
     expect(ready).not.toContain("aria-busy");
   });
 
-  it("sizes the placeholder from the SHA-256 digest length", () => {
-    expect(HASH).toHaveLength(FINGERPRINT_DIGEST_HEX_LENGTH);
-    expect(splitFingerprintGroups(HASH)).toHaveLength(8);
+  it("sizes the placeholder from a real digest of the algorithm in use", async () => {
+    const digest = await hashFingerprintMaterial(FIXTURE_MATERIAL);
+
+    expect(digest).toHaveLength(FINGERPRINT_DIGEST_HEX_LENGTH);
+    expect(splitFingerprintGroups(digest ?? "")).toHaveLength(8);
   });
 
   it("explains an unavailable hash instead of rendering a grid", () => {
