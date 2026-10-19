@@ -76,11 +76,10 @@ describe("BrowserFingerprint copy action", () => {
     expect(copy?.props).toMatchObject({
       text: HASH,
       label: t.copyFingerprintLabel,
-      visibleLabel: t.copyAction,
       copiedLabel: t.copiedToClipboard,
       failedLabel: t.copyFailed,
-      showLabel: true,
     });
+    expect(copy?.props.showLabel).not.toBe(true);
   });
 
   it("shows eight groups that rebuild the exact hash when joined", () => {
@@ -132,11 +131,11 @@ describe("BrowserFingerprint states", () => {
     expect(html).not.toContain("data-fingerprint-group");
   });
 
-  it("localizes the visible label and the accessible name", () => {
+  it("localizes the fingerprint label and the icon button's accessible name", () => {
     const de = getTranslation("de");
     const html = render({ value: HASH, ready: true }, "de");
 
-    expect(html).toContain(de.copyAction);
+    expect(html).toContain(de.browserFingerprint);
     expect(html).toContain(`aria-label="${de.copyFingerprintLabel}"`);
   });
 });
