@@ -30,9 +30,10 @@ export function BrowserFingerprint(props: BrowserFingerprintProps) {
 
 /**
  * Hash-only view of the visitor fingerprint, rendered inside the Browser card.
- * The hash sits on a fixed eight-group grid, so it never breaks mid-group or
- * leaves a ragged last line, and the loading placeholder uses the same grid so
- * the card keeps its size once the hash lands.
+ * It stays a plain detail row (no nested panel) and the hash sits on a fixed
+ * eight-group grid, so it never breaks mid-group or leaves a ragged last line.
+ * The loading placeholder uses the same grid so the card keeps its size once
+ * the hash lands.
  */
 export function BrowserFingerprintView({
   value,
@@ -43,66 +44,59 @@ export function BrowserFingerprintView({
 
   return (
     <div className="border-b border-border/60 py-3 last:border-b-0">
-      <dt className="text-sm text-muted-foreground">{t.browserFingerprint}</dt>
-      <dd className="mt-2.5 min-w-0">
-        <div className="overflow-hidden rounded-lg border bg-muted/40">
-          <div className="flex h-11 items-center justify-between gap-3 border-b ps-4 pe-2">
-            <span className="font-mono text-xs font-medium text-muted-foreground">
-              {FINGERPRINT_HASH_ALGORITHM}
-            </span>
-            {value ? (
-              <CopyButton
-                text={value}
-                label={t.copyFingerprintLabel}
-                visibleLabel={t.copyAction}
-                copiedLabel={t.copiedToClipboard}
-                failedLabel={t.copyFailed}
-                className="text-foreground"
-                showLabel
-              />
-            ) : (
-              !ready && <Skeleton className="h-8 w-20 rounded-md" />
-            )}
-          </div>
-
-          <div
-            aria-busy={ready ? undefined : true}
-            className="flex min-h-36 items-center px-4 py-3 min-[380px]:min-h-21"
-          >
-            {!ready ? (
-              <div
-                aria-hidden="true"
-                className="grid w-full grid-cols-2 gap-x-3 gap-y-2 min-[380px]:grid-cols-4"
-              >
-                {PLACEHOLDER_GROUPS.map((_, index) => (
-                  <span key={index} className="flex h-6 items-center">
-                    <Skeleton className="h-3.5 w-full" />
-                  </span>
-                ))}
-              </div>
-            ) : value ? (
-              <>
-                <span className="sr-only">{value}</span>
-                <div
-                  dir="ltr"
-                  aria-hidden="true"
-                  className="tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-2 font-mono text-xs leading-6 font-medium tracking-[0.04em] text-foreground select-all min-[380px]:grid-cols-4 sm:text-sm"
-                >
-                  {groups.map((group, index) => (
-                    <span key={index} data-fingerprint-group>
-                      {group}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="flex w-full items-start gap-2.5 text-sm text-muted-foreground">
-                <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span>{t.fingerprintUnavailable}</span>
-              </p>
-            )}
-          </div>
-        </div>
+      <dt className="flex items-baseline gap-2 text-sm text-muted-foreground">
+        <span className="min-w-0 truncate">{t.browserFingerprint}</span>
+        <span className="font-mono text-[10px] font-medium tracking-[0.08em] text-muted-foreground/60">
+          {FINGERPRINT_HASH_ALGORITHM}
+        </span>
+      </dt>
+      <dd
+        aria-busy={ready ? undefined : true}
+        className="mt-1.5 flex min-w-0 items-start gap-2"
+      >
+        {!ready ? (
+          <>
+            <div
+              aria-hidden="true"
+              className="grid flex-1 grid-cols-2 gap-x-3 gap-y-1 min-[380px]:grid-cols-4"
+            >
+              {PLACEHOLDER_GROUPS.map((_, index) => (
+                <span key={index} className="flex h-5 items-center">
+                  <Skeleton className="h-3.5 w-full" />
+                </span>
+              ))}
+            </div>
+            <Skeleton className="-me-1.5 -mt-0.5 size-8 shrink-0 rounded-md" />
+          </>
+        ) : value ? (
+          <>
+            <span className="sr-only">{value}</span>
+            <div
+              dir="ltr"
+              aria-hidden="true"
+              className="tool-section-reveal grid flex-1 grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] leading-5 font-medium tracking-[0.04em] text-foreground select-all min-[380px]:grid-cols-4 min-[380px]:text-xs sm:text-sm"
+            >
+              {groups.map((group, index) => (
+                <span key={index} data-fingerprint-group>
+                  {group}
+                </span>
+              ))}
+            </div>
+            <CopyButton
+              text={value}
+              label={t.copyFingerprintLabel}
+              copiedLabel={t.copiedToClipboard}
+              failedLabel={t.copyFailed}
+              className="-me-1.5 -mt-1 size-8"
+              showLabel={false}
+            />
+          </>
+        ) : (
+          <p className="flex w-full items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+            <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            <span>{t.fingerprintUnavailable}</span>
+          </p>
+        )}
       </dd>
     </div>
   );
