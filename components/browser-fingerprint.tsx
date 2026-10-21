@@ -80,7 +80,7 @@ export function BrowserFingerprintView({
               <div
                 dir="ltr"
                 aria-hidden="true"
-                className="tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-1 font-mono text-xs leading-5 text-muted-foreground select-all min-[380px]:grid-cols-4"
+                className="tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] leading-5 text-muted-foreground select-all min-[380px]:grid-cols-4"
               >
                 {groups.map((group, index) => (
                   <span key={index} data-fingerprint-group>
