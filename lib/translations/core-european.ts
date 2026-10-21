@@ -94,7 +94,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Часовий пояс (браузер)",
     browserFingerprint: "Відбиток",
     copyFingerprintLabel: "Скопіювати відбиток",
-    copyAction: "Копіювати",
     fingerprintUnavailable:
       "Недоступно: хешування SHA-256 у цьому з’єднанні не працює. Потрібен HTTPS.",
     deviceTypes: {
@@ -209,7 +208,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Časové pásmo (prohlížeč)",
     browserFingerprint: "Otisk prohlížeče",
     copyFingerprintLabel: "Kopírovat otisk prohlížeče",
-    copyAction: "Kopírovat",
     fingerprintUnavailable:
       "Nedostupné: hashování SHA-256 na tomto připojení není k dispozici. Vyžaduje HTTPS.",
     deviceTypes: {
@@ -324,7 +322,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Tidszon (webbläsare)",
     browserFingerprint: "Fingeravtryck",
     copyFingerprintLabel: "Kopiera fingeravtryck",
-    copyAction: "Kopiera",
     fingerprintUnavailable:
       "Inte tillgänglig: SHA-256-hashning är inte tillgänglig över den här anslutningen. Kräver HTTPS.",
     deviceTypes: {
@@ -439,7 +436,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Tidszone (browser)",
     browserFingerprint: "Fingeraftryk",
     copyFingerprintLabel: "Kopiér fingeraftryk",
-    copyAction: "Kopiér",
     fingerprintUnavailable:
       "Ikke tilgængelig: SHA-256-hashing er ikke tilgængelig på denne forbindelse. Kræver HTTPS.",
     deviceTypes: {
@@ -554,7 +550,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Tidssone (nettleser)",
     browserFingerprint: "Fingeravtrykk",
     copyFingerprintLabel: "Kopier fingeravtrykk",
-    copyAction: "Kopier",
     fingerprintUnavailable:
       "Ikke tilgjengelig: SHA-256-hashing er ikke tilgjengelig på denne tilkoblingen. Krever HTTPS.",
     deviceTypes: {
@@ -669,7 +664,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Aikavyöhyke (selain)",
     browserFingerprint: "Sormenjälki",
     copyFingerprintLabel: "Kopioi sormenjälki",
-    copyAction: "Kopioi",
     fingerprintUnavailable:
       "Ei käytettävissä: SHA-256-tiivistys ei ole käytettävissä tässä yhteydessä. Vaatii HTTPS-yhteyden.",
     deviceTypes: {
@@ -784,7 +778,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Ζώνη ώρας (περιηγητή)",
     browserFingerprint: "Αποτύπωμα",
     copyFingerprintLabel: "Αντιγραφή αποτυπώματος",
-    copyAction: "Αντιγραφή",
     fingerprintUnavailable:
       "Μη διαθέσιμο: ο κατακερματισμός SHA-256 δεν είναι διαθέσιμος σε αυτή τη σύνδεση. Απαιτείται HTTPS.",
     deviceTypes: {
@@ -899,7 +892,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Fus orar (browser)",
     browserFingerprint: "Amprentă",
     copyFingerprintLabel: "Copiază amprenta",
-    copyAction: "Copiază",
     fingerprintUnavailable:
       "Indisponibil: hashing-ul SHA-256 nu este disponibil pe această conexiune. Necesită HTTPS.",
     deviceTypes: {
@@ -1014,7 +1006,6 @@ export const coreEuropean: Record<CoreEuropeanLocale, Translation> = {
     browserTimezone: "Saat dilimi (tarayıcı)",
     browserFingerprint: "Parmak izi",
     copyFingerprintLabel: "Parmak izini kopyala",
-    copyAction: "Kopyala",
     fingerprintUnavailable:
       "Kullanılamıyor: Bu bağlantıda SHA-256 özeti hesaplanamıyor. HTTPS gerektirir.",
     deviceTypes: {

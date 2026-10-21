@@ -135,7 +135,7 @@ describe("BrowserFingerprint states", () => {
     const de = getTranslation("de");
     const html = render({ value: HASH, ready: true }, "de");
 
-    expect(html).toContain(de.browserFingerprint);
+    expect(html).toContain(`<span>${de.browserFingerprint}</span>`);
     expect(html).toContain(`aria-label="${de.copyFingerprintLabel}"`);
   });
 });

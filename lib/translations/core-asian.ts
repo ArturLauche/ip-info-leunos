@@ -88,7 +88,6 @@ export const coreAsian: Record<"ja" | "ko" | "zh-TW", Translation> = {
     browserTimezone: "タイムゾーン（ブラウザ）",
     browserFingerprint: "フィンガープリント",
     copyFingerprintLabel: "フィンガープリントをコピー",
-    copyAction: "コピー",
     fingerprintUnavailable:
       "利用できません: この接続では SHA-256 ハッシュを計算できません。HTTPS 接続が必要です。",
     deviceTypes: {
@@ -203,7 +202,6 @@ export const coreAsian: Record<"ja" | "ko" | "zh-TW", Translation> = {
     browserTimezone: "시간대 (브라우저)",
     browserFingerprint: "핑거프린트",
     copyFingerprintLabel: "핑거프린트 복사",
-    copyAction: "복사",
     fingerprintUnavailable:
       "사용할 수 없음: 이 연결에서는 SHA-256 해시를 계산할 수 없습니다. HTTPS가 필요합니다.",
     deviceTypes: {
@@ -317,7 +315,6 @@ export const coreAsian: Record<"ja" | "ko" | "zh-TW", Translation> = {
     browserTimezone: "時區（瀏覽器）",
     browserFingerprint: "指紋",
     copyFingerprintLabel: "複製指紋",
-    copyAction: "複製",
     fingerprintUnavailable:
       "無法使用：此連線無法計算 SHA-256 雜湊，需要 HTTPS。",
     deviceTypes: {

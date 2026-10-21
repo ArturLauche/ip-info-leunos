@@ -57,7 +57,7 @@ export function BrowserFingerprintView({
             className="absolute -end-1 top-2.5"
           />
         ) : (
-          !ready && <Skeleton className="absolute end-0 top-3 size-8 rounded-md" />
+          !ready && <Skeleton className="absolute -end-1 top-2.5 size-9 rounded-md" />
         )}
         <div
           aria-busy={ready ? undefined : true}

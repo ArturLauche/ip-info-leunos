@@ -92,7 +92,6 @@ export const coreMore = {
     browserTimezone: "المنطقة الزمنية (المتصفح)",
     browserFingerprint: "البصمة الرقمية",
     copyFingerprintLabel: "نسخ البصمة الرقمية",
-    copyAction: "نسخ",
     fingerprintUnavailable:
       "غير متاح: تجزئة SHA-256 غير متوفرة في هذا الاتصال. يتطلب HTTPS.",
     deviceTypes: {
@@ -207,7 +206,6 @@ export const coreMore = {
     browserTimezone: "समय क्षेत्र (ब्राउज़र)",
     browserFingerprint: "फ़िंगरप्रिंट",
     copyFingerprintLabel: "फ़िंगरप्रिंट कॉपी करें",
-    copyAction: "कॉपी करें",
     fingerprintUnavailable:
       "उपलब्ध नहीं: इस कनेक्शन पर SHA-256 हैशिंग उपलब्ध नहीं है। इसके लिए HTTPS ज़रूरी है।",
     deviceTypes: {
@@ -322,7 +320,6 @@ export const coreMore = {
     browserTimezone: "Zona waktu (peramban)",
     browserFingerprint: "Sidik jari",
     copyFingerprintLabel: "Salin sidik jari",
-    copyAction: "Salin",
     fingerprintUnavailable:
       "Tidak tersedia: hashing SHA-256 tidak tersedia pada koneksi ini. Diperlukan HTTPS.",
     deviceTypes: {

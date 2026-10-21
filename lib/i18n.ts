@@ -114,7 +114,6 @@ export type Translation = {
   browserTimezone: string;
   browserFingerprint: string;
   copyFingerprintLabel: string;
-  copyAction: string;
   fingerprintUnavailable: string;
   deviceTypes: {
     desktop: string;
@@ -215,7 +214,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       browserTimezone: "Zeitzone (Browser)",
       browserFingerprint: "Fingerprint",
       copyFingerprintLabel: "Fingerprint kopieren",
-      copyAction: "Kopieren",
       fingerprintUnavailable:
         "Nicht verfügbar: SHA-256-Hashing ist über diese Verbindung nicht möglich. Dafür ist HTTPS erforderlich.",
       deviceTypes: {
@@ -330,7 +328,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       browserTimezone: "Timezone (browser)",
       browserFingerprint: "Fingerprint",
       copyFingerprintLabel: "Copy fingerprint",
-      copyAction: "Copy",
       fingerprintUnavailable:
         "Unavailable: SHA-256 hashing is not available on this connection. It requires HTTPS.",
       deviceTypes: {
@@ -445,7 +442,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       browserTimezone: "Zona horaria (navegador)",
       browserFingerprint: "Huella",
       copyFingerprintLabel: "Copiar huella",
-      copyAction: "Copiar",
       fingerprintUnavailable:
         "No disponible: el hash SHA-256 no está disponible en esta conexión. Requiere HTTPS.",
       deviceTypes: {
@@ -560,7 +556,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       browserTimezone: "Fuseau horaire (navigateur)",
       browserFingerprint: "Empreinte",
       copyFingerprintLabel: "Copier l’empreinte",
-      copyAction: "Copier",
       fingerprintUnavailable:
         "Indisponible : le hachage SHA-256 n’est pas disponible sur cette connexion. HTTPS est requis.",
       deviceTypes: {
@@ -899,7 +894,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       browserTimezone: "Часовой пояс (браузер)",
       browserFingerprint: "Отпечаток",
       copyFingerprintLabel: "Скопировать отпечаток",
-      copyAction: "Копировать",
       fingerprintUnavailable:
         "Недоступно: хеширование SHA-256 в этом соединении не работает. Требуется HTTPS.",
       deviceTypes: {
@@ -1013,7 +1007,6 @@ export const translations: Record<Locale, Translation> = Object.assign(
       browserTimezone: "时区（浏览器）",
       browserFingerprint: "指纹",
       copyFingerprintLabel: "复制指纹",
-      copyAction: "复制",
       fingerprintUnavailable:
         "不可用：当前连接无法计算 SHA-256 哈希，需要使用 HTTPS。",
       deviceTypes: {
