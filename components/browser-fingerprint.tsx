@@ -45,7 +45,7 @@ export function BrowserFingerprintView({
     <div className="relative border-b border-border/60 py-3 last:border-b-0">
       <dt className="flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 pe-10 text-sm text-muted-foreground">
         <span>{t.browserFingerprint}</span>
-        <span className="font-mono text-xs">{FINGERPRINT_HASH_ALGORITHM}</span>
+        <span className="font-mono text-[11px]">{FINGERPRINT_HASH_ALGORITHM}</span>
       </dt>
       <dd className="mt-1 min-w-0">
         {value ? (
@@ -80,7 +80,7 @@ export function BrowserFingerprintView({
               <div
                 dir="ltr"
                 aria-hidden="true"
-                className="tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] leading-5 text-muted-foreground select-all min-[380px]:grid-cols-4"
+                className="tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-1 font-mono text-xs leading-5 text-muted-foreground select-all min-[380px]:grid-cols-4"
               >
                 {groups.map((group, index) => (
                   <span key={index} data-fingerprint-group>
