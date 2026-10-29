@@ -11,9 +11,13 @@
 /** Matches the `lg` breakpoint used to switch between mobile and desktop chrome. */
 export const MOBILE_BREAKPOINT_PX = 1024;
 
-/** The outgoing page leaves quickly; mobile gets a little more time and travel. */
-export const EXIT_DURATION_DESKTOP_MS = 120;
-export const EXIT_DURATION_MOBILE_MS = 150;
+/**
+ * The outgoing page gets out of the way while the incoming route is already
+ * fading in above the veil, so the two overlap instead of leaving a blank
+ * frame. Mobile gets a little more time and travel.
+ */
+export const EXIT_DURATION_DESKTOP_MS = 160;
+export const EXIT_DURATION_MOBILE_MS = 180;
 
 /**
  * The outgoing copy is removed when its exit animation ends or is cancelled;

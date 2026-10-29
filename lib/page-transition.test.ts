@@ -129,6 +129,49 @@ describe("EXIT_ANIMATION_NAME", () => {
   });
 });
 
+describe("page transition choreography", () => {
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  const declarations = (selector: string) =>
+    css.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+
+  it("covers the outgoing copy with a page-coloured veil", () => {
+    expect(css).toMatch(/@keyframes\s+tool-page-cover\s*\{/);
+
+    const veil = declarations("\\.tool-page-snapshot-layer::before");
+    expect(veil).toMatch(/background-color:\s*var\(--background\)/);
+    expect(veil).toMatch(/opacity:\s*0/);
+
+    const exitingVeil = declarations(
+      "\\.tool-page-transition\\[data-phase='exiting'\\]\\s+\\.tool-page-snapshot-layer::before",
+    );
+    expect(exitingVeil).toMatch(/animation:\s*tool-page-cover(?![\w-])/);
+  });
+
+  it("raises the live route above the snapshot while the veil runs", () => {
+    const current = declarations(
+      "\\.tool-page-transition\\[data-phase='exiting'\\]\\s*>\\s*\\.tool-page-current",
+    );
+    expect(current).toMatch(/position:\s*relative/);
+    expect(current).toMatch(/z-index:\s*20/);
+  });
+
+  it("stages the header as icon, eyebrow, title and subtitle", () => {
+    for (const item of ["icon", "eyebrow", "title", "subtitle"]) {
+      expect(css).toContain(`[data-transition-item='${item}']`);
+    }
+    expect(css).not.toContain("[data-transition-item='text']");
+  });
+
+  it("removes the veil and staged entrance under reduced motion", () => {
+    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduced).toContain(".tool-page-snapshot-layer::before");
+    expect(reduced).toContain(
+      ".tool-page-current > [data-transition-stage] [data-transition-item]",
+    );
+    expect(reduced).toMatch(/animation:\s*none/);
+  });
+});
+
 describe("shouldUseFallbackSnapshot", () => {
   it("allows fallback continuity when no preflight expired", () => {
     expect(shouldUseFallbackSnapshot("/dns", null)).toBe(true);

@@ -212,6 +212,7 @@ function startSnapshotExit(snapshot: HTMLDivElement, duration: number): void {
  */
 export function PageTransition({ children, className }: PageTransitionProps) {
   const pathname = usePathname();
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement>(null);
   const snapshotLayerRef = useRef<HTMLDivElement>(null);
   const committedPathname = useRef(pathname);
@@ -234,6 +235,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     }
     exitListeners.current?.abort();
     exitListeners.current = null;
+    if (wrapperRef.current) delete wrapperRef.current.dataset.phase;
   }, []);
 
   const removeSnapshot = useCallback((snapshot: HTMLDivElement) => {
@@ -243,6 +245,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     if (pendingSnapshot.current === snapshot) {
       pendingSnapshot.current = null;
     }
+    if (wrapperRef.current) delete wrapperRef.current.dataset.phase;
   }, []);
 
   const captureSnapshot = useCallback(
@@ -343,6 +346,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     if (!layer || !snapshot) {
       // A superseded exit has no timer or listener left to remove its copy.
       layer?.replaceChildren();
+      if (wrapperRef.current) delete wrapperRef.current.dataset.phase;
       return;
     }
 
@@ -358,6 +362,9 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     }
 
     startSnapshotExit(snapshot, duration);
+    // The page-coloured veil and the raised live route share this phase: the
+    // veil hides the outgoing copy while the incoming route fades in above it.
+    if (wrapperRef.current) wrapperRef.current.dataset.phase = "exiting";
 
     // getAnimations() resolves style first. A fade CSS does not run (a user
     // stylesheet or extension that disables or pauses animations) dispatches
@@ -437,6 +444,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 
   return (
     <div
+      ref={wrapperRef}
       className={cn(
         "tool-page-transition isolate min-w-0 overflow-x-clip",
         className,

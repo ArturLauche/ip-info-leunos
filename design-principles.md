@@ -186,13 +186,15 @@ Every data view designs for four states explicitly:
   place uses the decelerating `--ease-fluid` curve, and shared durations come
   from the `--motion-*` tokens in `app/globals.css`. No long or
   attention-seeking animation.
-- **Page changes** (`PageTransition`): the outgoing route fades and lifts away
-  in 120–150 ms while the incoming route settles in stage by stage — header
-  icon, header copy, panel, footer — within about half a second. Stage timings
-  and travel are the `--page-*` custom properties on `.tool-page-transition`;
-  the icon and the header fade reuse the `--motion-*` tokens. New page chrome
-  opts in with `data-transition-stage` / `data-transition-item`; do not stack a
-  second entrance on top of it.
+- **Page changes** (`PageTransition`): the outgoing route lifts away behind a
+  page-coloured veil in 160–180 ms while the incoming route settles in above
+  it — icon, eyebrow, title, description, panel, footer — over 300–360 ms. The
+  veil keeps the old layout from showing through the new one; the panel starts
+  almost immediately so the hand-off never looks blank. Stage timings and
+  travel are the `--page-*` custom properties on `.tool-page-transition`; the
+  header fades once while its parts move, so opacity never multiplies. New page
+  chrome opts in with `data-transition-stage` / `data-transition-item`; do not
+  stack a second entrance on top of it.
 - **Content appearance**: async results use `.tool-reveal` (direct children lift
   in with a capped stagger); a single late arrival — an error, raw output, tab
   content — uses `.tool-section-reveal`; loading placeholders use `Skeleton`

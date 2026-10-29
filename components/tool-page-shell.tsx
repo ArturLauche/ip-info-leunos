@@ -58,16 +58,25 @@ export function ToolPageShell({
             >
               <Icon aria-hidden="true" className="size-5 sm:size-6" />
             </span>
-            <div className="min-w-0 flex-1" data-transition-item="text">
+            <div className="min-w-0 flex-1">
               {sectionLabel && (
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  data-transition-item="eyebrow"
+                >
                   {sectionLabel}
                 </p>
               )}
-              <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:mt-1 sm:text-3xl">
+              <h1
+                className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:mt-1 sm:text-3xl"
+                data-transition-item="title"
+              >
                 {title}
               </h1>
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-2 sm:text-[0.95rem]">
+              <p
+                className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-2 sm:text-[0.95rem]"
+                data-transition-item="subtitle"
+              >
                 {subtitle}
               </p>
             </div>
