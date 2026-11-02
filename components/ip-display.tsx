@@ -435,20 +435,20 @@ function IpDisplayContent({
             icon={Globe}
             title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
           />
-          <div className="app-ip-hero-grid grid grid-cols-1 sm:grid-cols-[1.5fr_1fr]">
+          <div className="app-ip-hero-grid grid grid-cols-1 lg:grid-cols-[1.5fr_1fr]">
             <div className="flex flex-col gap-4 p-4 sm:p-6 lg:p-7">
               <Skeleton className="h-9 w-64 max-w-full" />
               <Skeleton className="h-6 w-80 max-w-full" />
               <Skeleton className="h-4 w-48" />
             </div>
-            <div className="flex flex-col gap-3 border-t p-4 sm:border-t-0 sm:border-e sm:p-6 lg:p-7">
+            <div className="flex flex-col gap-3 border-t p-4 sm:p-6 lg:border-t-0 lg:border-e lg:p-7">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-7 w-40" />
               <Skeleton className="h-8 w-32" />
             </div>
           </div>
         </Card>
-        <div className="app-ip-details-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="app-ip-details-grid grid grid-cols-1 gap-4 lg:grid-cols-2">
           {Array.from({ length: targetIp ? 2 : 4 }).map((_, card) => (
             <DetailCardSkeleton key={card} />
           ))}
@@ -515,7 +515,7 @@ function IpDisplayContent({
           icon={Globe}
           title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
         />
-        <div className="app-ip-hero-grid grid grid-cols-1 sm:grid-cols-[1.5fr_1fr]">
+        <div className="app-ip-hero-grid grid grid-cols-1 lg:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
           <div className="app-ip-hero-main flex min-w-0 flex-col gap-4 p-4 sm:p-6 lg:p-7">
             <div className="app-ip-address-row flex min-w-0 items-center gap-3">
@@ -584,7 +584,7 @@ function IpDisplayContent({
           </div>
 
           {/* Connection summary */}
-          <div className="app-ip-hero-summary flex flex-col justify-center gap-4 border-t p-4 sm:border-t-0 sm:border-e sm:p-6 lg:p-7">
+          <div className="app-ip-hero-summary flex flex-col justify-center gap-4 border-t p-4 sm:p-6 lg:border-t-0 lg:border-e lg:p-7">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.detectedConnectionType}
             </p>
@@ -662,7 +662,7 @@ function IpDisplayContent({
       </Card>
 
       {/* Grouped details */}
-      <div className="app-ip-details-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="app-ip-details-grid grid grid-cols-1 gap-4 lg:grid-cols-2">
         <DetailCard icon={MapPin} title={t.location}>
           <DetailRow label={t.city}>{orUnknown(data.city)}</DetailRow>
           <DetailRow label={t.region}>{orUnknown(data.regionName)}</DetailRow>
