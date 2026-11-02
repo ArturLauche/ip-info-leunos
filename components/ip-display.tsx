@@ -105,7 +105,7 @@ function CardTitleBar({
   title: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 border-b bg-muted/30 px-5 py-3.5">
+    <div className="app-card-title flex items-center gap-2.5 border-b bg-muted/30 px-5 py-3.5">
       <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
         <Icon className="size-4" aria-hidden />
       </span>
@@ -127,7 +127,7 @@ function DetailCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="gap-0 overflow-hidden py-0">
+    <Card className="app-detail-card gap-0 overflow-hidden py-0">
       <CardTitleBar icon={Icon} title={title} />
       <dl className="px-5">{children}</dl>
     </Card>
@@ -161,9 +161,9 @@ function DetailRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
-      <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-end text-sm font-medium break-words text-foreground">
+    <div className="app-detail-row flex items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
+      <dt className="app-detail-label shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="app-detail-value min-w-0 text-end text-sm font-medium break-words text-foreground">
         {children}
       </dd>
     </div>
@@ -435,20 +435,20 @@ function IpDisplayContent({
             icon={Globe}
             title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
           />
-          <div className="grid lg:grid-cols-[1.5fr_1fr]">
-            <div className="flex flex-col gap-4 p-6 lg:p-7">
+          <div className="app-ip-hero-grid grid grid-cols-1 sm:grid-cols-[1.5fr_1fr]">
+            <div className="flex flex-col gap-4 p-4 sm:p-6 lg:p-7">
               <Skeleton className="h-9 w-64 max-w-full" />
               <Skeleton className="h-6 w-80 max-w-full" />
               <Skeleton className="h-4 w-48" />
             </div>
-            <div className="flex flex-col gap-3 border-t p-6 lg:border-t-0 lg:border-e lg:p-7">
+            <div className="flex flex-col gap-3 border-t p-4 sm:border-t-0 sm:border-e sm:p-6 lg:p-7">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-7 w-40" />
               <Skeleton className="h-8 w-32" />
             </div>
           </div>
         </Card>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="app-ip-details-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
           {Array.from({ length: targetIp ? 2 : 4 }).map((_, card) => (
             <DetailCardSkeleton key={card} />
           ))}
@@ -510,15 +510,15 @@ function IpDisplayContent({
   return (
     <div className="tool-reveal flex w-full flex-col gap-6">
       {/* Hero: addresses + connection summary */}
-      <Card className="gap-0 overflow-hidden p-0">
+      <Card className="app-ip-card gap-0 overflow-hidden p-0">
         <CardTitleBar
           icon={Globe}
           title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
         />
-        <div className="grid lg:grid-cols-[1.5fr_1fr]">
+        <div className="app-ip-hero-grid grid grid-cols-1 sm:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
-          <div className="flex flex-col gap-4 p-6 lg:p-7">
-            <div className="flex items-center gap-3">
+          <div className="app-ip-hero-main flex min-w-0 flex-col gap-4 p-4 sm:p-6 lg:p-7">
+            <div className="app-ip-address-row flex min-w-0 items-center gap-3">
               <Badge
                 variant={displayIpv4 ? "outline" : "secondary"}
                 className="shrink-0 font-mono"
@@ -526,8 +526,8 @@ function IpDisplayContent({
                 IPv4
               </Badge>
               {displayIpv4 ? (
-                <div className="flex min-w-0 items-center gap-1">
-                  <span className="min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                <div className="app-ip-value-row flex min-w-0 items-center gap-1">
+                  <span className="app-ip-value min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                     {displayIpv4}
                   </span>
                   <CopyButton
@@ -545,7 +545,7 @@ function IpDisplayContent({
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="app-ip-address-row flex min-w-0 items-center gap-3">
               <Badge
                 variant={displayIpv6 ? "outline" : "secondary"}
                 className="shrink-0 font-mono"
@@ -553,8 +553,8 @@ function IpDisplayContent({
                 IPv6
               </Badge>
               {displayIpv6 ? (
-                <div className="flex min-w-0 items-center gap-1">
-                  <span className="min-w-0 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl">
+                <div className="app-ip-value-row flex min-w-0 items-center gap-1">
+                  <span className="app-ip-value min-w-0 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl">
                     {displayIpv6}
                   </span>
                   <CopyButton
@@ -584,15 +584,15 @@ function IpDisplayContent({
           </div>
 
           {/* Connection summary */}
-          <div className="flex flex-col justify-center gap-4 border-t p-6 lg:border-t-0 lg:border-e lg:p-7">
+          <div className="app-ip-hero-summary flex flex-col justify-center gap-4 border-t p-4 sm:border-t-0 sm:border-e sm:p-6 lg:p-7">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t.detectedConnectionType}
             </p>
-            <div className="flex items-center gap-3">
+            <div className="app-ip-connection-row flex items-center gap-3">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
                 <ConnectionIcon className="size-5" />
               </span>
-              <span className="text-lg font-semibold text-foreground">
+              <span className="app-ip-connection-label text-lg font-semibold text-foreground">
                 {connectionTypeLabel}
               </span>
             </div>
@@ -662,7 +662,7 @@ function IpDisplayContent({
       </Card>
 
       {/* Grouped details */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="app-ip-details-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
         <DetailCard icon={MapPin} title={t.location}>
           <DetailRow label={t.city}>{orUnknown(data.city)}</DetailRow>
           <DetailRow label={t.region}>{orUnknown(data.regionName)}</DetailRow>
@@ -694,9 +694,9 @@ function IpDisplayContent({
             {asnHref ? (
               <Link
                 href={asnHref}
-                className="inline-flex items-center gap-1 font-mono text-foreground transition-colors hover:text-primary"
+                className="inline-flex flex-wrap items-center gap-1 font-mono text-foreground transition-colors hover:text-primary"
               >
-                <span className="break-all">{data.as}</span>
+                <span className="break-words">{data.as}</span>
                 <ExternalLink className="size-3.5 shrink-0 rtl:rotate-180" />
               </Link>
             ) : (

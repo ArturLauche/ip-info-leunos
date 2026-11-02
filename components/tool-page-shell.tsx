@@ -47,27 +47,27 @@ export function ToolPageShell({
         />
       )}
       <header
-        className="border-b border-border/60"
+        className="app-page-header border-b border-border/60"
         data-transition-stage="header"
       >
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-          <div className="flex items-start gap-3.5 sm:gap-4">
+        <div className="app-page-header-inner mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
             <span
-              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-12"
+              className="app-page-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-12"
               data-transition-item="icon"
             >
               <Icon aria-hidden="true" className="size-5 sm:size-6" />
             </span>
             <div className="min-w-0 flex-1" data-transition-item="text">
               {sectionLabel && (
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="app-page-eyebrow text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {sectionLabel}
                 </p>
               )}
               <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:mt-1 sm:text-3xl">
                 {title}
               </h1>
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-2 sm:text-[0.95rem]">
+              <p className="app-page-subtitle mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-2 sm:text-[0.95rem]">
                 {subtitle}
               </p>
             </div>
@@ -78,17 +78,17 @@ export function ToolPageShell({
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 outline-none"
+        className="app-page-main mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 outline-none"
         data-transition-stage="panel"
       >
         {children}
       </main>
 
       <footer
-        className="border-t border-border/60"
+        className="app-page-footer border-t border-border/60"
         data-transition-stage="footer"
       >
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="app-page-footer-inner mx-auto flex w-full max-w-6xl flex-wrap items-center justify-end gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/privacy-policy"
             className="rounded-md px-2 py-2 text-xs text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60"

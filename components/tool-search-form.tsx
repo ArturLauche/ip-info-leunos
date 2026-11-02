@@ -73,7 +73,7 @@ export function ToolSearchForm({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "flex w-full flex-col gap-2.5 sm:flex-row",
+        "app-search-form flex w-full flex-col gap-2.5 sm:flex-row",
         compact && "flex-row flex-wrap gap-2 sm:flex-nowrap",
       )}
       aria-busy={loading}

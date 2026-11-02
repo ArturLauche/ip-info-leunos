@@ -370,7 +370,7 @@ export function PingChecker({
                                 ? ui.pingDatabaseGeneric
                                 : option.label}
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="app-select-detail text-muted-foreground">
                               {getDatabaseOptionDetail(option.value, ui)}
                             </span>
                           </SelectItem>
@@ -381,7 +381,7 @@ export function PingChecker({
                 </ModeExpand>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="app-ping-fields grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="ping-target">{t.pingTargetHost}</Label>
                   <Input
@@ -440,10 +440,10 @@ export function PingChecker({
 
             <ModeExpand open={isDatabase}>
               <div className="pt-5">
-                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                <div className="app-ping-auth-toggle flex items-center justify-between gap-3 border-t pt-4">
                   <Label
                     htmlFor="ping-use-auth"
-                    className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-foreground"
+                    className="app-ping-auth-label flex cursor-pointer items-center gap-2.5 text-sm font-medium text-foreground"
                   >
                     <LockKeyhole
                       className={cn(
@@ -455,12 +455,13 @@ export function PingChecker({
                   </Label>
                   <Switch
                     id="ping-use-auth"
+                    className="app-ping-auth-switch shrink-0"
                     checked={useAuth}
                     onCheckedChange={setUseAuth}
                   />
                 </div>
                 <ModeExpand open={useAuth}>
-                  <div className="grid gap-4 pt-5 sm:grid-cols-2">
+                  <div className="app-ping-auth-grid grid gap-4 pt-5 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
                       <Label htmlFor="ping-username">{t.pingUsername}</Label>
                       <Input
@@ -577,7 +578,7 @@ export function PingChecker({
               {formatPingMessage(result, t, ui)}
             </p>
 
-            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <dl className="app-ping-result-stats grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.pingModeLabel}
@@ -689,7 +690,7 @@ function PingModeTabs({
           data-slide={view.slide ? "true" : undefined}
           aria-hidden
         />
-        <TabsList className="grid h-auto w-full grid-cols-4">
+        <TabsList className="app-ping-modes grid h-auto w-full grid-cols-4">
           {PING_MODES.map((value) => (
             <TabsTrigger
               key={value}

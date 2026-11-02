@@ -261,7 +261,7 @@ function EvidenceCard({
         {reasonText(item, t)}
       </p>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-2 rounded-md bg-muted/30 px-3 py-2.5 sm:grid-cols-2">
+      <div className="app-reputation-evidence-meta grid grid-cols-1 gap-x-6 gap-y-2 rounded-md bg-muted/30 px-3 py-2.5 sm:grid-cols-2">
         <MetaRow
           label={t.reputationFieldSource}
           value={sourceName(item.sourceId)}
@@ -567,7 +567,7 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
                   .join(" · ")}
               </p>
             )}
-            <dl className="grid grid-cols-2 gap-4 border-t bg-muted/30 px-5 py-4 sm:grid-cols-3 lg:grid-cols-5">
+            <dl className="app-reputation-verdict-stats grid grid-cols-2 gap-4 border-t bg-muted/30 px-5 py-4 sm:grid-cols-3 lg:grid-cols-5">
               <div>
                 <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {t.reputationScoreLabel}
@@ -624,7 +624,7 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
 
           {/* Context */}
           <Card className="p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="app-reputation-context grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <ContextCell
                 icon={MapPin}
                 label={t.reputationGeoLabel}
