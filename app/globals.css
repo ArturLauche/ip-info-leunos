@@ -880,6 +880,10 @@
     padding: 0.75rem;
   }
 
+  .app-ip-value {
+    font-size: 0.85rem;
+  }
+
   .app-ping-auth-toggle {
     flex-direction: column;
     align-items: flex-start;
@@ -1009,8 +1013,12 @@ html[data-display-shape='round'] .app-ip-value {
     padding: 1rem;
   }
 
+  .app-ip-value-row {
+    flex-wrap: wrap;
+  }
+
   .app-ip-value {
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
 
   .app-ip-hero-summary {
