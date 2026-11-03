@@ -238,6 +238,16 @@ Every data view designs for four states explicitly:
 - Wide data (tables) gets a dedicated mobile presentation (stacked cards) rather
   than horizontal scroll where practical.
 - Tap targets stay comfortable; primary actions go full-width on small screens.
+- **Smartwatches (≤ 320 px):** the shell drops the page icon and eyebrow, stacks
+  detail rows, wraps long addresses, and reduces card/search padding. Round
+  Wear OS displays get a 14 vw inline safe area (Apple Watch stays rectangular);
+  the fallback is published as `data-display-shape` by
+  `components/display-profile.tsx`.
+- **Foldables:** `horizontal-viewport-segments: 2` puts navigation in the first
+  segment and the page in the second, so nothing is split by the hinge.
+  `vertical-viewport-segments: 2` gives the top segment to the top bar and page
+  header. Inside one segment the content is narrower than the viewport, so
+  two-column blocks collapse to one column.
 
 ---
 

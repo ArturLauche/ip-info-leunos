@@ -21,7 +21,7 @@ export function AppSidebar({ active }: AppSidebarProps) {
 
   return (
     <aside
-      className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-sidebar-border bg-sidebar lg:flex"
+      className="app-sidebar fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e border-sidebar-border bg-sidebar lg:flex"
       aria-label={toolT.sidebarLabel}
     >
       <div className="flex h-16 items-center px-5">
@@ -30,8 +30,8 @@ export function AppSidebar({ active }: AppSidebarProps) {
           className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
         >
           <BrandMark />
-          <span className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold tracking-tight text-foreground">
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="app-brand-wordmark truncate text-sm font-semibold tracking-tight text-foreground">
               {siteConfig.name}
             </span>
             <span className="text-[0.7rem] text-muted-foreground">

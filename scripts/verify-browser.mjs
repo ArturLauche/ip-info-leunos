@@ -41,6 +41,35 @@ function assertFits() {
   assert.equal(evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
   assert.equal(evaluate("[...document.querySelectorAll('h1,h2')].filter(e=>e.getBoundingClientRect().width).every(e=>e.scrollWidth <= e.clientWidth + 1)"), true);
 }
+function assertNothingClipped() {
+  const clipped = evaluate(`(() => {
+    const scrollsHorizontally = (element) => {
+      for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+        const overflow = getComputedStyle(parent).overflowX;
+        if (overflow === 'auto' || overflow === 'scroll') return true;
+      }
+      return false;
+    };
+    return [...document.querySelectorAll('body *')]
+      .filter((element) => {
+        if (element.closest('.sr-only') || element.closest('[hidden]')) return false;
+        const style = getComputedStyle(element);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.position === 'fixed') return false;
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        if (scrollsHorizontally(element)) return false;
+        return rect.right > innerWidth + 1 || rect.left < -1;
+      })
+      .slice(0, 8)
+      .map((element) => ({
+        tag: element.tagName,
+        className: typeof element.className === 'string' ? element.className.slice(0, 100) : '',
+        text: (element.textContent || '').trim().slice(0, 40),
+        rect: element.getBoundingClientRect().toJSON(),
+      }));
+  })()`);
+  assert.deepEqual(clipped, []);
+}
 function installFixtures() {
   evaluate(`(() => {
     window.__calls = [];
@@ -132,6 +161,62 @@ try {
     browser("screenshot", join(artifacts, "dns-mobile-dark.png"), "--full");
     browser("set", "viewport", "320", "740");
     assertFits();
+  });
+
+  check("watch, round-watch and foldable widths keep every visible element inside the viewport", () => {
+    const ipData = {
+      ipv4: "85.215.154.255",
+      ipv6: "2606:4700:4700::1111",
+      ipVersion: 6,
+      country: "Germany",
+      countryCode: "DE",
+      region: "",
+      regionName: "",
+      city: "",
+      zip: "",
+      lat: 0,
+      lon: 0,
+      timezone: "Europe/Berlin",
+      isp: "Example ISP",
+      org: "Example Org",
+      as: "AS13335 Cloudflare",
+      asname: "CLOUDFLARENET",
+      reverse: "one.one.one.one",
+      mobile: false,
+      proxy: false,
+      hosting: true,
+      connectionType: "datacenter",
+    };
+    browser("network", "route", "**/api/ip*", "--body", JSON.stringify({ok:true,data:ipData}));
+    browser("set", "viewport", "200", "200");
+    open("/");
+    waitFor("!!document.querySelector('.app-ip-card')");
+    assertNothingClipped();
+    browser("screenshot", join(artifacts, "ip-watch-200.png"), "--full");
+    browser("set", "viewport", "184", "224");
+    assertNothingClipped();
+    browser("screenshot", join(artifacts, "ip-watch-184.png"), "--full");
+    evaluate("document.documentElement.dataset.displayShape = 'round'");
+    assertNothingClipped();
+    const roundPadding = evaluate("parseFloat(getComputedStyle(document.querySelector('.app-mobile-nav')).paddingInlineStart)");
+    assert.ok(roundPadding >= 20, `round watch padding was ${roundPadding}px`);
+    browser("screenshot", join(artifacts, "ip-watch-184-round.png"), "--full");
+    evaluate("delete document.documentElement.dataset.displayShape");
+    browser("set", "viewport", "673", "841");
+    assertNothingClipped();
+    assert.ok(evaluate(`(() => {
+      for (const sheet of document.styleSheets) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (rule.cssText.includes('horizontal-viewport-segments')) return true;
+          }
+        } catch { /* cross-origin stylesheet */ }
+      }
+      return false;
+    })()`));
+    browser("screenshot", join(artifacts, "ip-foldable-673.png"), "--full");
+    browser("network", "unroute", "**/api/ip*");
+    browser("set", "viewport", "1440", "1000");
   });
 
   check("lazy command palette opens from keyboard, is named, and has a close button", () => {

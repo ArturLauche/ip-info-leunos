@@ -258,7 +258,7 @@ export function LanguageSelector({ onLocaleSelected }: LanguageSelectorProps) {
             id={PANEL_ID}
             dir={getLocaleDirection(locale)}
             className={cn(
-              "fixed left-[50%] top-[12dvh] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden border bg-popover shadow-lg sm:max-w-md",
+              "app-language-panel fixed left-[50%] top-[12dvh] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden border bg-popover shadow-lg sm:max-w-md",
               "max-h-[76dvh] rounded-xl duration-200 motion-reduce:animate-none",
               "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             )}

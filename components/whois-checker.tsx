@@ -39,7 +39,7 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
 
   return (
-    <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 sm:grid-cols-[190px_1fr] sm:gap-6">
+    <div className="app-whois-row grid grid-cols-1 items-baseline gap-1.5 py-2.5 sm:grid-cols-[190px_1fr] sm:gap-6">
       <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
         {label}
       </dt>
@@ -108,7 +108,7 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
       {result && (
         <ResultPanel title={`${t.whoisFor} ${result.target}`}>
           <dl className="divide-y divide-border">
-            <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
+            <div className="app-whois-row grid grid-cols-1 items-baseline gap-1.5 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
               <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
                 {t.queriedServer}
               </dt>
@@ -117,7 +117,7 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
               </dd>
             </div>
             {result.refer && (
-              <div className="grid grid-cols-1 items-baseline gap-1.5 py-2.5 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
+              <div className="app-whois-row grid grid-cols-1 items-baseline gap-1.5 py-2.5 last:pb-0 sm:grid-cols-[190px_1fr] sm:gap-6">
                 <dt className="text-xs font-medium break-words uppercase tracking-wider text-muted-foreground">
                   {t.referralSource}
                 </dt>

@@ -190,7 +190,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <DialogOverlay className="bg-black/30 backdrop-blur-none" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-[50%] top-[12dvh] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden border bg-popover shadow-lg sm:max-w-xl",
+            "app-command-panel fixed left-[50%] top-[12dvh] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden border bg-popover shadow-lg sm:max-w-xl",
             "max-h-[76dvh] rounded-xl duration-200 motion-reduce:animate-none",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}

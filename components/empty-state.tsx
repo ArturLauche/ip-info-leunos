@@ -28,7 +28,7 @@ export function EmptyState({
   return (
     <Card
       className={cn(
-        "bg-grid items-center gap-3 overflow-hidden p-8 text-center sm:p-12",
+        "app-empty-state bg-grid items-center gap-3 overflow-hidden p-8 text-center sm:p-12",
         className,
       )}
     >

@@ -66,7 +66,7 @@ export function BrowserFingerprintView({
           {!ready ? (
             <div
               aria-hidden="true"
-              className="grid w-full grid-cols-2 gap-x-3 gap-y-1 min-[380px]:grid-cols-4"
+              className="app-fingerprint-grid grid w-full grid-cols-2 gap-x-3 gap-y-1 min-[380px]:grid-cols-4"
             >
               {PLACEHOLDER_GROUPS.map((_, index) => (
                 <span key={index} className="flex h-5 items-center">
@@ -80,7 +80,7 @@ export function BrowserFingerprintView({
               <div
                 dir="ltr"
                 aria-hidden="true"
-                className="tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-1 font-mono text-sm leading-5 text-foreground select-all min-[380px]:grid-cols-4"
+                className="app-fingerprint-grid tool-section-reveal grid w-full grid-cols-2 gap-x-3 gap-y-1 font-mono text-sm leading-5 text-foreground select-all min-[380px]:grid-cols-4"
               >
                 {groups.map((group, index) => (
                   <span key={index} data-fingerprint-group>

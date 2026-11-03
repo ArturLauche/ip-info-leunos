@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { DisplayProfile } from "@/components/display-profile";
 import { useI18n } from "@/components/i18n-provider";
 import { PageTransition } from "@/components/page-transition";
 import { AppSidebar } from "./app-sidebar";
@@ -25,7 +26,8 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <CommandMenuProvider>
-      <div className="relative flex min-h-screen w-full">
+      <DisplayProfile />
+      <div className="app-shell relative flex min-h-dvh w-full">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring/60"
@@ -33,7 +35,7 @@ export function AppShell({ children }: AppShellProps) {
           {t.skipToContent}
         </a>
         <AppSidebar active={active} />
-        <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-clip lg:ps-64">
+        <div className="app-content flex min-h-dvh w-full min-w-0 flex-col overflow-x-clip lg:ps-64">
           <MobileNav active={active} />
           <PageTransition className="flex flex-1 flex-col">
             {children}
