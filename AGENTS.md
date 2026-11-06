@@ -4,10 +4,10 @@ Public-site-safe Next.js network toolbox for inspecting public IP/ASN/DNS/WHOIS/
 
 ## Stack
 
-- Package manager: **pnpm 10** (`pnpm-lock.yaml`, lockfile v9). Node: **20** (`Dockerfile: node:20-alpine`, CI: `setup-node node-version: 20`).
-- `next 16.3.4`, `react 19.2.8`, `react-dom 19.2.8`, `typescript 5.9.3`
-- `tailwindcss ^4.3.3` + `@tailwindcss/postcss ^4.3.3`, `zod ^3.24.1`, `vitest ^3.2.7`
-- `eslint ^9.39.5` + `eslint-config-next 16.3.4`, `next-themes ^0.4.6`, `geist ^1.5.1`, `lucide-react ^1.39.0`, `sonner ^2.0.8`
+- Package manager: **pnpm 10.34.9** (`pnpm-lock.yaml`, lockfile v9). Node: **24 LTS** (`Dockerfile: node:24.22.2-alpine`, CI: `setup-node node-version: 24`).
+- `next 16.4.5`, `react 19.3.1`, `react-dom 19.3.1`, `typescript 6.0.3`
+- `tailwindcss ^4.3.5` + `@tailwindcss/postcss ^4.3.5`, `zod ^4.6.7`, `vitest ^5.1.0`
+- `eslint ^9.39.5` + `eslint-config-next 16.4.5`, `next-themes ^0.4.6`, `geist ^1.9.2`, `lucide-react ^1.70.0`, `sonner ^2.0.8`
 - Import alias: `@/*` → repo root (`tsconfig.json` paths). Build is offline-safe (self-hosted Geist, no `next/font/google`).
 
 ## Commands (run from repo root)
@@ -29,7 +29,7 @@ CI (`.github/workflows/ci.yml`, on PR + push to `main`): install → lint → ty
 1. `pnpm install --frozen-lockfile`, then `pnpm dev`.
 2. No `.env` required to run; optional keys only enable extra providers: `IPINFO_TOKEN`, `ABUSEIPDB_API_KEY`, `GREYNOISE_API_KEY`, `HTTPBL_ACCESS_KEY`, `THREATFOX_AUTH_KEY`, `PUBLIC_ALLOWED_PING_PORTS=80,443,…`, `PRIVACY_CONTACT_EMAIL`, `PRIVACY_CONTROLLER_NAME`.
 3. Before pushing: `pnpm lint && pnpm typecheck && pnpm test` (same order as CI). `pnpm build` does not ignore TS errors.
-4. Tests are unit-only (`vitest.config.ts`: `environment: "node"`); colocate as `*.test.ts` next to the module (e.g. `lib/network/target.test.ts`, `app/api/ping/route.test.ts`).
+4. Tests are unit-only (`vitest.config.mts`: `environment: "node"`); colocate as `*.test.ts` next to the module (e.g. `lib/network/target.test.ts`, `app/api/ping/route.test.ts`).
 
 ## Code style (follow this pattern)
 
