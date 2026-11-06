@@ -65,7 +65,8 @@ The app ships a bilingual (German/English) privacy policy at `/privacy-policy`, 
 
 ## Local Development
 
-Use Node 20 and pnpm 10, matching CI.
+Use Node 24 LTS and pnpm 10.34.9, matching CI and the pinned `packageManager`.
+See [dependency maintenance](docs/dependency-maintenance.md) for compatibility holds and security constraints.
 
 ```bash
 pnpm install

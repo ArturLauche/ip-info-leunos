@@ -1,8 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "pnpm"]
+nixPkgs = ["nodejs_24"]
 
 [phases.install]
-cmds = ["pnpm install --frozen-lockfile"]
+# Nixpacks' Node 24 archive currently provides 24.10.0. Bootstrap the patched
+# runtime and the repository's pinned pnpm before installing app dependencies.
+paths = ["/opt/ip-info-toolchain/bin"]
+cmds = ["npm install --global --prefix /opt/ip-info-toolchain node@24.22.2 pnpm@10.34.9", "pnpm install --frozen-lockfile"]
 
 [phases.build]
 cmds = ["pnpm build"]
