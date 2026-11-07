@@ -1,15 +1,19 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { Locale } from "@/lib/i18n";
+import { getTranslation, type Locale } from "@/lib/i18n";
 import { getPrivacyContent } from "@/lib/privacy";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { getTermsContent } from "@/lib/terms";
+import { canonicalUrl } from "@/lib/site-config";
+import { buildPageBreadcrumbs } from "@/lib/structured-data";
 import {
   getGroupTitle,
+  getNavLabel,
   navGroups,
   type ToolKey,
 } from "@/components/shell/nav-config";
+import { PageStructuredData } from "@/components/page-structured-data";
 import { ToolStructuredData } from "@/components/tool-structured-data";
 
 interface ToolPageShellProps {
@@ -19,6 +23,14 @@ interface ToolPageShellProps {
   title: string;
   subtitle: string;
   children: ReactNode;
+  /** Canonical path when it differs from the active nav item, e.g. /asn/AS13335. */
+  structuredPath?: string;
+  /** Concise label for the last breadcrumb item; defaults to the page title. */
+  breadcrumbLabel?: string;
+  /** Disable structured data when the route canonicalizes to another path. */
+  structuredData?: boolean;
+  /** Document title for structured data when it differs from the visible H1. */
+  seoTitle?: string;
 }
 
 export function ToolPageShell({
@@ -28,19 +40,60 @@ export function ToolPageShell({
   title,
   subtitle,
   children,
+  structuredPath,
+  breadcrumbLabel,
+  structuredData = true,
+  seoTitle,
 }: ToolPageShellProps) {
+  const toolT = getToolTranslation(locale);
+  const coreT = getTranslation(locale);
   const group = navGroups.find((entry) =>
     entry.items.some((item) => item.key === active),
   );
-  const sectionLabel = group ? getGroupTitle(group.id, { tool: getToolTranslation(locale) }) : "";
+  const activeItem = navGroups
+    .flatMap((entry) => entry.items)
+    .find((item) => item.key === active);
+  const canonicalPath = structuredData
+    ? structuredPath ?? activeItem?.href
+    : undefined;
+  const breadcrumbs = canonicalPath
+    ? buildPageBreadcrumbs({
+        path: canonicalPath,
+        title: breadcrumbLabel ?? title,
+        homeTitle: coreT.homeTitle,
+        parent:
+          activeItem && canonicalPath !== activeItem.href
+            ? {
+                name: getNavLabel(activeItem.key, { core: coreT, tool: toolT }),
+                path: activeItem.href,
+              }
+            : undefined,
+      })
+    : [];
+  const appId =
+    active && canonicalPath
+      ? `${canonicalUrl(canonicalPath)}#web-application`
+      : undefined;
+  const sectionLabel = group ? getGroupTitle(group.id, { tool: toolT }) : "";
   const privacyLabel = getPrivacyContent(locale).navLabel;
   const termsLabel = getTermsContent(locale).navLabel;
 
   return (
     <>
-      {active && (
+      {canonicalPath && (
+        <PageStructuredData
+          path={canonicalPath}
+          name={seoTitle ?? title}
+          description={subtitle}
+          locale={locale}
+          breadcrumbs={breadcrumbs}
+          appId={appId}
+        />
+      )}
+      {active && canonicalPath && (
         <ToolStructuredData
           tool={active}
+          path={canonicalPath}
           locale={locale}
           name={title}
           description={subtitle}

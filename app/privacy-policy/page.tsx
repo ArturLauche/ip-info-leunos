@@ -79,6 +79,7 @@ export default async function DatenschutzPage() {
       icon={ShieldCheck}
       title={content.title}
       subtitle={content.subtitle}
+      structuredPath="/privacy-policy"
     >
       <StructuredData
         data={{
@@ -89,7 +90,7 @@ export default async function DatenschutzPage() {
           description: content.subtitle,
           dateModified: content.lastUpdated,
           inLanguage: getLocaleSchemaLanguage(locale),
-          mainEntityOfPage: pageUrl,
+          mainEntityOfPage: { "@id": `${pageUrl}#webpage` },
           author: { "@id": `${siteConfig.url}/#organization` },
           publisher: { "@id": `${siteConfig.url}/#organization` },
           isPartOf: { "@id": `${siteConfig.url}/#website` },

@@ -65,6 +65,25 @@ describe("createPageMetadata", () => {
       siteName: siteConfig.name,
     });
   });
+
+  it("can mark a soft-404 route as non-indexable while still following links", () => {
+    const metadata = createPageMetadata({
+      title: "ASN Information",
+      description: "Look up an ASN.",
+      path: "/asn",
+      index: false,
+    });
+
+    expect(metadata.robots).toMatchObject({
+      index: false,
+      follow: true,
+      googleBot: {
+        index: false,
+        follow: true,
+        noimageindex: true,
+      },
+    });
+  });
 });
 
 /**

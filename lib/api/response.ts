@@ -33,6 +33,12 @@ function withDefaultHeaders(init?: ResponseInit): ResponseInit {
     headers.set("cache-control", "no-store");
   }
 
+  // The JSON API is already disallowed in robots.txt; the header keeps crawlers
+  // from indexing a response even if they ignore that file.
+  if (!headers.has("x-robots-tag")) {
+    headers.set("x-robots-tag", "noindex");
+  }
+
   return {
     ...init,
     headers,
