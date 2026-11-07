@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { PRIVACY_LAST_UPDATED } from "@/lib/content-dates";
 import { additionalPrivacyContent } from "@/lib/translations/legal-content";
 import { getUiCopy } from "@/lib/ui-copy";
 
@@ -42,16 +43,13 @@ export interface PrivacyContent {
   sections: PrivacySection[];
 }
 
-/** ISO date shown as "last updated"; bump when the policy text changes. */
-const LAST_UPDATED = "2026-09-25";
-
 const de: PrivacyContent = {
   navLabel: "Datenschutz",
   title: "Datenschutzerklärung",
   subtitle:
     "Wie diese Seite mit personenbezogenen Daten – insbesondere IP-Adressen – umgeht.",
   lastUpdatedLabel: "Stand",
-  lastUpdated: LAST_UPDATED,
+  lastUpdated: PRIVACY_LAST_UPDATED,
   contactNotConfigured: "Kontaktadresse auf Anfrage",
   controllerNotConfigured: "der Betreiber dieser Seite (Identität auf Anfrage)",
   sections: [
@@ -170,7 +168,7 @@ const en: PrivacyContent = {
   title: "Privacy Policy",
   subtitle: "How this site handles personal data — in particular IP addresses.",
   lastUpdatedLabel: "Last updated",
-  lastUpdated: LAST_UPDATED,
+  lastUpdated: PRIVACY_LAST_UPDATED,
   contactNotConfigured: "contact address on request",
   controllerNotConfigured:
     "the operator of this site (identity available on request)",

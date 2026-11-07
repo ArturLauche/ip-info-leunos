@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { TERMS_LAST_UPDATED } from "@/lib/content-dates";
 import { additionalTermsContent } from "@/lib/translations/legal-content";
 
 export interface TermsSection {
@@ -19,15 +20,12 @@ export interface TermsContent {
   sections: TermsSection[];
 }
 
-/** ISO date shown as "last updated"; bump when the terms text changes. */
-const LAST_UPDATED = "2026-06-15";
-
 const de: TermsContent = {
   navLabel: "Nutzungsbedingungen",
   title: "Nutzungsbedingungen",
   subtitle: "Bedingungen für die Nutzung der hier angebotenen Werkzeuge.",
   lastUpdatedLabel: "Stand",
-  lastUpdated: LAST_UPDATED,
+  lastUpdated: TERMS_LAST_UPDATED,
   contactNotConfigured: "Kontaktadresse auf Anfrage",
   sections: [
     {
@@ -124,7 +122,7 @@ const en: TermsContent = {
   title: "Terms of Use",
   subtitle: "The terms that govern your use of the tools offered here.",
   lastUpdatedLabel: "Last updated",
-  lastUpdated: LAST_UPDATED,
+  lastUpdated: TERMS_LAST_UPDATED,
   contactNotConfigured: "contact address on request",
   sections: [
     {

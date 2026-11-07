@@ -23,19 +23,23 @@ export async function generateMetadata({
   try {
     const normalized = normalizeAsnInput(asn);
     return createPageMetadata({
-      title: `${normalized.asn} – ${t.asnTitle}`,
+      title: `${normalized.asn} – ${t.asnTabLabel}`,
       description: `${t.asnSubtitle} ${normalized.asn}`,
       path: `/asn/${normalized.asn}`,
-      keywords: [normalized.asn, t.asnTitle, "ASN", "PeeringDB", "BGP"],
+      keywords: [normalized.asn, t.asnTitle, t.asnTabLabel, "ASN", "PeeringDB", "BGP"],
       locale,
     });
   } catch {
+    // Invalid deep links still render the interactive checker, but they are
+    // not distinct pages: noindex keeps them out of the index while the
+    // canonical points crawlers and users at the parent ASN tool.
     return createPageMetadata({
-      title: t.asnTitle,
+      title: t.asnTabLabel,
       description: t.asnSubtitle,
       path: "/asn",
-      keywords: [t.asnTitle, "ASN", "PeeringDB", "BGP"],
+      keywords: [t.asnTitle, t.asnTabLabel, "ASN", "PeeringDB", "BGP"],
       locale,
+      index: false,
     });
   }
 }

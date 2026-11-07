@@ -11,10 +11,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   return createPageMetadata({
-    title: t.asnTitle,
+    // "ASN Lookup" is the search phrasing; the H1 keeps the descriptive
+    // "ASN Information" wording.
+    title: t.asnTabLabel,
     description: t.asnSubtitle,
     path: "/asn",
-    keywords: [t.asnTitle, "ASN", "BGP", "PeeringDB", "RPKI"],
+    keywords: [t.asnTitle, t.asnTabLabel, "ASN", "BGP", "PeeringDB", "RPKI"],
     locale,
   });
 }

@@ -139,6 +139,9 @@ describe("client bundle", () => {
     }
   });
 
+  // The guard walks and parses the whole source tree. On a cold, OneDrive-backed
+  // Windows checkout that can exceed the 5 s default, so give the scan room
+  // without weakening any assertion.
   it("keeps every locale catalog out of client-reachable modules", () => {
     const clientModules = files.filter((path) => isClientModule(sourceOf(path)));
     expect(clientModules.length).toBeGreaterThan(20);
@@ -164,5 +167,5 @@ describe("client bundle", () => {
     }
 
     expect(violations).toEqual([]);
-  });
+  }, 30_000);
 });
