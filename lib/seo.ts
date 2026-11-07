@@ -86,12 +86,15 @@ export function createPageMetadata({
   path = "/",
   keywords = [],
   locale = DEFAULT_LOCALE,
+  index = true,
 }: {
   title: string;
   description: string;
   path?: string;
   keywords?: string[];
   locale?: Locale;
+  /** Set false for soft-404 routes that canonicalize to a different path. */
+  index?: boolean;
 }): Metadata {
   const canonical = canonicalUrl(path);
 
@@ -120,17 +123,30 @@ export function createPageMetadata({
         "text/plain": `${siteConfig.url}/llms.txt`,
       },
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-        "max-video-preview": -1,
-      },
-    },
+    robots: index
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        }
+      : {
+          index: false,
+          follow: true,
+          googleBot: {
+            index: false,
+            follow: true,
+            noimageindex: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        },
     openGraph: {
       type: "website",
       locale: getLocaleOpenGraphLanguage(locale),

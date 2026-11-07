@@ -1,4 +1,4 @@
-import { navGroups, type ToolKey } from "@/components/shell/nav-config";
+import type { ToolKey } from "@/components/shell/nav-config";
 import { StructuredData } from "@/components/structured-data";
 import {
   getTranslation,
@@ -7,10 +7,16 @@ import {
 } from "@/lib/i18n";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { getUiCopy } from "@/lib/ui-copy";
-import { canonicalUrl, siteConfig } from "@/lib/seo";
+import {
+  canonicalUrl,
+  defaultOpenGraphImage,
+  siteConfig,
+} from "@/lib/seo";
 
 interface ToolStructuredDataProps {
   tool: ToolKey;
+  /** Canonical path of the actual route, including deep links such as /asn/AS13335. */
+  path: string;
   locale: Locale;
   name: string;
   description: string;
@@ -18,13 +24,11 @@ interface ToolStructuredDataProps {
 
 export function ToolStructuredData({
   tool,
+  path,
   locale,
   name,
   description,
 }: ToolStructuredDataProps) {
-  const path =
-    navGroups.flatMap((group) => group.items).find((item) => item.key === tool)
-      ?.href ?? "/";
   const url = canonicalUrl(path);
   const t = getToolTranslation(locale);
   const baseT = getTranslation(locale);
@@ -81,6 +85,14 @@ export function ToolStructuredData({
         offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
         provider: { "@id": `${siteConfig.url}/#organization` },
         isPartOf: { "@id": `${siteConfig.url}/#website` },
+        mainEntityOfPage: { "@id": `${url}#webpage` },
+        screenshot: {
+          "@type": "ImageObject",
+          url: canonicalUrl(defaultOpenGraphImage),
+          width: 1200,
+          height: 630,
+          caption: `${siteConfig.name} – ${name}`,
+        },
       }}
     />
   );

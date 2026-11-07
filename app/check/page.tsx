@@ -12,7 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = getTranslation(locale);
   return createPageMetadata({
     title: t.checkTitle,
-    description: t.checkSubtitle,
+    // The subtitle is intentionally short in the UI; the empty-state copy
+    // describes the actual value of a lookup and makes a stronger snippet.
+    description: t.checkEmptyDescription,
     path: "/check",
     keywords: [t.checkTitle, t.homeTitle, "ASN", "Reverse DNS"],
     locale,

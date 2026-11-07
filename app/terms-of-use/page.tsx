@@ -72,6 +72,7 @@ export default async function TermsOfUsePage() {
       icon={ScrollText}
       title={content.title}
       subtitle={content.subtitle}
+      structuredPath="/terms-of-use"
     >
       <StructuredData
         data={{
@@ -82,7 +83,7 @@ export default async function TermsOfUsePage() {
           description: content.subtitle,
           dateModified: content.lastUpdated,
           inLanguage: getLocaleSchemaLanguage(locale),
-          mainEntityOfPage: pageUrl,
+          mainEntityOfPage: { "@id": `${pageUrl}#webpage` },
           author: { "@id": `${siteConfig.url}/#organization` },
           publisher: { "@id": `${siteConfig.url}/#organization` },
           isPartOf: { "@id": `${siteConfig.url}/#website` },
