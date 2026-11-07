@@ -12,7 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = getTranslation(locale);
   return createPageMetadata({
     title: t.checkTitle,
-    description: t.checkSubtitle,
+    // The empty-state copy names the fields the lookup actually returns
+    // (location, network, ASN, reverse DNS), giving the snippet more context
+    // than the one-line subtitle without changing the visible page.
+    description: t.checkEmptyDescription,
     path: "/check",
     keywords: [t.checkTitle, t.homeTitle, "ASN", "Reverse DNS"],
     locale,

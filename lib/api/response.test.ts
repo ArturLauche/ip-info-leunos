@@ -6,6 +6,7 @@ describe("API response helpers", () => {
     const response = apiOk({ value: 1 });
 
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
   });
 
   it("marks error responses as non-cacheable by default", async () => {
@@ -13,6 +14,7 @@ describe("API response helpers", () => {
     const body = await response.json();
 
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
     expect(body).toMatchObject({
       ok: false,
       error: { code: "bad_request" },

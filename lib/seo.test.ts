@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   getLocaleSchemaLanguage,
   getLocaleOpenGraphLanguage,
+  getTranslation,
   SUPPORTED_LOCALES,
 } from "./i18n";
 import {
   canonicalUrl,
   createPageMetadata,
   documentTitle,
+  getHomeDescription,
+  getHomeSeoTitle,
   schemaInLanguage,
   siteConfig,
 } from "./seo";
@@ -64,6 +67,46 @@ describe("createPageMetadata", () => {
       url: `${siteConfig.url}/dns`,
       siteName: siteConfig.name,
     });
+  });
+
+  it("can mark a generic fallback route noindex while keeping links crawlable", () => {
+    const metadata = createPageMetadata({
+      title: "Lookup",
+      description: "Description",
+      path: "/asn",
+      index: false,
+    });
+
+    expect(metadata.robots).toMatchObject({
+      index: false,
+      follow: true,
+      googleBot: { index: false, follow: true, noimageindex: true },
+    });
+  });
+});
+
+describe("homepage search metadata", () => {
+  it("targets the primary search intent in every locale without changing the brand H1", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const title = getHomeSeoTitle(locale);
+
+      expect(title.trim(), locale).not.toBe("");
+      expect(title, locale).not.toBe(siteConfig.name);
+      expect(title.toLowerCase(), locale).toContain("ip");
+    }
+  });
+
+  it("describes the homepage with existing localized copy instead of filler", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const t = getTranslation(locale);
+      const description = getHomeDescription(locale);
+
+      expect(description.trim(), locale).not.toBe("");
+      expect(description, locale).toContain(t.homeSubtitle.trim());
+      expect(description, locale).toContain(t.checkSubtitle.trim());
+      // CJK descriptions are naturally shorter in characters than Latin ones.
+      expect(description.length, locale).toBeGreaterThan(20);
+    }
   });
 });
 

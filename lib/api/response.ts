@@ -33,6 +33,13 @@ function withDefaultHeaders(init?: ResponseInit): ResponseInit {
     headers.set("cache-control", "no-store");
   }
 
+  // robots.txt already disallows /api/, but a direct link or a crawler that
+  // ignores the file can still reach these JSON documents. The response-level
+  // directive keeps them out of search results without hiding the API.
+  if (!headers.has("x-robots-tag")) {
+    headers.set("x-robots-tag", "noindex, nofollow");
+  }
+
   return {
     ...init,
     headers,

@@ -1,3 +1,4 @@
+import { PRIVACY_LAST_UPDATED, TERMS_LAST_UPDATED } from "@/lib/content-dates";
 import type { PrivacyContent } from "@/lib/privacy";
 import type { TermsContent } from "@/lib/terms";
 
@@ -7,9 +8,6 @@ type LegalContent = {
   privacy: PrivacyContent;
   terms: TermsContent;
 };
-
-const PRIVACY_LAST_UPDATED = "2026-09-25";
-const TERMS_LAST_UPDATED = "2026-06-15";
 
 const cs: LegalContent = {
   privacy: {

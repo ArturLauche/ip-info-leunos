@@ -28,14 +28,70 @@ function sentenceMark(locale: Locale): string {
   return ".";
 }
 
+/** Ensures a catalog sentence ends with a mark without producing "。.". */
+function asSentence(value: string, locale: Locale): string {
+  const text = value.trim();
+  return SENTENCE_MARKS.test(text) ? text : `${text}${sentenceMark(locale)}`;
+}
+
 export function getSiteDescription(locale: Locale): string {
   const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
-  const home = t.homeSubtitle.trim();
   // CJK and Hindi subtitles already end with their own sentence mark; only
   // add one where the catalog has none, so no locale ends up with "。.".
-  const lead = SENTENCE_MARKS.test(home) ? home : `${home}${sentenceMark(locale)}`;
-  return `${lead} ${toolT.dnsSubtitle} ${toolT.pingSubtitle} ${toolT.reputationSubtitle}`;
+  return [
+    asSentence(t.homeSubtitle, locale),
+    asSentence(toolT.dnsSubtitle, locale),
+    asSentence(toolT.pingSubtitle, locale),
+    asSentence(toolT.reputationSubtitle, locale),
+  ].join(" ");
+}
+
+/**
+ * Search-intent titles for the homepage. The H1 stays the brand (`homeTitle`);
+ * only the document title and social preview target the "what is my IP"
+ * query, which is the page's primary search demand in every locale.
+ */
+const homeSeoTitles: Record<Locale, string> = {
+  de: "Wie ist meine IP? Öffentliche IPv4- und IPv6-Adresse anzeigen",
+  en: "What Is My IP? Public IPv4 & IPv6 Address Lookup",
+  es: "¿Cuál es mi IP? Consulta de IP pública IPv4 e IPv6",
+  fr: "Quelle est mon IP ? Adresse IP publique IPv4 et IPv6",
+  it: "Qual è il mio IP? Indirizzo IP pubblico IPv4 e IPv6",
+  nl: "Wat is mijn IP? Openbaar IPv4- en IPv6-adres",
+  pl: "Jaki jest mój IP? Publiczny adres IPv4 i IPv6",
+  "pt-BR": "Qual é o meu IP? Endereço IP público IPv4 e IPv6",
+  "pt-PT": "Qual é o meu IP? Endereço IP público IPv4 e IPv6",
+  ja: "私のIPアドレスは？IPv4・IPv6の公開IPを確認",
+  ko: "내 IP 주소는? IPv4 및 IPv6 공인 IP 조회",
+  ru: "Какой у меня IP? Публичный адрес IPv4 и IPv6",
+  uk: "Яка моя IP-адреса? Публічна IP-адреса IPv4 та IPv6",
+  "zh-CN": "我的IP地址是什么？查询公网IPv4和IPv6地址",
+  "zh-TW": "我的IP位址是什麼？查詢公開IPv4與IPv6位址",
+  ar: "ما هو عنوان IP الخاص بي؟ عنوان IP عام IPv4 وIPv6",
+  hi: "मेरा IP क्या है? सार्वजनिक IPv4 और IPv6 पता जांचें",
+  id: "Apa IP saya? Alamat IP publik IPv4 dan IPv6",
+  cs: "Jaká je moje IP? Veřejná adresa IPv4 a IPv6",
+  sv: "Vilken är min IP? Offentlig IPv4- och IPv6-adress",
+  da: "Hvad er min IP? Offentlig IPv4- og IPv6-adresse",
+  nb: "Hva er min IP? Offentlig IPv4- og IPv6-adresse",
+  fi: "Mikä on IP-osoitteeni? Julkinen IPv4- ja IPv6-osoite",
+  el: "Ποια είναι η IP μου; Δημόσια διεύθυνση IPv4 και IPv6",
+  ro: "Care este IP-ul meu? Adresă IP publică IPv4 și IPv6",
+  tr: "IP adresim nedir? Genel IPv4 ve IPv6 adresi",
+};
+
+export function getHomeSeoTitle(locale: Locale): string {
+  return homeSeoTitles[locale] ?? getTranslation(locale).homeTitle;
+}
+
+/**
+ * A compact homepage description built from existing catalog sentences, so
+ * every locale gets a specific snippet without a second translation catalog.
+ */
+export function getHomeDescription(locale: Locale): string {
+  const t = getTranslation(locale);
+  return `${asSentence(t.homeSubtitle, locale)} ${asSentence(t.checkSubtitle, locale)}`;
 }
 
 export function getSiteKeywords(locale: Locale): string[] {
@@ -72,8 +128,8 @@ export const schemaInLanguage = SUPPORTED_LOCALES.map((locale) =>
 
 /**
  * Absolute document title. Next.js `title.template` is not applied to
- * `app/page.tsx`. A title that already *is* the site name (e.g. the English
- * or German home page) is not suffixed, which would read "IP Info | IP Info".
+ * `app/page.tsx`. A title that already *is* the site name is not suffixed,
+ * which would read "IP Info | IP Info".
  */
 export function documentTitle(title: string): string {
   return title === siteConfig.name ? title : `${title} | ${siteConfig.name}`;
@@ -86,12 +142,19 @@ export function createPageMetadata({
   path = "/",
   keywords = [],
   locale = DEFAULT_LOCALE,
+  index = true,
 }: {
   title: string;
   description: string;
   path?: string;
   keywords?: string[];
   locale?: Locale;
+  /**
+   * Set to false for parameterized routes that render a generic fallback
+   * (for example an invalid `/asn/[asn]` deep link). The canonical URL still
+   * points at the parent tool so users keep a valid navigation target.
+   */
+  index?: boolean;
 }): Metadata {
   const canonical = canonicalUrl(path);
 
@@ -120,17 +183,27 @@ export function createPageMetadata({
         "text/plain": `${siteConfig.url}/llms.txt`,
       },
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-        "max-video-preview": -1,
-      },
-    },
+    robots: index
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        }
+      : {
+          index: false,
+          follow: true,
+          googleBot: {
+            index: false,
+            follow: true,
+            noimageindex: true,
+          },
+        },
     openGraph: {
       type: "website",
       locale: getLocaleOpenGraphLanguage(locale),

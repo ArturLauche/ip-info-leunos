@@ -113,6 +113,7 @@ function getJsonLd(locale: Parameters<typeof getSiteDescription>[0]) {
         "@id": `${siteConfig.url}/#organization`,
         name: siteConfig.name,
         url: siteConfig.url,
+        description: siteConfig.description,
         logo: {
           "@type": "ImageObject",
           url: `${siteConfig.url}/apple-icon.png`,

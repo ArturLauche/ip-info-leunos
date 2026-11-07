@@ -12,7 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = getToolTranslation(locale);
   return createPageMetadata({
     title: t.whoisTitle,
-    description: t.whoisSubtitle,
+    // The empty-state copy names registrar, dates, status and nameservers,
+    // which is more useful in a search snippet than the one-line subtitle.
+    description: t.whoisEmptyDescription,
     path: "/whois",
     keywords: [t.whoisTitle, "WHOIS", "RDAP", "Registrar", "Nameserver"],
     locale,
