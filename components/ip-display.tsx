@@ -13,6 +13,7 @@ import { getApiErrorMessage } from "@/lib/api/error-message";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
+import { fetchWithRetry } from "@/lib/network/retry";
 import { BrowserFingerprint } from "@/components/browser-fingerprint";
 import { CopyButton } from "@/components/copy-button";
 import { LiveRegion } from "@/components/live-region";
@@ -319,7 +320,11 @@ function IpDisplayContent({
       ? `/api/ip?ip=${encodeURIComponent(targetIp)}`
       : "/api/ip";
 
-    fetch(url, { signal: controller.signal })
+    fetchWithRetry(
+      url,
+      { signal: controller.signal },
+      { signal: controller.signal, maxAttempts: 3, maxRetryAfterMs: 5_000 },
+    )
       .then(readApiResponse<IpData>)
       .then((data) => {
         if (controller.signal.aborted) return;

@@ -36,6 +36,7 @@ function dropEntry(cidr: string): DropEntry {
 afterEach(() => {
   clearFeedStateForTests();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("feed payload parsing", () => {
@@ -193,15 +194,22 @@ describe("feed matching", () => {
   });
 
   it("reports unavailable when no feed data can be loaded", async () => {
+    vi.useFakeTimers();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("service unavailable", { status: 503 })),
     );
 
-    const feodo = await matchFeodo("50.16.16.211", Date.now());
+    const feodoPromise = matchFeodo("50.16.16.211", Date.now());
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const feodo = await feodoPromise;
     expect(feodo.status).toBe("unavailable");
 
-    const drop = await matchDrop("185.93.89.118", 4);
+    const dropPromise = matchDrop("185.93.89.118", 4);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const drop = await dropPromise;
     expect(drop.status).toBe("unavailable");
   });
 });

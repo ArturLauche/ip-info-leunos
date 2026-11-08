@@ -7,6 +7,7 @@
 // to the upstream, and the result is cached aggressively (flags are immutable).
 
 import { enforceRateLimit, getClientIp } from "@/lib/api/rate-limit";
+import { fetchWithRetry } from "@/lib/network/retry";
 
 export const runtime = "nodejs";
 
@@ -92,14 +93,21 @@ export async function GET(request: Request, context: RouteContext) {
   timer.unref?.();
 
   try {
-    const upstream = await fetch(`https://flagcdn.com/${normalized}.svg`, {
-      signal: controller.signal,
-      // Flags are effectively immutable, so let the runtime cache them.
-      cache: "force-cache",
-    });
+    const upstream = await fetchWithRetry(
+      `https://flagcdn.com/${normalized}.svg`,
+      {
+        signal: controller.signal,
+        // Flags are effectively immutable, so let the runtime cache them.
+        cache: "force-cache",
+      },
+      { maxAttempts: 3, signal: controller.signal, maxRetryAfterMs: 2_000 },
+    );
 
     if (!upstream.ok) {
-      return new Response(null, { status: 404 });
+      await upstream.body?.cancel().catch(() => {});
+      // A missing flag is a permanent 404; anything else is an upstream
+      // failure, which is worth distinguishing from a nonexistent country.
+      return new Response(null, { status: upstream.status === 404 ? 404 : 502 });
     }
 
     const svg = await readBoundedSvg(upstream);

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { fetchWithRetry } from "@/lib/network/retry";
 import {
   AsnValidationError,
   mergeAsnProfile,
@@ -512,11 +513,23 @@ async function fetchProviderJson(
       signal?.addEventListener("abort", abortFromParent, { once: true });
     }
 
-    const response = await fetch(url, {
-      cache: "no-store",
-      signal: controller.signal,
-      headers,
-    });
+    // One retry fits inside the 2 s aggregation deadline: a transient 5xx or
+    // reset from a provider should not fail the whole source. The final
+    // response is returned as-is so callers can still report its status.
+    const response = await fetchWithRetry(
+      url,
+      {
+        cache: "no-store",
+        signal: controller.signal,
+        headers,
+      },
+      { maxAttempts: 2, signal: controller.signal, maxRetryAfterMs: 1_000 },
+    );
+    if (!response.ok) {
+      // Callers only need the status for a failed provider; release the body.
+      await response.body?.cancel().catch(() => {});
+      return { response, json: null };
+    }
     const json = await readJsonWithLimit(response, PROVIDER_MAX_BYTES);
     return { response, json };
   } catch (error) {

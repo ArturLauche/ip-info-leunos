@@ -3,6 +3,7 @@ import {
   observeGreyNoiseQuota,
 } from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
+import { fetchWithRetry } from "@/lib/network/retry";
 import { lookupIpApi } from "@/lib/providers/ip-api";
 import { assessConnectionType, type ConnectionType } from "@/lib/connection-type";
 import { REPUTATION_SOURCES } from "./model";
@@ -132,13 +133,21 @@ async function fetchWithTimeout(
   timer.unref?.();
 
   try {
-    return await fetch(url, {
-      cache: "no-store",
-      signal: controller.signal,
-      headers,
-      ...(init.method ? { method: init.method } : {}),
-      ...(init.body ? { body: init.body } : {}),
-    });
+    // Providers are independent and already degrade per source, so one retry
+    // is enough to ride out a transient 5xx/429 without doubling route latency.
+    // POST (ThreatFox search) is never retried because fetchWithRetry only
+    // opts idempotent methods in by default.
+    return await fetchWithRetry(
+      url,
+      {
+        cache: "no-store",
+        signal: controller.signal,
+        headers,
+        ...(init.method ? { method: init.method } : {}),
+        ...(init.body ? { body: init.body } : {}),
+      },
+      { maxAttempts: 2, signal: controller.signal, maxRetryAfterMs: 3_000 },
+    );
   } finally {
     clearTimeout(timer);
   }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { readApiResponse } from "@/lib/api/client";
+import { fetchWithRetry } from "@/lib/network/retry";
 import { useToolQuery } from "@/hooks/use-tool-query";
 
 interface ToolLookupOptions {
@@ -102,9 +103,17 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
           markSubmitted(trimmed);
           router.replace(href, { scroll: false });
         }
-        const response = await fetch(buildApiUrl(trimmed), {
-          signal: controller.signal,
-        });
+        const response = await fetchWithRetry(
+          buildApiUrl(trimmed),
+          { signal: controller.signal },
+          {
+            signal: controller.signal,
+            // Loading stays visible during the backoff, so keep the budget
+            // short: 1s and 2s between at most three attempts.
+            maxAttempts: 3,
+            maxRetryAfterMs: 5_000,
+          },
+        );
         const data = await readApiResponse<T>(response);
         if (!controller.signal.aborted && seq === requestSeq.current) setResult(data);
       } catch (lookupError) {
