@@ -217,6 +217,9 @@ export async function lookupIpApi(
     // (small) body read too, keeping observations strictly ordered.
     return await withUpstreamAdmission(async () => {
       if (!takeUpstreamBudget(Date.now())) return null;
+      // No generic transport retries here: 429 / X-Rl: 0 already pauses the
+      // shared budget until the provider window resets, and sleeping inside
+      // this admission slot would hold every other lookup behind it.
       const response = await fetch(
         `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${IP_API_FIELDS}&lang=${encodeURIComponent(language)}`,
         { cache: "no-store", signal: controller.signal },

@@ -15,6 +15,7 @@ function chunkedResponse(chunks: string[], status = 200): Response {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("GET /api/flag/[code]", () => {
@@ -50,6 +51,40 @@ describe("GET /api/flag/[code]", () => {
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("");
+  });
+
+  it("recovers from one transient upstream failure", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(chunkedResponse(["down"], 503))
+      .mockResolvedValueOnce(chunkedResponse([SVG]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = GET(new Request("http://localhost/api/flag/de"), {
+      params: Promise.resolve({ code: "de" }),
+    });
+    await vi.runAllTimersAsync();
+    const response = await pending;
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a persistent upstream failure as 502", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async () => chunkedResponse(["down"], 503));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = GET(new Request("http://localhost/api/flag/de"), {
+      params: Promise.resolve({ code: "de" }),
+    });
+    await vi.runAllTimersAsync();
+    const response = await pending;
+
+    expect(response.status).toBe(502);
+    // One short retry only: the endpoint is requested once per flag.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("returns an empty 502 for oversized chunked bodies", async () => {

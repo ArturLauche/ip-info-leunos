@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { RawEvidence, SourceStatus } from "./model";
 import { isIPv6Address, stripIpv6Brackets } from "@/lib/network/target";
+import { fetchWithRetry } from "@/lib/network/retry";
 
 /**
  * Downloadable threat feeds (abuse.ch Feodo Tracker, Spamhaus DROP) are
@@ -169,12 +170,19 @@ async function fetchFeedText(url: string): Promise<string> {
   const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      signal: controller.signal,
-      headers: { "user-agent": USER_AGENT, accept: "application/json, text/plain" },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const response = await fetchWithRetry(
+      url,
+      {
+        cache: "no-store",
+        signal: controller.signal,
+        headers: { "user-agent": USER_AGENT, accept: "application/json, text/plain" },
+      },
+      { maxAttempts: 3, signal: controller.signal, maxRetryAfterMs: 3_000 },
+    );
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const text = await response.text();
     if (text.length > FEED_MAX_BYTES) throw new Error("feed exceeds size limit");

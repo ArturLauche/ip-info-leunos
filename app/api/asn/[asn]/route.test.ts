@@ -322,6 +322,36 @@ describe("ASN API route", () => {
     );
   });
 
+  it("recovers when a provider returns one transient 503", async () => {
+    vi.useFakeTimers();
+    delete process.env.IPINFO_TOKEN;
+    let peeringAttempts = 0;
+
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const href = String(url);
+      const ripePayload = ripeStatPayload(href);
+
+      if (ripePayload) return jsonResponse(ripePayload);
+
+      peeringAttempts += 1;
+      if (peeringAttempts === 1) {
+        return jsonResponse({ error: "temporarily unavailable" }, 503);
+      }
+
+      return jsonResponse(peeringDbPayload(64514));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const responsePromise = invoke("AS64514");
+    await vi.runAllTimersAsync();
+    const response = await responsePromise;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(peeringAttempts).toBe(2);
+    expect(body.data.sources.peeringdb).toBe("available");
+  });
+
   it("uses fresh warm-instance cache for repeated provider lookups", async () => {
     delete process.env.IPINFO_TOKEN;
     const fetchMock = vi.fn(async (url: string | URL | Request) => {
@@ -357,9 +387,10 @@ describe("ASN API route", () => {
     delete process.env.IPINFO_TOKEN;
 
     let failProviders = false;
+    let failureStatus = 502;
     const fetchMock = vi.fn(async (url: string | URL | Request) => {
       if (failProviders) {
-        return jsonResponse({ error: "down" }, 502);
+        return jsonResponse({ error: "down" }, failureStatus);
       }
 
       const href = String(url);
@@ -378,7 +409,9 @@ describe("ASN API route", () => {
 
     failProviders = true;
     vi.setSystemTime(new Date("2026-01-01T00:01:01.000Z"));
-    const staleResponse = await invoke("AS64513", "?source-info=1");
+    const staleResponsePromise = invoke("AS64513", "?source-info=1");
+    await vi.runAllTimersAsync();
+    const staleResponse = await staleResponsePromise;
     const staleBody = await staleResponse.json();
 
     expect(staleResponse.status).toBe(200);
@@ -396,6 +429,9 @@ describe("ASN API route", () => {
     );
 
     vi.setSystemTime(new Date("2026-01-01T00:05:01.000Z"));
+    // A permanent status avoids another backoff wait here; this phase only
+    // verifies that data older than the stale window is not served.
+    failureStatus = 400;
     const expiredResponse = await invoke("AS64513");
     expect(expiredResponse.status).toBe(502);
   });
