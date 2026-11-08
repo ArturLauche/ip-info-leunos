@@ -100,7 +100,16 @@ export async function GET(request: Request, context: RouteContext) {
         // Flags are effectively immutable, so let the runtime cache them.
         cache: "force-cache",
       },
-      { maxAttempts: 3, signal: controller.signal, maxRetryAfterMs: 2_000 },
+      // One short retry only: this endpoint is requested once per flag (up to
+      // 51 times per ASN page), so a longer budget would multiply upstream
+      // fan-out and hold every flag during a flagcdn outage.
+      {
+        maxAttempts: 2,
+        baseDelayMs: 250,
+        maxDelayMs: 500,
+        signal: controller.signal,
+        maxRetryAfterMs: 1_000,
+      },
     );
 
     if (!upstream.ok) {

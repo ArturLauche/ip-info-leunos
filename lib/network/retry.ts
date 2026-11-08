@@ -47,26 +47,44 @@ export function isTransientNetworkError(error: unknown): boolean {
   return isTransientNetworkErrorInternal(error, new Set());
 }
 
+function isAbortLike(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "AbortError" || error.name === "TimeoutError")
+  );
+}
+
 function isTransientNetworkErrorInternal(error: unknown, seen: Set<unknown>): boolean {
-  if (error instanceof AggregateError) {
-    return error.errors.some((entry) => isTransientNetworkErrorInternal(entry, seen));
-  }
   if (!(error instanceof Error) || seen.has(error)) return false;
   seen.add(error);
 
-  if (error.name === "AbortError" || error.name === "TimeoutError") return false;
+  if (isAbortLike(error)) return false;
+
+  if (error instanceof AggregateError) {
+    return error.errors.some((entry) => isTransientNetworkErrorInternal(entry, seen));
+  }
 
   const code = (error as NodeJS.ErrnoException).code;
   if (typeof code === "string" && TRANSIENT_NETWORK_CODES.has(code)) return true;
 
-  // Node's fetch reports connection failures as TypeError("fetch failed")
-  // with the real reason on `cause`.
-  if (error instanceof TypeError && /fetch failed|network|load failed/i.test(error.message)) {
-    return true;
-  }
-
   const cause = (error as { cause?: unknown }).cause;
-  return cause !== undefined && isTransientNetworkErrorInternal(cause, seen);
+  // A wrapped abort/timeout must never be retried, even when the wrapper is a
+  // generic TypeError("fetch failed").
+  if (isAbortLike(cause)) return false;
+
+  // Node's fetch reports connection failures as TypeError("fetch failed")
+  // with the real reason on `cause`. Trust that cause instead of the generic
+  // wrapper message so a permanent cause (for example a TLS failure) is not
+  // retried.
+  if (cause !== undefined) return isTransientNetworkErrorInternal(cause, seen);
+
+  // Browsers report connection failures as TypeError without a cause:
+  // Chrome's "Failed to fetch", Firefox's "NetworkError ..." and Safari's
+  // "Load failed".
+  return (
+    error instanceof TypeError &&
+    /fetch failed|failed to fetch|network|load failed/i.test(error.message)
+  );
 }
 
 /**
@@ -232,7 +250,7 @@ export async function withRetry<T>(
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    signal?.throwIfAborted();
+    if (signal?.aborted) throw abortReason(signal);
 
     try {
       return await operation(attempt);
@@ -268,6 +286,40 @@ export interface FetchWithRetryOptions extends RetryOptions {
    */
   idempotent?: boolean;
   fetchImpl?: FetchLike;
+  /**
+   * Narrows the default retryable-status set. Return false to treat a status
+   * as permanent even when it is normally retryable (for example, a metered
+   * provider's 429).
+   */
+  retryStatusFilter?: (status: number) => boolean;
+}
+
+/** Returns one abortable signal for every signal the request must honor. */
+function combineSignals(
+  signals: Array<AbortSignal | null | undefined>,
+): AbortSignal | null {
+  const active = [
+    ...new Set(signals.filter((signal): signal is AbortSignal => signal != null)),
+  ];
+  if (active.length === 0) return null;
+  if (active.length === 1) return active[0];
+
+  if (typeof AbortSignal.any === "function") return AbortSignal.any(active);
+
+  // Fallback for runtimes without AbortSignal.any.
+  const controller = new AbortController();
+  const onAbort = (event: Event) => {
+    for (const signal of active) signal.removeEventListener("abort", onAbort);
+    controller.abort((event.target as AbortSignal).reason);
+  };
+  for (const signal of active) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  }
+  return controller.signal;
 }
 
 /**
@@ -286,17 +338,27 @@ export async function fetchWithRetry(
   ).toUpperCase();
   const idempotent = options.idempotent ?? (method === "GET" || method === "HEAD");
   const fetchImpl = options.fetchImpl ?? fetch;
-  if (!idempotent) return fetchImpl(input, init);
+  const requestSignal = combineSignals([
+    typeof Request !== "undefined" && input instanceof Request ? input.signal : null,
+    init.signal,
+    options.signal,
+  ]);
+  const requestInit = requestSignal ? { ...init, signal: requestSignal } : init;
+
+  if (!idempotent) return fetchImpl(input, requestInit);
 
   const maxAttempts = Math.max(1, Math.floor(options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS));
   const maxRetryAfterMs = options.maxRetryAfterMs ?? DEFAULT_MAX_RETRY_AFTER_MS;
   const now = options.now ?? Date.now;
   const userClassify = options.classify;
+  const retryStatusFilter = options.retryStatusFilter;
+  const shouldRetryStatus = (status: number) =>
+    isRetryableHttpStatus(status) && (retryStatusFilter?.(status) ?? true);
 
   return withRetry(
     async (attempt) => {
-      const response = await fetchImpl(input, init);
-      if (!isRetryableHttpStatus(response.status)) return response;
+      const response = await fetchImpl(input, requestInit);
+      if (!shouldRetryStatus(response.status)) return response;
 
       const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), now());
       if (
@@ -314,11 +376,11 @@ export async function fetchWithRetry(
     {
       ...options,
       maxAttempts,
-      signal: options.signal ?? init.signal ?? null,
+      signal: requestSignal,
       classify: (error) => {
         if (error instanceof RetryableHttpError) {
           return {
-            retry: isRetryableHttpStatus(error.status),
+            retry: shouldRetryStatus(error.status),
             retryAfterMs: error.retryAfterMs,
           };
         }

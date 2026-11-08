@@ -515,7 +515,7 @@ describe("reputation API route", () => {
   });
 
   it("propagates provider rate limits as source states", async () => {
-    stubFetch((href) => {
+    const fetchMock = stubFetch((href) => {
       if (href.includes("feodotracker.abuse.ch")) return jsonResponse([]);
       if (href.includes("spamhaus.org/drop/drop_v4.json")) return new Response(DROP_V4_BODY, { status: 200 });
       if (href.includes("api.greynoise.io")) {
@@ -533,6 +533,12 @@ describe("reputation API route", () => {
     const sources = Object.fromEntries(body.data.sources.map((source: { id: string; status: string }) => [source.id, source.status]));
     expect(sources.greynoise).toBe("rate_limited");
     expect(body.data.coverage.unavailableCount).toBe(1);
+    // A GreyNoise 429 is metered and carries quota headers: retrying it would
+    // spend another request before the quota gate can observe the first one.
+    const greynoiseCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).includes("api.greynoise.io"),
+    );
+    expect(greynoiseCalls).toHaveLength(1);
   });
 
   it("rejects private and invalid targets", async () => {

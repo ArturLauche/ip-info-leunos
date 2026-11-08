@@ -33,6 +33,30 @@ describe("retry classification", () => {
     expect(isTransientNetworkError(new DOMException("aborted", "AbortError"))).toBe(false);
     expect(isTransientNetworkError(new Error("invalid JSON"))).toBe(false);
   });
+
+  it("does not treat a wrapped abort or timeout as transient", () => {
+    const abort = new DOMException("aborted", "AbortError");
+    const timeout = new DOMException("timed out", "TimeoutError");
+
+    expect(isTransientNetworkError(new TypeError("fetch failed", { cause: abort }))).toBe(false);
+    expect(isTransientNetworkError(new TypeError("fetch failed", { cause: timeout }))).toBe(false);
+  });
+
+  it("recognizes browser fetch failures without a cause", () => {
+    expect(isTransientNetworkError(new TypeError("Failed to fetch"))).toBe(true);
+    expect(
+      isTransientNetworkError(new TypeError("NetworkError when attempting to fetch resource.")),
+    ).toBe(true);
+    expect(isTransientNetworkError(new TypeError("Load failed"))).toBe(true);
+  });
+
+  it("does not retry a wrapper whose cause is permanent", () => {
+    expect(
+      isTransientNetworkError(
+        new TypeError("fetch failed", { cause: new Error("certificate has expired") }),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("Retry-After parsing", () => {
@@ -210,6 +234,16 @@ describe("withRetry", () => {
     });
     expect(operation).not.toHaveBeenCalled();
   });
+
+  it("propagates a custom abort reason", async () => {
+    const controller = new AbortController();
+    const reason = new Error("cancelled");
+    controller.abort(reason);
+    const operation = vi.fn(async () => "ok");
+
+    await expect(withRetry(operation, { signal: controller.signal })).rejects.toBe(reason);
+    expect(operation).not.toHaveBeenCalled();
+  });
 });
 
 describe("fetchWithRetry", () => {
@@ -262,6 +296,63 @@ describe("fetchWithRetry", () => {
     );
 
     expect(response.status).toBe(503);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("passes the option signal to a non-idempotent request", async () => {
+    const controller = new AbortController();
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        expect(init?.signal).toBe(controller.signal);
+        return new Response("ok", { status: 200 });
+      },
+    );
+
+    const response = await fetchWithRetry(
+      "https://provider.example/search",
+      { method: "POST", body: "query" },
+      { fetchImpl, signal: controller.signal },
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("combines the init and option signals", async () => {
+    const initController = new AbortController();
+    const optionController = new AbortController();
+    const captured: { signal: AbortSignal | null } = { signal: null };
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        captured.signal = init?.signal ?? null;
+        return new Response("ok", { status: 200 });
+      },
+    );
+
+    await fetchWithRetry(
+      "https://provider.example/data",
+      { signal: initController.signal },
+      { fetchImpl, signal: optionController.signal },
+    );
+
+    expect(captured.signal).not.toBeNull();
+    optionController.abort();
+    expect(captured.signal?.aborted).toBe(true);
+  });
+
+  it("can veto retries for a specific status", async () => {
+    const fetchImpl = vi.fn(async () => new Response("slow down", { status: 429 }));
+    const sleep = vi.fn(async () => {});
+
+    const response = await fetchWithRetry("https://provider.example/data", {}, {
+      fetchImpl,
+      sleep,
+      retryStatusFilter: (status) => status !== 429,
+    });
+
+    expect(response.status).toBe(429);
+    await expect(response.text()).resolves.toBe("slow down");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(sleep).not.toHaveBeenCalled();
   });

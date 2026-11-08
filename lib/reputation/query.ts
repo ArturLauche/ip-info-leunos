@@ -3,7 +3,7 @@ import {
   observeGreyNoiseQuota,
 } from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
-import { fetchWithRetry } from "@/lib/network/retry";
+import { fetchWithRetry, type FetchWithRetryOptions } from "@/lib/network/retry";
 import { lookupIpApi } from "@/lib/providers/ip-api";
 import { assessConnectionType, type ConnectionType } from "@/lib/connection-type";
 import { REPUTATION_SOURCES } from "./model";
@@ -127,6 +127,7 @@ async function fetchWithTimeout(
   url: string,
   headers: Record<string, string>,
   init: { method?: string; body?: string } = {},
+  retry: Pick<FetchWithRetryOptions, "retryStatusFilter"> = {},
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
@@ -146,7 +147,12 @@ async function fetchWithTimeout(
         ...(init.method ? { method: init.method } : {}),
         ...(init.body ? { body: init.body } : {}),
       },
-      { maxAttempts: 2, signal: controller.signal, maxRetryAfterMs: 3_000 },
+      {
+        maxAttempts: 2,
+        signal: controller.signal,
+        maxRetryAfterMs: 3_000,
+        ...retry,
+      },
     );
   } finally {
     clearTimeout(timer);
@@ -254,6 +260,13 @@ async function queryGreyNoise(
     const response = await fetchWithTimeout(
       `${GREYNOISE_URL}${encodeURIComponent(ip)}`,
       headers,
+      {},
+      {
+        // A GreyNoise 429 spends metered quota and carries the headers that
+        // update the shared quota gate; retrying it would spend another
+        // request and hide the first response from observeGreyNoiseQuota.
+        retryStatusFilter: (status) => status !== 429,
+      },
     );
     observeGreyNoiseQuota(response, Date.now());
 

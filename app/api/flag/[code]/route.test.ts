@@ -83,7 +83,8 @@ describe("GET /api/flag/[code]", () => {
     const response = await pending;
 
     expect(response.status).toBe(502);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // One short retry only: the endpoint is requested once per flag.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("returns an empty 502 for oversized chunked bodies", async () => {
