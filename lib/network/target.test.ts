@@ -56,6 +56,34 @@ describe("network target validation", () => {
     }
   });
 
+  it("blocks special-purpose IPv6 ranges that are not globally reachable", () => {
+    const cases: Array<[string, string]> = [
+      ["::7f00:1", "ipv4-compatible"],
+      ["::a00:1", "ipv4-compatible"],
+      ["64:ff9b:1::a00:1", "translation-prefix"],
+      ["2001:10::1", "orchid"],
+      ["2001:20::1", "orchid"],
+      ["3fff::1", "documentation"],
+      ["5f00::1", "segment-routing"],
+      ["fec0::1", "site-local"],
+      ["::1", "loopback"],
+      ["::", "unspecified"],
+    ];
+    for (const [address, range] of cases) {
+      try {
+        assertPublicIpAddress(address);
+        expect.unreachable(`${address} should be blocked`);
+      } catch (error) {
+        expect(error, address).toBeInstanceOf(TargetValidationError);
+        expect((error as TargetValidationError).details, address).toMatchObject({ range });
+      }
+    }
+    // Neighbours of the new ranges stay public.
+    for (const address of ["2001:4860:4860::8888", "2a00:1450::1", "2c0f:fb50:4003::8a", "2001:30::1"]) {
+      expect(() => assertPublicIpAddress(address), address).not.toThrow();
+    }
+  });
+
   it("blocks private IPv4 ranges inside IPv4-mapped IPv6 addresses", () => {
     for (const address of ["::ffff:192.168.1.10", "0:0:0:0:0:ffff:0a00:0001"]) {
       expect(() => assertPublicIpAddress(address), address).toThrow(TargetValidationError);

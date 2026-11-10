@@ -1,10 +1,11 @@
+import { createTtlCache } from "@/lib/ttl-cache";
 import {
   greyNoiseQuotaAvailable,
   observeGreyNoiseQuota,
 } from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
 import { fetchWithRetry, type FetchWithRetryOptions } from "@/lib/network/retry";
-import { lookupIpApi } from "@/lib/providers/ip-api";
+import { lookupIpApiCached } from "@/lib/ip-lookup-cache";
 import { assessConnectionType, type ConnectionType } from "@/lib/connection-type";
 import { REPUTATION_SOURCES } from "./model";
 import type {
@@ -239,10 +240,8 @@ async function queryGreyNoise(
 ): Promise<ProviderOutcome> {
   if (family !== 4) return unsupportedOutcome("greynoise");
 
-  const cached = greyNoiseCache.get(ip);
-  if (cached && nowMs - cached.checkedAt < GREYNOISE_CACHE_TTL_MS) {
-    return greyNoiseOutcome(cached.result, nowMs);
-  }
+  const cached = greyNoiseCache.get(ip, nowMs);
+  if (cached) return greyNoiseOutcome(cached, nowMs);
 
   const key = process.env.GREYNOISE_API_KEY?.trim() || "";
   const headers: Record<string, string> = {
@@ -306,19 +305,15 @@ async function queryGreyNoise(
   }
 }
 
-const greyNoiseCache = new Map<
-  string,
-  { checkedAt: number; result: GreyNoiseResult }
->();
+const greyNoiseCache = createTtlCache<GreyNoiseResult>({
+  ttlMs: GREYNOISE_CACHE_TTL_MS,
+  maxEntries: GREYNOISE_CACHE_MAX_ENTRIES,
+  // Write-order eviction, as before: a hot entry still expires on its TTL.
+  touchOnGet: false,
+});
 
 function cacheGreyNoise(ip: string, result: GreyNoiseResult, nowMs: number) {
-  greyNoiseCache.delete(ip);
-  greyNoiseCache.set(ip, { checkedAt: nowMs, result });
-  while (greyNoiseCache.size > GREYNOISE_CACHE_MAX_ENTRIES) {
-    const oldest = greyNoiseCache.keys().next().value;
-    if (oldest === undefined) break;
-    greyNoiseCache.delete(oldest);
-  }
+  greyNoiseCache.set(ip, result, nowMs);
 }
 
 function greyNoiseOutcome(
@@ -420,7 +415,9 @@ interface IpApiOutcome extends ProviderOutcome {
 }
 
 async function queryIpApi(ip: string, language: string): Promise<IpApiOutcome> {
-  const data = await lookupIpApi(ip, { timeoutMs: HTTP_TIMEOUT_MS, language });
+  // Shares the per-address memo with /api/ip: "check reputation" from the IP
+  // page reuses the answer that page just fetched instead of re-querying.
+  const data = await lookupIpApiCached(ip, language, { timeoutMs: HTTP_TIMEOUT_MS });
 
   if (!data) {
     return {

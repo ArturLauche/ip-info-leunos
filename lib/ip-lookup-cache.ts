@@ -1,10 +1,17 @@
 /**
- * Server-side memo for explicit `?ip=` lookups (upstream ip-api.com quota
- * protection).
+ * Server-side memo in front of ip-api.com (upstream quota protection: the free
+ * endpoint allows 45 requests per minute for the whole deployment).
  *
  * Lives outside the route module because Next.js route files may only export
  * request handlers and route config — cache state and test hooks exported
  * from `route.ts` break the build typecheck.
+ *
+ * What is cached is the provider's answer *about an address* (geo, ISP, ASN),
+ * keyed by that address and the effective upstream language. It holds nothing
+ * request-specific (no forwarding headers, no proxy hints), so it is shared by
+ * explicit `?ip=` lookups and the visitor's own auto-detected lookup alike: a
+ * visitor reloading the home page, or navigating back to it, no longer spends
+ * a fresh upstream request for an answer fetched seconds earlier.
  *
  * Only successful provider answers are memoized: lookupIpApi() collapses
  * transport errors, timeouts, and malformed responses to null, and caching
@@ -14,56 +21,39 @@
  * exceed the upstream budget on its own.
  */
 
-import type { IpApiData } from "./providers/ip-api";
+import { lookupIpApi, toIpApiLanguage, type IpApiData } from "./providers/ip-api";
+import { createSingleFlight } from "./single-flight";
+import { createTtlCache } from "./ttl-cache";
 
-const LOOKUP_CACHE_TTL_MS = 60_000;
-const LOOKUP_CACHE_MAX_ENTRIES = 512;
+const providerCache = createTtlCache<IpApiData>({ ttlMs: 60_000, maxEntries: 512 });
+const providerFlights = createSingleFlight<IpApiData | null>();
 
-interface LookupCacheEntry {
-  storedAt: number;
-  payload: unknown;
+/** Cache key: ip-api collapses most UI locales onto a handful of languages. */
+export function ipLookupCacheKey(ip: string, language: string) {
+  return `${ip}:${toIpApiLanguage(language)}`;
 }
 
-const lookupCache = new Map<string, LookupCacheEntry>();
-const inflightLookups = new Map<string, Promise<IpApiData | null>>();
-
-export function getCachedLookup(key: string): unknown | null {
-  const cached = lookupCache.get(key);
-  if (!cached) return null;
-  if (Date.now() - cached.storedAt >= LOOKUP_CACHE_TTL_MS) {
-    lookupCache.delete(key);
-    return null;
-  }
-  return cached.payload;
-}
-
-export function setCachedLookup(key: string, payload: unknown) {
-  lookupCache.set(key, { storedAt: Date.now(), payload });
-  while (lookupCache.size > LOOKUP_CACHE_MAX_ENTRIES) {
-    const oldest = lookupCache.keys().next().value;
-    if (oldest === undefined) break;
-    lookupCache.delete(oldest);
-  }
-}
-
-export function getInflightLookup(key: string): Promise<IpApiData | null> | undefined {
-  return inflightLookups.get(key);
-}
-
-/** Registers an upstream fetch as the shared in-flight lookup for `key`. */
-export function trackInflightLookup(
-  key: string,
-  promise: Promise<IpApiData | null>,
+/**
+ * ip-api data for `ip`, served from the memo when fresh. Resolves to null when
+ * the provider is unavailable (never cached, so the next request retries).
+ */
+export function lookupIpApiCached(
+  ip: string,
+  language: string,
+  options: { timeoutMs?: number } = {},
 ): Promise<IpApiData | null> {
-  const tracked = promise.finally(() => {
-    if (inflightLookups.get(key) === tracked) inflightLookups.delete(key);
+  const key = ipLookupCacheKey(ip, language);
+  const cached = providerCache.get(key);
+  if (cached) return Promise.resolve(cached);
+
+  return providerFlights.run(key, async () => {
+    const data = await lookupIpApi(ip, { language, timeoutMs: options.timeoutMs });
+    if (data) providerCache.set(key, data);
+    return data;
   });
-  inflightLookups.set(key, tracked);
-  return tracked;
 }
 
-/** Test hook: clears memo and single-flight state between cases. */
+/** Test hook: clears memo state between cases. */
 export function clearIpLookupCacheForTests() {
-  lookupCache.clear();
-  inflightLookups.clear();
+  providerCache.clear();
 }

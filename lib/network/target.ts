@@ -1,6 +1,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
 import { domainToASCII } from "node:url";
+import { withTimeout } from "@/lib/async";
 import { TargetValidationError } from "./errors";
 import { requestPublicHttp, type PublicHttpOptions } from "./public-http";
 
@@ -44,17 +45,28 @@ const IPV4_BLOCKED_RANGES: Array<[number, number, string]> = [
   [ipv4ToNumber("240.0.0.0"), 4, "reserved"],
 ];
 
+// IANA IPv6 Special-Purpose Address Registry entries that are not globally
+// reachable, plus deprecated ranges some stacks still route internally.
+// IPv4-mapped (::ffff:0:0/96) addresses are unwrapped and checked as IPv4.
 const IPV6_BLOCKED_RANGES: Array<[bigint, number, string]> = [
   [BigInt(0), 128, "unspecified"],
   [BigInt(1), 128, "loopback"],
+  // Deprecated IPv4-compatible addresses (::a.b.c.d, RFC 4291 §2.5.5.1).
+  [BigInt(0), 96, "ipv4-compatible"],
   [ipv6ToBigInt("64:ff9b::"), 96, "translation-prefix"],
+  [ipv6ToBigInt("64:ff9b:1::"), 48, "translation-prefix"],
   [ipv6ToBigInt("100::"), 64, "discard-prefix"],
   [ipv6ToBigInt("2001:2::"), 48, "benchmark"],
+  [ipv6ToBigInt("2001:10::"), 28, "orchid"],
+  [ipv6ToBigInt("2001:20::"), 28, "orchid"],
   [ipv6ToBigInt("2001::"), 32, "teredo"],
   [ipv6ToBigInt("2001:db8::"), 32, "documentation"],
   [ipv6ToBigInt("2002::"), 16, "6to4"],
+  [ipv6ToBigInt("3fff::"), 20, "documentation"],
+  [ipv6ToBigInt("5f00::"), 16, "segment-routing"],
   [ipv6ToBigInt("fc00::"), 7, "unique-local"],
   [ipv6ToBigInt("fe80::"), 10, "link-local"],
+  [ipv6ToBigInt("fec0::"), 10, "site-local"],
   [ipv6ToBigInt("ff00::"), 8, "multicast"],
 ];
 
@@ -293,19 +305,6 @@ export async function assertPublicUrl(input: string | URL): Promise<PublicUrl> {
     ...target,
     url: parsed.toString(),
   };
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, createError: () => TargetValidationError) {
-  let timer: NodeJS.Timeout | undefined;
-
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(createError()), timeoutMs);
-    timer.unref?.();
-  });
-
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timer) clearTimeout(timer);
-  });
 }
 
 /** Stop waiting when a caller's overall deadline expires, including during DNS. */

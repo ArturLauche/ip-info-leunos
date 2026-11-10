@@ -17,6 +17,7 @@ import {
   type PingMessageKey,
   type PingMessageParams,
 } from "@/lib/network/database-probes";
+import { createPinnedLookup } from "@/lib/network/pinned-lookup";
 
 export const runtime = "nodejs";
 
@@ -90,7 +91,19 @@ function validatePublicPort(port: number) {
   }
 }
 
-function tcpPing(target: string, port: number, timeoutMs: number): Promise<PingResult> {
+/**
+ * Connects to one of the validated addresses. With several (a dual-stack
+ * hostname), Node's Happy Eyeballs (RFC 8305) races the families through a
+ * lookup pinned to that validated set, so an IPv6-first answer no longer fails
+ * the check on a host without IPv6 connectivity — and no unvalidated address
+ * can ever be dialed.
+ */
+function tcpPing(
+  target: string,
+  port: number,
+  timeoutMs: number,
+  addresses: readonly string[] = [target],
+): Promise<PingResult> {
   return new Promise((resolve) => {
     const started = Date.now();
     const socket = new net.Socket();
@@ -120,7 +133,11 @@ function tcpPing(target: string, port: number, timeoutMs: number): Promise<PingR
     };
 
     socket.setTimeout(timeoutMs);
-    socket.once("connect", () => finish(true, "TCP connection established.", "tcp_ok", undefined));
+    socket.once("connect", () =>
+      finish(true, "TCP connection established.", "tcp_ok", undefined, {
+        remoteAddress: socket.remoteAddress,
+      }),
+    );
     socket.once("timeout", () =>
       finish(false, `TCP timeout after ${timeoutMs}ms.`, "tcp_timeout", { timeoutMs }),
     );
@@ -131,7 +148,16 @@ function tcpPing(target: string, port: number, timeoutMs: number): Promise<PingR
       });
     });
 
-    socket.connect(port, target);
+    if (addresses.length > 1) {
+      socket.connect({
+        port,
+        host: target,
+        lookup: createPinnedLookup(addresses),
+        autoSelectFamily: true,
+      });
+    } else {
+      socket.connect(port, addresses[0] ?? target);
+    }
   });
 }
 
@@ -210,8 +236,13 @@ function udpPing(target: string, port: number, timeoutMs: number): Promise<PingR
   });
 }
 
-async function ebPing(displayTarget: string, connectionTarget: string, port: number, timeoutMs: number): Promise<PingResult> {
-  const tcpResult = await tcpPing(connectionTarget, port, timeoutMs);
+async function ebPing(
+  displayTarget: string,
+  addresses: readonly string[],
+  port: number,
+  timeoutMs: number,
+): Promise<PingResult> {
+  const tcpResult = await tcpPing(displayTarget, port, timeoutMs, addresses);
   if (!tcpResult.ok) {
     return {
       ...tcpResult,
@@ -299,12 +330,14 @@ export async function POST(request: Request) {
 
   let target: string;
   let connectionTarget: string;
+  let addresses: string[];
 
   try {
     validatePublicPort(port);
     const publicTarget = await assertPublicTarget(sanitizeHost(payload.target || ""));
     target = publicTarget.hostname;
-    connectionTarget = publicTarget.addresses[0] || publicTarget.hostname;
+    addresses = publicTarget.addresses;
+    connectionTarget = addresses[0] || publicTarget.hostname;
   } catch (error) {
     if (error instanceof TargetValidationError) {
       return apiError(error.code, error.message, error.status, error.details);
@@ -315,11 +348,11 @@ export async function POST(request: Request) {
 
   const result =
     mode === "tcp"
-      ? { ...(await tcpPing(connectionTarget, port, timeoutMs)), target }
+      ? { ...(await tcpPing(target, port, timeoutMs, addresses)), target }
       : mode === "udp"
         ? { ...(await udpPing(connectionTarget, port, timeoutMs)), target }
         : mode === "eb"
-          ? await ebPing(target, connectionTarget, port, timeoutMs)
+          ? await ebPing(target, addresses, port, timeoutMs)
           : {
               ...(await probeDatabase({
                 target: connectionTarget,

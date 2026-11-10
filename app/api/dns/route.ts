@@ -10,6 +10,8 @@ import {
 } from "@/lib/network/target";
 import { isCacheableDnsResult } from "@/lib/dns-cache";
 import { createSingleFlight } from "@/lib/single-flight";
+import { createTtlCache } from "@/lib/ttl-cache";
+import { withTimeout } from "@/lib/async";
 import {
   DNS_TIMEOUT_MESSAGE,
   dnsLookupErrorCode,
@@ -44,33 +46,11 @@ const dnsQuerySchema = z.object({
 // public data (no per-request identity), so caching by normalized hostname is
 // safe. The response header stays no-store; this only avoids hammering the
 // resolver with 10 parallel queries per repeat request.
-const DNS_CACHE_TTL_MS = 120_000;
-const DNS_CACHE_MAX_ENTRIES = 512;
-
-const dnsCache = new Map<string, { storedAt: number; payload: unknown }>();
+const dnsCache = createTtlCache<unknown>({ ttlMs: 120_000, maxEntries: 512 });
 
 // Concurrent lookups of one hostname share a single fan-out of resolver
 // queries (up to ten per hostname) instead of each repeating it.
 const dnsFlights = createSingleFlight<unknown>();
-
-function getCachedDns(hostname: string): unknown | null {
-  const cached = dnsCache.get(hostname);
-  if (!cached) return null;
-  if (Date.now() - cached.storedAt >= DNS_CACHE_TTL_MS) {
-    dnsCache.delete(hostname);
-    return null;
-  }
-  return cached.payload;
-}
-
-function setCachedDns(hostname: string, payload: unknown) {
-  dnsCache.set(hostname, { storedAt: Date.now(), payload });
-  while (dnsCache.size > DNS_CACHE_MAX_ENTRIES) {
-    const oldest = dnsCache.keys().next().value;
-    if (oldest === undefined) break;
-    dnsCache.delete(oldest);
-  }
-}
 
 type DnsRecordValue =
   | string
@@ -97,23 +77,7 @@ function errorCode(error: unknown) {
 }
 
 function raceResolveTimeout<T>(promise: Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(DNS_TIMEOUT_MESSAGE)),
-      RESOLVE_TIMEOUT_MS,
-    );
-    timer.unref?.();
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
+  return withTimeout(promise, RESOLVE_TIMEOUT_MS, () => new Error(DNS_TIMEOUT_MESSAGE));
 }
 
 async function resolveByType(
@@ -186,7 +150,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const cachedPayload = getCachedDns(hostname);
+  const cachedPayload = dnsCache.get(hostname);
   if (cachedPayload) {
     return apiOk(cachedPayload);
   }
@@ -223,7 +187,7 @@ async function resolveDnsPayload(hostname: string): Promise<unknown> {
       recordErrors,
     };
     if (isCacheableDnsResult(null, recordErrors)) {
-      setCachedDns(hostname, payload);
+      dnsCache.set(hostname, payload);
     }
     return payload;
   }
@@ -266,7 +230,7 @@ async function resolveDnsPayload(hostname: string): Promise<unknown> {
     recordErrors,
   };
   if (isCacheableDnsResult(lookupError, recordErrors)) {
-    setCachedDns(hostname, payload);
+    dnsCache.set(hostname, payload);
   }
   return payload;
 }

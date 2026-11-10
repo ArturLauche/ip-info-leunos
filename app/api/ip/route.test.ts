@@ -182,6 +182,28 @@ describe("IP route proxy hints", () => {
     expect(lookupIpApiMock).toHaveBeenCalledTimes(1);
   });
 
+  it("shares the per-address memo with the visitor's own lookup but keeps hints per request", async () => {
+    const plain = await GET(
+      new Request("http://localhost/api/ip", {
+        headers: { "x-vercel-forwarded-for": "8.8.8.8" },
+      }),
+    );
+    const viaGateway = await GET(
+      new Request("http://localhost/api/ip", {
+        headers: { "x-vercel-forwarded-for": "8.8.8.8", via: "1.1 zscaler" },
+      }),
+    );
+    const explicit = await GET(new Request("http://localhost/api/ip?ip=8.8.8.8"));
+
+    const plainBody = await plain.json();
+    const viaBody = await viaGateway.json();
+    expect((await explicit.json()).data.isp).toBe("Example ISP");
+    expect(plainBody.data.isp).toBe("Example ISP");
+    expect(plainBody.data.proxyHints.detected).toBe(false);
+    expect(viaBody.data.proxyHints).toMatchObject({ detected: true, confidence: "high" });
+    expect(lookupIpApiMock).toHaveBeenCalledTimes(1);
+  });
+
   it("returns request hints for automatic lookup even when metadata is unavailable", async () => {
     lookupIpApiMock.mockResolvedValueOnce(null);
 

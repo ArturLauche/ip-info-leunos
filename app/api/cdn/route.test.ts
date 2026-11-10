@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import dns from "node:dns/promises";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as targets from "@/lib/network/target";
 import { GET } from "./route";
 
 describe("GET /api/cdn", () => {
@@ -29,5 +31,38 @@ describe("GET /api/cdn", () => {
 
     expect(body.ok).toBe(false);
     expect(["invalid_target", "target_blocked"]).toContain(body.error.code);
+  });
+});
+
+describe("GET /api/cdn probing", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("starts the HTTP probe without waiting for the DNS enrichment and shares concurrent probes", async () => {
+    vi.spyOn(dns, "lookup").mockResolvedValue([{ address: "93.184.215.14", family: 4 }] as never);
+    let releaseCname!: () => void;
+    vi.spyOn(dns, "resolveCname").mockImplementation(
+      () => new Promise((_resolve, reject) => {
+        releaseCname = () => reject(Object.assign(new Error("no cname"), { code: "ENODATA" }));
+      }),
+    );
+    vi.spyOn(dns, "resolve4").mockResolvedValue(["93.184.215.14"]);
+    vi.spyOn(dns, "resolve6").mockRejectedValue(Object.assign(new Error("none"), { code: "ENODATA" }));
+    const fetchProbe = vi.spyOn(targets, "fetchPublicUrl").mockResolvedValue(
+      new Response("ok", { status: 200, headers: { "cf-ray": "abc-FRA", server: "cloudflare" } }),
+    );
+
+    const pending = [
+      GET(new Request("http://localhost/api/cdn?target=probe.example")),
+      GET(new Request("http://localhost/api/cdn?target=probe.example")),
+    ];
+    await vi.waitFor(() => expect(fetchProbe).toHaveBeenCalledTimes(1));
+    // The CNAME lookup is still pending while the probe already ran.
+    releaseCname();
+    const [first, second] = await Promise.all(pending);
+    const body = await first.json();
+
+    expect(body).toMatchObject({ ok: true, data: { reachable: true, usesCdn: true, detectedCdn: "Cloudflare" } });
+    expect(await second.json()).toEqual(body);
+    expect(fetchProbe).toHaveBeenCalledTimes(1);
   });
 });

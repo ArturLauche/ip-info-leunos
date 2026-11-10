@@ -3,6 +3,13 @@ import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { createPinnedLookup } from "@/lib/network/pinned-lookup";
+import {
+  referralCacheKey,
+  tldReferralCache,
+  whoisCache,
+  whoisFlights,
+  type WhoisOutcome,
+} from "@/lib/whois-cache";
 import { extractReferralServer, summarizeRdap, summarizeWhois } from "@/lib/whois";
 import {
   assertPublicIpAddress,
@@ -140,51 +147,81 @@ export async function GET(request: Request) {
     return apiError("invalid_target", "Please provide a valid public domain or IP.", 400);
   }
 
-  try {
-    const ianaResponse = await queryWhois("whois.iana.org", target);
-    const referredServer = extractReferralServer(ianaResponse);
+  const cached = whoisCache.get(target);
+  if (cached) return apiOk(cached);
 
+  const outcome = await whoisFlights.run(target, () => resolveWhois(target));
+  if (!outcome.ok) {
+    // Locale-neutral message (the UI translates by code); upstream details
+    // stay machine-readable in details instead of leaking English text.
+    return apiError("network_error", "WHOIS lookup failed.", 400, outcome.details);
+  }
+  return apiOk(outcome.payload);
+}
+
+async function resolveWhois(target: string): Promise<WhoisOutcome> {
+  const tldKey = referralCacheKey(target, isIp(target));
+  const cachedReferral = tldKey ? tldReferralCache.get(tldKey) : undefined;
+
+  try {
+    let referredServer = cachedReferral ?? null;
     if (!referredServer) {
-      return apiOk({
-        target,
-        server: "whois.iana.org",
-        raw: ianaResponse,
-        summary: summarizeWhois(ianaResponse),
-        noteCode: "iana_only",
-      });
+      const ianaResponse = await queryWhois("whois.iana.org", target);
+      referredServer = extractReferralServer(ianaResponse);
+
+      if (!referredServer) {
+        const payload = {
+          target,
+          server: "whois.iana.org",
+          raw: ianaResponse,
+          summary: summarizeWhois(ianaResponse),
+          noteCode: "iana_only",
+        };
+        whoisCache.set(target, payload);
+        return { ok: true, payload };
+      }
+      if (tldKey) tldReferralCache.set(tldKey, referredServer);
     }
 
-    const referredResponse = await queryWhois(referredServer, target);
+    let referredResponse: string;
+    try {
+      referredResponse = await queryWhois(referredServer, target);
+    } catch (error) {
+      // A cached referral may have moved: ask IANA again next time.
+      if (tldKey) tldReferralCache.delete(tldKey);
+      throw error;
+    }
 
-    return apiOk({
+    const payload = {
       target,
       server: referredServer,
       raw: referredResponse,
       summary: summarizeWhois(referredResponse),
       refer: "whois.iana.org",
-    });
+    };
+    whoisCache.set(target, payload);
+    return { ok: true, payload };
   } catch (whoisError) {
     try {
       const rdap = await lookupViaRdap(target);
-
-      return apiOk({
+      const payload = {
         target,
         server: "rdap.org",
         raw: rdap.raw,
         rdap: rdap.rdap,
         summary: rdap.summary,
         noteCode: "rdap_fallback",
-      });
+      };
+      whoisCache.set(target, payload);
+      return { ok: true, payload };
     } catch (rdapError) {
-      // Locale-neutral message (the UI translates by code); upstream details
-      // stay machine-readable in details instead of leaking English text.
-      const whoisMessage = (whoisError as Error).message || "unknown WHOIS error";
-      const rdapMessage = (rdapError as Error).message || "unknown RDAP error";
-
-      return apiError("network_error", "WHOIS lookup failed.", 400, {
-        whois: whoisMessage,
-        rdap: rdapMessage,
-      });
+      return {
+        ok: false,
+        details: {
+          whois: (whoisError as Error).message || "unknown WHOIS error",
+          rdap: (rdapError as Error).message || "unknown RDAP error",
+        },
+      };
     }
   }
 }

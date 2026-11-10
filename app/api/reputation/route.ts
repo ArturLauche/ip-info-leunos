@@ -12,23 +12,19 @@ import { aggregateReputation } from "@/lib/reputation/scoring";
 import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import { toIpApiLanguage } from "@/lib/providers/ip-api";
 import { createSingleFlight } from "@/lib/single-flight";
+import { createTtlCache } from "@/lib/ttl-cache";
 import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
-
-const RESPONSE_CACHE_TTL_MS = 10 * 60_000;
-const RESPONSE_CACHE_MAX_ENTRIES = 512;
 
 const reputationQuerySchema = z.object({
   ip: z.string().trim().min(1).max(64),
 });
 
-interface CacheEntry {
-  storedAt: number;
-  summary: ReputationSummary;
-}
-
-const responseCache = new Map<string, CacheEntry>();
+const responseCache = createTtlCache<ReputationSummary>({
+  ttlMs: 10 * 60_000,
+  maxEntries: 512,
+});
 
 type ReputationOutcome =
   | { ok: true; summary: ReputationSummary }
@@ -110,10 +106,7 @@ export async function GET(request: Request) {
   const cacheKey = `${ip}:${toIpApiLanguage(language)}:${configFingerprint()}`;
 
   const cached = responseCache.get(cacheKey);
-  if (cached && Date.now() - cached.storedAt < RESPONSE_CACHE_TTL_MS) {
-    return apiOk(cached.summary);
-  }
-  responseCache.delete(cacheKey);
+  if (cached) return apiOk(cached);
 
   const outcome = await reputationFlights.run(cacheKey, () =>
     computeReputation(ip, family, language, cacheKey),
@@ -189,12 +182,7 @@ async function computeReputation(
     checkedAt: new Date().toISOString(),
   };
 
-  responseCache.set(cacheKey, { storedAt: Date.now(), summary });
-  while (responseCache.size > RESPONSE_CACHE_MAX_ENTRIES) {
-    const oldest = responseCache.keys().next().value;
-    if (oldest === undefined) break;
-    responseCache.delete(oldest);
-  }
+  responseCache.set(cacheKey, summary);
 
   return { ok: true, summary };
 }

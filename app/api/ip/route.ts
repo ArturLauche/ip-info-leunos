@@ -9,19 +9,11 @@ import {
   mergeProxyHintAssessments,
   type ProxyHintAssessment,
 } from "@/lib/connection-type";
+import { assessRequestProxyHints } from "@/lib/request-proxy-hints";
+import type { IpApiData } from "@/lib/providers/ip-api";
+import { lookupIpApiCached } from "@/lib/ip-lookup-cache";
+import { extractVisitorIps, type VisitorIpCheck } from "@/lib/visitor-ip";
 import {
-  assessRequestProxyHints,
-  normalizeForwardedIp,
-} from "@/lib/request-proxy-hints";
-import { lookupIpApi, toIpApiLanguage, type IpApiData } from "@/lib/providers/ip-api";
-import {
-  getCachedLookup,
-  getInflightLookup,
-  setCachedLookup,
-  trackInflightLookup,
-} from "@/lib/ip-lookup-cache";
-import {
-  assertPublicIpAddress,
   assertPublicTarget,
   isIPv4Address,
   isIPv6Address,
@@ -30,69 +22,14 @@ import {
 
 export const runtime = "nodejs";
 
-// Short server-side memo for explicit ?ip= lookups (upstream ip-api.com quota
-// protection; see lib/ip-lookup-cache.ts). The header-derived auto-detect
-// branch is never cached: it depends on per-request forwarding headers and
-// must not leak one visitor's addresses to another. The response header stays
-// no-store; this only avoids repeated upstream fetches for popular lookups.
+// Upstream answers are memoized per address and effective language by
+// lib/ip-lookup-cache.ts (quota protection). The response header stays
+// no-store; per-request data (forwarding headers, proxy hints) is computed
+// fresh for every request and never cached.
 
 const ipQuerySchema = z.object({
   ip: z.string().trim().min(1).max(253).optional(),
 });
-
-type LocalIpCheck = { ip: string; source: string; version: 4 | 6 };
-
-function extractIps(headersList: Headers) {
-  let ipv4: string | null = null;
-  let ipv6: string | null = null;
-
-  const candidates: Array<{ ip: string; source: string }> = [];
-
-  const appendHeaderCandidates = (headerName: string) => {
-    const value = headersList.get(headerName);
-    if (!value) return;
-
-    value.split(",").forEach((part, index) => {
-      const ip = normalizeForwardedIp(part);
-      if (!ip) return;
-      candidates.push({
-        ip,
-        source: value.includes(",") ? `${headerName}[${index}]` : headerName,
-      });
-    });
-  };
-
-  appendHeaderCandidates("x-vercel-forwarded-for");
-  appendHeaderCandidates("x-forwarded-for");
-  appendHeaderCandidates("x-real-ip");
-
-  const seenIps = new Set<string>();
-  const localIpChecks: LocalIpCheck[] = candidates.flatMap((candidate) => {
-    const version: 4 | 6 | null = isIPv4Address(candidate.ip)
-      ? 4
-      : isIPv6Address(candidate.ip)
-        ? 6
-        : null;
-    if (!version || seenIps.has(candidate.ip)) return [];
-
-    try {
-      assertPublicIpAddress(candidate.ip);
-    } catch {
-      return [];
-    }
-
-    seenIps.add(candidate.ip);
-    return [{ ...candidate, version }];
-  });
-
-  for (const candidate of localIpChecks) {
-    if (!ipv4 && candidate.version === 4) ipv4 = candidate.ip;
-    if (!ipv6 && candidate.version === 6) ipv6 = candidate.ip;
-    if (ipv4 && ipv6) break;
-  }
-
-  return { ipv4, ipv6, localIpChecks };
-}
 
 /**
  * Locale-neutral empty result. Unknown string fields stay empty; the UI
@@ -131,7 +68,7 @@ function toResponsePayload(
   ip: string,
   ipv4: string | null,
   ipv6: string | null,
-  localIpChecks: LocalIpCheck[] = [],
+  localIpChecks: VisitorIpCheck[] = [],
   requestProxyHints?: ProxyHintAssessment,
 ) {
   const proxyAssessment = assessProxyRisk({
@@ -260,20 +197,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // ip-api collapses most UI locales onto the same upstream language, so the
-    // cache is keyed by that effective language: keying by the raw UI locale
-    // would miss 26 times over and re-query ip-api for identical answers.
-    const cacheKey = `${ip}:${toIpApiLanguage(language)}`;
-    const cachedPayload = getCachedLookup(cacheKey);
-    if (cachedPayload) {
-      return apiOk(cachedPayload);
-    }
-
-    let shared = getInflightLookup(cacheKey);
-    if (!shared) {
-      shared = trackInflightLookup(cacheKey, lookupIpApi(ip, { language }));
-    }
-    const data = await shared;
+    const data = await lookupIpApiCached(ip, language);
 
     if (!data) {
       // Upstream failure: never memoized, so the next request retries live.
@@ -290,32 +214,29 @@ export async function GET(request: Request) {
       });
     }
 
-    const payload = toResponsePayload(
-      data,
-      ip,
-      isIPv4Address(ip) ? ip : null,
-      isIPv6Address(ip) ? ip : null,
+    return apiOk(
+      toResponsePayload(
+        data,
+        ip,
+        isIPv4Address(ip) ? ip : null,
+        isIPv6Address(ip) ? ip : null,
+      ),
     );
-    setCachedLookup(cacheKey, payload);
-    return apiOk(payload);
   }
 
   // Auto-detect from request headers. Vercel's forwarding headers are normal
   // client identity inputs; only additional or inconsistent signals affect hints.
   const requestProxyHints = assessRequestProxyHints(request.headers);
-  const { ipv4, ipv6, localIpChecks } = extractIps(request.headers);
+  const { ipv4, ipv6, localIpChecks } = extractVisitorIps(request.headers);
 
   // Use whichever IP we found (prefer IPv4 for geolocation, it tends to be more accurate)
   const primaryIp = ipv4 || ipv6 || "";
   let data: IpApiData | null = null;
 
   if (primaryIp) {
-    try {
-      assertPublicIpAddress(primaryIp);
-      data = await lookupIpApi(primaryIp, { language });
-    } catch {
-      data = null;
-    }
+    // extractVisitorIps only returns public addresses, so the visitor's own
+    // lookup can share the per-address memo with explicit lookups.
+    data = await lookupIpApiCached(primaryIp, language).catch(() => null);
   }
 
   if (!data) {

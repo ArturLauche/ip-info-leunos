@@ -292,6 +292,77 @@ describe("ASN API route", () => {
     );
   });
 
+  it("keeps the RIPEstat endpoints that answered when asn-neighbours misses the deadline", async () => {
+    vi.useFakeTimers();
+    delete process.env.IPINFO_TOKEN;
+    let neighbourCalls = 0;
+
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const href = String(url);
+      if (href.includes("stat.ripe.net/data/asn-neighbours")) {
+        neighbourCalls += 1;
+        // Cold RIPEstat cache: the first request hangs, the retry is warm.
+        if (neighbourCalls === 1) return new Promise<Response>(() => undefined);
+      }
+      const ripePayload = ripeStatPayload(href);
+      if (ripePayload) return jsonResponse(ripePayload);
+      return jsonResponse(peeringDbPayload(64520));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const responsePromise = invoke("AS64520", "?source-info=1");
+    await vi.advanceTimersByTimeAsync(2_000);
+    const response = await responsePromise;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data).toMatchObject({
+      // The RIPEstat overview (holder name) survived the deadline.
+      name: "RIPE Holder",
+      sources: { peeringdb: "available", ripestat: "unavailable" },
+    });
+    // Overview and prefixes survived instead of the whole source failing.
+    expect(body.data.sourceDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "ripestat", status: "unavailable", cache: "miss" }),
+      ]),
+    );
+    expect(JSON.stringify(body.data)).toContain("198.51.100.0/24");
+    expect(body.data.warnings).toContain("RIPEstat request timed out.");
+
+    // The timeout partial was not cached as fresh: the next lookup retries
+    // RIPEstat and gets the complete profile, while PeeringDB stays cached.
+    const retryPromise = invoke("AS64520", "?source-info=1");
+    await vi.advanceTimersByTimeAsync(0);
+    const retry = await retryPromise;
+    const retryBody = await retry.json();
+    expect(retryBody.data.sources.ripestat).toBe("available");
+    expect(retryBody.data.upstreams).toEqual([expect.objectContaining({ asn: "AS1299" })]);
+    expect(retryBody.data.sourceDiagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "peeringdb", cache: "fresh" }),
+        expect.objectContaining({ source: "ripestat", cache: "miss" }),
+      ]),
+    );
+  });
+
+  it("shares provider requests between concurrent lookups of the same ASN", async () => {
+    delete process.env.IPINFO_TOKEN;
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const ripePayload = ripeStatPayload(String(url));
+      if (ripePayload) return jsonResponse(ripePayload);
+      return jsonResponse(peeringDbPayload(64521));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [first, second] = await Promise.all([invoke("AS64521"), invoke("AS64521")]);
+
+    expect(first.status).toBe(200);
+    expect(await second.json()).toEqual(await first.json());
+    // One PeeringDB request and three RIPEstat endpoints, not twice that.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
   it("returns upstream_error when all attempted providers fail", async () => {
     delete process.env.IPINFO_TOKEN;
     const fetchMock = vi.fn(async () => jsonResponse({ error: "down" }, 502));
