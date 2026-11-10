@@ -454,7 +454,7 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
   const [filter, setFilter] = useState<EvidenceFilter>("all");
   const [showHiddenSources, setShowHiddenSources] = useState(false);
 
-  const { loading, error, result, run, cancel, querySync } =
+  const { loading, error, result, run, retry, cancel, querySync } =
     useToolLookup<ReputationSummary>({
       buildApiUrl: (ip) => `/api/reputation?ip=${encodeURIComponent(ip)}`,
       buildHref: (ip) => `/reputation?ip=${encodeURIComponent(ip)}`,
@@ -545,7 +545,9 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel message={error} onRetry={retry} retryLabel={t.errorRetry} />
+      )}
 
       {result && evidenceGroups && (
         <div className="tool-reveal flex flex-col gap-6">

@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { readApiResponse } from "@/lib/api/client";
+import { isRetryableLookupError } from "@/lib/api/error-message";
 import { fetchWithRetry } from "@/lib/network/retry";
 import { useToolQuery } from "@/hooks/use-tool-query";
+import { preparePageTransition } from "@/components/page-transition";
 
 interface ToolLookupOptions {
   /** Builds the API URL for a submitted query. */
@@ -48,10 +50,15 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   // client render already show the pending state instead of a flash of the
   // empty state.
   const [loading, setLoading] = useState(() => Boolean(options.initialQuery?.trim()));
-  const [thrownError, setThrownError] = useState<{ value: unknown } | null>(null);
+  // `query` is set for lookup failures (retryable), not for client-side errors.
+  const [thrownError, setThrownError] = useState<{ value: unknown; query?: string } | null>(null);
   const [result, setResult] = useState<T | null>(null);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  // The query whose result/error/loading state is currently shown. It differs
+  // from querySync.query after a local submission (whose URL echo is ignored),
+  // so refreshes and retries must use this, not the deep link.
+  const activeQuery = useRef<string | null>(null);
   const { querySync, markSubmitted } = useToolQuery(options.initialQuery);
 
   const optionsRef = useRef(options);
@@ -84,6 +91,10 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
         // A pathname change mounts a new checker (notably /asn → /asn/AS…).
         // Let that destination own the request instead of starting one here
         // that will immediately be aborted and repeated after navigation.
+        // Snapshot the page as shown now, like the command palette does: the
+        // transition's own snapshot dates from mount and would fade out an
+        // empty form or an old result instead.
+        preparePageTransition(href);
         router.replace(href, { scroll: false });
         return;
       }
@@ -92,6 +103,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      activeQuery.current = trimmed;
       const seq = ++requestSeq.current;
       setLoading(true);
       setThrownError(null);
@@ -120,7 +132,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
         // An abort is always superseded by a newer run (or unmount): never
         // surface it as an error state.
         if (controller.signal.aborted) return;
-        if (seq === requestSeq.current) setThrownError({ value: lookupError });
+        if (seq === requestSeq.current) setThrownError({ value: lookupError, query: trimmed });
       } finally {
         if (seq === requestSeq.current) setLoading(false);
       }
@@ -129,6 +141,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
   );
 
   const cancel = useCallback(() => {
+    activeQuery.current = null;
     requestSeq.current += 1;
     abortRef.current?.abort();
     setLoading(false);
@@ -142,6 +155,7 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
    * it too follows locale switches.
    */
   const showError = useCallback((value: unknown) => {
+    activeQuery.current = null;
     abortRef.current?.abort();
     requestSeq.current += 1;
     setLoading(false);
@@ -157,15 +171,45 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
       // to the bare tool route): abort any in-flight lookup, invalidate its
       // sequence guard, and clear the previously shown result/error so nothing
       // stale lingers.
+      activeQuery.current = null;
       abortRef.current?.abort();
       requestSeq.current += 1;
       setLoading(false);
       setThrownError(null);
       setResult(null);
     }
-    // refreshKey (a locale for language-sensitive tools) re-runs the active
-    // query in place; router.refresh() alone keeps the client result mounted.
-  }, [querySync, run, refreshKey]);
+  }, [querySync, run]);
 
-  return { loading, error, result, run, showError, cancel, querySync };
+  // refreshKey (a locale for language-sensitive tools) re-runs the query that
+  // is on screen; router.refresh() alone keeps the client result mounted. It
+  // must not fall back to the deep link: after a local submission that would
+  // swap in the original URL's result, and without one it would clear the view.
+  const lastRefreshKey = useRef(refreshKey);
+  useEffect(() => {
+    if (lastRefreshKey.current === refreshKey) return;
+    lastRefreshKey.current = refreshKey;
+    if (activeQuery.current) run(activeQuery.current, false);
+  }, [refreshKey, run]);
+
+  const failedQuery = thrownError?.query;
+  /**
+   * Repeats a failed lookup in place, or null when repeating cannot help
+   * (validation errors, blocked targets) or nothing failed.
+   */
+  const retryQuery =
+    failedQuery && isRetryableLookupError(thrownError?.value) ? failedQuery : null;
+  const retry = useCallback(() => {
+    if (retryQuery) run(retryQuery, false);
+  }, [retryQuery, run]);
+
+  return {
+    loading,
+    error,
+    result,
+    run,
+    retry: retryQuery ? retry : undefined,
+    showError,
+    cancel,
+    querySync,
+  };
 }

@@ -281,6 +281,7 @@ type ToolTranslation = {
   whoisStatusLabel: string;
   whoisNameservers: string;
   whoisShowRaw: string;
+  copyRawOutput: string;
   whoisHideRaw: string;
   pingTestMode: string;
   pingModeHelperTcp: string;
@@ -686,6 +687,7 @@ const en: ToolTranslation = {
   whoisStatusLabel: "Status",
   whoisNameservers: "Nameservers",
   whoisShowRaw: "Show raw output",
+  copyRawOutput: "Copy raw output",
   whoisHideRaw: "Hide raw output",
   pingTestMode: "Test mode",
   pingModeHelperTcp: "Verifies whether the TCP port accepts a connection.",
@@ -1249,6 +1251,7 @@ const de: ToolTranslation = {
   whoisStatusLabel: "Status",
   whoisNameservers: "Nameserver",
   whoisShowRaw: "Rohausgabe anzeigen",
+  copyRawOutput: "Rohausgabe kopieren",
   whoisHideRaw: "Rohausgabe ausblenden",
   pingTestMode: "Testmodus",
   pingModeHelperTcp: "Prüft, ob der TCP-Port eine Verbindung akzeptiert.",

@@ -30,10 +30,13 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  // Reset the confirmation when a *different value* is shown. A function
+  // `text` gets a new identity on every parent render, so it is not a key.
+  const resetKey = typeof text === "string" ? text : null;
   useEffect(() => {
     setCopied(false);
     return () => clearTimeout(resetTimer.current);
-  }, [text]);
+  }, [resetKey]);
 
   const handleCopy = async () => {
     try {

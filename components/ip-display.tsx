@@ -9,7 +9,10 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/components/i18n-provider";
 import type { Translation } from "@/lib/i18n";
-import { getApiErrorMessage } from "@/lib/api/error-message";
+import {
+  getApiErrorMessage,
+  isRetryableLookupError,
+} from "@/lib/api/error-message";
 import { CountryFlag } from "@/components/country-flag";
 import { ErrorPanel } from "@/components/error-panel";
 import { readApiResponse } from "@/lib/api/client";
@@ -93,6 +96,13 @@ interface IpData {
 
 interface IpDisplayProps {
   targetIp?: string;
+  /**
+   * The visitor's addresses as the server saw them in the request headers.
+   * Rendered immediately (server HTML, no JS needed) while the metadata lookup
+   * runs, so the page's main content does not wait for hydration plus an
+   * upstream round trip. Ignored for explicit target lookups.
+   */
+  initialAddresses?: { ipv4: string | null; ipv6: string | null };
   /** Notifies the host tool (e.g. IpLookup) so its search form can spin. */
   onLoadingChange?: (loading: boolean) => void;
 }
@@ -227,6 +237,52 @@ function formatProxyHintLabel(label: ProxyHintLabel, t: Translation) {
   );
 }
 
+/** One "IPv4 / IPv6" hero row: the address with a copy action, or a fallback. */
+function AddressRow({
+  version,
+  ip,
+  fallback,
+  t,
+}: {
+  version: 4 | 6;
+  ip: string | null;
+  fallback: ReactNode;
+  t: Translation;
+}) {
+  return (
+    <div className="app-ip-address-row flex min-w-0 items-center gap-3">
+      <Badge
+        variant={ip ? "outline" : "secondary"}
+        className="shrink-0 font-mono"
+      >
+        IPv{version}
+      </Badge>
+      {ip ? (
+        <div className="app-ip-value-row flex min-w-0 items-center gap-1">
+          <span
+            className={
+              version === 4
+                ? "app-ip-value min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+                : "app-ip-value min-w-0 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl"
+            }
+          >
+            {ip}
+          </span>
+          <CopyButton
+            text={ip}
+            label={t.copyIpLabel}
+            copiedLabel={t.copiedToClipboard}
+            failedLabel={t.copyFailed}
+            className="size-8"
+          />
+        </div>
+      ) : (
+        fallback
+      )}
+    </div>
+  );
+}
+
 /** What a finished lookup announces: which lookup it was, and the address it resolved to. */
 export function describeIpLookup(
   ipv4: string | null,
@@ -244,7 +300,11 @@ export function describeIpLookup(
  * skeleton, an error and the result: a live region only speaks reliably when it
  * stays mounted while its text changes.
  */
-export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
+export function IpDisplay({
+  targetIp,
+  initialAddresses,
+  onLoadingChange,
+}: IpDisplayProps) {
   const [announcement, setAnnouncement] = useState<string>();
 
   return (
@@ -252,6 +312,7 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
       <LiveRegion>{announcement}</LiveRegion>
       <IpDisplayContent
         targetIp={targetIp}
+        initialAddresses={targetIp ? undefined : initialAddresses}
         onLoadingChange={onLoadingChange}
         onAnnouncementChange={setAnnouncement}
       />
@@ -261,6 +322,7 @@ export function IpDisplay({ targetIp, onLoadingChange }: IpDisplayProps) {
 
 function IpDisplayContent({
   targetIp,
+  initialAddresses,
   onLoadingChange,
   onAnnouncementChange,
 }: IpDisplayProps & {
@@ -268,7 +330,11 @@ function IpDisplayContent({
 }) {
   const [data, setData] = useState<IpData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Raw failure, mapped to a message during render so it follows the locale.
+  const [thrownError, setThrownError] = useState<{ value: unknown } | null>(
+    null,
+  );
+  const [retryNonce, setRetryNonce] = useState(0);
   const [clientIpv6, setClientIpv6] = useState<ClientIpDiscoveryResult | null>(
     null,
   );
@@ -286,15 +352,14 @@ function IpDisplayContent({
   // Ref-held so a new callback or catalog identity never re-triggers the fetch
   // effect; only a language switch (the API localizes place names) should.
   const onLoadingChangeRef = useRef(onLoadingChange);
-  const errorCopyRef = useRef({ t, toolT });
 
   useEffect(() => {
     onLoadingChangeRef.current = onLoadingChange;
   }, [onLoadingChange]);
 
-  useEffect(() => {
-    errorCopyRef.current = { t, toolT };
-  }, [t, toolT]);
+  const error = thrownError
+    ? getApiErrorMessage(thrownError.value, toolT, t.ipInfoError)
+    : null;
 
   const announcement =
     !loading && !error && data
@@ -312,7 +377,7 @@ function IpDisplayContent({
     };
 
     reportLoading(true);
-    setError(null);
+    setThrownError(null);
     setData(null);
 
     const controller = new AbortController();
@@ -335,30 +400,30 @@ function IpDisplayContent({
         // Ignore the abort triggered when targetIp changes mid-flight so a
         // stale response can never overwrite a newer lookup.
         if (controller.signal.aborted) return;
-        const copy = errorCopyRef.current;
-        setError(getApiErrorMessage(cause, copy.toolT, copy.t.ipInfoError));
+        setThrownError({ value: cause });
         reportLoading(false);
       });
 
     return () => controller.abort();
-  }, [targetIp, locale]);
+  }, [targetIp, locale, retryNonce]);
 
   useEffect(() => {
     if (targetIp) return;
 
-    let active = true;
+    // Aborting on unmount stops third-party requests after navigation.
+    const controller = new AbortController();
     setIpv6Loading(true);
     setClientIpv6(null);
 
-    discoverClientIp({ preferredVersion: 6 }).then((result) => {
-      if (!active) return;
-      setClientIpv6(result);
-      setIpv6Loading(false);
-    });
+    discoverClientIp({ preferredVersion: 6, signal: controller.signal }).then(
+      (result) => {
+        if (controller.signal.aborted) return;
+        setClientIpv6(result);
+        setIpv6Loading(false);
+      },
+    );
 
-    return () => {
-      active = false;
-    };
+    return () => controller.abort();
   }, [targetIp]);
 
   useEffect(() => {
@@ -370,14 +435,14 @@ function IpDisplayContent({
       return;
     }
 
-    let active = true;
-    discoverClientIp({ preferredVersion: 4 }).then((result) => {
-      if (active) setClientIpv4(result);
-    });
+    const controller = new AbortController();
+    discoverClientIp({ preferredVersion: 4, signal: controller.signal }).then(
+      (result) => {
+        if (!controller.signal.aborted) setClientIpv4(result);
+      },
+    );
 
-    return () => {
-      active = false;
-    };
+    return () => controller.abort();
   }, [data, error, loading, targetIp]);
 
   useEffect(() => {
@@ -441,11 +506,30 @@ function IpDisplayContent({
             title={targetIp ? t.queriedIpAddress : t.yourIpAddresses}
           />
           <div className="app-ip-hero-grid grid grid-cols-1 lg:grid-cols-[1.5fr_1fr]">
-            <div className="flex flex-col gap-4 p-4 sm:p-6 lg:p-7">
-              <Skeleton className="h-9 w-64 max-w-full" />
-              <Skeleton className="h-6 w-80 max-w-full" />
-              <Skeleton className="h-4 w-48" />
-            </div>
+            {initialAddresses &&
+            (initialAddresses.ipv4 || initialAddresses.ipv6) ? (
+              <div className="app-ip-hero-main flex min-w-0 flex-col gap-4 p-4 sm:p-6 lg:p-7">
+                <AddressRow
+                  version={4}
+                  ip={initialAddresses.ipv4}
+                  fallback={<Skeleton className="h-6 w-40" />}
+                  t={t}
+                />
+                <AddressRow
+                  version={6}
+                  ip={initialAddresses.ipv6}
+                  fallback={<Skeleton className="h-5 w-48" />}
+                  t={t}
+                />
+                <Skeleton className="mt-1 h-4 w-48" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 p-4 sm:p-6 lg:p-7">
+                <Skeleton className="h-9 w-64 max-w-full" />
+                <Skeleton className="h-6 w-80 max-w-full" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            )}
             <div className="flex flex-col gap-3 border-t p-4 sm:p-6 lg:border-t-0 lg:border-e lg:p-7">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-7 w-40" />
@@ -463,7 +547,17 @@ function IpDisplayContent({
   }
 
   if (error || !data) {
-    return <ErrorPanel message={error || t.ipInfoError} />;
+    return (
+      <ErrorPanel
+        message={error || t.ipInfoError}
+        onRetry={
+          isRetryableLookupError(thrownError?.value)
+            ? () => setRetryNonce((nonce) => nonce + 1)
+            : undefined
+        }
+        retryLabel={toolT.errorRetry}
+      />
+    );
   }
 
   const ConnectionIcon = data.mobile
@@ -523,61 +617,30 @@ function IpDisplayContent({
         <div className="app-ip-hero-grid grid grid-cols-1 lg:grid-cols-[1.5fr_1fr]">
           {/* Addresses */}
           <div className="app-ip-hero-main flex min-w-0 flex-col gap-4 p-4 sm:p-6 lg:p-7">
-            <div className="app-ip-address-row flex min-w-0 items-center gap-3">
-              <Badge
-                variant={displayIpv4 ? "outline" : "secondary"}
-                className="shrink-0 font-mono"
-              >
-                IPv4
-              </Badge>
-              {displayIpv4 ? (
-                <div className="app-ip-value-row flex min-w-0 items-center gap-1">
-                  <span className="app-ip-value min-w-0 truncate font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-                    {displayIpv4}
-                  </span>
-                  <CopyButton
-                    text={displayIpv4}
-                    label={t.copyIpLabel}
-                    copiedLabel={t.copiedToClipboard}
-                    failedLabel={t.copyFailed}
-                    className="size-8"
-                  />
-                </div>
-              ) : (
+            <AddressRow
+              version={4}
+              ip={displayIpv4}
+              fallback={
                 <span className="text-sm text-muted-foreground">
                   {t.notAvailable}
                 </span>
-              )}
-            </div>
-
-            <div className="app-ip-address-row flex min-w-0 items-center gap-3">
-              <Badge
-                variant={displayIpv6 ? "outline" : "secondary"}
-                className="shrink-0 font-mono"
-              >
-                IPv6
-              </Badge>
-              {displayIpv6 ? (
-                <div className="app-ip-value-row flex min-w-0 items-center gap-1">
-                  <span className="app-ip-value min-w-0 font-mono text-base font-semibold tracking-tight break-all text-foreground sm:text-xl">
-                    {displayIpv6}
+              }
+              t={t}
+            />
+            <AddressRow
+              version={6}
+              ip={displayIpv6}
+              fallback={
+                !targetIp && ipv6Loading ? (
+                  <Skeleton className="h-5 w-48" />
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    {t.notAvailable}
                   </span>
-                  <CopyButton
-                    text={displayIpv6}
-                    label={t.copyIpLabel}
-                    copiedLabel={t.copiedToClipboard}
-                    failedLabel={t.copyFailed}
-                    className="size-8"
-                  />
-                </div>
-              ) : !targetIp && ipv6Loading ? (
-                <Skeleton className="h-5 w-48" />
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  {t.notAvailable}
-                </span>
-              )}
-            </div>
+                )
+              }
+              t={t}
+            />
 
             {locationSummary && (
               <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">

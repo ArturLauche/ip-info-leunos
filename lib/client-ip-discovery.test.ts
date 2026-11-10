@@ -124,3 +124,24 @@ describe("display IP fallback order", () => {
     });
   });
 });
+
+describe("discoverClientIp cancellation", () => {
+  it("aborts the in-flight provider request and skips the rest", async () => {
+    const controller = new AbortController();
+    const seen: string[] = [];
+    const fetchImpl = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+      seen.push(String(url));
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError")),
+        );
+        queueMicrotask(() => controller.abort());
+      });
+    }) as unknown as typeof fetch;
+
+    await expect(
+      discoverClientIp({ preferredVersion: 4, fetchImpl, signal: controller.signal }),
+    ).resolves.toBeNull();
+    expect(seen).toHaveLength(1);
+  });
+});
