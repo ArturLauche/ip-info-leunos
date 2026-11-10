@@ -132,13 +132,12 @@ async function probeCdnTarget(
       accept:
         "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
-  }).then(
-    async (response) => {
+  })
+    .then(async (response) => {
       await response.body?.cancel();
       return { ok: true as const, headers: response.headers, status: response.status };
-    },
-    (error: unknown) => ({ ok: false as const, error }),
-  );
+    })
+    .catch((error: unknown) => ({ ok: false as const, error }));
 
   const [cnameChain, dnsResolvedIps, probed] = await Promise.all([
     resolveCnameChain(hostname),

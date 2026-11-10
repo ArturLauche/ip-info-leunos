@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSingleFlight } from "./single-flight";
+import { createAbortableSingleFlight, createSingleFlight } from "./single-flight";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -66,5 +66,52 @@ describe("createSingleFlight", () => {
       }),
     ).rejects.toThrow("boom");
     expect(flights.size).toBe(0);
+  });
+});
+
+describe("createAbortableSingleFlight", () => {
+  it("keeps shared work alive until the last caller releases it", async () => {
+    const flights = createAbortableSingleFlight<string>();
+    const gate = deferred<string>();
+    let signal!: AbortSignal;
+    const work = vi.fn((sharedSignal: AbortSignal) => {
+      signal = sharedSignal;
+      return gate.promise;
+    });
+    const first = flights.acquire("a", work);
+    const second = flights.acquire("a", work);
+    await Promise.resolve();
+
+    first.release();
+    first.release(); // Releasing twice must not cancel the second caller.
+    expect(signal.aborted).toBe(false);
+    gate.resolve("done");
+    await expect(second.promise).resolves.toBe("done");
+    second.release();
+    expect(work).toHaveBeenCalledTimes(1);
+    expect(signal.aborted).toBe(false);
+  });
+
+  it("aborts abandoned work and lets a new caller start immediately", async () => {
+    const flights = createAbortableSingleFlight<string>();
+    const oldGate = deferred<string>();
+    let oldSignal!: AbortSignal;
+    const first = flights.acquire("a", (signal) => {
+      oldSignal = signal;
+      return oldGate.promise;
+    });
+    await Promise.resolve();
+    first.release();
+    expect(oldSignal.aborted).toBe(true);
+
+    const nextGate = deferred<string>();
+    const next = flights.acquire("a", () => nextGate.promise);
+    oldGate.resolve("old");
+    await first.promise;
+    const joined = flights.acquire("a", () => Promise.resolve("wrong"));
+    nextGate.resolve("new");
+    await expect(Promise.all([next.promise, joined.promise])).resolves.toEqual(["new", "new"]);
+    next.release();
+    joined.release();
   });
 });

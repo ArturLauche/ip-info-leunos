@@ -3,7 +3,7 @@ import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { fetchWithRetry } from "@/lib/network/retry";
-import { createSingleFlight } from "@/lib/single-flight";
+import { createAbortableSingleFlight } from "@/lib/single-flight";
 import { createTtlCache } from "@/lib/ttl-cache";
 import {
   AsnValidationError,
@@ -111,7 +111,7 @@ const providerCache = createTtlCache<ProviderResult<unknown, SourceStatus>>({
 });
 
 // Concurrent lookups of the same ASN share each provider's upstream request.
-const providerFlights = createSingleFlight<ProviderResult<unknown, SourceStatus>>();
+const providerFlights = createAbortableSingleFlight<ProviderResult<unknown, SourceStatus>>();
 
 interface RouteContext {
   params: Promise<{
@@ -474,23 +474,27 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
 
   // The cache only holds entries inside the stale window.
   const stale = cached ?? null;
-  const fetchFresh = () =>
-    fetcher(signal).catch((error): ProviderResult<TData, TStatus> => {
+  const fetchFresh = (fetchSignal: AbortSignal) =>
+    fetcher(fetchSignal).catch((error): ProviderResult<TData, TStatus> => {
       return {
         status: "error" as TStatus,
         data: null,
         warnings: [providerWarning(provider, error)],
       };
     });
-  const fetched = cacheKey
-    ? (providerFlights.run(cacheKey, fetchFresh) as Promise<
-        ProviderResult<TData, TStatus>
-      >)
-    : fetchFresh();
-  const result = await Promise.race([
-    fetched,
-    waitForAbort<TData, TStatus>(signal, provider),
-  ]);
+  const flight = cacheKey ? providerFlights.acquire(cacheKey, fetchFresh) : null;
+  const fetched = flight
+    ? (flight.promise as Promise<ProviderResult<TData, TStatus>>)
+    : fetchFresh(signal);
+  let result: ProviderResult<TData, TStatus>;
+  try {
+    result = await Promise.race([
+      fetched,
+      waitForAbort<TData, TStatus>(signal, provider),
+    ]);
+  } finally {
+    flight?.release();
+  }
 
   if (result.status === "not_configured") {
     return withDiagnostic(source, result, "not_configured", startedAt);

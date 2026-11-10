@@ -65,4 +65,22 @@ describe("GET /api/cdn probing", () => {
     expect(await second.json()).toEqual(body);
     expect(fetchProbe).toHaveBeenCalledTimes(1);
   });
+
+  it("returns an unreachable result when cancelling the response body fails", async () => {
+    vi.spyOn(dns, "lookup").mockResolvedValue([{ address: "93.184.215.14", family: 4 }] as never);
+    vi.spyOn(dns, "resolveCname").mockRejectedValue(new Error("no cname"));
+    vi.spyOn(dns, "resolve4").mockResolvedValue(["93.184.215.14"]);
+    vi.spyOn(dns, "resolve6").mockResolvedValue([]);
+    const stream = new ReadableStream({
+      cancel() { return Promise.reject(new Error("connection reset")); },
+    });
+    vi.spyOn(targets, "fetchPublicUrl").mockResolvedValue(new Response(stream, { status: 200 }));
+
+    const response = await GET(new Request("http://localhost/api/cdn?target=cancel.example"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      data: { reachable: false, reasonCode: "unreachable" },
+    });
+  });
 });

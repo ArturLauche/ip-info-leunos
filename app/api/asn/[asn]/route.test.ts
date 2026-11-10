@@ -363,6 +363,39 @@ describe("ASN API route", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it("does not cancel a shared provider when an earlier caller reaches its deadline", async () => {
+    vi.useFakeTimers();
+    delete process.env.IPINFO_TOKEN;
+    let peeringSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+      const ripePayload = ripeStatPayload(String(url));
+      if (ripePayload) return Promise.resolve(jsonResponse(ripePayload));
+      peeringSignal = init?.signal ?? undefined;
+      return new Promise<Response>((resolve, reject) => {
+        const timer = setTimeout(() => resolve(jsonResponse(peeringDbPayload(64522))), 2_500);
+        peeringSignal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+        }, { once: true });
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = invoke("AS64522");
+    await vi.advanceTimersByTimeAsync(1_500);
+    const second = invoke("AS64522");
+    await vi.advanceTimersByTimeAsync(500);
+    const firstBody = await (await first).json();
+    expect(firstBody.data.sources.peeringdb).toBe("error");
+    expect(peeringSignal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(500);
+    const secondBody = await (await second).json();
+    expect(secondBody.data.sources.peeringdb).toBe("available");
+    expect(secondBody.data.peeringdb.name).toBe("Peering 64522");
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("peeringdb"))).toHaveLength(1);
+  });
+
   it("returns upstream_error when all attempted providers fail", async () => {
     delete process.env.IPINFO_TOKEN;
     const fetchMock = vi.fn(async () => jsonResponse({ error: "down" }, 502));
