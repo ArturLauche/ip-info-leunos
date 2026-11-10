@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { writeClipboardText } from "@/lib/clipboard";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
 /** Shared clipboard feedback for technical values and complete results. */
@@ -42,11 +42,11 @@ export function CopyButton({
     try {
       await writeClipboardText(typeof text === "function" ? text() : text);
       setCopied(true);
-      toast.success(copiedLabel);
+      void notify("success", copiedLabel);
       clearTimeout(resetTimer.current);
       resetTimer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error(failedLabel);
+      void notify("error", failedLabel);
     }
   };
 

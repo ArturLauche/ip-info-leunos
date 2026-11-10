@@ -10,7 +10,7 @@ import {
 } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
+import { DeferredToaster } from "@/components/deferred-toaster";
 import { StructuredData } from "@/components/structured-data";
 import { AppShell } from "@/components/shell/app-shell";
 import { I18nProvider } from "@/components/i18n-provider";
@@ -171,7 +171,7 @@ export default async function RootLayout({
           >
             <AppShell>{children}</AppShell>
           </I18nProvider>
-          <Toaster position="top-center" />
+          <DeferredToaster position="top-center" />
         </ThemeProvider>
       </body>
     </html>
