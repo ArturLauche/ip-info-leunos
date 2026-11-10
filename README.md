@@ -4,14 +4,14 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 
 ## Features
 
-- Show the visitor's public IPv4/IPv6 metadata, detected connection type, and reverse DNS.
+- Show the visitor's public IPv4/IPv6 metadata, detected connection type, and reverse DNS. The address itself is part of the first HTML response, so it appears before JavaScript loads (and without JavaScript).
 - Look up a public IP address or public domain at `/check`.
 - Look up ASN profiles at `/asn` and `/asn/AS8881`, combining optional IPinfo ASN data, public RIPEstat routing data, and public PeeringDB peering data.
 - Query DNS records (A, AAAA, CNAME, MX, NS, TXT, SOA, SRV, CAA) at `/dns`, including reverse (PTR) lookups for IP addresses.
 - Query WHOIS/RDAP data at `/whois`.
-- Cancel pending lookups and retry the same target without reloading the page.
+- Cancel pending lookups, retry transient failures in place, and copy raw WHOIS, DNS, and Ping output.
 - Detect common CDN and edge-provider signals at `/cdn`.
-- Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`.
+- Run guarded TCP, UDP, endpoint, and database reachability checks at `/ping`. TCP checks race all validated addresses of dual-stack hosts (Happy Eyeballs), and database deep links keep the database type (`db=`).
 - Check IP reputation at `/reputation` against independent DNS blocklists (Spamhaus ZEN, SpamCop, Barracuda, DroneBL, blocklist.de), botnet C2 feeds (abuse.ch Feodo Tracker, Spamhaus DROP), GreyNoise scanner intelligence, and optional AbuseIPDB, Project Honey Pot http:BL, and ThreatFox data — with an evidence-based risk score that separates policy listings and network context from actual threat evidence.
 - Jump between tools or deep-link a typed IP, domain, or ASN into the right tool from a Spotlight-style command palette (⌘K / Ctrl+K, or `/`).
 
@@ -30,6 +30,17 @@ Blocked examples include:
 - `192.168.0.0/16`
 - `169.254.169.254`
 - `::1`, `fc00::/7`, and `fe80::/10`
+- deprecated or non-global IPv6 ranges such as `::/96` (IPv4-compatible), `fec0::/10` (site-local), `64:ff9b:1::/48`, `3fff::/20`, and `5f00::/16`
+
+Upstream answers are memoized per process with bounded TTL caches (`lib/ttl-cache.ts`), and identical concurrent lookups share one upstream request (`lib/single-flight.ts`). Failures and timeouts are never cached. API responses themselves stay `no-store`.
+
+| Data | TTL |
+| --- | --- |
+| ip-api.com answers per address and language (shared by `/`, `/check`, and `/reputation`) | 60 s |
+| DNS answers | 2 min |
+| WHOIS/RDAP answers / IANA referral server per TLD | 5 min / 6 h |
+| ASN provider results (fresh / serve-stale-on-error) | 60 s / 5 min |
+| Reputation summaries / GreyNoise per IP | 10 min / 24 h |
 
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
 

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
 import { clearFeedStateForTests } from "@/lib/reputation/feeds";
 import { clearGreyNoiseCacheForTests } from "@/lib/reputation/query";
+import { clearIpLookupCacheForTests } from "@/lib/ip-lookup-cache";
 
 const dnsMock = vi.hoisted(() => ({
   aRecords: new Map<string, string[]>(),
@@ -138,6 +139,7 @@ afterEach(() => {
   }
   clearFeedStateForTests();
   clearGreyNoiseCacheForTests();
+  clearIpLookupCacheForTests();
   vi.unstubAllGlobals();
 });
 

@@ -32,3 +32,19 @@ export function getApiErrorMessage(
       return fallback;
   }
 }
+
+const NON_RETRYABLE_CODES: ReadonlySet<string> = new Set([
+  "bad_request",
+  "invalid_target",
+  "target_blocked",
+]);
+
+/**
+ * Whether repeating the same lookup can succeed: transport failures, timeouts,
+ * rate limits and upstream outages can; invalid or blocked targets cannot.
+ * Aborts are never surfaced as errors, so they need no special case here.
+ */
+export function isRetryableLookupError(error: unknown): boolean {
+  if (error instanceof ApiClientError) return !NON_RETRYABLE_CODES.has(error.code);
+  return error !== null && error !== undefined;
+}

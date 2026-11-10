@@ -8,6 +8,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { PageTransition } from "@/components/page-transition";
 import { AppSidebar } from "./app-sidebar";
 import { CommandMenuProvider } from "./command-menu";
+import { LocaleAnnouncer } from "./locale-announcer";
 import { MobileNav } from "./mobile-nav";
 import { activeToolFromPathname } from "./nav-config";
 
@@ -27,6 +28,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <CommandMenuProvider>
       <DisplayProfile />
+      <LocaleAnnouncer />
       <div className="app-shell relative flex min-h-dvh w-full">
         <a
           href="#main-content"

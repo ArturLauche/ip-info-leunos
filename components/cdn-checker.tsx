@@ -130,7 +130,7 @@ interface CdnCheckerProps {
 export function CdnChecker({ initialTarget = "" }: CdnCheckerProps) {
   const { tool: t, ui } = useI18n();
 
-  const { loading, error, result, run, cancel, querySync } =
+  const { loading, error, result, run, retry, cancel, querySync } =
     useToolLookup<CdnResult>({
       buildApiUrl: (target) => `/api/cdn?target=${encodeURIComponent(target)}`,
       buildHref: (target) => `/cdn?target=${encodeURIComponent(target)}`,
@@ -187,7 +187,9 @@ export function CdnChecker({ initialTarget = "" }: CdnCheckerProps) {
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel message={error} onRetry={retry} retryLabel={t.errorRetry} />
+      )}
 
       {result && (
         <div className="tool-reveal flex flex-col gap-4">

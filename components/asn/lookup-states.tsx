@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { RotateCw, SearchX, TriangleAlert } from "lucide-react";
+import { SearchX } from "lucide-react";
 import type { AsnProfile } from "@/lib/asn";
 import type { ToolTranslation } from "@/lib/tool-i18n";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { ErrorPanel } from "@/components/error-panel";
 import { Card } from "@/components/ui/card";
 import { SourceStatusList } from "./source-status";
 
@@ -65,24 +64,5 @@ export function LookupError({
   onRetry?: () => void;
   t: ToolTranslation;
 }) {
-  return (
-    <Alert variant="destructive" className="tool-section-reveal">
-      <TriangleAlert />
-      <AlertDescription className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <span className="min-w-0">{message}</span>
-        {onRetry && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            className="min-h-11 text-foreground sm:min-h-8"
-          >
-            <RotateCw aria-hidden />
-            {t.errorRetry}
-          </Button>
-        )}
-      </AlertDescription>
-    </Alert>
-  );
+  return <ErrorPanel message={message} onRetry={onRetry} retryLabel={t.errorRetry} />;
 }

@@ -244,12 +244,8 @@ export function LanguageSelector({ onLocaleSelected }: LanguageSelectorProps) {
         </span>
       </Button>
 
-      {/* The switch is news once the panel closes and the server render catches
-          up, so only the new language is announced here; the labelled trigger
-          above already states it. */}
-      <span role="status" className="sr-only">
-        {currentName}
-      </span>
+      {/* The switch itself is announced by the shell's LocaleAnnouncer, which
+          stays mounted when this selector is hidden or its sheet closes. */}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogPortal>

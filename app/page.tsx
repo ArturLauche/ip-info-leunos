@@ -6,6 +6,8 @@ import { getToolTranslation } from "@/lib/tool-i18n";
 import { Globe } from "lucide-react";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
+import { headers } from "next/headers";
+import { extractVisitorIps } from "@/lib/visitor-ip";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -26,6 +28,10 @@ export default async function Home() {
   const locale = await getRequestLocale();
   const t = getTranslation(locale);
   const toolT = getToolTranslation(locale);
+  // Header parsing only (no upstream call): the visitor's own address is known
+  // before any JavaScript runs, so it is part of the first HTML response. The
+  // page is dynamic and served with private, no-store caching.
+  const { ipv4, ipv6 } = extractVisitorIps(await headers());
 
   return (
     <ToolPageShell
@@ -36,7 +42,7 @@ export default async function Home() {
       subtitle={t.homeSubtitle}
       seoTitle={toolT.navMyIp}
     >
-      <IpDisplay />
+      <IpDisplay initialAddresses={{ ipv4, ipv6 }} />
     </ToolPageShell>
   );
 }

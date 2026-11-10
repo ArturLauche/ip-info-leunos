@@ -43,3 +43,32 @@ describe("IpDisplay", () => {
     expect(html.indexOf('aria-busy="true"')).toBeGreaterThan(regionAt);
   });
 });
+
+describe("IpDisplay server-known addresses", () => {
+  it("renders the visitor's header-derived addresses in the first HTML", () => {
+    const html = renderToStaticMarkup(
+      withI18n(
+        createElement(IpDisplay, {
+          initialAddresses: { ipv4: "203.0.113.9", ipv6: "2001:db8::9" },
+        }),
+      ),
+    );
+
+    expect(html).toContain("203.0.113.9");
+    expect(html).toContain("2001:db8::9");
+    expect(html).toContain('aria-busy="true"');
+  });
+
+  it("never shows them for an explicit target lookup", () => {
+    const html = renderToStaticMarkup(
+      withI18n(
+        createElement(IpDisplay, {
+          targetIp: "198.51.100.4",
+          initialAddresses: { ipv4: "203.0.113.9", ipv6: null },
+        }),
+      ),
+    );
+
+    expect(html).not.toContain("203.0.113.9");
+  });
+});

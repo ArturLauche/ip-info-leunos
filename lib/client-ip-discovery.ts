@@ -18,6 +18,8 @@ type DiscoverClientIpOptions = {
   preferredVersion?: 4 | 6;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
+  /** Stops every remaining provider request (e.g. when the page unmounts). */
+  signal?: AbortSignal;
 };
 
 export type LocalIpCheck = {
@@ -125,13 +127,15 @@ export async function discoverClientIp({
   preferredVersion,
   timeoutMs = 2_800,
   fetchImpl = fetch,
+  signal,
 }: DiscoverClientIpOptions = {}): Promise<ClientIpDiscoveryResult | null> {
   const providers = CLIENT_IP_PROVIDERS.filter(
     (provider) => !preferredVersion || provider.versions.includes(preferredVersion),
   );
 
   for (const provider of providers) {
-    const result = await tryProvider(provider, timeoutMs, fetchImpl);
+    if (signal?.aborted) return null;
+    const result = await tryProvider(provider, timeoutMs, fetchImpl, signal);
 
     if (!result) continue;
     if (preferredVersion && result.version !== preferredVersion) continue;
@@ -146,9 +150,12 @@ async function tryProvider(
   provider: ClientIpProvider,
   timeoutMs: number,
   fetchImpl: typeof fetch,
+  signal?: AbortSignal,
 ): Promise<ClientIpDiscoveryResult | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+  signal?.addEventListener("abort", abortFromCaller, { once: true });
 
   try {
     const response = await fetchImpl(provider.url, {
@@ -169,6 +176,7 @@ async function tryProvider(
     return null;
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", abortFromCaller);
   }
 }
 

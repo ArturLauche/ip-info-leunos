@@ -323,3 +323,48 @@ The copy / JSON download buttons under the results (`ResultActions`, and the
 earlier DNS and WHOIS variants) were removed from every tool, together with their
 `copyValue` / `downloadJson` catalog entries. The entries above describe the
 state at the time of the audit. `CopyButton` remains for individual values.
+
+## Follow-up audit (2026-11-10)
+
+Baseline `ae376a9`: lint, typecheck, 710 tests and the production build passed.
+Assessment before changes: **7.5/10**. Safety boundaries and tests were strong, but
+cache code was copied five times and timer races three times, one aggregator dropped
+data it had already received, and the most visited route used the scarcest
+upstream quota on every view.
+
+Roast: five hand-written LRU caches, and the ASN lookup still loses data on the
+clock. It waits exactly two seconds for RIPEstat, then throws away the two answers
+that arrived after 0.4 s because the third was late.
+
+### Findings and treatment
+
+| Priority | Finding (evidence) | Treatment |
+| --- | --- | --- |
+| P1 | `/api/asn/AS13335` returned **502** in production: the 2 s deadline won `Promise.race` against the whole RIPEstat provider, so overview/prefixes (0.1 s / 0.4 s) were dropped when cold `asn-neighbours` took 6–23 s. | RIPEstat endpoints stop 250 ms before the deadline and keep partial data; timeout partials are not cached as fresh; concurrent identical provider fetches are shared. Now **200** with prefixes in 1.75 s. Regression tests fail on the old code. |
+| P1 | Language switch on `/reputation` re-ran the *deep-link* query (`useToolQuery` ignores self-submitted URL echoes), showing another IP's report under the submitted one, or clearing the result. | Refresh re-runs the query on screen. A production-browser check fails on the old hook (`saw 1.1.1.1,1.1.1.1`) and passes on the new one. |
+| P2 | Home-page auto-detect called ip-api (45 req/min per deployment) on every view, reload and back-navigation; reputation fetched the same data again. | One per-address/language memo shared by `/`, `/check` and `/reputation`; request-specific proxy hints stay uncached. |
+| P2 | WHOIS: no memo, IANA queried for every domain lookup. CDN: HTTP probe waited for DNS enrichment. | 5 min WHOIS memo + single-flight + per-TLD referral cache (repeat 397 ms → 5 ms, sibling `.com` 37 ms); CDN probe runs concurrently with DNS. |
+| P2 | Ping dialed only `addresses[0]`; an AAAA-first host failed from an IPv4-only server. | Happy Eyeballs through a lookup pinned to the validated set; the connected address is reported. |
+| P2 | Missing non-global IPv6 ranges in the SSRF guard (`::/96`, `fec0::/10`, `64:ff9b:1::/48`, ORCHID, `3fff::/20`, `5f00::/16`). | Blocked (strictly additive). |
+| P2 | Only ASN offered retry; no copy for raw WHOIS/DNS/Ping output; ping deep links lost the database type; unlabeled ping tablist; no language announcement on mobile; client IP discovery not abortable; `CopyButton` reset on every render with function text. | Fixed. `copyRawOutput` translated in all 26 locales. |
+| P3 | The visitor's IP waited for hydration + an API round trip. | Rendered from request headers in the first HTML (works without JavaScript). |
+
+### Performance (production build, `scripts/measure-client-js.mjs`, nomodule polyfill excluded)
+
+| Route | Before raw / gzip | After raw / gzip |
+| --- | --- | --- |
+| `/` | 733,639 / 230,732 | 699,671 / 221,496 |
+| `/dns` | 719,552 / 225,461 | 687,560 / 216,968 |
+| `/ping` | 746,010 / 233,465 | 714,125 / 225,060 |
+| `/asn/AS13335` | 776,814 / 240,037 | 683,105 / 215,539 |
+
+Sources: `sonner` is mounted on idle or first use (`lib/notify.ts` waits for the
+toaster to subscribe so no toast is lost); the ASN result sections load right after
+mount instead of blocking hydration. Next.js/React account for ~173 KB of the remaining
+per-module gzip on every page.
+
+Not changed deliberately: the page-transition capture-phase listener (Next.js `Link`
+always calls `preventDefault`, so a bubble-phase `defaultPrevented` check would disable
+transitions), rate limits, timeouts, and all existing TTLs.
+
+Assessment after changes: **8.5/10**.

@@ -2,6 +2,7 @@
 
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/components/i18n-provider";
+import { CopyButton } from "@/components/copy-button";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
@@ -52,9 +53,9 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
 
 export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
   const [showRaw, setShowRaw] = useState(false);
-  const { tool: t } = useI18n();
+  const { tool: t, core } = useI18n();
 
-  const { loading, error, result, run, cancel, querySync } =
+  const { loading, error, result, run, retry, cancel, querySync } =
     useToolLookup<WhoisResult>({
       buildApiUrl: (target) =>
         `/api/whois?target=${encodeURIComponent(target)}`,
@@ -103,7 +104,9 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel message={error} onRetry={retry} retryLabel={t.errorRetry} />
+      )}
 
       {result && (
         <ResultPanel title={`${t.whoisFor} ${result.target}`}>
@@ -201,17 +204,28 @@ export function WhoisChecker({ initialTarget = "" }: WhoisCheckerProps) {
               </div>
             )}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            aria-expanded={showRaw}
-            aria-controls="whois-raw-result"
-            onClick={() => setShowRaw((value) => !value)}
-          >
-            {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              aria-expanded={showRaw}
+              aria-controls={showRaw ? "whois-raw-result" : undefined}
+              onClick={() => setShowRaw((value) => !value)}
+            >
+              {showRaw ? t.whoisHideRaw : t.whoisShowRaw}
+            </Button>
+            {result.raw && (
+              <CopyButton
+                text={result.raw}
+                label={t.copyRawOutput}
+                copiedLabel={core.copiedToClipboard}
+                failedLabel={core.copyFailed}
+                showLabel
+              />
+            )}
+          </div>
 
           {showRaw && (
             <pre

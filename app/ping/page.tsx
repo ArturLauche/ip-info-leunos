@@ -6,7 +6,7 @@ import { Radar } from "lucide-react";
 import { firstSearchParam, type SearchParamValue } from "@/lib/search-params";
 import type { Metadata } from "next";
 import { createPageMetadata } from "@/lib/seo";
-import { defaultPingPort, type PingMode } from "@/lib/ping";
+import { defaultPingPort, normalizeDatabaseType, type PingMode } from "@/lib/ping";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -25,6 +25,7 @@ interface PingPageProps {
     target?: SearchParamValue;
     port?: SearchParamValue;
     mode?: SearchParamValue;
+    db?: SearchParamValue;
   }>;
 }
 
@@ -38,6 +39,8 @@ export default async function PingPage({ searchParams }: PingPageProps) {
   const locale = await getRequestLocale();
   const t = getToolTranslation(locale);
   const params = await searchParams;
+  const mode = normalizeMode(firstSearchParam(params.mode));
+  const databaseType = normalizeDatabaseType(firstSearchParam(params.db));
 
   return (
     <ToolPageShell
@@ -49,11 +52,9 @@ export default async function PingPage({ searchParams }: PingPageProps) {
     >
       <PingChecker
         initialTarget={firstSearchParam(params.target) || "example.com"}
-        initialPort={
-          firstSearchParam(params.port) ||
-          defaultPingPort(normalizeMode(firstSearchParam(params.mode)))
-        }
-        initialMode={normalizeMode(firstSearchParam(params.mode))}
+        initialPort={firstSearchParam(params.port) || defaultPingPort(mode, databaseType)}
+        initialMode={mode}
+        initialDatabaseType={databaseType}
       />
     </ToolPageShell>
   );

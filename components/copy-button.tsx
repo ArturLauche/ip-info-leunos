@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { writeClipboardText } from "@/lib/clipboard";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
 /** Shared clipboard feedback for technical values and complete results. */
@@ -30,20 +30,23 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  // Reset the confirmation when a *different value* is shown. A function
+  // `text` gets a new identity on every parent render, so it is not a key.
+  const resetKey = typeof text === "string" ? text : null;
   useEffect(() => {
     setCopied(false);
     return () => clearTimeout(resetTimer.current);
-  }, [text]);
+  }, [resetKey]);
 
   const handleCopy = async () => {
     try {
       await writeClipboardText(typeof text === "function" ? text() : text);
       setCopied(true);
-      toast.success(copiedLabel);
+      void notify("success", copiedLabel);
       clearTimeout(resetTimer.current);
       resetTimer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error(failedLabel);
+      void notify("error", failedLabel);
     }
   };
 

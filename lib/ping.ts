@@ -22,6 +22,29 @@ export function defaultPingPort(mode: PingMode, databaseType: DatabaseType = "po
   return port ? String(port) : "";
 }
 
+const DATABASE_TYPES = Object.keys(DB_DEFAULT_PORTS) as DatabaseType[];
+
+/** Parses a `db=` deep-link value; unknown values fall back to PostgreSQL. */
+export function normalizeDatabaseType(value: string | undefined | null): DatabaseType {
+  return DATABASE_TYPES.includes(value as DatabaseType) ? (value as DatabaseType) : "postgres";
+}
+
+/**
+ * Shareable URL for a check. The database type is part of the deep link in
+ * database mode, otherwise reloading `?mode=database&port=3306` after a MySQL
+ * probe would speak the PostgreSQL protocol to that port.
+ */
+export function buildPingHref(input: {
+  mode: PingMode;
+  target: string;
+  port: string;
+  databaseType: DatabaseType;
+}) {
+  const params = new URLSearchParams({ mode: input.mode, target: input.target, port: input.port });
+  if (input.mode === "database") params.set("db", input.databaseType);
+  return `/ping?${params.toString()}`;
+}
+
 export function buildPingRequest(input: {
   mode: PingMode;
   target: string;

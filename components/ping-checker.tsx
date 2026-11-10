@@ -1,7 +1,7 @@
 "use client";
 
 import { readApiResponse } from "@/lib/api/client";
-import { getApiErrorMessage } from "@/lib/api/error-message";
+import { getApiErrorMessage, isRetryableLookupError } from "@/lib/api/error-message";
 import type { ToolTranslation } from "@/lib/tool-i18n";
 import type { UiCopy } from "@/lib/ui-copy";
 import { formatTemplate } from "@/lib/format";
@@ -11,6 +11,7 @@ import type {
 } from "@/lib/network/database-probes";
 import { cn } from "@/lib/utils";
 import {
+  buildPingHref,
   buildPingRequest,
   defaultPingPort,
   DB_DEFAULT_PORTS,
@@ -18,6 +19,7 @@ import {
   type PingMode,
 } from "@/lib/ping";
 import { EmptyState } from "@/components/empty-state";
+import { CopyButton } from "@/components/copy-button";
 import { ErrorPanel } from "@/components/error-panel";
 import { useI18n } from "@/components/i18n-provider";
 import { LiveRegion } from "@/components/live-region";
@@ -156,19 +158,23 @@ interface PingCheckerProps {
   initialTarget?: string;
   initialPort?: string;
   initialMode?: PingMode;
+  initialDatabaseType?: DatabaseType;
 }
 
 export function PingChecker({
   initialTarget = "example.com",
   initialPort = "80",
   initialMode = "tcp",
+  initialDatabaseType = "postgres",
 }: PingCheckerProps) {
   const router = useRouter();
   const [mode, setMode] = useState<PingMode>(initialMode);
-  const [databaseType, setDatabaseType] = useState<DatabaseType>("postgres");
+  const [databaseType, setDatabaseType] = useState<DatabaseType>(initialDatabaseType);
   const [target, setTarget] = useState(initialTarget);
   const [port, setPort] = useState(initialPort);
-  const portEdited = useRef(initialPort !== defaultPingPort(initialMode));
+  const portEdited = useRef(
+    initialPort !== defaultPingPort(initialMode, initialDatabaseType),
+  );
   const [timeoutMs, setTimeoutMs] = useState("3000");
   const [useAuth, setUseAuth] = useState(false);
   const [username, setUsername] = useState("");
@@ -180,6 +186,7 @@ export function PingChecker({
   const [showDetails, setShowDetails] = useState(false);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     return () => {
@@ -194,8 +201,9 @@ export function PingChecker({
     target: string;
     port: string;
     mode: PingMode;
+    databaseType: DatabaseType;
   } | null>(null);
-  const { tool: t, ui } = useI18n();
+  const { tool: t, ui, core } = useI18n();
   // Derived from the raw error on every render so the message follows locale
   // switches made while it is on screen (same pattern as useToolLookup).
   const error = thrownError
@@ -214,7 +222,8 @@ export function PingChecker({
       self &&
       self.target === initialTarget &&
       self.port === initialPort &&
-      self.mode === initialMode
+      self.mode === initialMode &&
+      (initialMode !== "database" || self.databaseType === initialDatabaseType)
     ) {
       // This prop change is the echo of our own submit — keep the request alive.
       selfSubmitted.current = null;
@@ -226,13 +235,15 @@ export function PingChecker({
     abortRef.current?.abort();
     setTarget(initialTarget);
     setPort(initialPort);
-    portEdited.current = initialPort !== defaultPingPort(initialMode);
+    portEdited.current =
+      initialPort !== defaultPingPort(initialMode, initialDatabaseType);
     setMode(initialMode);
+    setDatabaseType(initialDatabaseType);
     requestSeq.current += 1;
     setLoading(false);
     setThrownError(null);
     setResult(null);
-  }, [initialTarget, initialPort, initialMode]);
+  }, [initialTarget, initialPort, initialMode, initialDatabaseType]);
 
   const modeLabels: Record<PingMode, string> = {
     tcp: "TCP",
@@ -287,11 +298,10 @@ export function PingChecker({
     setResult(null);
     setShowDetails(false);
 
-    selfSubmitted.current = { target, port, mode };
-    router.replace(
-      `/ping?mode=${encodeURIComponent(mode)}&target=${encodeURIComponent(target)}&port=${encodeURIComponent(port)}`,
-      { scroll: false },
-    );
+    selfSubmitted.current = { target, port, mode, databaseType };
+    router.replace(buildPingHref({ mode, target, port, databaseType }), {
+      scroll: false,
+    });
 
     try {
       const response = await fetch("/api/ping", {
@@ -336,13 +346,13 @@ export function PingChecker({
           ? `${result.ok ? t.pingStatusSuccess : t.pingStatusFailed}: ${result.target}:${result.port}`
           : undefined}
       </LiveRegion>
-      <form onSubmit={onSubmit} autoComplete="off">
+      <form ref={formRef} onSubmit={onSubmit} autoComplete="off">
         <Card className="gap-0 overflow-hidden py-0">
           <div className="flex flex-col p-5">
             <div className="flex flex-col gap-5">
               <div>
                 <div className="flex flex-col gap-2.5">
-                  <Label>{t.pingTestMode}</Label>
+                  <Label id="ping-mode-label">{t.pingTestMode}</Label>
                   <PingModeTabs
                     mode={mode}
                     labels={modeLabels}
@@ -548,7 +558,19 @@ export function PingChecker({
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel
+          message={error}
+          // Re-submits the form as shown, so a retry checks exactly what the
+          // visitor sees (including edits made since the failure).
+          onRetry={
+            isRetryableLookupError(thrownError?.value)
+              ? () => formRef.current?.requestSubmit()
+              : undefined
+          }
+          retryLabel={t.errorRetry}
+        />
+      )}
 
       {result && (
         <Card className="tool-reveal gap-0 overflow-hidden py-0">
@@ -609,17 +631,26 @@ export function PingChecker({
 
             {result.details && (
               <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-fit"
-                  aria-expanded={showDetails}
-                  aria-controls="ping-details"
-                  onClick={() => setShowDetails((value) => !value)}
-                >
-                  {showDetails ? t.pingHideDetails : t.pingShowDetails}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    aria-expanded={showDetails}
+                    aria-controls={showDetails ? "ping-details" : undefined}
+                    onClick={() => setShowDetails((value) => !value)}
+                  >
+                    {showDetails ? t.pingHideDetails : t.pingShowDetails}
+                  </Button>
+                  <CopyButton
+                    text={() => JSON.stringify(result.details, null, 2)}
+                    label={t.copyRawOutput}
+                    copiedLabel={core.copiedToClipboard}
+                    failedLabel={core.copyFailed}
+                    showLabel
+                  />
+                </div>
                 {showDetails && (
                   <pre
                     id="ping-details"
@@ -690,7 +721,11 @@ function PingModeTabs({
           data-slide={view.slide ? "true" : undefined}
           aria-hidden
         />
-        <TabsList className="app-ping-modes grid h-auto w-full grid-cols-4">
+        <TabsList
+          aria-labelledby="ping-mode-label"
+          aria-describedby={`ping-mode-helper-${mode}`}
+          className="app-ping-modes grid h-auto w-full grid-cols-4"
+        >
           {PING_MODES.map((value) => (
             <TabsTrigger
               key={value}
@@ -710,6 +745,7 @@ function PingModeTabs({
         {PING_MODES.map((value) => (
           <p
             key={value}
+            id={`ping-mode-helper-${value}`}
             className={cn(
               "col-start-1 row-start-1 text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
               mode === value

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { fetchWithRetry } from "@/lib/network/retry";
+import { createAbortableSingleFlight } from "@/lib/single-flight";
+import { createTtlCache } from "@/lib/ttl-cache";
 import {
   AsnValidationError,
   mergeAsnProfile,
@@ -29,6 +31,12 @@ export const runtime = "nodejs";
 const PROVIDER_TIMEOUT_MS = 6_000;
 const PROVIDER_MAX_BYTES = 1_500_000;
 const AGGREGATION_DEADLINE_MS = 2_000;
+// RIPEstat is queried through three independent endpoints. asn-neighbours can
+// take several seconds for large networks while RIPEstat's own cache is cold;
+// stopping the sub-requests shortly before the aggregation deadline lets the
+// endpoints that did answer (overview, prefixes) reach the profile instead of
+// being discarded wholesale when the deadline wins the race.
+const RIPESTAT_PARTIAL_DEADLINE_MS = AGGREGATION_DEADLINE_MS - 250;
 const PROVIDER_CACHE_FRESH_MS = 60_000;
 const PROVIDER_CACHE_STALE_MS = 5 * 60_000;
 const PROVIDER_CACHE_MAX_ENTRIES = 256;
@@ -96,15 +104,14 @@ type RipeStatProviderResult = ProviderResult<
   Exclude<SourceStatus, "not_configured">
 >;
 
-type ProviderCacheEntry<TData, TStatus extends SourceStatus = SourceStatus> = {
-  storedAt: number;
-  result: ProviderResult<TData, TStatus>;
-};
+// Entries live for the stale window; the fresh window is checked by age.
+const providerCache = createTtlCache<ProviderResult<unknown, SourceStatus>>({
+  ttlMs: PROVIDER_CACHE_STALE_MS,
+  maxEntries: PROVIDER_CACHE_MAX_ENTRIES,
+});
 
-const providerCache = new Map<
-  string,
-  ProviderCacheEntry<unknown, SourceStatus>
->();
+// Concurrent lookups of the same ASN share each provider's upstream request.
+const providerFlights = createAbortableSingleFlight<ProviderResult<unknown, SourceStatus>>();
 
 interface RouteContext {
   params: Promise<{
@@ -303,16 +310,28 @@ async function fetchRipeStatAsn(
     neighbours: `https://stat.ripe.net/data/asn-neighbours/data.json?resource=${normalized.asn}`,
   };
 
+  const endpointController = new AbortController();
+  const endpointTimer = setTimeout(
+    () => endpointController.abort(),
+    RIPESTAT_PARTIAL_DEADLINE_MS,
+  );
+  endpointTimer.unref?.();
+  const endpointSignal = AbortSignal.any([signal, endpointController.signal]);
   const entries = await Promise.allSettled(
     Object.entries(endpoints).map(async ([key, url]) => {
-      const { response, json } = await fetchProviderJson(
-        url,
-        {
-          "user-agent": "ip-info-leunos-asn-check/1.0",
-          accept: "application/json",
-        },
-        signal,
-      );
+      // Raced against the endpoint deadline as well, so a transport that does
+      // not honor the abort can never hold back the endpoints that answered.
+      const { response, json } = await Promise.race([
+        fetchProviderJson(
+          url,
+          {
+            "user-agent": "ip-info-leunos-asn-check/1.0",
+            accept: "application/json",
+          },
+          endpointSignal,
+        ),
+        rejectOnAbort(endpointSignal),
+      ]);
 
       if (!response.ok) {
         throw new ProviderFetchError(
@@ -324,7 +343,7 @@ async function fetchRipeStatAsn(
 
       return [key, json] as const;
     }),
-  );
+  ).finally(() => clearTimeout(endpointTimer));
 
   const payload: Parameters<typeof normalizeRipeStatPayload>[0] = {};
   const warnings: AsnWarningDetail[] = [];
@@ -443,34 +462,39 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
   fetcher: (signal: AbortSignal) => Promise<ProviderResult<TData, TStatus>>;
 }): Promise<TimedProviderResult<TData, TStatus>> {
   const startedAt = Date.now();
-  const cached = cacheKey ? getProviderCache<TData, TStatus>(cacheKey) : null;
+  const cached = cacheKey
+    ? (providerCache.peek(cacheKey) as
+        | { value: ProviderResult<TData, TStatus>; storedAt: number }
+        | undefined)
+    : undefined;
 
-  if (
-    cacheKey &&
-    cached &&
-    Date.now() - cached.storedAt <= PROVIDER_CACHE_FRESH_MS
-  ) {
-    touchProviderCache(cacheKey);
-    return withDiagnostic(source, cached.result, "fresh", startedAt);
+  if (cached && Date.now() - cached.storedAt <= PROVIDER_CACHE_FRESH_MS) {
+    return withDiagnostic(source, cached.value, "fresh", startedAt);
   }
 
-  const stale =
-    cached && Date.now() - cached.storedAt <= PROVIDER_CACHE_STALE_MS
-      ? cached
-      : null;
-  const fetched = fetcher(signal).catch(
-    (error): ProviderResult<TData, TStatus> => {
+  // The cache only holds entries inside the stale window.
+  const stale = cached ?? null;
+  const fetchFresh = (fetchSignal: AbortSignal) =>
+    fetcher(fetchSignal).catch((error): ProviderResult<TData, TStatus> => {
       return {
         status: "error" as TStatus,
         data: null,
         warnings: [providerWarning(provider, error)],
       };
-    },
-  );
-  const result = await Promise.race([
-    fetched,
-    waitForAbort<TData, TStatus>(signal, provider),
-  ]);
+    });
+  const flight = cacheKey ? providerFlights.acquire(cacheKey, fetchFresh) : null;
+  const fetched = flight
+    ? (flight.promise as Promise<ProviderResult<TData, TStatus>>)
+    : fetchFresh(signal);
+  let result: ProviderResult<TData, TStatus>;
+  try {
+    result = await Promise.race([
+      fetched,
+      waitForAbort<TData, TStatus>(signal, provider),
+    ]);
+  } finally {
+    flight?.release();
+  }
 
   if (result.status === "not_configured") {
     return withDiagnostic(source, result, "not_configured", startedAt);
@@ -478,18 +502,17 @@ async function fetchProviderWithCache<TData, TStatus extends SourceStatus>({
 
   if (cacheKey && result.status === "error" && stale) {
     const staleResult = {
-      ...stale.result,
+      ...stale.value,
       warnings: dedupeAsnWarningDetails([
-        ...stale.result.warnings,
+        ...stale.value.warnings,
         ...result.warnings,
         { code: "provider_stale", provider },
       ]),
     };
-    touchProviderCache(cacheKey);
     return withDiagnostic(source, staleResult, "stale", startedAt);
   }
 
-  if (cacheKey && result.status !== "error") {
+  if (cacheKey && isCacheableProviderResult(result)) {
     setProviderCache(cacheKey, result);
   }
 
@@ -617,44 +640,36 @@ async function readJsonWithLimit(
   }
 }
 
-function getProviderCache<TData, TStatus extends SourceStatus>(
-  key: string,
-): ProviderCacheEntry<TData, TStatus> | null {
-  return (
-    (providerCache.get(key) as
-      | ProviderCacheEntry<TData, TStatus>
-      | undefined) || null
-  );
+/**
+ * Failed results are never cached, and neither are partial results caused by a
+ * timeout: RIPEstat usually answers a slow endpoint quickly once its own cache
+ * is warm, so the next request should try again instead of being served the
+ * incomplete profile for the whole fresh window.
+ */
+function isCacheableProviderResult(
+  result: ProviderResult<unknown, SourceStatus>,
+) {
+  if (result.status === "error") return false;
+  return !result.warnings.some((warning) => warning.code === "provider_timeout");
 }
 
 function setProviderCache<TData, TStatus extends SourceStatus>(
   key: string,
   result: ProviderResult<TData, TStatus>,
 ) {
-  if (providerCache.has(key)) {
-    providerCache.delete(key);
-  }
-
   providerCache.set(key, {
-    storedAt: Date.now(),
-    result: {
-      ...result,
-      warnings: dedupeAsnWarningDetails(result.warnings),
-    } as ProviderResult<unknown, SourceStatus>,
-  });
-
-  while (providerCache.size > PROVIDER_CACHE_MAX_ENTRIES) {
-    const oldestKey = providerCache.keys().next().value;
-    if (!oldestKey) break;
-    providerCache.delete(oldestKey);
-  }
+    ...result,
+    warnings: dedupeAsnWarningDetails(result.warnings),
+  } as ProviderResult<unknown, SourceStatus>);
 }
 
-function touchProviderCache(key: string) {
-  const entry = providerCache.get(key);
-  if (!entry) return;
-  providerCache.delete(key);
-  providerCache.set(key, entry);
+function rejectOnAbort(signal: AbortSignal): Promise<never> {
+  const timeout = () =>
+    new ProviderFetchError("timeout", "Provider request timed out.");
+  if (signal.aborted) return Promise.reject(timeout());
+  return new Promise((_resolve, reject) => {
+    signal.addEventListener("abort", () => reject(timeout()), { once: true });
+  });
 }
 
 function waitForAbort<TData, TStatus extends SourceStatus>(

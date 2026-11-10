@@ -3,9 +3,11 @@ import net from "node:net";
 import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as targets from "@/lib/network/target";
+import { clearWhoisCacheForTests } from "@/lib/whois-cache";
 import { GET } from "./route";
 
 afterEach(() => {
+  clearWhoisCacheForTests();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
@@ -114,5 +116,75 @@ describe("GET /api/whois", () => {
     const response = await pending;
     expect(await response.json()).toMatchObject({ ok: false, error: { code: "network_error" } });
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("memoizes answers and reuses the IANA referral for other names under the TLD", async () => {
+    vi.spyOn(dns, "lookup").mockResolvedValue([{ address: "8.8.8.8", family: 4 }] as never);
+    const hosts: string[] = [];
+    vi.spyOn(net, "Socket").mockImplementation(function () {
+      const socket = Object.assign(new EventEmitter(), {
+        destroy: vi.fn(), write: vi.fn(),
+        connect(options: net.TcpNetConnectOpts, callback: () => void) {
+          hosts.push(options.host!);
+          queueMicrotask(() => {
+            callback();
+            socket.emit("data", Buffer.from(options.host === "whois.iana.org"
+              ? "refer: whois.registry.example\r\n"
+              : "Registrar: Example Registry\r\n"));
+            socket.emit("close");
+          });
+        },
+      });
+      return socket as unknown as net.Socket;
+    });
+
+    const first = await GET(new Request("http://localhost/api/whois?target=one.example"));
+    const repeat = await GET(new Request("http://localhost/api/whois?target=one.example"));
+    const sibling = await GET(new Request("http://localhost/api/whois?target=two.example"));
+
+    expect(await repeat.json()).toEqual(await first.json());
+    expect((await sibling.json()).data).toMatchObject({ target: "two.example", server: "whois.registry.example" });
+    // IANA once (TLD referral cached), registry once per distinct name.
+    expect(hosts).toEqual(["whois.iana.org", "whois.registry.example", "whois.registry.example"]);
+  });
+
+  it("forgets a cached referral when the referred server fails", async () => {
+    vi.spyOn(dns, "lookup").mockResolvedValue([{ address: "8.8.8.8", family: 4 }] as never);
+    let registryUp = true;
+    const hosts: string[] = [];
+    vi.spyOn(net, "Socket").mockImplementation(function () {
+      const socket = Object.assign(new EventEmitter(), {
+        destroy: vi.fn(), write: vi.fn(),
+        connect(options: net.TcpNetConnectOpts, callback: () => void) {
+          hosts.push(options.host!);
+          queueMicrotask(() => {
+            if (options.host !== "whois.iana.org" && !registryUp) {
+              socket.emit("error", new Error("ECONNREFUSED"));
+              return;
+            }
+            callback();
+            socket.emit("data", Buffer.from(options.host === "whois.iana.org"
+              ? "refer: whois.registry.example\r\n"
+              : "Registrar: Example Registry\r\n"));
+            socket.emit("close");
+          });
+        },
+      });
+      return socket as unknown as net.Socket;
+    });
+    vi.spyOn(targets, "fetchPublicUrl").mockRejectedValue(new Error("RDAP down"));
+
+    await GET(new Request("http://localhost/api/whois?target=a.example"));
+    registryUp = false;
+    const failed = await GET(new Request("http://localhost/api/whois?target=b.example"));
+    expect((await failed.json()).error.code).toBe("network_error");
+    registryUp = true;
+    await GET(new Request("http://localhost/api/whois?target=c.example"));
+
+    expect(hosts).toEqual([
+      "whois.iana.org", "whois.registry.example",
+      "whois.registry.example", // b: cached referral, registry fails → evicted
+      "whois.iana.org", "whois.registry.example", // c: asks IANA again
+    ]);
   });
 });

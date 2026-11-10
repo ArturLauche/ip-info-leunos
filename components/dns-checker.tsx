@@ -2,6 +2,7 @@
 
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/components/i18n-provider";
+import { CopyButton } from "@/components/copy-button";
 import { ErrorPanel } from "@/components/error-panel";
 import { ResultPanel } from "@/components/result-panel";
 import { ToolSearchForm } from "@/components/tool-search-form";
@@ -91,9 +92,9 @@ interface DnsCheckerProps {
 export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
   const [selectedType, setSelectedType] = useState("ALL");
   const [showRaw, setShowRaw] = useState(false);
-  const { tool: t, ui } = useI18n();
+  const { tool: t, ui, core } = useI18n();
 
-  const { loading, error, result, run, cancel, querySync } =
+  const { loading, error, result, run, retry, cancel, querySync } =
     useToolLookup<DnsResult>({
       buildApiUrl: (target) => `/api/dns?target=${encodeURIComponent(target)}`,
       buildHref: (target) => `/dns?target=${encodeURIComponent(target)}`,
@@ -149,7 +150,9 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
         </div>
       )}
 
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        <ErrorPanel message={error} onRetry={retry} retryLabel={t.errorRetry} />
+      )}
 
       {result && (
         <ResultPanel
@@ -236,17 +239,27 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
           </div>
 
           {visibleRecords.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              aria-expanded={showRaw}
-              aria-controls="dns-raw-result"
-              onClick={() => setShowRaw((value) => !value)}
-            >
-              {showRaw ? t.dnsHideRaw : t.dnsShowRaw}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                aria-expanded={showRaw}
+                aria-controls={showRaw ? "dns-raw-result" : undefined}
+                onClick={() => setShowRaw((value) => !value)}
+              >
+                {showRaw ? t.dnsHideRaw : t.dnsShowRaw}
+              </Button>
+              {/* Copies exactly the records shown (current type filter). */}
+              <CopyButton
+                text={() => JSON.stringify(visibleRecords, null, 2)}
+                label={t.copyRawOutput}
+                copiedLabel={core.copiedToClipboard}
+                failedLabel={core.copyFailed}
+                showLabel
+              />
+            </div>
           )}
 
           {showRaw && (
