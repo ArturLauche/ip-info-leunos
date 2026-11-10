@@ -113,10 +113,10 @@ describe("LanguageSelector trigger", () => {
     );
   });
 
-  it("announces the switched language on its own", () => {
-    expect(renderSelector({ locale: "ja" })).toContain(
-      '<span role="status" class="sr-only">日本語</span>',
-    );
+  it("leaves the switch announcement to the shell's persistent announcer", () => {
+    // Two selector instances (sidebar + mobile sheet) must not each speak, and
+    // the sheet's copy unmounts before the new language arrives.
+    expect(renderSelector({ locale: "ja" })).not.toContain('role="status"');
   });
 });
 
