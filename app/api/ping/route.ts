@@ -3,6 +3,7 @@ import net from "node:net";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { readBoundedJsonBody } from "@/lib/api/request-body";
 import {
   assertPublicTarget,
   fetchPublicUrl,
@@ -61,6 +62,10 @@ interface PingResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 3000;
+// The schema's fields total well under 2 KiB; anything larger is abuse, not a
+// lookup. Route handlers impose no body limit of their own, so the read itself
+// must be capped (content-length pre-check plus a streamed byte cap).
+const MAX_PING_BODY_BYTES = 16_384;
 
 function sanitizeHost(target: string) {
   return target.trim().replace(/^\[|\]$/g, "");
@@ -307,15 +312,14 @@ export async function POST(request: Request) {
   const limited = enforceRateLimit(request, "ping", { limit: 20, windowMs: 60_000 });
   if (limited) return limited;
 
-  let rawPayload: unknown;
-
-  try {
-    rawPayload = await request.json();
-  } catch {
-    return apiError("bad_request", "Invalid JSON body.", 400);
+  const body = await readBoundedJsonBody(request, MAX_PING_BODY_BYTES);
+  if (!body.ok) {
+    return body.reason === "too_large"
+      ? apiError("bad_request", "Request body is too large.", 413)
+      : apiError("bad_request", "Invalid JSON body.", 400);
   }
 
-  const parsedPayload = pingRequestSchema.safeParse(rawPayload);
+  const parsedPayload = pingRequestSchema.safeParse(body.value);
 
   if (!parsedPayload.success) {
     return apiValidationError(parsedPayload.error);

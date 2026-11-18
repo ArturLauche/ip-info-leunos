@@ -11,13 +11,25 @@ const MAX_BUCKETS = 10_000;
 let lastSweepAt = 0;
 
 /**
- * Trust boundary: `cf-connecting-ip` / `true-client-ip` / `x-real-ip` are
- * only trustworthy behind a CDN/proxy that strips spoofed values (Vercel,
- * Cloudflare). On direct exposure an attacker can rotate these headers to
- * bypass per-IP limits — deploy behind a trusted proxy or accept the weaker
- * guarantee. In-memory buckets additionally don't share across instances.
+ * Trust boundary: `cf-connecting-ip` / `true-client-ip` / `x-real-ip` and the
+ * RFC 7239 `forwarded` / `x-forwarded-for` headers are only trustworthy behind
+ * a CDN/proxy that strips client-supplied values (Vercel, Cloudflare). On
+ * direct exposure an attacker can rotate these headers to mint a fresh bucket
+ * per request and bypass every per-IP limit, so deployments without a trusted
+ * proxy in front must set `TRUSTED_PROXY_HEADERS=false`: all requests then
+ * share the single "unknown" bucket (a global limit — the safe failure mode).
+ * Unset keeps the existing behavior for CDN-fronted deployments. In-memory
+ * buckets additionally don't share across instances.
  */
+export function forwardingHeadersTrusted(): boolean {
+  const raw = process.env.TRUSTED_PROXY_HEADERS?.trim().toLowerCase();
+  if (!raw) return true;
+  return !["0", "false", "no", "off"].includes(raw);
+}
+
 export function getClientIp(request: Request) {
+  if (!forwardingHeadersTrusted()) return "unknown";
+
   const directHeaders = [
     request.headers.get("cf-connecting-ip"),
     request.headers.get("true-client-ip"),
