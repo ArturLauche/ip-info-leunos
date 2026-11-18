@@ -76,13 +76,15 @@ function normalizePort(value: number | undefined, fallback = 0): number {
   return value;
 }
 
+class PortPolicyError extends TargetValidationError {}
+
 function validatePublicPort(port: number) {
   const allowList = process.env.PUBLIC_ALLOWED_PING_PORTS?.split(",")
     .map((value) => Number(value.trim()))
     .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535);
 
   if (allowList?.length && !allowList.includes(port)) {
-    throw new TargetValidationError(
+    throw new PortPolicyError(
       "target_blocked",
       "This port is not enabled for public checks on this deployment.",
       403,
@@ -257,6 +259,7 @@ async function ebPing(
 
   const started = Date.now();
   const schemes = ["https", "http"];
+  let blocked: PortPolicyError | undefined;
 
   for (const scheme of schemes) {
     try {
@@ -282,10 +285,11 @@ async function ebPing(
         messageParams: { scheme: scheme.toUpperCase(), status: response.status },
         details: { stage: "http", scheme, status: response.status },
       };
-    } catch {
-      // try next scheme
+    } catch (error) {
+      if (error instanceof PortPolicyError) blocked = error;
     }
   }
+  if (blocked) throw blocked;
 
   return {
     ok: true,
@@ -347,25 +351,34 @@ export async function POST(request: Request) {
     return apiError("invalid_target", "Please provide a valid public target host or IP.", 400);
   }
 
+  if (mode === "eb") {
+    try {
+      return apiOk(await ebPing(target, addresses, port, timeoutMs));
+    } catch (error) {
+      if (error instanceof PortPolicyError) {
+        return apiError(error.code, error.message, error.status, error.details);
+      }
+      throw error;
+    }
+  }
+
   const result =
     mode === "tcp"
       ? { ...(await tcpPing(target, port, timeoutMs, addresses)), target }
       : mode === "udp"
         ? { ...(await udpPing(connectionTarget, port, timeoutMs)), target }
-        : mode === "eb"
-          ? await ebPing(target, addresses, port, timeoutMs)
-          : {
-              ...(await probeDatabase({
-                target: connectionTarget,
-                databaseType,
-                port,
-                timeoutMs,
-                auth: payload.auth || {},
-              })),
-              mode: "database" as const,
-              target,
+        : {
+            ...(await probeDatabase({
+              target: connectionTarget,
+              databaseType,
               port,
-            };
+              timeoutMs,
+              auth: payload.auth || {},
+            })),
+            mode: "database" as const,
+            target,
+            port,
+          };
 
   return apiOk(result);
 }

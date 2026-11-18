@@ -153,8 +153,9 @@ try {
   });
 
   check("long DNS results fit desktop and both narrow mobile widths", () => {
+    const expected = evaluate("window.__calls.length") + 1;
     submit(`${"a".repeat(60)}.${"b".repeat(60)}.example.com`);
-    waitFor("window.__completed === 8 && !document.querySelector('button[type=submit]').disabled");
+    waitFor(`window.__completed === ${expected} && !document.querySelector('button[type=submit]').disabled`);
     assertFits();
     browser("screenshot", join(artifacts, "dns-desktop-dark.png"));
     browser("set", "viewport", "390", "844");
@@ -443,6 +444,20 @@ try {
     assert.equal(evaluate("document.querySelector('button[aria-controls=whois-raw-result]').getAttribute('aria-expanded')"), "true");
     assertFits();
     assertHealthy();
+  });
+
+  check("German tool descriptions fit at 320px", () => {
+    browser("set", "headers", JSON.stringify({"accept-language":"de"}));
+    browser("set", "viewport", "320", "740");
+    for (const path of ["/", "/check", "/asn", "/dns", "/cdn", "/ping", "/whois", "/reputation"]) {
+      open(path);
+      assert.equal(evaluate("document.documentElement.lang"), "de-DE");
+      assertFits();
+      assert.equal(evaluate(`(() => {
+        const subtitle = document.querySelector('.app-page-subtitle');
+        return !!subtitle && subtitle.scrollHeight <= subtitle.clientHeight + 1;
+      })()`), true, path);
+    }
   });
 
   const errors = browser("errors");

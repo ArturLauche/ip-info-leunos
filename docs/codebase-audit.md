@@ -368,3 +368,24 @@ always calls `preventDefault`, so a bubble-phase `defaultPrevented` check would 
 transitions), rate limits, timeouts, and all existing TTLs.
 
 Assessment after changes: **8.5/10**.
+
+## Reputation and transport review (2026-11-18)
+
+On PR #115, a mocked metadata provider answering at 4.5 seconds exposed a
+caller-order bug. If reputation started the shared request, its four-second
+deadline also cut off the IP page. Each caller now has its own wait and the
+transport is cancelled when its last caller leaves. Both arrival orders are
+covered in `lib/ip-lookup-cache.test.ts`.
+
+A second fixture returned retryable and permanent HTTP failures whose stream
+cancellation never settled. Provider error handling and the retry loop now
+initiate cancellation without waiting, so independent results and queued
+requests can complete. Reputation JSON and feeds share the approved 3,000,000
+decoded-byte ceiling. ThreatFox keeps individually valid indicators from mixed
+responses. An entirely malformed, nonempty list yields an unavailable source.
+
+One completed non-metadata source can support a partial report. Coverage counts
+remain visible. The port policy for Ping's HTTP stage applies to every hop,
+and an unsuccessful check involving a denied port returns the existing policy
+error. WHOIS uses the validated IPv4 address for IPv4-mapped input, including
+RDAP fallback.

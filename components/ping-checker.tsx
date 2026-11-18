@@ -748,14 +748,12 @@ function PingModeTabs({
             value={value}
             forceMount
             inert={mode !== value}
-            tabIndex={mode === value ? 0 : -1}
             className={cn(
               "col-start-1 row-start-1 rounded-sm focus-visible:ring-2 focus-visible:ring-ring text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
               mode === value
                 ? "z-10 opacity-100"
                 : "pointer-events-none z-0 opacity-0 select-none",
             )}
-            aria-hidden={mode !== value}
           >
             <p id={`ping-mode-helper-${value}`}>{helpers[value]}</p>
           </TabsContent>

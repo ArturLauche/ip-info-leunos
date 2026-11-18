@@ -2,9 +2,13 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as targets from "@/lib/network/target";
 import { POST } from "./route";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 function ping(body: unknown) {
   return POST(
@@ -36,6 +40,28 @@ describe("ping route hardening", () => {
       ok: false,
       error: { code: "bad_request" },
     });
+  });
+
+  it("reports the blocked redirect port if neither scheme completes the HTTP check", async () => {
+    vi.stubEnv("PUBLIC_ALLOWED_PING_PORTS", "443");
+    vi.spyOn(net, "Socket").mockImplementation(function () {
+      const socket = Object.assign(new EventEmitter(), {
+        destroy: vi.fn(),
+        setTimeout: vi.fn(),
+        connect: () => queueMicrotask(() => socket.emit("connect")),
+      });
+      return socket as unknown as net.Socket;
+    });
+    const fetch = vi.spyOn(targets, "fetchPublicUrl")
+      .mockImplementationOnce(async (_url, options) => {
+        options?.validatePort?.(80);
+        return new Response();
+      })
+      .mockRejectedValueOnce(new Error("HTTP unavailable"));
+    const response = await ping({ mode: "eb", target: "1.1.1.1", port: 443 });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ ok: false, error: { code: "target_blocked", details: { port: 80 } } });
   });
 
   it("races every validated address of a dual-stack host through a pinned lookup", async () => {
