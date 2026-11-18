@@ -411,6 +411,53 @@ describe("reputation API route", () => {
     expect(body.data.level).toBe("low");
   });
 
+  it.each([
+    ["greynoise", "api.greynoise.io", 71],
+    ["abuseipdb", "api.abuseipdb.com", 72],
+    ["threatfox", "threatfox-api.abuse.ch", 73],
+    ["blocklist-de", "api.blocklist.de", 74],
+    ["blocklist-de", "api.blocklist.de", 76],
+  ] as const)("cancels oversized %s JSON and keeps independent results", async (id, host, octet) => {
+    process.env.ABUSEIPDB_API_KEY = "fixture";
+    process.env.THREATFOX_AUTH_KEY = "fixture";
+    const hasIndependentListing = octet === 76;
+    if (hasIndependentListing) dnsMock.aRecords.set("76.9.134.84.bl.blocklist.de", ["127.0.0.13"]);
+    const healthy = stubCleanEnvironment();
+    const cancel = vi.fn();
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
+      if (new URL(url).hostname === host) {
+        return new Response(new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array(3_000_000));
+            controller.enqueue(Uint8Array.of(32));
+          },
+          cancel,
+        }), { headers: { "content-length": "128" } });
+      }
+      if (url.includes("api.abuseipdb.com")) return jsonResponse({ data: { abuseConfidenceScore: 0, totalReports: 0 } });
+      if (url.includes("threatfox-api.abuse.ch")) return jsonResponse({ query_status: "no_result" });
+      return healthy(url, init);
+    });
+
+    const response = await invoke(`84.134.9.${octet}`, `203.0.113.${octet}`);
+    const { data } = await response.json();
+    expect(response.status).toBe(200);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(data.sources).toContainEqual({ id, status: hasIndependentListing ? "matched" : "unavailable" });
+    expect(data.coverage.unavailableCount).toBe(hasIndependentListing ? 0 : 1);
+  });
+
+  it("accepts valid provider JSON exactly at the decoded byte limit", async () => {
+    const healthy = stubCleanEnvironment();
+    const payload = JSON.stringify({ noise: true, riot: false, classification: "malicious", name: "é" });
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => url.includes("api.greynoise.io")
+      ? new Response(payload + " ".repeat(3_000_000 - Buffer.byteLength(payload)))
+      : healthy(url, init));
+
+    const response = await invoke("84.134.9.75", "203.0.113.75");
+    expect((await response.json()).data.sources).toContainEqual({ id: "greynoise", status: "matched" });
+  });
+
   it("completes a partial report when GreyNoise sends headers and stalls its body", async () => {
     vi.useFakeTimers();
     const healthy = stubCleanEnvironment();

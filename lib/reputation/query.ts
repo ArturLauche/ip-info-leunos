@@ -4,6 +4,7 @@ import {
   observeGreyNoiseQuota,
 } from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
+import { readBoundedText } from "@/lib/network/read-bounded-text";
 import { fetchWithRetry, type FetchWithRetryOptions } from "@/lib/network/retry";
 import { lookupIpApiCached } from "@/lib/ip-lookup-cache";
 import { assessConnectionType, type ConnectionType } from "@/lib/connection-type";
@@ -26,7 +27,7 @@ import {
   reverseIpv4ForDnsbl,
   type DnsblInterpretation,
 } from "./dnsbl";
-import { matchDrop, matchFeodo } from "./feeds";
+import { matchDrop, matchFeodo, MAX_REPUTATION_RESPONSE_BYTES } from "./feeds";
 import {
   abuseIpDbEvidence,
   greyNoiseEvidence,
@@ -160,7 +161,11 @@ async function fetchProviderJson(
       await response.body?.cancel().catch(() => {});
       return { status: response.status, ok: false, payload: null };
     }
-    const payload: unknown = await response.json();
+    const text = await readBoundedText(response, MAX_REPUTATION_RESPONSE_BYTES);
+    if (text === null) {
+      return { status: response.status, ok: false, payload: null, oversized: response.body !== null };
+    }
+    const payload: unknown = JSON.parse(text);
     return { status: response.status, ok: true, payload };
   } finally {
     clearTimeout(timer);
@@ -199,12 +204,20 @@ async function queryBlocklistDe(
         accept: "application/json",
       },
     )
-      .then((response): BlocklistDeCounts | null => {
+      .then((response): BlocklistDeCounts | "oversized" | null => {
+        if (response.oversized) return "oversized";
         if (!response.ok) return null;
         return normalizeBlocklistDeCounts(response.payload);
       })
       .catch(() => null),
   ]);
+
+  if (counts === "oversized") {
+    // A positive DNS listing stands on its own. A DNS miss cannot rule out
+    // historical reports in the discarded HTTP answer.
+    if (dnsblOutcome.status === "matched") return dnsblOutcome;
+    return { id: "blocklist-de", status: "unavailable", evidence: [] };
+  }
 
   if (counts && (counts.reports ?? 0) > 0) {
     if (dnsblOutcome.status === "clean") {

@@ -22,7 +22,7 @@ const DROP_V6_URL = "https://www.spamhaus.org/drop/drop_v6.json";
 const DROP_TTL_MS = 60 * 60_000;
 const FEED_STALE_MS = 24 * 60 * 60_000;
 const FEED_TIMEOUT_MS = 6_000;
-const FEED_MAX_BYTES = 3_000_000;
+export const MAX_REPUTATION_RESPONSE_BYTES = 3_000_000;
 const USER_AGENT = "ip-info-leunos-reputation/1.0";
 
 export interface FeedMatchResult {
@@ -185,7 +185,7 @@ async function fetchFeedText(url: string): Promise<string> {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const text = await readBoundedText(response, FEED_MAX_BYTES);
+    const text = await readBoundedText(response, MAX_REPUTATION_RESPONSE_BYTES);
     if (text === null) throw new Error("Missing or oversized feed");
     return text;
   } finally {
