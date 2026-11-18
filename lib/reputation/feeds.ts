@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { RawEvidence, SourceStatus } from "./model";
 import { isIPv6Address, stripIpv6Brackets } from "@/lib/network/target";
+import { readBoundedText } from "@/lib/network/read-bounded-text";
 import { fetchWithRetry } from "@/lib/network/retry";
 
 /**
@@ -184,8 +185,8 @@ async function fetchFeedText(url: string): Promise<string> {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const text = await response.text();
-    if (text.length > FEED_MAX_BYTES) throw new Error("feed exceeds size limit");
+    const text = await readBoundedText(response, FEED_MAX_BYTES);
+    if (text === null) throw new Error("Missing or oversized feed");
     return text;
   } finally {
     clearTimeout(timer);

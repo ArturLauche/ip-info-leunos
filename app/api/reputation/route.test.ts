@@ -141,6 +141,7 @@ afterEach(() => {
   clearGreyNoiseCacheForTests();
   clearIpLookupCacheForTests();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("reputation API route", () => {
@@ -410,6 +411,33 @@ describe("reputation API route", () => {
     expect(body.data.level).toBe("low");
   });
 
+  it("completes a partial report when GreyNoise sends headers and stalls its body", async () => {
+    vi.useFakeTimers();
+    const healthy = stubCleanEnvironment();
+    let bodyController!: ReadableStreamDefaultController<Uint8Array>;
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      if (!String(url).includes("api.greynoise.io")) return healthy(url, init);
+      return new Response(new ReadableStream<Uint8Array>({
+        start(controller) {
+          bodyController = controller;
+          init?.signal?.addEventListener("abort", () => controller.error(init.signal?.reason));
+        },
+      }));
+    });
+    let settled = false;
+    const report = invoke("84.134.9.61").then((response) => {
+      settled = true;
+      return response;
+    });
+    await vi.advanceTimersByTimeAsync(4_001);
+    const settledAtDeadline = settled;
+    bodyController.error(new Error("fixture cleanup"));
+    const response = await report;
+    expect(settledAtDeadline).toBe(true);
+    expect(response.status).toBe(200);
+    expect((await response.json()).data.sources).toContainEqual({ id: "greynoise", status: "unavailable" });
+  });
+
   it("returns an upstream error only when every source fails", async () => {
     stubFetch(() => jsonResponse({ message: "down" }, 500));
     for (const zone of ["zen.spamhaus.org", "bl.spamcop.net", "b.barracudacentral.org", "dnsbl.dronebl.org", "bl.blocklist.de"]) {
@@ -426,12 +454,14 @@ describe("reputation API route", () => {
     );
   });
 
-  it("shares a total outage between concurrent lookups without caching it", async () => {
+  it("shares a threat-source outage even when geolocation works, then recovers", async () => {
     // Reverse-octet DNSBL names for 84.134.9.60.
     for (const zone of ["zen.spamhaus.org", "bl.spamcop.net", "b.barracudacentral.org", "dnsbl.dronebl.org", "bl.blocklist.de"]) {
       dnsMock.failures.add(`60.9.134.84.${zone}`);
     }
-    const outage = stubFetch(() => jsonResponse({ message: "down" }, 500));
+    const outage = stubFetch((url) => url.includes("ip-api.com")
+      ? jsonResponse(ipApiPayload())
+      : jsonResponse({ message: "down" }, 403));
 
     const responses = await Promise.all([
       invoke("84.134.9.60", "203.0.113.161"),
@@ -450,6 +480,20 @@ describe("reputation API route", () => {
     const recovered = await invoke("84.134.9.60", "203.0.113.163");
 
     expect(recovered.status).toBe(200);
+  });
+
+  it("checks IPv4-mapped inputs against IPv4 threat sources", async () => {
+    const calls = stubCleanEnvironment();
+    dnsMock.aRecords.set("62.9.134.84.bl.spamcop.net", ["127.0.0.2"]);
+    const report = await invoke("::ffff:84.134.9.62");
+    const { data } = await report.json();
+    expect(report.status).toBe(200);
+    expect(data.ip).toBe("84.134.9.62");
+    expect(data.sources).toContainEqual({ id: "spamcop", status: "matched" });
+    const count = calls.mock.calls.length;
+    const direct = await invoke("84.134.9.62");
+    expect(await direct.json()).toEqual({ ok: true, data });
+    expect(calls).toHaveBeenCalledTimes(count);
   });
 
   it("caches per-IP results to protect free provider quotas", async () => {

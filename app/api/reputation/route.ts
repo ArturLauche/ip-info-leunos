@@ -4,7 +4,6 @@ import { enforceRateLimit } from "@/lib/api/rate-limit";
 import {
   assertPublicIpAddress,
   isIPv4Address,
-  stripIpv6Brackets,
   TargetValidationError,
 } from "@/lib/network/target";
 import { collectReputation } from "@/lib/reputation/query";
@@ -79,10 +78,10 @@ export async function GET(request: Request) {
     return apiValidationError(parsedQuery.error);
   }
 
-  const ip = stripIpv6Brackets(parsedQuery.data.ip);
+  let ip: string;
 
   try {
-    assertPublicIpAddress(ip);
+    ip = assertPublicIpAddress(parsedQuery.data.ip);
   } catch (error) {
     if (error instanceof TargetValidationError) {
       return apiError(error.code, error.message, error.status, error.details);
@@ -136,7 +135,8 @@ async function computeReputation(
   const checkedSources = sources.filter((source) =>
     CHECKED_STATUSES.has(source.status),
   );
-  if (checkedSources.length === 0) {
+  // Metadata alone can describe a network but cannot substantiate a risk score.
+  if (!checkedSources.some((source) => source.status !== "available")) {
     return {
       ok: false,
       sources: sources.map((source) => ({

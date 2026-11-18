@@ -7,6 +7,7 @@
 // to the upstream, and the result is cached aggressively (flags are immutable).
 
 import { enforceRateLimit, getClientIp } from "@/lib/api/rate-limit";
+import { readBoundedText } from "@/lib/network/read-bounded-text";
 import { fetchWithRetry } from "@/lib/network/retry";
 
 export const runtime = "nodejs";
@@ -24,35 +25,6 @@ const RATE_LIMIT_HEADERS = [
 ] as const;
 // One year, immutable — a country's flag asset never changes under its code.
 const CACHE_CONTROL = "public, max-age=31536000, immutable";
-
-/** Bounded upstream read: counts response bytes and cancels past the cap. */
-async function readBoundedSvg(response: Response): Promise<string | null> {
-  const body = response.body;
-  if (!body) return null;
-
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let receivedBytes = 0;
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    receivedBytes += value.byteLength;
-    if (receivedBytes > MAX_FLAG_BYTES) {
-      await reader.cancel().catch(() => {});
-      return null;
-    }
-    chunks.push(value);
-  }
-
-  const merged = new Uint8Array(receivedBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(merged);
-}
 
 interface RouteContext {
   params: Promise<{ code: string }>;
@@ -119,7 +91,7 @@ export async function GET(request: Request, context: RouteContext) {
       return new Response(null, { status: upstream.status === 404 ? 404 : 502 });
     }
 
-    const svg = await readBoundedSvg(upstream);
+    const svg = await readBoundedText(upstream, MAX_FLAG_BYTES);
     // Defend against the upstream ever returning a non-SVG (or absurdly
     // large) body.
     if (svg === null || !svg.includes("<svg")) {

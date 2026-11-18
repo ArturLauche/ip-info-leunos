@@ -144,16 +144,17 @@ try {
   });
 
   check("gateway HTML becomes a recoverable translated API error", () => {
-    evaluate("window.__plan.push({raw:'<html>Bad gateway</html>'})");
+    evaluate("window.__plan.push(...Array(3).fill({raw:'<html>Bad gateway</html>'}))");
     submit("failed.example.com");
     waitFor("!!document.querySelector('[role=alert]')");
+    assert.equal(evaluate("window.__calls.filter(call => call.url.includes('failed.example.com')).length"), 3);
     assert.ok(!evaluate("document.body.innerText.includes('<html>')"));
     assertHealthy();
   });
 
   check("long DNS results fit desktop and both narrow mobile widths", () => {
     submit(`${"a".repeat(60)}.${"b".repeat(60)}.example.com`);
-    waitFor("window.__completed === 6 && !document.querySelector('button[type=submit]').disabled");
+    waitFor("window.__completed === 8 && !document.querySelector('button[type=submit]').disabled");
     assertFits();
     browser("screenshot", join(artifacts, "dns-desktop-dark.png"));
     browser("set", "viewport", "390", "844");
@@ -161,6 +162,7 @@ try {
     browser("screenshot", join(artifacts, "dns-mobile-dark.png"), "--full");
     browser("set", "viewport", "320", "740");
     assertFits();
+    assert.equal(evaluate("document.querySelector('.app-page-subtitle').scrollHeight <= document.querySelector('.app-page-subtitle').clientHeight + 1"), true);
   });
 
   check("watch, round-watch and foldable widths keep every visible element inside the viewport", () => {
@@ -340,7 +342,14 @@ try {
     browser("snapshot", "-i");
     installFixtures();
     browser("fill", "#ping-port", "80");
-    clickRole("tab", "UDP");
+    clickRole("tab", "TCP");
+    browser("press", "ArrowRight");
+    waitFor("document.querySelector('[role=tab][aria-selected=true]')?.textContent === 'UDP'");
+    assert.equal(evaluate(`[...document.querySelectorAll('.app-ping-modes [role=tab]')].every(tab => {
+      const panel = document.getElementById(tab.getAttribute('aria-controls'));
+      return panel?.getAttribute('role') === 'tabpanel' && panel.getAttribute('aria-labelledby') === tab.id
+        && panel.inert === (tab.getAttribute('aria-selected') === 'false');
+    })`), true);
     assert.equal(evaluate("document.querySelector('#ping-port').value"), "80");
     clickRole("tab", "Database");
     // The database options expand with a short animation; clicking while they
@@ -429,7 +438,7 @@ try {
     // The document language is the full BCP 47 tag (see getIntlLocale), not the registry key.
     assert.equal(evaluate("document.documentElement.lang"), "de-DE");
     assert.ok(evaluate("document.body.innerText.includes('WHOIS war nicht verfügbar.')"));
-    browser("click", "button[aria-controls=whois-raw-result]");
+    clickRole("button", "Rohausgabe anzeigen");
     assert.equal(evaluate("document.querySelector('#whois-raw-result').textContent"), data.raw);
     assert.equal(evaluate("document.querySelector('button[aria-controls=whois-raw-result]').getAttribute('aria-expanded')"), "true");
     assertFits();

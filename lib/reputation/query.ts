@@ -124,12 +124,12 @@ function notConfiguredOutcome(sourceId: string): ProviderOutcome {
   return { id: sourceId, status: "not_configured", evidence: [] };
 }
 
-async function fetchWithTimeout(
+async function fetchProviderJson(
   url: string,
   headers: Record<string, string>,
   init: { method?: string; body?: string } = {},
-  retry: Pick<FetchWithRetryOptions, "retryStatusFilter"> = {},
-): Promise<Response> {
+  options: Pick<FetchWithRetryOptions, "retryStatusFilter"> & { onHeaders?: (response: Response) => void } = {},
+) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
   timer.unref?.();
@@ -139,7 +139,7 @@ async function fetchWithTimeout(
     // is enough to ride out a transient 5xx/429 without doubling route latency.
     // POST (ThreatFox search) is never retried because fetchWithRetry only
     // opts idempotent methods in by default.
-    return await fetchWithRetry(
+    const response = await fetchWithRetry(
       url,
       {
         cache: "no-store",
@@ -152,9 +152,16 @@ async function fetchWithTimeout(
         maxAttempts: 2,
         signal: controller.signal,
         maxRetryAfterMs: 3_000,
-        ...retry,
+        retryStatusFilter: options.retryStatusFilter,
       },
     );
+    options.onHeaders?.(response);
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      return { status: response.status, ok: false, payload: null };
+    }
+    const payload: unknown = await response.json();
+    return { status: response.status, ok: true, payload };
   } finally {
     clearTimeout(timer);
   }
@@ -185,16 +192,16 @@ async function queryBlocklistDe(
         ),
       { withTxt: true },
     ),
-    fetchWithTimeout(
+    fetchProviderJson(
       `https://api.blocklist.de/api.php?ip=${encodeURIComponent(ip)}&start=1&format=json`,
       {
         "user-agent": USER_AGENT,
         accept: "application/json",
       },
     )
-      .then(async (response): Promise<BlocklistDeCounts | null> => {
+      .then((response): BlocklistDeCounts | null => {
         if (!response.ok) return null;
-        return normalizeBlocklistDeCounts(await response.json());
+        return normalizeBlocklistDeCounts(response.payload);
       })
       .catch(() => null),
   ]);
@@ -256,7 +263,7 @@ async function queryGreyNoise(
     return { id: "greynoise", status: "rate_limited", evidence: [] };
 
   try {
-    const response = await fetchWithTimeout(
+    const response = await fetchProviderJson(
       `${GREYNOISE_URL}${encodeURIComponent(ip)}`,
       headers,
       {},
@@ -265,17 +272,14 @@ async function queryGreyNoise(
         // update the shared quota gate; retrying it would spend another
         // request and hide the first response from observeGreyNoiseQuota.
         retryStatusFilter: (status) => status !== 429,
+        onHeaders: (response) => observeGreyNoiseQuota(response, Date.now()),
       },
     );
-    observeGreyNoiseQuota(response, Date.now());
 
     if (response.status === 429) {
-      await response.body?.cancel();
       return { id: "greynoise", status: "rate_limited", evidence: [] };
     }
     if (response.status === 404) {
-      // Nothing is read from this response; release the connection.
-      await response.body?.cancel();
       cacheGreyNoise(
         ip,
         {
@@ -290,11 +294,10 @@ async function queryGreyNoise(
       return { id: "greynoise", status: "clean", evidence: [] };
     }
     if (!response.ok) {
-      await response.body?.cancel();
       return { id: "greynoise", status: "unavailable", evidence: [] };
     }
 
-    const normalized = normalizeGreyNoisePayload(await response.json());
+    const normalized = normalizeGreyNoisePayload(response.payload);
     if (!normalized)
       return { id: "greynoise", status: "unavailable", evidence: [] };
 
@@ -341,7 +344,7 @@ async function queryAbuseIpDb(
   if (!key) return notConfiguredOutcome("abuseipdb");
 
   try {
-    const response = await fetchWithTimeout(
+    const response = await fetchProviderJson(
       `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90`,
       { Key: key, Accept: "application/json", "user-agent": USER_AGENT },
     );
@@ -351,7 +354,7 @@ async function queryAbuseIpDb(
     if (!response.ok)
       return { id: "abuseipdb", status: "unavailable", evidence: [] };
 
-    const normalized = normalizeAbuseIpDbPayload(await response.json());
+    const normalized = normalizeAbuseIpDbPayload(response.payload);
     if (!normalized)
       return { id: "abuseipdb", status: "unavailable", evidence: [] };
 
@@ -374,7 +377,7 @@ async function queryThreatFox(
   if (!key) return notConfiguredOutcome("threatfox");
 
   try {
-    const response = await fetchWithTimeout(
+    const response = await fetchProviderJson(
       "https://threatfox-api.abuse.ch/api/v1/",
       {
         "Auth-Key": key,
@@ -392,7 +395,7 @@ async function queryThreatFox(
     if (!response.ok)
       return { id: "threatfox", status: "unavailable", evidence: [] };
 
-    const iocs = normalizeThreatFoxPayload(await response.json());
+    const iocs = normalizeThreatFoxPayload(response.payload);
     if (!iocs) return { id: "threatfox", status: "unavailable", evidence: [] };
 
     const interpretation = threatFoxEvidence(iocs, nowMs);

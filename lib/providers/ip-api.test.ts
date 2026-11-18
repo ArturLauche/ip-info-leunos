@@ -54,6 +54,31 @@ describe("lookupIpApi bounded reads", () => {
     expect(fetchMock).toHaveBeenCalledTimes(40);
   });
 
+  it("expires queued lookups on time without spending the next provider credit", async () => {
+    vi.useFakeTimers();
+    const head = Promise.withResolvers<Response>();
+    const fetchMock = vi.fn(async () => chunkedResponse([SUCCESS_BODY]))
+      .mockReturnValueOnce(head.promise);
+    vi.stubGlobal("fetch", fetchMock);
+    const first = lookupIpApi("8.8.8.8");
+    let expired = false;
+    const queued = lookupIpApi("1.1.1.1", { timeoutMs: 4_000 }).then((value) => {
+      expired = true;
+      return value;
+    });
+
+    const follower = lookupIpApi("8.8.4.4");
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const expiredBeforeRelease = expired;
+    head.resolve(new Response(SUCCESS_BODY, { headers: { "x-rl": "1" } }));
+    await first;
+    expect(await queued).toBeNull();
+    expect(expiredBeforeRelease).toBe(true);
+    await expect(follower).resolves.toMatchObject({ status: "success" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("backs off while the provider reports no remaining quota", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn(async () => {

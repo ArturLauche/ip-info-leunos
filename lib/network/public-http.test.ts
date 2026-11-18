@@ -72,6 +72,18 @@ describe("public HTTP transport", () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
+  it("applies the caller's port policy before connecting on every hop", async () => {
+    const first = reply(302, { location: "http://1.1.1.1:443/" });
+    const { spy } = mockTransport([first, reply(204)]);
+    const validatePort = vi.fn((port: number) => {
+      if (port !== 80) throw new Error("port disabled");
+    });
+    await expect(fetchPublicUrl("http://1.1.1.1", { validatePort })).rejects.toThrow("port disabled");
+    expect(validatePort.mock.calls).toEqual([[80], [443]]);
+    expect(first.destroyed).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
   it("follows a relative public redirect and enforces the existing redirect count", async () => {
     const first = reply(301, { location: "/next" });
     const second = reply(308, { location: "/again" });

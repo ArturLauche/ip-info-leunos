@@ -32,6 +32,7 @@ describe("GreyNoise community normalization", () => {
       lastSeen: "2026-09-01",
     });
 
+    expect(normalizeGreyNoisePayload({ message: "unavailable" })).toBeNull();
     expect(normalizeGreyNoisePayload("nope")).toBeNull();
   });
 
@@ -90,6 +91,7 @@ describe("AbuseIPDB normalization", () => {
       }),
     ).toEqual({ confidenceScore: 100, totalReports: 250, lastReportedAt: "2026-09-01T10:00:00Z", isTor: false });
 
+    expect(normalizeAbuseIpDbPayload({ data: {} })).toBeNull();
     expect(normalizeAbuseIpDbPayload({ data: "nope" })).toBeNull();
   });
 
@@ -155,6 +157,10 @@ describe("ThreatFox normalization", () => {
     ]);
 
     expect(normalizeThreatFoxPayload({ query_status: "no_result", data: [] })).toEqual([]);
+    expect(normalizeThreatFoxPayload({ query_status: "no_result", data: "No results" })).toEqual([]);
+    expect(normalizeThreatFoxPayload({ query_status: "illegal_searchterm" })).toBeNull();
+    expect(normalizeThreatFoxPayload({ query_status: "ok", data: [{}] })).toBeNull();
+    expect(normalizeThreatFoxPayload({ query_status: "ok" })).toBeNull();
     expect(normalizeThreatFoxPayload({ broken: true })).toBeNull();
   });
 

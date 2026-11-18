@@ -265,6 +265,7 @@ async function ebPing(
         cache: "no-store",
         timeoutMs,
         maxRedirects: 2,
+        validatePort: validatePublicPort,
         maxContentLengthBytes: 512_000,
       });
 

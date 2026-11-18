@@ -22,6 +22,7 @@
  */
 
 import { lookupIpApi, toIpApiLanguage, type IpApiData } from "./providers/ip-api";
+import { withTimeout } from "./async";
 import { createSingleFlight } from "./single-flight";
 import { createTtlCache } from "./ttl-cache";
 
@@ -46,11 +47,15 @@ export function lookupIpApiCached(
   const cached = providerCache.get(key);
   if (cached) return Promise.resolve(cached);
 
-  return providerFlights.run(key, async () => {
+  const flight = providerFlights.run(key, async () => {
     const data = await lookupIpApi(ip, { language, timeoutMs: options.timeoutMs });
     if (data) providerCache.set(key, data);
     return data;
   });
+  // A reputation caller can join a longer /api/ip request. Stop its wait at
+  // its own deadline while the shared fetch continues for the first caller.
+  if (options.timeoutMs === undefined) return flight;
+  return withTimeout(flight, options.timeoutMs, () => new Error("IP metadata timed out")).catch(() => null);
 }
 
 /** Test hook: clears memo state between cases. */
