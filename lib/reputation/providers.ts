@@ -7,8 +7,8 @@ import type { DnsblInterpretation } from "./dnsbl";
 const greyNoiseSchema = z
   .object({
     ip: z.string().optional(),
-    noise: z.boolean().optional(),
-    riot: z.boolean().optional(),
+    noise: z.boolean(),
+    riot: z.boolean(),
     classification: z.string().optional(),
     name: z.string().optional(),
     link: z.string().optional(),
@@ -30,8 +30,8 @@ export function normalizeGreyNoisePayload(payload: unknown): GreyNoiseResult | n
   if (!parsed.success) return null;
 
   return {
-    noise: Boolean(parsed.data.noise),
-    riot: Boolean(parsed.data.riot),
+    noise: parsed.data.noise,
+    riot: parsed.data.riot,
     classification: parsed.data.classification ?? null,
     name: parsed.data.name ?? null,
     lastSeen: parsed.data.last_seen ?? null,
@@ -115,8 +115,8 @@ const abuseIpDbSchema = z
   .object({
     data: z
       .object({
-        abuseConfidenceScore: z.number().optional(),
-        totalReports: z.number().optional(),
+        abuseConfidenceScore: z.number().min(0).max(100),
+        totalReports: z.number().int().nonnegative(),
         lastReportedAt: z.string().nullable().optional(),
         isTor: z.boolean().optional(),
       })
@@ -137,8 +137,8 @@ export function normalizeAbuseIpDbPayload(payload: unknown): AbuseIpDbResult | n
 
   const data = parsed.data.data;
   return {
-    confidenceScore: data.abuseConfidenceScore ?? 0,
-    totalReports: data.totalReports ?? 0,
+    confidenceScore: data.abuseConfidenceScore,
+    totalReports: data.totalReports,
     lastReportedAt: data.lastReportedAt || null,
     isTor: Boolean(data.isTor),
   };
@@ -187,27 +187,20 @@ export function abuseIpDbEvidence(result: AbuseIpDbResult, nowMs: number): Dnsbl
   };
 }
 
-const threatFoxSchema = z
-  .object({
-    query_status: z.string(),
-    data: z
-      .array(
-        z
-          .object({
-            ioc: z.string().optional(),
-            threat_type: z.string().optional(),
-            malware_family: z.string().nullable().optional(),
-            malware_variant: z.string().nullable().optional(),
-            first_seen: z.string().nullable().optional(),
-            last_seen: z.string().nullable().optional(),
-            confidence_level: z.number().nullable().optional(),
-          })
-          .passthrough(),
-      )
-      .nullable()
-      .optional(),
-  })
-  .passthrough();
+const threatFoxSchema = z.object({
+  query_status: z.literal("ok"),
+  data: z.array(z.unknown()),
+});
+
+const threatFoxRow = z.object({
+  ioc: z.string().trim().min(1),
+  threat_type: z.string().optional(),
+  malware_family: z.string().nullable().optional(),
+  malware_variant: z.string().nullable().optional(),
+  first_seen: z.string().nullable().optional(),
+  last_seen: z.string().nullable().optional(),
+  confidence_level: z.number().nullable().optional(),
+});
 
 export interface ThreatFoxIoc {
   ioc: string | null;
@@ -219,19 +212,27 @@ export interface ThreatFoxIoc {
 }
 
 export function normalizeThreatFoxPayload(payload: unknown): ThreatFoxIoc[] | null {
+  if (payload && typeof payload === "object" && "query_status" in payload && payload.query_status === "no_result") {
+    return [];
+  }
   const parsed = threatFoxSchema.safeParse(payload);
   if (!parsed.success) return null;
-  if (parsed.data.query_status && parsed.data.query_status !== "ok") return [];
-  if (!parsed.data.data) return [];
 
-  return parsed.data.data.map((entry) => ({
-    ioc: entry.ioc ?? null,
-    threatType: entry.threat_type ?? null,
-    malwareFamily: entry.malware_family || entry.malware_variant || null,
-    firstSeen: normalizeThreatFoxDate(entry.first_seen),
-    lastSeen: normalizeThreatFoxDate(entry.last_seen),
-    confidenceLevel: entry.confidence_level ?? null,
-  }));
+  const rows: ThreatFoxIoc[] = [];
+  for (const raw of parsed.data.data) {
+    const row = threatFoxRow.safeParse(raw);
+    if (!row.success) continue;
+    const entry = row.data;
+    rows.push({
+      ioc: entry.ioc,
+      threatType: entry.threat_type ?? null,
+      malwareFamily: entry.malware_family || entry.malware_variant || null,
+      firstSeen: normalizeThreatFoxDate(entry.first_seen),
+      lastSeen: normalizeThreatFoxDate(entry.last_seen),
+      confidenceLevel: entry.confidence_level ?? null,
+    });
+  }
+  return parsed.data.data.length > 0 && rows.length === 0 ? null : rows;
 }
 
 function normalizeThreatFoxDate(value: string | null | undefined): string | null {

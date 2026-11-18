@@ -1,3 +1,5 @@
+import { discardResponseBody } from "@/lib/network/read-bounded-text";
+
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { apiError, apiOk, apiValidationError } from "@/lib/api/response";
@@ -550,7 +552,7 @@ async function fetchProviderJson(
     );
     if (!response.ok) {
       // Callers only need the status for a failed provider; release the body.
-      await response.body?.cancel().catch(() => {});
+      discardResponseBody(response);
       return { response, json: null };
     }
     const json = await readJsonWithLimit(response, PROVIDER_MAX_BYTES);

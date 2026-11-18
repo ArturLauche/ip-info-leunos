@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { MAX_REPUTATION_RESPONSE_BYTES, safeJsonParse } from "./payload";
 import type { RawEvidence, SourceStatus } from "./model";
 import { isIPv6Address, stripIpv6Brackets } from "@/lib/network/target";
+import { discardResponseBody, readBoundedText } from "@/lib/network/read-bounded-text";
 import { fetchWithRetry } from "@/lib/network/retry";
 
 /**
@@ -21,7 +23,6 @@ const DROP_V6_URL = "https://www.spamhaus.org/drop/drop_v6.json";
 const DROP_TTL_MS = 60 * 60_000;
 const FEED_STALE_MS = 24 * 60 * 60_000;
 const FEED_TIMEOUT_MS = 6_000;
-const FEED_MAX_BYTES = 3_000_000;
 const USER_AGENT = "ip-info-leunos-reputation/1.0";
 
 export interface FeedMatchResult {
@@ -143,14 +144,6 @@ export function parseDropLines(text: string, family: 4 | 6): DropEntry[] | null 
   return entries.length >= 10 ? entries : null;
 }
 
-function safeJsonParse(value: string): unknown {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
 interface FeedState<T> {
   data: T;
   fetchedAt: number;
@@ -180,13 +173,13 @@ async function fetchFeedText(url: string): Promise<string> {
       { maxAttempts: 3, signal: controller.signal, maxRetryAfterMs: 3_000 },
     );
     if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
+      discardResponseBody(response);
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const text = await response.text();
-    if (text.length > FEED_MAX_BYTES) throw new Error("feed exceeds size limit");
-    return text;
+    const text = await readBoundedText(response, MAX_REPUTATION_RESPONSE_BYTES);
+    if (text.kind !== "ok") throw new Error(`Feed body is ${text.kind}`);
+    return text.text;
   } finally {
     clearTimeout(timer);
   }

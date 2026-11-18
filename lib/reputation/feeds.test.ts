@@ -175,6 +175,19 @@ describe("feed matching", () => {
     expect(noMatch.status).toBe("clean");
   });
 
+  it("cancels a chunked feed at its byte limit before waiting for EOF", async () => {
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const response = new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("é".repeat(1_500_001)));
+      },
+      cancel,
+    }));
+    vi.stubGlobal("fetch", vi.fn(async () => response));
+    await expect(matchFeodo("8.8.8.8", Date.now())).resolves.toMatchObject({ status: "unavailable" });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it("falls back to stale feed data when a refresh fails", async () => {
     setFeedStateForTests(
       "feodo",

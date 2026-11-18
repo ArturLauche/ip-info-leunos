@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSegmentHighlight } from "@/hooks/use-segment-highlight";
 import { useRouter } from "next/navigation";
 import { FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
@@ -743,19 +743,20 @@ function PingModeTabs({
       </div>
       <div className="grid min-h-8">
         {PING_MODES.map((value) => (
-          <p
+          <TabsContent
             key={value}
-            id={`ping-mode-helper-${value}`}
+            value={value}
+            forceMount
+            inert={mode !== value}
             className={cn(
-              "col-start-1 row-start-1 text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
+              "col-start-1 row-start-1 rounded-sm focus-visible:ring-2 focus-visible:ring-ring text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
               mode === value
                 ? "z-10 opacity-100"
                 : "pointer-events-none z-0 opacity-0 select-none",
             )}
-            aria-hidden={mode !== value}
           >
-            {helpers[value]}
-          </p>
+            <p id={`ping-mode-helper-${value}`}>{helpers[value]}</p>
+          </TabsContent>
         ))}
       </div>
     </Tabs>

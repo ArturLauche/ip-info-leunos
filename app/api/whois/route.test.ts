@@ -103,6 +103,16 @@ describe("GET /api/whois", () => {
     expect(await response.json()).toMatchObject({ ok: true, data: { noteCode: "rdap_fallback", summary: { status: ["active"] } } });
   });
 
+  it("uses the effective IPv4 address for mapped-IP RDAP fallback and cache hits", async () => {
+    vi.spyOn(dns, "lookup").mockRejectedValue(new Error("WHOIS unavailable"));
+    const rdap = vi.spyOn(targets, "fetchPublicUrl").mockResolvedValue(Response.json({ status: ["active"] }));
+    for (const target of ["::ffff:8.8.8.8", "8.8.8.8"]) {
+      const response = await GET(new Request(`http://localhost/api/whois?target=${target}`));
+      expect(await response.json()).toMatchObject({ ok: true, data: { target: "8.8.8.8" } });
+    }
+    expect(rdap).toHaveBeenCalledExactlyOnceWith("https://rdap.org/ip/8.8.8.8", expect.anything());
+  });
+
   it("keeps the overall RDAP deadline active while consuming the body", async () => {
     vi.useFakeTimers();
     vi.spyOn(dns, "lookup").mockRejectedValue(new Error("WHOIS unavailable"));

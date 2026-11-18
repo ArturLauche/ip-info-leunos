@@ -36,11 +36,7 @@ function isIp(target: string) {
 function validateWhoisTarget(input: string) {
   const target = normalizeLookupTarget(input);
 
-  if (isIp(target)) {
-    assertPublicIpAddress(target);
-  }
-
-  return target;
+  return isIp(target) ? assertPublicIpAddress(target) : target;
 }
 
 async function queryWhois(server: string, query: string): Promise<string> {

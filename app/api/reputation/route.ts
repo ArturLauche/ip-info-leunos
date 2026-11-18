@@ -4,7 +4,6 @@ import { enforceRateLimit } from "@/lib/api/rate-limit";
 import {
   assertPublicIpAddress,
   isIPv4Address,
-  stripIpv6Brackets,
   TargetValidationError,
 } from "@/lib/network/target";
 import { collectReputation } from "@/lib/reputation/query";
@@ -13,7 +12,7 @@ import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import { toIpApiLanguage } from "@/lib/providers/ip-api";
 import { createSingleFlight } from "@/lib/single-flight";
 import { createTtlCache } from "@/lib/ttl-cache";
-import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
+import { getReputationSource, type ReputationSummary, type SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
 
@@ -79,10 +78,10 @@ export async function GET(request: Request) {
     return apiValidationError(parsedQuery.error);
   }
 
-  const ip = stripIpv6Brackets(parsedQuery.data.ip);
+  let ip: string;
 
   try {
-    assertPublicIpAddress(ip);
+    ip = assertPublicIpAddress(parsedQuery.data.ip);
   } catch (error) {
     if (error instanceof TargetValidationError) {
       return apiError(error.code, error.message, error.status, error.details);
@@ -136,7 +135,12 @@ async function computeReputation(
   const checkedSources = sources.filter((source) =>
     CHECKED_STATUSES.has(source.status),
   );
-  if (checkedSources.length === 0) {
+  // One completed reputation check can support a partial report. Coverage
+  // counts expose gaps; network metadata alone cannot substantiate a score.
+  if (!checkedSources.some((source) => {
+    const definition = getReputationSource(source.id);
+    return definition && definition.kind !== "metadata";
+  })) {
     return {
       ok: false,
       sources: sources.map((source) => ({

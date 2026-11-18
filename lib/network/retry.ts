@@ -1,3 +1,5 @@
+import { discardResponseBody } from "@/lib/network/read-bounded-text";
+
 /**
  * Bounded retry with exponential backoff and jitter for transient failures.
  *
@@ -370,7 +372,7 @@ export async function fetchWithRetry(
 
       // Release the discarded connection before waiting. The final response
       // above is returned untouched, so callers can still read its body.
-      await response.body?.cancel().catch(() => {});
+      discardResponseBody(response);
       throw new RetryableHttpError(response.status, retryAfterMs, response);
     },
     {

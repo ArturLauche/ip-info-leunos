@@ -42,7 +42,7 @@ Upstream answers are memoized per process with bounded TTL caches (`lib/ttl-cach
 | ASN provider results (fresh / serve-stale-on-error) | 60 s / 5 min |
 | Reputation summaries / GreyNoise per IP | 10 min / 24 h |
 
-Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports.
+Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports. Endpoint checks apply this policy to each redirect destination.
 
 Set `IPINFO_TOKEN` to enable IPinfo ASN details on `/asn`. Without a token, ASN lookups still use public PeeringDB data when available.
 

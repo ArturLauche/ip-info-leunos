@@ -1,3 +1,5 @@
+import { withAbort } from "@/lib/async";
+import { discardResponseBody, readBoundedText } from "@/lib/network/read-bounded-text";
 import { z } from "zod";
 
 /**
@@ -107,15 +109,16 @@ function observeUpstreamQuota(response: Response, nowMs: number): void {
 }
 
 /** Serializes upstream admissions so quota observations stay ordered. */
-async function withUpstreamAdmission<T>(work: () => Promise<T>): Promise<T> {
+async function withUpstreamAdmission<T>(signal: AbortSignal, work: () => Promise<T>): Promise<T> {
   let release!: () => void;
   const turn = new Promise<void>((resolve) => {
     release = resolve;
   });
   const previous = admissionChain;
   admissionChain = previous.then(() => turn);
-  await previous;
   try {
+    await withAbort(previous, signal);
+    signal.throwIfAborted();
     return await work();
   } finally {
     release();
@@ -131,34 +134,6 @@ export function clearIpApiBudgetForTests() {
 }
 
 const MAX_IP_API_BYTES = 64_000;
-
-async function readBoundedText(response: Response): Promise<string | null> {
-  const body = response.body;
-  if (!body) return null;
-
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let receivedBytes = 0;
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    receivedBytes += value.byteLength;
-    if (receivedBytes > MAX_IP_API_BYTES) {
-      await reader.cancel().catch(() => {});
-      return null;
-    }
-    chunks.push(value);
-  }
-
-  const merged = new Uint8Array(receivedBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(merged);
-}
 
 /**
  * ip-api's `lang` parameter only localizes geo names for these languages and
@@ -195,11 +170,13 @@ export function toIpApiLanguage(language: string): string {
   return "en";
 }
 
+export const IP_API_TIMEOUT_MS = 5_000;
+
 export async function lookupIpApi(
   ip: string,
-  options: { language?: string; timeoutMs?: number } = {},
+  options: { language?: string; timeoutMs?: number; signal?: AbortSignal } = {},
 ): Promise<IpApiData | null> {
-  const timeoutMs = options.timeoutMs ?? 5_000;
+  const timeoutMs = options.timeoutMs ?? IP_API_TIMEOUT_MS;
   const language = toIpApiLanguage(options.language ?? "en");
 
   // Fast path before allocating timer/controller: a denied lookup must not
@@ -208,6 +185,7 @@ export async function lookupIpApi(
   if (!hasUpstreamBudget(Date.now())) return null;
 
   const controller = new AbortController();
+  const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   timer.unref?.();
 
@@ -215,31 +193,34 @@ export async function lookupIpApi(
     // Admission is serialized so each fetch observes the previous response's
     // quota headers before the next one starts; the slot is held for the
     // (small) body read too, keeping observations strictly ordered.
-    return await withUpstreamAdmission(async () => {
+    return await withUpstreamAdmission(signal, async () => {
       if (!takeUpstreamBudget(Date.now())) return null;
       // No generic transport retries here: 429 / X-Rl: 0 already pauses the
       // shared budget until the provider window resets, and sleeping inside
       // this admission slot would hold every other lookup behind it.
       const response = await fetch(
         `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${IP_API_FIELDS}&lang=${encodeURIComponent(language)}`,
-        { cache: "no-store", signal: controller.signal },
+        { cache: "no-store", signal },
       );
       observeUpstreamQuota(response, Date.now());
-      if (!response.ok) return null;
+      if (!response.ok) {
+        discardResponseBody(response);
+        return null;
+      }
       // Bounded read: ip-api.com answers are a few hundred bytes; refuse to
       // buffer an unexpectedly large body into memory. Streamed chunk by chunk
       // (byte-counted, not UTF-16 length) so a missing or lying Content-Length
       // cannot force the whole body into memory first.
       const contentLength = response.headers.get("content-length");
       if (contentLength && Number(contentLength) > MAX_IP_API_BYTES) {
-        await response.body?.cancel().catch(() => {});
+        discardResponseBody(response);
         return null;
       }
-      const text = await readBoundedText(response);
-      if (text === null) return null;
+      const text = await readBoundedText(response, MAX_IP_API_BYTES);
+      if (text.kind !== "ok") return null;
       let json: unknown;
       try {
-        json = JSON.parse(text);
+        json = JSON.parse(text.text);
       } catch {
         return null;
       }

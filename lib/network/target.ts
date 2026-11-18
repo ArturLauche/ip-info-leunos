@@ -1,7 +1,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
 import { domainToASCII } from "node:url";
-import { withTimeout } from "@/lib/async";
+import { withAbort, withTimeout } from "@/lib/async";
 import { TargetValidationError } from "./errors";
 import { requestPublicHttp, type PublicHttpOptions } from "./public-http";
 
@@ -203,7 +203,8 @@ function normalizeParsedWebUrl(parsed: URL) {
   return parsed;
 }
 
-export function assertPublicIpAddress(address: string) {
+/** Returns the validated address, unwrapping IPv4-mapped IPv6 for provider lookups. */
+export function assertPublicIpAddress(address: string): string {
   const normalized = stripIpv6Brackets(address);
   const family = net.isIP(normalized);
 
@@ -217,14 +218,13 @@ export function assertPublicIpAddress(address: string) {
         { address: normalized, range },
       );
     }
-    return;
+    return normalized;
   }
 
   if (family === 6) {
     const mapped = getMappedIPv4(normalized);
     if (mapped) {
-      assertPublicIpAddress(mapped);
-      return;
+      return assertPublicIpAddress(mapped);
     }
 
     const range = blockedIPv6Range(normalized);
@@ -236,7 +236,7 @@ export function assertPublicIpAddress(address: string) {
         { address: normalized, range },
       );
     }
-    return;
+    return normalized;
   }
 
   throw new TargetValidationError("invalid_target", "Please provide a valid IP address.");
@@ -307,22 +307,11 @@ export async function assertPublicUrl(input: string | URL): Promise<PublicUrl> {
   };
 }
 
-/** Stop waiting when a caller's overall deadline expires, including during DNS. */
-function withAbort<T>(promise: Promise<T>, signal?: AbortSignal | null): Promise<T> {
-  if (!signal) return promise;
-  let onAbort: () => void;
-  const aborted = new Promise<never>((_resolve, reject) => {
-    onAbort = () => reject(signal.reason);
-    if (signal.aborted) onAbort();
-    else signal.addEventListener("abort", onAbort, { once: true });
-  });
-  return Promise.race([promise, aborted]).finally(() => signal.removeEventListener("abort", onAbort));
-}
-
 export async function fetchPublicUrl(
   input: string | URL,
   init: Pick<PublicHttpOptions, "method" | "headers" | "signal"> & {
     cache?: "no-store";
+    validatePort?: (port: number) => void;
     maxRedirects?: number;
     timeoutMs?: number;
     maxContentLengthBytes?: number;
@@ -336,6 +325,7 @@ export async function fetchPublicUrl(
 
   for (let redirect = 0; redirect <= maxRedirects; redirect += 1) {
     init.signal?.throwIfAborted();
+    init.validatePort?.(Number(current.port || (current.protocol === "https:" ? 443 : 80)));
     const target = await withAbort(assertPublicUrl(current), init.signal);
 
     try {
