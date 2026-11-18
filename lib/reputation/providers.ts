@@ -187,25 +187,20 @@ export function abuseIpDbEvidence(result: AbuseIpDbResult, nowMs: number): Dnsbl
   };
 }
 
-const threatFoxSchema = z
-  .object({
-    query_status: z.literal("ok"),
-    data: z
-      .array(
-        z
-          .object({
-            ioc: z.string().trim().min(1),
-            threat_type: z.string().optional(),
-            malware_family: z.string().nullable().optional(),
-            malware_variant: z.string().nullable().optional(),
-            first_seen: z.string().nullable().optional(),
-            last_seen: z.string().nullable().optional(),
-            confidence_level: z.number().nullable().optional(),
-          })
-          .passthrough(),
-      ),
-  })
-  .passthrough();
+const threatFoxSchema = z.object({
+  query_status: z.literal("ok"),
+  data: z.array(z.unknown()),
+});
+
+const threatFoxRow = z.object({
+  ioc: z.string().trim().min(1),
+  threat_type: z.string().optional(),
+  malware_family: z.string().nullable().optional(),
+  malware_variant: z.string().nullable().optional(),
+  first_seen: z.string().nullable().optional(),
+  last_seen: z.string().nullable().optional(),
+  confidence_level: z.number().nullable().optional(),
+});
 
 export interface ThreatFoxIoc {
   ioc: string | null;
@@ -223,14 +218,21 @@ export function normalizeThreatFoxPayload(payload: unknown): ThreatFoxIoc[] | nu
   const parsed = threatFoxSchema.safeParse(payload);
   if (!parsed.success) return null;
 
-  return parsed.data.data.map((entry) => ({
-    ioc: entry.ioc,
-    threatType: entry.threat_type ?? null,
-    malwareFamily: entry.malware_family || entry.malware_variant || null,
-    firstSeen: normalizeThreatFoxDate(entry.first_seen),
-    lastSeen: normalizeThreatFoxDate(entry.last_seen),
-    confidenceLevel: entry.confidence_level ?? null,
-  }));
+  const rows: ThreatFoxIoc[] = [];
+  for (const raw of parsed.data.data) {
+    const row = threatFoxRow.safeParse(raw);
+    if (!row.success) continue;
+    const entry = row.data;
+    rows.push({
+      ioc: entry.ioc,
+      threatType: entry.threat_type ?? null,
+      malwareFamily: entry.malware_family || entry.malware_variant || null,
+      firstSeen: normalizeThreatFoxDate(entry.first_seen),
+      lastSeen: normalizeThreatFoxDate(entry.last_seen),
+      confidenceLevel: entry.confidence_level ?? null,
+    });
+  }
+  return parsed.data.data.length > 0 && rows.length === 0 ? null : rows;
 }
 
 function normalizeThreatFoxDate(value: string | null | undefined): string | null {

@@ -4,7 +4,7 @@ import {
   observeGreyNoiseQuota,
 } from "@/lib/reputation/greynoise-quota";
 import dns from "node:dns/promises";
-import { readBoundedText } from "@/lib/network/read-bounded-text";
+import { discardResponseBody, readBoundedText } from "@/lib/network/read-bounded-text";
 import { fetchWithRetry, type FetchWithRetryOptions } from "@/lib/network/retry";
 import { lookupIpApiCached } from "@/lib/ip-lookup-cache";
 import { assessConnectionType, type ConnectionType } from "@/lib/connection-type";
@@ -27,7 +27,8 @@ import {
   reverseIpv4ForDnsbl,
   type DnsblInterpretation,
 } from "./dnsbl";
-import { matchDrop, matchFeodo, MAX_REPUTATION_RESPONSE_BYTES } from "./feeds";
+import { MAX_REPUTATION_RESPONSE_BYTES, safeJsonParse } from "./payload";
+import { matchDrop, matchFeodo } from "./feeds";
 import {
   abuseIpDbEvidence,
   greyNoiseEvidence,
@@ -158,15 +159,15 @@ async function fetchProviderJson(
     );
     options.onHeaders?.(response);
     if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
+      discardResponseBody(response);
       return { status: response.status, ok: false, payload: null };
     }
     const text = await readBoundedText(response, MAX_REPUTATION_RESPONSE_BYTES);
-    if (text === null) {
-      return { status: response.status, ok: false, payload: null, oversized: response.body !== null };
+    if (text.kind !== "ok") {
+      return { status: response.status, ok: false, payload: null, oversized: text.kind === "oversized" };
     }
-    const payload: unknown = JSON.parse(text);
-    return { status: response.status, ok: true, payload };
+    const payload = safeJsonParse(text.text);
+    return { status: response.status, ok: payload !== null, payload };
   } finally {
     clearTimeout(timer);
   }

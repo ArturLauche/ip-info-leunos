@@ -159,6 +159,8 @@ describe("ThreatFox normalization", () => {
     expect(normalizeThreatFoxPayload({ query_status: "no_result", data: [] })).toEqual([]);
     expect(normalizeThreatFoxPayload({ query_status: "no_result", data: "No results" })).toEqual([]);
     expect(normalizeThreatFoxPayload({ query_status: "illegal_searchterm" })).toBeNull();
+    expect(normalizeThreatFoxPayload({ query_status: "ok", data: [{}, { ioc: "8.8.8.8" }] }))
+      .toEqual([expect.objectContaining({ ioc: "8.8.8.8" })]);
     expect(normalizeThreatFoxPayload({ query_status: "ok", data: [{}] })).toBeNull();
     expect(normalizeThreatFoxPayload({ query_status: "ok" })).toBeNull();
     expect(normalizeThreatFoxPayload({ broken: true })).toBeNull();

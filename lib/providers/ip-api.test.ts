@@ -54,6 +54,17 @@ describe("lookupIpApi bounded reads", () => {
     expect(fetchMock).toHaveBeenCalledTimes(40);
   });
 
+  it("releases admission even when cancelling an error body stalls", async () => {
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const fetchMock = vi.fn(async () => chunkedResponse([SUCCESS_BODY]))
+      .mockResolvedValueOnce(new Response(new ReadableStream({ cancel }), { status: 403 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const [failed, next] = await Promise.all([lookupIpApi("1.1.1.1"), lookupIpApi("8.8.8.8")]);
+    expect(failed).toBeNull();
+    expect(next?.query).toBe("8.8.8.8");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it("expires queued lookups on time without spending the next provider credit", async () => {
     vi.useFakeTimers();
     const head = Promise.withResolvers<Response>();

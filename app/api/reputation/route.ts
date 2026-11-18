@@ -12,7 +12,7 @@ import { parseLocaleCookie, resolveLocale } from "@/lib/i18n";
 import { toIpApiLanguage } from "@/lib/providers/ip-api";
 import { createSingleFlight } from "@/lib/single-flight";
 import { createTtlCache } from "@/lib/ttl-cache";
-import type { ReputationSummary, SourceStatus } from "@/lib/reputation/model";
+import { getReputationSource, type ReputationSummary, type SourceStatus } from "@/lib/reputation/model";
 
 export const runtime = "nodejs";
 
@@ -135,8 +135,12 @@ async function computeReputation(
   const checkedSources = sources.filter((source) =>
     CHECKED_STATUSES.has(source.status),
   );
-  // Metadata alone can describe a network but cannot substantiate a risk score.
-  if (!checkedSources.some((source) => source.status !== "available")) {
+  // One completed reputation check can support a partial report. Coverage
+  // counts expose gaps; network metadata alone cannot substantiate a score.
+  if (!checkedSources.some((source) => {
+    const definition = getReputationSource(source.id);
+    return definition && definition.kind !== "metadata";
+  })) {
     return {
       ok: false,
       sources: sources.map((source) => ({

@@ -21,13 +21,13 @@
  * exceed the upstream budget on its own.
  */
 
-import { lookupIpApi, toIpApiLanguage, type IpApiData } from "./providers/ip-api";
+import { IP_API_TIMEOUT_MS, lookupIpApi, toIpApiLanguage, type IpApiData } from "./providers/ip-api";
 import { withTimeout } from "./async";
-import { createSingleFlight } from "./single-flight";
+import { createAbortableSingleFlight } from "./single-flight";
 import { createTtlCache } from "./ttl-cache";
 
 const providerCache = createTtlCache<IpApiData>({ ttlMs: 60_000, maxEntries: 512 });
-const providerFlights = createSingleFlight<IpApiData | null>();
+const providerFlights = createAbortableSingleFlight<IpApiData | null>();
 
 /** Cache key: ip-api collapses most UI locales onto a handful of languages. */
 export function ipLookupCacheKey(ip: string, language: string) {
@@ -47,15 +47,16 @@ export function lookupIpApiCached(
   const cached = providerCache.get(key);
   if (cached) return Promise.resolve(cached);
 
-  const flight = providerFlights.run(key, async () => {
-    const data = await lookupIpApi(ip, { language, timeoutMs: options.timeoutMs });
-    if (data) providerCache.set(key, data);
+  const flight = providerFlights.acquire(key, async (signal) => {
+    const data = await lookupIpApi(ip, { language, signal });
+    if (data && !signal.aborted) providerCache.set(key, data);
     return data;
   });
-  // A reputation caller can join a longer /api/ip request. Stop its wait at
-  // its own deadline while the shared fetch continues for the first caller.
-  if (options.timeoutMs === undefined) return flight;
-  return withTimeout(flight, options.timeoutMs, () => new Error("IP metadata timed out")).catch(() => null);
+  // Each consumer owns its wait. The shared transport keeps its provider
+  // budget while anyone still needs it, including when reputation joins first.
+  return withTimeout(flight.promise, options.timeoutMs ?? IP_API_TIMEOUT_MS, () => new Error("IP metadata timed out"))
+    .catch(() => null)
+    .finally(flight.release);
 }
 
 /** Test hook: clears memo state between cases. */

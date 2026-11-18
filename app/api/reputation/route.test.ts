@@ -458,6 +458,32 @@ describe("reputation API route", () => {
     expect((await response.json()).data.sources).toContainEqual({ id: "greynoise", status: "matched" });
   });
 
+  it("treats malformed HTTP 200 JSON as one unavailable provider", async () => {
+    const healthy = stubCleanEnvironment();
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => url.includes("api.greynoise.io")
+      ? new Response("<html>provider unavailable</html>")
+      : healthy(url, init));
+    const response = await invoke("84.134.9.193");
+    expect(response.status).toBe(200);
+    const { data } = await response.json();
+    expect(data.sources).toContainEqual({ id: "greynoise", status: "unavailable" });
+    expect(data.coverage.unavailableCount).toBe(1);
+  });
+
+  it.each([403, 500])("completes even if discarding an HTTP %i body never settles", async (status) => {
+    vi.useFakeTimers();
+    const healthy = stubCleanEnvironment();
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => url.includes("api.greynoise.io")
+      ? new Response(new ReadableStream({ cancel }), { status })
+      : healthy(url, init));
+    const report = invoke(status === 403 ? "84.134.9.191" : "84.134.9.192");
+    await vi.advanceTimersByTimeAsync(4_000);
+    const response = await report;
+    expect(cancel).toHaveBeenCalledTimes(status === 403 ? 1 : 2);
+    expect((await response.json()).data.sources).toContainEqual({ id: "greynoise", status: "unavailable" });
+  });
+
   it("completes a partial report when GreyNoise sends headers and stalls its body", async () => {
     vi.useFakeTimers();
     const healthy = stubCleanEnvironment();

@@ -7,7 +7,7 @@
 // to the upstream, and the result is cached aggressively (flags are immutable).
 
 import { enforceRateLimit, getClientIp } from "@/lib/api/rate-limit";
-import { readBoundedText } from "@/lib/network/read-bounded-text";
+import { discardResponseBody, readBoundedText } from "@/lib/network/read-bounded-text";
 import { fetchWithRetry } from "@/lib/network/retry";
 
 export const runtime = "nodejs";
@@ -85,7 +85,7 @@ export async function GET(request: Request, context: RouteContext) {
     );
 
     if (!upstream.ok) {
-      await upstream.body?.cancel().catch(() => {});
+      discardResponseBody(upstream);
       // A missing flag is a permanent 404; anything else is an upstream
       // failure, which is worth distinguishing from a nonexistent country.
       return new Response(null, { status: upstream.status === 404 ? 404 : 502 });
@@ -94,11 +94,11 @@ export async function GET(request: Request, context: RouteContext) {
     const svg = await readBoundedText(upstream, MAX_FLAG_BYTES);
     // Defend against the upstream ever returning a non-SVG (or absurdly
     // large) body.
-    if (svg === null || !svg.includes("<svg")) {
-      return new Response(null, { status: svg === null ? 502 : 404 });
+    if (svg.kind !== "ok" || !svg.text.includes("<svg")) {
+      return new Response(null, { status: svg.kind !== "ok" ? 502 : 404 });
     }
 
-    return new Response(svg, {
+    return new Response(svg.text, {
       status: 200,
       headers: {
         "Content-Type": "image/svg+xml; charset=utf-8",

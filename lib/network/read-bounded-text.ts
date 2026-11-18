@@ -1,29 +1,31 @@
-/** Count streamed bytes before buffering a fixed-provider response. */
-export async function readBoundedText(response: Response, maxBytes: number): Promise<string | null> {
-  const body = response.body;
-  if (!body) return null;
+export function discardResponseBody(response: Response): void {
+  // Cancellation can wait on a sibling stream. Initiate cleanup without
+  // holding the provider's deadline, retry loop or admission queue open.
+  void response.body?.cancel().catch(() => {});
+}
 
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
+type TextReadResult = { kind: "ok"; text: string } | { kind: "missing" | "oversized" };
+
+/** Count decoded response bytes before appending text, including across UTF-8 chunk boundaries. */
+export async function readBoundedText(response: Response, maxBytes: number): Promise<TextReadResult> {
+  if (!response.body) return { kind: "missing" };
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
   let receivedBytes = 0;
+  let text = "";
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    receivedBytes += value.byteLength;
-    if (receivedBytes > maxBytes) {
-      // A shared stream may wait for a sibling reader during cancellation.
-      void reader.cancel().catch(() => {});
-      return null;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return { kind: "ok", text: text + decoder.decode() };
+      receivedBytes += value.byteLength;
+      if (receivedBytes > maxBytes) {
+        void reader.cancel().catch(() => {});
+        return { kind: "oversized" };
+      }
+      text += decoder.decode(value, { stream: true });
     }
-    chunks.push(value);
+  } finally {
+    reader.releaseLock();
   }
-
-  const merged = new Uint8Array(receivedBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(merged);
 }
