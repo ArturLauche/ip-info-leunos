@@ -4,6 +4,7 @@ import {
   buildBreadcrumbList,
   buildPageBreadcrumbs,
   buildWebPageGraph,
+  buildWebSiteSearchAction,
 } from "./structured-data";
 
 describe("buildPageBreadcrumbs", () => {
@@ -82,6 +83,19 @@ describe("buildBreadcrumbList", () => {
 
   it("returns null when there is no trail", () => {
     expect(buildBreadcrumbList([])).toBeNull();
+  });
+});
+
+describe("buildWebSiteSearchAction", () => {
+  it("points at the URL-driven lookup route that runs without JavaScript", () => {
+    expect(buildWebSiteSearchAction()).toEqual({
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${siteConfig.url}/check?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    });
   });
 });
 

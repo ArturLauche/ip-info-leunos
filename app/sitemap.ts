@@ -2,6 +2,10 @@ import type { MetadataRoute } from 'next'
 import { canonicalUrl } from '@/lib/seo'
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Priorities and change frequencies are advisory only; `lastModified` is the
+  // field crawlers actually consume, so every entry carries the build time as
+  // a freshness signal without inventing per-route dates that do not exist.
+  const lastModified = new Date()
   const routes = [
     { path: '/', changeFrequency: 'daily' as const, priority: 1 },
     { path: '/check', changeFrequency: 'weekly' as const, priority: 0.9 },
@@ -17,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return routes.map((route) => ({
     url: canonicalUrl(route.path),
+    lastModified,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }))
