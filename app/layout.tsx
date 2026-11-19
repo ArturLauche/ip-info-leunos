@@ -9,6 +9,7 @@ import {
   getSiteKeywords,
 } from "@/lib/seo";
 import { getToolTranslation } from "@/lib/tool-i18n";
+import { buildWebSiteSearchAction } from "@/lib/structured-data";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DeferredToaster } from "@/components/deferred-toaster";
 import { StructuredData } from "@/components/structured-data";
@@ -129,6 +130,7 @@ function getJsonLd(locale: Parameters<typeof getSiteDescription>[0]) {
         description: getSiteDescription(locale),
         inLanguage: schemaInLanguage,
         publisher: { "@id": `${siteConfig.url}/#organization` },
+        potentialAction: buildWebSiteSearchAction(),
       },
       // The WebApplication node is emitted per page by ToolStructuredData;
       // a second site-wide copy here would duplicate the graph on every route.

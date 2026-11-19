@@ -83,6 +83,31 @@ export function buildBreadcrumbList(
   };
 }
 
+export interface WebSiteSearchAction extends Record<string, unknown> {
+  "@type": "SearchAction";
+  target: {
+    "@type": "EntryPoint";
+    urlTemplate: string;
+  };
+  "query-input": string;
+}
+
+/**
+ * Declares the site's one URL-based search entry point: `/check` accepts a
+ * `q` parameter for any IP or domain, so engines that follow schema.org
+ * `SearchAction` can deep-link a query straight into the lookup tool.
+ */
+export function buildWebSiteSearchAction(): WebSiteSearchAction {
+  return {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${siteConfig.url}/check?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  };
+}
+
 /**
  * A `WebPage` node that ties the route to the site graph, its language, the
  * social image, and the matching `WebApplication` node. Breadcrumbs are only
