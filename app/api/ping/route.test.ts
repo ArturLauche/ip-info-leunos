@@ -42,6 +42,17 @@ describe("ping route hardening", () => {
     });
   });
 
+  it("rejects an oversized body before parsing", async () => {
+    const response = await ping(`{"target":"${"a".repeat(20_000)}"`);
+    const body = await response.json();
+
+    expect(response.status).toBe(413);
+    expect(body).toMatchObject({
+      ok: false,
+      error: { code: "bad_request" },
+    });
+  });
+
   it("reports the blocked redirect port if neither scheme completes the HTTP check", async () => {
     vi.stubEnv("PUBLIC_ALLOWED_PING_PORTS", "443");
     vi.spyOn(net, "Socket").mockImplementation(function () {

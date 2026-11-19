@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { enforceRateLimit, getClientIp } from "./rate-limit";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("rate limiting", () => {
   it("normalizes trusted proxy IP headers before building bucket keys", () => {
@@ -43,5 +47,46 @@ describe("rate limiting", () => {
       ok: false,
       error: { code: "rate_limited" },
     });
+  });
+
+  it("ignores spoofable forwarding headers when TRUSTED_PROXY_HEADERS=false", () => {
+    vi.stubEnv("TRUSTED_PROXY_HEADERS", "false");
+
+    const spoofed = new Request("https://example.test", {
+      headers: {
+        "cf-connecting-ip": "198.51.100.1",
+        "x-forwarded-for": "198.51.100.2",
+        forwarded: "for=198.51.100.3",
+      },
+    });
+    expect(getClientIp(spoofed)).toBe("unknown");
+
+    // Rotating the headers must not mint a fresh bucket: both requests share
+    // the single "unknown" bucket and the second one is limited.
+    const routeKey = `test-untrusted-${Date.now()}-${Math.random()}`;
+    const first = new Request("https://example.test", {
+      headers: { "cf-connecting-ip": "198.51.100.1" },
+    });
+    const second = new Request("https://example.test", {
+      headers: { "cf-connecting-ip": "198.51.100.99" },
+    });
+    expect(enforceRateLimit(first, routeKey, { limit: 1, windowMs: 60_000 })).toBeNull();
+    expect(enforceRateLimit(second, routeKey, { limit: 1, windowMs: 60_000 })?.status).toBe(429);
+  });
+
+  it("keeps trusting forwarding headers when TRUSTED_PROXY_HEADERS is unset or enabled", () => {
+    vi.stubEnv("TRUSTED_PROXY_HEADERS", "");
+    expect(
+      getClientIp(
+        new Request("https://example.test", { headers: { "cf-connecting-ip": "198.51.100.7" } }),
+      ),
+    ).toBe("198.51.100.7");
+
+    vi.stubEnv("TRUSTED_PROXY_HEADERS", "true");
+    expect(
+      getClientIp(
+        new Request("https://example.test", { headers: { "cf-connecting-ip": "198.51.100.8" } }),
+      ),
+    ).toBe("198.51.100.8");
   });
 });

@@ -17,7 +17,7 @@ IP Auskunft is a public-site-safe Next.js network toolbox for inspecting public 
 
 ## Public-Site Safety Model
 
-The API routes are designed for public deployment. They validate inputs with `zod`, rate-limit requests in memory, enforce timeouts, and block targets that resolve to private, loopback, link-local, multicast, reserved, documentation, and cloud-metadata address ranges.
+The API routes are designed for public deployment. They validate inputs with `zod`, cap request bodies at 16 KiB (`/api/ping`), rate-limit requests in memory, enforce timeouts, and block targets that resolve to private, loopback, link-local, multicast, reserved, documentation, and cloud-metadata address ranges.
 
 User-target HTTP connections and WHOIS referrals connect to validated IP addresses, while HTTPS keeps normal hostname and certificate checks. Each HTTP redirect is validated again. HTTP response limits cover both streamed and decompressed bytes, and deadlines remain active while reading the body. RDAP fallback allows up to three redirects and 256,000 response bytes within its six-second overall deadline.
 
@@ -43,6 +43,8 @@ Upstream answers are memoized per process with bounded TTL caches (`lib/ttl-cach
 | Reputation summaries / GreyNoise per IP | 10 min / 24 h |
 
 Set `PUBLIC_ALLOWED_PING_PORTS` to a comma-separated list such as `80,443,5432` if a deployment should restrict the ping tool to specific ports. Endpoint checks apply this policy to each redirect destination.
+
+Set `TRUSTED_PROXY_HEADERS=false` when the app is exposed directly, without a CDN or reverse proxy in front that strips client-supplied forwarding headers. The rate limiter normally derives the client IP from `cf-connecting-ip` / `true-client-ip` / `x-real-ip` / `forwarded` / `x-forwarded-for`, which are only trustworthy behind such a proxy; on direct exposure an attacker could rotate them to bypass the per-IP limits. With the flag set to `false`, all requests share one global bucket instead. Leave it unset on CDN-fronted deployments (e.g. Vercel), where those headers are set by the edge.
 
 Set `IPINFO_TOKEN` to enable IPinfo ASN details on `/asn`. Without a token, ASN lookups still use public PeeringDB data when available.
 
