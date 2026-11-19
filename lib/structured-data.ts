@@ -83,12 +83,21 @@ export function buildBreadcrumbList(
   };
 }
 
+export interface WebSiteSearchAction extends Record<string, unknown> {
+  "@type": "SearchAction";
+  target: {
+    "@type": "EntryPoint";
+    urlTemplate: string;
+  };
+  "query-input": string;
+}
+
 /**
  * Declares the site's one URL-based search entry point: `/check` accepts a
  * `q` parameter for any IP or domain, so engines that follow schema.org
  * `SearchAction` can deep-link a query straight into the lookup tool.
  */
-export function buildWebSiteSearchAction() {
+export function buildWebSiteSearchAction(): WebSiteSearchAction {
   return {
     "@type": "SearchAction",
     target: {
