@@ -106,6 +106,96 @@ function submit(query) {
   browser("click", "button[type=submit]");
 }
 
+/**
+ * Page-side probe for the route transition. Records clone count, peak live
+ * copies, viewport anchoring, scroll height and any frame where the outgoing
+ * and incoming layouts are both visible. Independent of frame timing in the
+ * driver process.
+ */
+function installTransitionRecorder() {
+  evaluate(`(() => {
+    window.__rec = {
+      routeClones: 0,
+      peakSnapshots: 0,
+      sawActive: false,
+      sawFixed: false,
+      sawOpaqueCover: false,
+      idleAfterActive: false,
+      activeSamples: 0,
+      ghostSamples: 0,
+      sawInertCopy: false,
+      sawUniqueIds: false,
+      maxScrollHeightWhileActive: 0,
+      minSnapshotTop: 0,
+    };
+    const original = Element.prototype.cloneNode;
+    Element.prototype.cloneNode = function (...args) {
+      const result = original.apply(this, args);
+      if (this.classList && this.classList.contains('tool-page-current')) {
+        window.__rec.routeClones++;
+      }
+      return result;
+    };
+    const loop = () => {
+      const layer = document.querySelector('.tool-page-snapshot-layer');
+      const copies = document.querySelectorAll('.tool-page-snapshot');
+      if (copies.length > window.__rec.peakSnapshots) {
+        window.__rec.peakSnapshots = copies.length;
+      }
+      if (layer && layer.dataset.active === 'true') {
+        window.__rec.sawActive = true;
+        window.__rec.activeSamples++;
+        if (getComputedStyle(layer).position === 'fixed') {
+          window.__rec.sawFixed = true;
+        }
+        const cover = document.querySelector('.tool-page-cover');
+        const copy = copies[0];
+        const coverOpacity = cover ? parseFloat(getComputedStyle(cover).opacity) : 1;
+        const copyOpacity = copy ? parseFloat(getComputedStyle(copy).opacity) : 0;
+        if (coverOpacity > 0.9) window.__rec.sawOpaqueCover = true;
+        if (copy) {
+          const focusable = copy.querySelector(
+            'a[href], button, input, select, textarea, [tabindex], [contenteditable]',
+          );
+          if (
+            copy.inert === true &&
+            copy.getAttribute('aria-hidden') === 'true' &&
+            (!focusable || focusable.tabIndex < 0)
+          ) {
+            window.__rec.sawInertCopy = true;
+          }
+          if (
+            copy.querySelector('[id]') === null &&
+            document.querySelectorAll('.tool-page-snapshot-layer [id]').length === 0
+          ) {
+            window.__rec.sawUniqueIds = true;
+          }
+        }
+        if (
+          copyOpacity > 0.15 &&
+          (1 - copyOpacity) * (1 - coverOpacity) > 0.15
+        ) {
+          window.__rec.ghostSamples++;
+        }
+        if (copy) {
+          const top = copy.getBoundingClientRect().top;
+          if (top < window.__rec.minSnapshotTop) {
+            window.__rec.minSnapshotTop = Math.round(top);
+          }
+        }
+        const height = document.documentElement.scrollHeight;
+        if (height > window.__rec.maxScrollHeightWhileActive) {
+          window.__rec.maxScrollHeightWhileActive = height;
+        }
+      } else if (window.__rec.sawActive) {
+        window.__rec.idleAfterActive = true;
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  })()`);
+}
+
 try {
   browser("set", "viewport", "1440", "1000");
   open("/dns");
@@ -259,9 +349,122 @@ try {
     assert.equal(evaluate("window.__routeClones"), 0);
     // A commit that mounts no replacement copy must not leave the old one over the route.
     // The address bar updates a few ms before the route commits, so wait for the new page;
-    // the cleanup runs in that same commit, so the layer must already be empty.
+    // the cleanup runs in that same commit, so the layer must already be cleared.
     waitFor("document.querySelector('.tool-page-current:not(.tool-page-snapshot) h1')?.textContent === 'DNS Lookup'");
-    assert.equal(evaluate("document.querySelector('.tool-page-snapshot-layer').childElementCount"), 0);
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+    assert.equal(
+      evaluate("document.querySelector('.tool-page-snapshot-layer').dataset.active ?? null"),
+      null,
+    );
+    // Motion is the default for every check below.
+    browser("set", "media", "dark");
+  });
+
+  check("a fresh load renders immediately without a transition layer", () => {
+    browser("set", "viewport", "1440", "1000");
+    open("/dns");
+    waitFor("document.querySelector('h1')?.textContent === 'DNS Lookup'");
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+    assert.equal(
+      evaluate("document.querySelector('.tool-page-snapshot-layer').dataset.active ?? null"),
+      null,
+    );
+    assert.equal(
+      evaluate("getComputedStyle(document.querySelector('.tool-page-snapshot-layer')).display"),
+      "none",
+    );
+  });
+
+  check("a route change uses one fixed outgoing copy and cleans it up", () => {
+    open("/dns");
+    installTransitionRecorder();
+    browser("click", "footer a[href='/privacy-policy']");
+    browser("wait", "--url", "**/privacy-policy");
+    waitFor("window.__rec.idleAfterActive === true");
+    assert.equal(evaluate("window.__rec.routeClones"), 1);
+    assert.equal(evaluate("window.__rec.peakSnapshots"), 1);
+    assert.equal(evaluate("window.__rec.sawActive"), true);
+    assert.equal(evaluate("window.__rec.sawFixed"), true);
+    assert.equal(evaluate("window.__rec.sawOpaqueCover"), true);
+    assert.equal(evaluate("window.__rec.sawInertCopy"), true);
+    assert.equal(evaluate("window.__rec.sawUniqueIds"), true);
+    // The outgoing and incoming layouts must never be visible together.
+    assert.equal(evaluate("window.__rec.ghostSamples"), 0);
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+    assert.equal(
+      evaluate("document.querySelector('.tool-page-snapshot-layer').dataset.active ?? null"),
+      null,
+    );
+    assertHealthy();
+  });
+
+  check("a scrolled tall page hands off to a short route without scroll inflation", () => {
+    open("/privacy-policy");
+    waitFor("document.querySelector('h1')?.textContent.length > 0");
+    evaluate("window.scrollTo({ top: 900, behavior: 'instant' })");
+    installTransitionRecorder();
+    browser("click", "aside a[href='/dns']");
+    browser("wait", "--url", "**/dns");
+    waitFor("window.__rec.idleAfterActive === true");
+    assert.equal(evaluate("window.scrollY"), 0);
+    // The fixed copy must not extend the document: only the incoming page owns scroll height.
+    assert.ok(evaluate("window.__rec.maxScrollHeightWhileActive < 1400"));
+    // A scrolled capture is anchored by a negative viewport offset.
+    assert.ok(evaluate("window.__rec.minSnapshotTop < -400"));
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+    assertHealthy();
+  });
+
+  check("rapid navigation keeps at most one copy and lands on the latest route", () => {
+    open("/dns");
+    installTransitionRecorder();
+    browser("click", "aside a[href='/whois']");
+    browser("wait", "40");
+    browser("click", "aside a[href='/ping']");
+    browser("wait", "40");
+    browser("click", "aside a[href='/reputation']");
+    browser("wait", "40");
+    browser("click", "aside a[href='/cdn']");
+    browser("wait", "--url", "**/cdn");
+    waitFor("document.querySelector('h1')?.textContent === 'CDN Usage Checker'");
+    browser("wait", "500");
+    assert.equal(evaluate("window.__rec.peakSnapshots <= 1"), true);
+    assert.equal(evaluate("window.__rec.ghostSamples"), 0);
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+    assertHealthy();
+  });
+
+  check("search-parameter updates do not replay the page transition", () => {
+    open("/dns");
+    installFixtures();
+    installTransitionRecorder();
+    submit("example.com");
+    waitFor("window.__completed === 1 && !!document.querySelector('h2')");
+    assert.equal(evaluate("window.__rec.routeClones"), 0);
+    assert.equal(evaluate("window.__rec.sawActive"), false);
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+  });
+
+  check("browser history navigates routes and leaves no copy behind", () => {
+    browser("set", "viewport", "1440", "1000");
+    open("/");
+    browser("click", "aside a[href='/dns']");
+    browser("wait", "--url", "**/dns");
+    browser("click", "aside a[href='/ping']");
+    browser("wait", "--url", "**/ping");
+    browser("back");
+    browser("wait", "--url", "**/dns");
+    browser("back");
+    browser("wait", "--url", "**/");
+    browser("forward");
+    browser("wait", "--url", "**/dns");
+    browser("wait", "500");
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
+    assert.equal(
+      evaluate("document.querySelector('.tool-page-snapshot-layer').dataset.active ?? null"),
+      null,
+    );
+    assertHealthy();
   });
 
   check("same-tool navigation and history restore or clear lookup state", () => {
@@ -303,10 +506,14 @@ try {
     open("/asn");
     browser("snapshot", "-i");
     installFixtures();
+    installTransitionRecorder();
     submit("13335");
     browser("wait", "--url", "**/asn/AS13335");
     waitFor("window.__completed === 1");
     assert.equal(evaluate("window.__calls.length"), 1);
+    waitFor("window.__rec.idleAfterActive === true");
+    assert.equal(evaluate("window.__rec.routeClones"), 1);
+    assert.equal(evaluate("document.querySelectorAll('.tool-page-snapshot').length"), 0);
     assertHealthy();
   });
 

@@ -186,22 +186,38 @@ Every data view designs for four states explicitly:
   place uses the decelerating `--ease-fluid` curve, and shared durations come
   from the `--motion-*` tokens in `app/globals.css`. No long or
   attention-seeking animation.
-- **Page changes** (`PageTransition`): the outgoing route fades and lifts away
-  in 120–150 ms while the incoming route settles in stage by stage — header
-  icon, header copy, panel, footer — within about half a second. Stage timings
-  and travel are the `--page-*` custom properties on `.tool-page-transition`;
-  the icon and the header fade reuse the `--motion-*` tokens. New page chrome
-  opts in with `data-transition-stage` / `data-transition-item`; do not stack a
-  second entrance on top of it.
+- **Motion hierarchy** (one source in `:root`): `--motion-instant` for press
+  feedback, `--motion-fast` for hovers and small state, `--motion-base` for
+  standard component transitions, `--motion-slide` for measured indicator
+  travel, `--motion-slow` for overlays and larger settles. Do not scatter new
+  millisecond values through components.
+- **Page changes** (`PageTransition`): a fade **through** the shared page
+  background, not a cross-fade between two pages. At commit the outgoing route
+  is kept as one inert, viewport-anchored copy; its content dissolves into an
+  opaque page-colored cover in `--page-exit-duration` (100–115 ms) while the
+  incoming route is already mounted and interactive underneath. The cover then
+  lifts over `--page-reveal-duration` (200–220 ms) and the new page fades in
+  from the background. The two layouts are never visible at once (no ghosting)
+  and the incoming route has no animated layer of its own. First loads never
+  replay this; search/hash updates never capture it; the copy is detached until
+  commit and dropped after 600 ms, so a failed or slow route cannot leave stale
+  content on screen.
+- **Navigation indicators** (`.tool-nav-highlight`, `.tool-segment-highlight`,
+  `.tool-tab-indicator`) slide only on a deliberate selection change. Scroll,
+  resize, locale swaps and mutations re-measure and snap, so the frame stays
+  glued to its item instead of lagging one transition behind.
 - **Content appearance**: async results use `.tool-reveal` (direct children lift
-  in with a capped stagger); a single late arrival — an error, raw output, tab
-  content — uses `.tool-section-reveal`; loading placeholders use `Skeleton`
-  (a soft sweep, static under reduced motion).
-- Every animation has a `prefers-reduced-motion` counterpart at the end of
-  `globals.css`; add new animated classes to that block.
+  in with a 24 ms stagger capped at 96 ms); a single late arrival — an error,
+  raw output, tab content — uses `.tool-section-reveal`; loading placeholders
+  use `Skeleton` (a soft 2 s sweep, static under reduced motion).
+- **Interaction feedback**: buttons press 1 px, switches and toggles move on the
+  shared tokens, overlays fade and scale from 98 %, and copy confirms with a
+  small icon pop plus a `sonner` toast. No hover-only information.
+- **Reduced motion** is a single blanket reset at the end of `globals.css`:
+  every animation and transition collapses to an immediate state change, with
+  delays cleared so fill modes cannot hide content. The page-transition
+  controller also skips capture and drops any active copy.
 - Hover states are subtle (`hover:border-primary/40`, `hover:bg-muted/40`).
-- Provide feedback for actions: copy-to-clipboard confirms with a `sonner` toast
-  and a momentary check icon.
 - Respect the platform — keep durations short and avoid motion that blocks
   reading.
 

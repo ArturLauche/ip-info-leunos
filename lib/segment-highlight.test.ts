@@ -100,6 +100,26 @@ describe("nextSegmentHighlight", () => {
     });
   });
 
+  it("snaps when a scroll or resize re-measurement is not a selection change", () => {
+    const previous: SegmentHighlightView = {
+      box: { x: 4, y: 4, width: 80, height: 32 },
+      visible: true,
+      slide: true,
+    };
+
+    expect(
+      nextSegmentHighlight(
+        previous,
+        { x: 44, y: 4, width: 80, height: 32 },
+        false,
+      ),
+    ).toEqual({
+      box: { x: 44, y: 4, width: 80, height: 32 },
+      visible: true,
+      slide: false,
+    });
+  });
+
   it("returns the same object when hiding from an already hidden state", () => {
     expect(nextSegmentHighlight(INITIAL_SEGMENT_HIGHLIGHT, null, true)).toBe(
       INITIAL_SEGMENT_HIGHLIGHT,

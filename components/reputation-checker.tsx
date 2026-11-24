@@ -768,7 +768,7 @@ export function ReputationChecker({ initialIp = "" }: ReputationCheckerProps) {
             {hiddenSources.length > 0 && (
               <div className="border-t">
                 {showHiddenSources && (
-                  <ul className="flex flex-col border-b">
+                  <ul className="tool-section-reveal flex flex-col border-b">
                     {hiddenSources.map((source) => (
                       <SourceRow
                         key={source.id}

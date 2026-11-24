@@ -99,19 +99,13 @@ export function ToolPageShell({
           description={subtitle}
         />
       )}
-      <header
-        className="app-page-header border-b border-border/60"
-        data-transition-stage="header"
-      >
+      <header className="app-page-header border-b border-border/60">
         <div className="app-page-header-inner mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
-            <span
-              className="app-page-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-12"
-              data-transition-item="icon"
-            >
+            <span className="app-page-icon flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 sm:size-12">
               <Icon aria-hidden="true" className="size-5 sm:size-6" />
             </span>
-            <div className="min-w-0 flex-1" data-transition-item="text">
+            <div className="min-w-0 flex-1">
               {sectionLabel && (
                 <p className="app-page-eyebrow text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {sectionLabel}
@@ -132,15 +126,11 @@ export function ToolPageShell({
         id="main-content"
         tabIndex={-1}
         className="app-page-main mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 outline-none"
-        data-transition-stage="panel"
       >
         {children}
       </main>
 
-      <footer
-        className="app-page-footer border-t border-border/60"
-        data-transition-stage="footer"
-      >
+      <footer className="app-page-footer border-t border-border/60">
         <div className="app-page-footer-inner mx-auto flex w-full max-w-6xl flex-wrap items-center justify-end gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/privacy-policy"

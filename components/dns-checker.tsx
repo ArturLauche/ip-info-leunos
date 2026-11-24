@@ -203,7 +203,7 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
             {visibleRecords.length > 0 ? (
               <div
                 key={selectedType}
-                className="overflow-hidden rounded-lg border motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200"
+                className="tool-section-reveal overflow-hidden rounded-lg border"
               >
                 <Table>
                   <TableHeader>
@@ -231,7 +231,7 @@ export function DnsChecker({ initialTarget = "" }: DnsCheckerProps) {
             ) : (
               <p
                 key={selectedType}
-                className="text-sm text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+                className="tool-section-reveal text-sm text-muted-foreground"
               >
                 {t.dnsNoRecords}
               </p>
@@ -339,7 +339,7 @@ function DnsTypeFilter({
             key={type}
             value={type}
             className={cn(
-              "relative z-10 font-mono transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)]",
+              "relative z-10 font-mono transition-[color,background-color,box-shadow,border-color] duration-[var(--motion-fast)] ease-[var(--ease-smooth)]",
               view.visible &&
                 "data-[state=on]:border-transparent data-[state=on]:bg-transparent data-[state=on]:text-foreground data-[state=on]:shadow-none",
             )}

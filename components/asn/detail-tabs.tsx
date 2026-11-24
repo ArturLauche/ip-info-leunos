@@ -73,7 +73,7 @@ export function AsnDetailTabs({
               key={item.value}
               value={item.value}
               className={cn(
-                "group my-1.5 h-auto min-h-11 min-w-0 flex-col justify-start gap-1 rounded-md sm:justify-center border-0 px-1.5 py-1.5 text-[13px] font-medium text-muted-foreground shadow-none transition-colors duration-200 ease-[var(--ease-smooth)] hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none sm:min-h-9 sm:flex-none sm:flex-row sm:gap-2 sm:px-3",
+                "group my-1.5 h-auto min-h-11 min-w-0 flex-col justify-start gap-1 rounded-md sm:justify-center border-0 px-1.5 py-1.5 text-[13px] font-medium text-muted-foreground shadow-none transition-colors duration-[var(--motion-fast)] ease-[var(--ease-smooth)] hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none sm:min-h-9 sm:flex-none sm:flex-row sm:gap-2 sm:px-3",
                 "data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:hover:bg-muted/70",
                 "dark:text-muted-foreground dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-foreground",
                 // Without a measured indicator (first paint, no JS) the active

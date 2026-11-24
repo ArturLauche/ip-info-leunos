@@ -68,6 +68,32 @@ describe("nextNavHighlight", () => {
     });
   });
 
+  it("snaps when a re-measurement is not a selection change", () => {
+    const previous: NavHighlightView = {
+      box: { y: 44, height: 40 },
+      visible: true,
+      slide: true,
+    };
+
+    expect(nextNavHighlight(previous, { y: 132, height: 44 }, false)).toEqual({
+      box: { y: 132, height: 44 },
+      visible: true,
+      slide: false,
+    });
+  });
+
+  it("keeps the same object when a re-measurement finds the same box", () => {
+    const previous: NavHighlightView = {
+      box: { y: 44, height: 40 },
+      visible: true,
+      slide: false,
+    };
+
+    expect(nextNavHighlight(previous, { y: 44, height: 40 }, false)).toBe(
+      previous,
+    );
+  });
+
   it("returns the same object when hiding from an already hidden state", () => {
     expect(nextNavHighlight(INITIAL_NAV_HIGHLIGHT, null, true)).toBe(
       INITIAL_NAV_HIGHLIGHT,

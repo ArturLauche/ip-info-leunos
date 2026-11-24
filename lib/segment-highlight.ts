@@ -20,7 +20,10 @@ export const INITIAL_SEGMENT_HIGHLIGHT: SegmentHighlightView = {
 
 function sameBox(a: SegmentHighlightBox, b: SegmentHighlightBox) {
   return (
-    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+    a.x === b.x &&
+    a.y === b.y &&
+    a.width === b.width &&
+    a.height === b.height
   );
 }
 
@@ -28,13 +31,16 @@ function sameBox(a: SegmentHighlightBox, b: SegmentHighlightBox) {
  * Next frame for a sliding segmented-control indicator.
  *
  * - First paint snaps into place (no slide from the origin).
- * - Later moves slide once motion is enabled.
+ * - A selection change slides once motion is enabled.
  * - Losing the active item keeps the last box and only fades out.
+ * - `maySlide` is false for re-measurements that are not a selection change
+ *   (scroll, resize, mutation): the chip is glued to its item instead of
+ *   lagging one transition behind a moving track.
  */
 export function nextSegmentHighlight(
   previous: SegmentHighlightView,
   measured: SegmentHighlightBox | null,
-  canAnimate: boolean,
+  maySlide: boolean,
 ): SegmentHighlightView {
   if (!measured) {
     if (!previous.visible && !previous.slide) {
@@ -48,17 +54,14 @@ export function nextSegmentHighlight(
     };
   }
 
-  if (
-    previous.visible &&
-    sameBox(previous.box, measured) &&
-    previous.slide === (canAnimate && previous.visible)
-  ) {
+  const slide = maySlide && previous.visible;
+  if (previous.visible && sameBox(previous.box, measured) && previous.slide === slide) {
     return previous;
   }
 
   return {
     box: measured,
     visible: true,
-    slide: canAnimate && previous.visible,
+    slide,
   };
 }

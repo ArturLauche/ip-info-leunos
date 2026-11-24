@@ -22,6 +22,10 @@ function roundBox(box: SegmentHighlightBox): SegmentHighlightBox {
  * labels cannot desync the indicator. Supports both Tabs (`data-state="active"`)
  * and ToggleGroup (`data-state="on"`) primitives, and tracks inner scroll
  * position so horizontally scrollable lists keep the indicator aligned.
+ *
+ * Only a selection change animates. Scroll, resize and list mutations
+ * re-measure and snap, which keeps the chip glued to a moving track rather
+ * than one transition behind it.
  */
 export function useSegmentHighlight(selected: string) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +37,7 @@ export function useSegmentHighlight(selected: string) {
   // the travelling chip copies the active item's radius to sit exactly in frame.
   const [radius, setRadius] = useState("");
 
-  const measure = useCallback(() => {
+  const measure = useCallback((fromSelection: boolean) => {
     const container = containerRef.current;
     const active = container?.querySelector<HTMLElement>(
       '[data-state="active"], [data-state="on"]',
@@ -53,7 +57,11 @@ export function useSegmentHighlight(selected: string) {
       measuredRadius = getComputedStyle(active).borderRadius;
     }
 
-    const next = nextSegmentHighlight(viewRef.current, measured, canAnimateRef.current);
+    const next = nextSegmentHighlight(
+      viewRef.current,
+      measured,
+      canAnimateRef.current && fromSelection,
+    );
     viewRef.current = next;
     setView((previous) =>
       previous.box.x === next.box.x &&
@@ -69,7 +77,7 @@ export function useSegmentHighlight(selected: string) {
   }, []);
 
   useLayoutEffect(() => {
-    measure();
+    measure(true);
   }, [measure, selected]);
 
   useEffect(() => {
@@ -84,7 +92,7 @@ export function useSegmentHighlight(selected: string) {
     const container = containerRef.current;
     if (!container) return;
 
-    const observer = new ResizeObserver(() => measure());
+    const observer = new ResizeObserver(() => measure(false));
     observer.observe(container);
 
     // Scrollable lists (e.g. tabs with overflow-x-auto) move the active item
@@ -92,11 +100,11 @@ export function useSegmentHighlight(selected: string) {
     // bubble, but a capture listener on the container sees descendant scrollers.
     // A MutationObserver picks up dynamically added triggers (ASN sources tab,
     // DNS record-type filters) even when the selection itself is unchanged;
-    // scroll remeasures are throttled to one per frame.
+    // remeasures are throttled to one per frame.
     let scrollRaf = 0;
     const handleScroll = () => {
       cancelAnimationFrame(scrollRaf);
-      scrollRaf = requestAnimationFrame(() => measure());
+      scrollRaf = requestAnimationFrame(() => measure(false));
     };
     container.addEventListener("scroll", handleScroll, { passive: true, capture: true });
 
@@ -114,7 +122,7 @@ export function useSegmentHighlight(selected: string) {
     // only watch for added/removed triggers here.
     const mutations = new MutationObserver(() => {
       observeItems();
-      measure();
+      measure(false);
     });
     mutations.observe(container, { childList: true, subtree: true });
 

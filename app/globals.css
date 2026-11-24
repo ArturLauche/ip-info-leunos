@@ -15,20 +15,25 @@
   --radius: 0.65rem;
 
   /*
-   * Motion easing tokens. Tuned to feel calm and smooth rather than snappy:
-   * `smooth` decelerates and accelerates gently (for elements that move or
-   * morph between states), `out-soft` is a soft decelerate for enter/reveal.
+   * Motion tokens. One hierarchy runs from immediate feedback to page
+   * navigation; components reuse these instead of carrying private timings.
+   * `fluid` decelerates for arrivals, `smooth` is the neutral state curve and
+   * `exit` clears an outgoing surface quickly before its long, faint tail, so
+   * two page states never read as a static double image.
    */
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-fluid: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Shared scale for selection, overlay and page motion. */
-  --motion-fast: 120ms;
-  --motion-base: 220ms;
-  --motion-slow: 420ms;
+  /* Immediate feedback · small state · component · measured travel · overlay. */
+  --motion-instant: 90ms;
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
+  --motion-slide: 240ms;
+  --motion-slow: 280ms;
   /* Loop period of the loading sheen. */
-  --motion-sheen: 1800ms;
+  --motion-sheen: 2000ms;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -269,14 +274,14 @@
   }
 
   .tool-nav-highlight[data-animate="true"] {
-    transition: opacity var(--motion-base) var(--ease-smooth);
+    transition: opacity var(--motion-fast) var(--ease-smooth);
   }
 
   .tool-nav-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform var(--motion-slow) var(--ease-fluid),
-      height var(--motion-slow) var(--ease-fluid),
-      opacity var(--motion-base) var(--ease-smooth);
+      transform var(--motion-slide) var(--ease-fluid),
+      height var(--motion-slide) var(--ease-fluid),
+      opacity var(--motion-fast) var(--ease-smooth);
   }
 
   /*
@@ -315,16 +320,16 @@
   }
 
   .tool-segment-highlight[data-animate="true"] {
-    transition: opacity var(--motion-base) var(--ease-smooth);
+    transition: opacity var(--motion-fast) var(--ease-smooth);
   }
 
   .tool-segment-highlight[data-animate="true"][data-slide="true"] {
     transition:
-      transform var(--motion-slow) var(--ease-fluid),
-      width var(--motion-slow) var(--ease-fluid),
-      height var(--motion-slow) var(--ease-fluid),
-      border-radius var(--motion-slow) var(--ease-fluid),
-      opacity var(--motion-base) var(--ease-smooth);
+      transform var(--motion-slide) var(--ease-fluid),
+      width var(--motion-slide) var(--ease-fluid),
+      height var(--motion-slide) var(--ease-fluid),
+      border-radius var(--motion-slide) var(--ease-fluid),
+      opacity var(--motion-fast) var(--ease-smooth);
   }
 
   /*
@@ -344,14 +349,14 @@
   }
 
   .tool-tab-indicator[data-animate="true"] {
-    transition: opacity var(--motion-base) var(--ease-smooth);
+    transition: opacity var(--motion-fast) var(--ease-smooth);
   }
 
   .tool-tab-indicator[data-animate="true"][data-slide="true"] {
     transition:
-      transform var(--motion-slow) var(--ease-fluid),
-      width var(--motion-slow) var(--ease-fluid),
-      opacity var(--motion-base) var(--ease-smooth);
+      transform var(--motion-slide) var(--ease-fluid),
+      width var(--motion-slide) var(--ease-fluid),
+      opacity var(--motion-fast) var(--ease-smooth);
   }
 
   .tool-nav-item-fallback {
@@ -363,44 +368,75 @@
 
   .tool-nav-icon {
     transition:
-      color var(--motion-base) var(--ease-smooth),
-      background-color var(--motion-base) var(--ease-smooth),
-      box-shadow var(--motion-base) var(--ease-smooth);
+      color var(--motion-fast) var(--ease-smooth),
+      background-color var(--motion-fast) var(--ease-smooth),
+      box-shadow var(--motion-fast) var(--ease-smooth);
   }
 
   /*
-   * Page-change transition. The persistent wrapper keeps the outgoing route on
-   * screen while it fades and lifts away; the incoming route then settles in
-   * stage by stage (header icon, header copy, panel, footer) on one
-   * decelerating curve. Distances stay small and only opacity and transform
-   * animate, so it runs on the compositor. Mobile travels a little farther and
-   * a little longer. The wrapper clips horizontally.
+   * Page-change transition — a fade through the shared page background. The
+   * outgoing page is kept as one inert, viewport-anchored copy that dissolves
+   * into an opaque page-colored cover; the incoming route is already mounted
+   * and interactive underneath. The cover then lifts, so the new page fades in
+   * from the same background. The two page layouts are never visible at once:
+   * no double exposure, no full-page animated layer on the incoming route.
+   *
+   * Only opacity and transform animate. Search/hash updates keep the same
+   * pathname and never capture or animate at all.
    */
   .tool-page-transition {
     position: relative;
-    overflow-x: clip;
 
-    --page-enter-duration: 340ms;
-    --page-enter-distance: 0.5rem;
+    /* Keep in sync with lib/page-transition.ts (asserted by its test). */
+    --page-exit-duration: 100ms;
+    --page-reveal-duration: 200ms;
     --page-exit-distance: 0.25rem;
-    --page-delay-copy: 60ms;
-    --page-delay-icon: 20ms;
-    --page-delay-panel: 90ms;
-    --page-delay-footer: 150ms;
   }
 
+  /*
+   * The layer is fixed and clipped below the shell chrome (sidebar and mobile
+   * bar sit at z-30). Fixed positioning keeps it out of the document flow, so
+   * it cannot change scroll height or be dragged along by the router's scroll
+   * reset. It is not rendered at all while idle.
+   */
   .tool-page-snapshot-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    overflow: clip;
+    pointer-events: none;
+  }
+
+  .tool-page-snapshot-layer[data-active='true'] {
+    display: block;
+  }
+
+  /* Opaque page canvas between the incoming route and the outgoing copy. The
+   * base state is opaque so a commit that lands before the reveal animation's
+   * first frame still hides the new route behind the cover. The idle layer is
+   * display:none, so an opacity-1 cover is never painted outside a transition. */
+  .tool-page-cover {
     position: absolute;
     inset: 0;
-    z-index: 10;
+    background-color: var(--background);
+    pointer-events: none;
+  }
+
+  .tool-page-cover[data-phase='revealing'] {
+    animation: tool-page-reveal var(--page-reveal-duration, 200ms) var(--ease-fluid) both;
+  }
+
+  .tool-page-snapshot-slot {
+    position: absolute;
+    inset: 0;
     pointer-events: none;
   }
 
   .tool-page-snapshot {
-    width: 100%;
-    background-color: var(--background);
+    position: absolute;
+    top: 0;
     pointer-events: none;
-    will-change: opacity, transform;
   }
 
   /* Cloned descendants must look exactly as they did when captured, not
@@ -413,66 +449,38 @@
   }
 
   .tool-page-snapshot[data-phase='exiting'] {
-    animation: tool-page-exit var(--page-exit-duration, var(--motion-fast)) var(--ease-smooth)
-      both;
+    animation: tool-page-exit var(--page-exit-duration, 100ms) var(--ease-exit) both;
   }
 
-  .tool-page-current > [data-transition-stage] {
-    animation: tool-page-enter var(--page-enter-duration) var(--ease-fluid) both;
-  }
-
-  /* The header only fades as a whole; its icon and copy move on their own so
-   * the two never stack their offsets. */
-  .tool-page-current > [data-transition-stage='header'] {
-    animation: tool-page-fade var(--motion-base) var(--ease-out-soft) both;
-  }
-
-  .tool-page-current > [data-transition-stage='header'] [data-transition-item='icon'] {
-    animation: tool-icon-enter var(--motion-slow) var(--ease-fluid) var(--page-delay-icon) both;
-  }
-
-  .tool-page-current > [data-transition-stage='header'] [data-transition-item='text'] {
-    animation: tool-page-enter var(--page-enter-duration) var(--ease-fluid)
-      var(--page-delay-copy) both;
-  }
-
-  .tool-page-current > [data-transition-stage='panel'] {
-    animation-delay: var(--page-delay-panel);
-  }
-
-  .tool-page-current > [data-transition-stage='footer'] {
-    animation-delay: var(--page-delay-footer);
+  .tool-page-current {
+    overflow-x: clip;
   }
 
   @media (max-width: 1023px) {
     .tool-page-transition {
-      --page-enter-duration: 380ms;
-      --page-enter-distance: 0.75rem;
-      --page-exit-distance: 0.375rem;
-      --page-delay-copy: 80ms;
-      --page-delay-icon: 30ms;
-      --page-delay-panel: 110ms;
-      --page-delay-footer: 170ms;
+      /* Keep in sync with lib/page-transition.ts (asserted by its test). */
+      --page-exit-duration: 115ms;
+      --page-reveal-duration: 220ms;
+      --page-exit-distance: 0.3125rem;
     }
   }
 
   /*
    * Shared reveal for asynchronously loaded results (IP lookups, DNS, WHOIS,
-   * ASN, reputation, …). Rather than fading the whole block in at once, the
-   * direct children lift in with a short, capped stagger so a result settles
-   * section by section, on the same decelerating curve as the page. The
-   * container remounts on every lookup, so the stagger replays each time.
+   * ASN, reputation, …). The direct children lift in with a short, capped
+   * stagger so a result settles section by section on the same decelerating
+   * curve as the page. The cap keeps dense result pages from assembling for
+   * longer than the content takes to read.
    */
   .tool-reveal > * {
     animation: tool-reveal var(--motion-slow) var(--ease-fluid) both;
   }
 
   .tool-reveal > *:nth-child(1) { animation-delay: 0ms; }
-  .tool-reveal > *:nth-child(2) { animation-delay: 55ms; }
-  .tool-reveal > *:nth-child(3) { animation-delay: 110ms; }
-  .tool-reveal > *:nth-child(4) { animation-delay: 165ms; }
-  .tool-reveal > *:nth-child(5) { animation-delay: 220ms; }
-  .tool-reveal > *:nth-child(n + 6) { animation-delay: 260ms; }
+  .tool-reveal > *:nth-child(2) { animation-delay: 24ms; }
+  .tool-reveal > *:nth-child(3) { animation-delay: 48ms; }
+  .tool-reveal > *:nth-child(4) { animation-delay: 72ms; }
+  .tool-reveal > *:nth-child(n + 5) { animation-delay: 96ms; }
 
   /*
    * Loading placeholder. A soft band sweeps across each block instead of the
@@ -511,8 +519,8 @@
     grid-template-rows: 0fr;
     opacity: 0;
     transition:
-      grid-template-rows 400ms var(--ease-smooth),
-      opacity 280ms var(--ease-smooth);
+      grid-template-rows var(--motion-slow) var(--ease-out-soft),
+      opacity var(--motion-fast) var(--ease-smooth);
   }
 
   .ping-mode-expand[data-open="true"] {
@@ -534,62 +542,49 @@
   .tool-section-reveal {
     animation: tool-section-reveal var(--motion-base) var(--ease-out-soft) both;
   }
-}
 
-@keyframes tool-page-enter {
-  from {
-    opacity: 0;
-    transform: translate3d(0, var(--page-enter-distance, 0.5rem), 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
+  /* A copied value swaps its icon with a short, tactile confirmation. */
+  .tool-icon-pop {
+    animation: tool-icon-pop var(--motion-fast) var(--ease-fluid) both;
   }
 }
 
 @keyframes tool-page-exit {
   from {
     opacity: 1;
-    transform: translate3d(0, var(--page-exit-offset, 0px), 0);
+    transform: translate3d(0, var(--page-snapshot-y, 0px), 0);
   }
 
   to {
     opacity: 0;
     transform: translate3d(
       0,
-      calc(var(--page-exit-offset, 0px) - var(--page-exit-distance, 0.25rem)),
+      calc(var(--page-snapshot-y, 0px) - var(--page-exit-distance, 0.25rem)),
       0
     );
   }
 }
 
-@keyframes tool-page-fade {
-  from {
-    opacity: 0;
-  }
-
-  to {
+/*
+ * The cover holds the page canvas until the outgoing content has dissolved
+ * (18% of 200–220 ms), then lifts. The incoming route is fully rendered
+ * underneath, so this is a fade-in from the background with no cross-fade.
+ */
+@keyframes tool-page-reveal {
+  0%,
+  18% {
     opacity: 1;
   }
-}
 
-@keyframes tool-icon-enter {
-  from {
+  100% {
     opacity: 0;
-    transform: scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 
 @keyframes tool-reveal {
   from {
     opacity: 0;
-    transform: translateY(0.625rem);
+    transform: translateY(0.5rem);
   }
 
   to {
@@ -610,6 +605,18 @@
   }
 }
 
+@keyframes tool-icon-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes tool-skeleton-sheen {
   to {
     transform: translateX(100%);
@@ -621,28 +628,23 @@
     scroll-behavior: auto;
   }
 
-  .tool-nav-highlight,
-  .tool-nav-highlight[data-animate="true"],
-  .tool-nav-highlight[data-animate="true"][data-slide="true"],
-  .tool-nav-icon,
-  .tool-segment-highlight,
-  .tool-segment-highlight[data-animate="true"],
-  .tool-segment-highlight[data-animate="true"][data-slide="true"],
-  .tool-tab-indicator,
-  .tool-tab-indicator[data-animate="true"],
-  .tool-tab-indicator[data-animate="true"][data-slide="true"],
-  .ping-mode-expand {
-    transition-duration: 0.01ms;
-  }
-
-  .tool-page-snapshot[data-phase='exiting'],
-  .tool-page-current > [data-transition-stage],
-  .tool-page-current > [data-transition-stage] [data-transition-item],
-  .tool-reveal,
-  .tool-reveal > *,
-  .tool-section-reveal,
-  .tool-skeleton::after {
-    animation: none;
+  /*
+   * One blanket reset instead of an allow-list: every keyframe animation,
+   * imperative CSS transition and library-generated overlay (Radix, tw-animate,
+   * sonner) collapses to an immediate state change, including animations added
+   * later. Delays are cleared too, so `animation-fill-mode: both` can never
+   * leave content invisible until a delay elapses. The JavaScript transition
+   * controller also skips capture and drops any active copy.
+   */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -1039,6 +1041,5 @@ html[data-display-shape='round'] .app-ip-value {
 /* A folded device is physically smaller; shorten the page transition travel
  * so the same motion feels proportionate on the cover display. */
 html[data-device-posture='folded'] .tool-page-transition {
-  --page-enter-distance: 0.375rem;
   --page-exit-distance: 0.1875rem;
 }

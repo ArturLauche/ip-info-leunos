@@ -53,7 +53,7 @@ export function ShowMoreButton({
         >
           <ChevronDown
             className={cn(
-              "size-3.5 transition-transform duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
+              "size-3.5 transition-transform duration-[var(--motion-fast)] ease-[var(--ease-smooth)] motion-reduce:transition-none",
               expanded && "rotate-180",
             )}
             aria-hidden

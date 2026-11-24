@@ -236,7 +236,7 @@ export function LanguageSelector({ onLocaleSelected }: LanguageSelectorProps) {
         aria-controls={open ? PANEL_ID : undefined}
         aria-label={triggerLabel}
         title={triggerLabel}
-        className={cn("gap-2", isPending && "opacity-70")}
+        className={cn("gap-2 transition-opacity duration-[var(--motion-fast)]", isPending && "opacity-70")}
       >
         <Globe2 className="size-4" aria-hidden="true" />
         <span className="max-w-28 truncate" lang={locale}>
@@ -255,8 +255,8 @@ export function LanguageSelector({ onLocaleSelected }: LanguageSelectorProps) {
             dir={getLocaleDirection(locale)}
             className={cn(
               "app-language-panel fixed left-[50%] top-[12dvh] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden border bg-popover shadow-lg sm:max-w-md",
-              "max-h-[76dvh] rounded-xl duration-200 motion-reduce:animate-none",
-              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+              "max-h-[76dvh] rounded-xl duration-[var(--motion-base)] ease-[var(--ease-fluid)] motion-reduce:animate-none",
+              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-98 data-[state=open]:zoom-in-98",
             )}
           >
             <DialogTitle className="sr-only">{selectorLabel}</DialogTitle>
