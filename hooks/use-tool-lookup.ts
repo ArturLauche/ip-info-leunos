@@ -6,7 +6,6 @@ import { readApiResponse } from "@/lib/api/client";
 import { isRetryableLookupError } from "@/lib/api/error-message";
 import { fetchWithRetry } from "@/lib/network/retry";
 import { useToolQuery } from "@/hooks/use-tool-query";
-import { preparePageTransition } from "@/components/page-transition";
 
 interface ToolLookupOptions {
   /** Builds the API URL for a submitted query. */
@@ -91,10 +90,6 @@ export function useToolLookup<T>(options: ToolLookupOptions) {
         // A pathname change mounts a new checker (notably /asn → /asn/AS…).
         // Let that destination own the request instead of starting one here
         // that will immediately be aborted and repeated after navigation.
-        // Snapshot the page as shown now, like the command palette does: the
-        // transition's own snapshot dates from mount and would fade out an
-        // empty form or an old result instead.
-        preparePageTransition(href);
         router.replace(href, { scroll: false });
         return;
       }

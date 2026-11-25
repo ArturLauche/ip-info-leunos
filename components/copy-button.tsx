@@ -61,7 +61,7 @@ export function CopyButton({
       className={cn("shrink-0 text-muted-foreground hover:text-foreground", className)}
     >
       {copied ? (
-        <Check className="size-4 text-success" aria-hidden="true" />
+        <Check className="tool-section-reveal size-4 text-success" aria-hidden="true" />
       ) : (
         <Copy className="size-4" aria-hidden="true" />
       )}

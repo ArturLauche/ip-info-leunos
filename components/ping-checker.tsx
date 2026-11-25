@@ -457,7 +457,7 @@ export function PingChecker({
                   >
                     <LockKeyhole
                       className={cn(
-                        "size-4 transition-colors duration-200 ease-[var(--ease-smooth)]",
+                        "size-4 transition-colors duration-(--motion-base) ease-[var(--ease-smooth)]",
                         useAuth ? "text-primary" : "text-muted-foreground",
                       )}
                     />
@@ -595,7 +595,7 @@ export function PingChecker({
           <div className="flex flex-col gap-4 p-5">
             <p
               key={`${result.messageKey ?? "legacy"}-${result.message}`}
-              className="text-sm leading-relaxed text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+              className="text-sm leading-relaxed text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-(--motion-base)"
             >
               {formatPingMessage(result, t, ui)}
             </p>
@@ -731,7 +731,7 @@ function PingModeTabs({
               key={value}
               value={value}
               className={cn(
-                "relative z-10 min-h-9 truncate px-1 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-200 ease-[var(--ease-smooth)] sm:text-sm",
+                "relative z-10 min-h-9 truncate px-1 py-1.5 text-xs transition-[color,background-color,box-shadow,border-color] duration-(--motion-base) ease-[var(--ease-smooth)] sm:text-sm",
                 view.visible &&
                   "data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
               )}
@@ -749,7 +749,7 @@ function PingModeTabs({
             forceMount
             inert={mode !== value}
             className={cn(
-              "col-start-1 row-start-1 rounded-sm focus-visible:ring-2 focus-visible:ring-ring text-xs text-muted-foreground transition-opacity duration-200 ease-[var(--ease-smooth)] motion-reduce:transition-none",
+              "col-start-1 row-start-1 rounded-sm focus-visible:ring-2 focus-visible:ring-ring text-xs text-muted-foreground transition-opacity duration-(--motion-base) ease-[var(--ease-smooth)] motion-reduce:transition-none",
               mode === value
                 ? "z-10 opacity-100"
                 : "pointer-events-none z-0 opacity-0 select-none",

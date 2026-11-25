@@ -30,26 +30,19 @@ export function useNavHighlight(selected: ToolKey | undefined) {
     [],
   );
 
-  const measure = useCallback(() => {
+  const measure = useCallback((slide = false) => {
     const item = selected ? itemRefs.current.get(selected) : undefined;
     const measured =
       item && item.offsetHeight > 0
         ? { y: item.offsetTop, height: item.offsetHeight }
         : null;
-    const next = nextNavHighlight(viewRef.current, measured, canAnimate);
+    const next = nextNavHighlight(viewRef.current, measured, slide && canAnimate);
     viewRef.current = next;
-    setView((previous) =>
-      previous.box.y === next.box.y &&
-      previous.box.height === next.box.height &&
-      previous.visible === next.visible &&
-      previous.slide === next.slide
-        ? previous
-        : next,
-    );
+    setView(next);
   }, [selected, canAnimate]);
 
   useLayoutEffect(() => {
-    measure();
+    measure(true);
   }, [measure]);
 
   useEffect(() => {

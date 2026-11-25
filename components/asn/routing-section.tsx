@@ -56,14 +56,14 @@ function RelationRow({
         href={`/asn/${relation.asn}`}
         aria-label={description}
         className={cn(
-          "group/row -mx-2 grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 rounded-md px-2 py-1.5 outline-none transition-colors duration-150 hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/60 pointer-coarse:min-h-11",
+          "group/row -mx-2 grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 rounded-md px-2 py-1.5 outline-none transition-colors duration-(--motion-fast) hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/60 pointer-coarse:min-h-11",
           showMetrics && WIDE_ROW,
         )}
       >
         <span className="flex min-w-0 items-center gap-1 font-mono text-[13px] font-semibold text-foreground">
           <span className="truncate underline-offset-4 group-hover/row:underline">{relation.asn}</span>
           <ArrowUpRight
-            className="size-3 shrink-0 text-muted-foreground/50 transition-[color,translate] duration-150 group-hover/row:translate-x-px group-hover/row:-translate-y-px group-hover/row:text-foreground group-focus-visible/row:text-foreground"
+            className="size-3 shrink-0 text-muted-foreground/50 transition-[color,translate] duration-(--motion-fast) group-hover/row:translate-x-px group-hover/row:-translate-y-px group-hover/row:text-foreground group-focus-visible/row:text-foreground"
             aria-hidden
           />
         </span>

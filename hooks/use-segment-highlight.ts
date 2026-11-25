@@ -33,7 +33,7 @@ export function useSegmentHighlight(selected: string) {
   // the travelling chip copies the active item's radius to sit exactly in frame.
   const [radius, setRadius] = useState("");
 
-  const measure = useCallback(() => {
+  const measure = useCallback((slide = false) => {
     const container = containerRef.current;
     const active = container?.querySelector<HTMLElement>(
       '[data-state="active"], [data-state="on"]',
@@ -53,23 +53,14 @@ export function useSegmentHighlight(selected: string) {
       measuredRadius = getComputedStyle(active).borderRadius;
     }
 
-    const next = nextSegmentHighlight(viewRef.current, measured, canAnimateRef.current);
+    const next = nextSegmentHighlight(viewRef.current, measured, slide && canAnimateRef.current);
     viewRef.current = next;
-    setView((previous) =>
-      previous.box.x === next.box.x &&
-      previous.box.y === next.box.y &&
-      previous.box.width === next.box.width &&
-      previous.box.height === next.box.height &&
-      previous.visible === next.visible &&
-      previous.slide === next.slide
-        ? previous
-        : next,
-    );
+    setView(next);
     setRadius((previous) => (previous === measuredRadius ? previous : measuredRadius));
   }, []);
 
   useLayoutEffect(() => {
-    measure();
+    measure(true);
   }, [measure, selected]);
 
   useEffect(() => {
