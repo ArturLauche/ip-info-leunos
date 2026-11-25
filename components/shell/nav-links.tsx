@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, type MouseEvent } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import {
@@ -20,27 +19,8 @@ interface NavLinksProps {
 
 /** The grouped navigation list shared by the desktop sidebar and mobile sheet. */
 export function NavLinks({ active, onNavigate }: NavLinksProps) {
-  const [selected, setSelected] = useState(active);
   const i18n = useI18n();
   const toolsLabel = i18n.tool.navToolsLabel;
-
-  useEffect(() => {
-    setSelected(active);
-  }, [active]);
-
-  function handleNavigate(event: MouseEvent<HTMLAnchorElement>, key: ToolKey) {
-    const isPrimaryNavigation =
-      event.button === 0 &&
-      !event.metaKey &&
-      !event.ctrlKey &&
-      !event.shiftKey &&
-      !event.altKey;
-
-    if (!isPrimaryNavigation) return;
-
-    setSelected(key);
-    onNavigate?.();
-  }
 
   return (
     <nav className="flex flex-col gap-6" aria-label={toolsLabel}>
@@ -52,8 +32,7 @@ export function NavLinks({ active, onNavigate }: NavLinksProps) {
           <NavGroupList
             items={group.items}
             active={active}
-            selected={selected}
-            onNavigate={handleNavigate}
+            onNavigate={onNavigate}
           />
         </div>
       ))}
@@ -64,18 +43,16 @@ export function NavLinks({ active, onNavigate }: NavLinksProps) {
 interface NavGroupListProps {
   items: NavItem[];
   active?: ToolKey;
-  selected?: ToolKey;
-  onNavigate: (event: MouseEvent<HTMLAnchorElement>, key: ToolKey) => void;
+  onNavigate?: () => void;
 }
 
 function NavGroupList({
   items,
   active,
-  selected,
   onNavigate,
 }: NavGroupListProps) {
   const i18n = useI18n();
-  const { listRef, setItemRef, view, canAnimate } = useNavHighlight(selected);
+  const { listRef, setItemRef, view, canAnimate } = useNavHighlight(active);
 
   return (
     <div ref={listRef} className="relative isolate flex flex-col gap-1">
@@ -91,35 +68,24 @@ function NavGroupList({
         aria-hidden
       />
       {items.map((item) => {
-        const Icon = item.icon;
         const isActive = active === item.key;
-        const isSelected = selected === item.key;
 
         return (
           <Link
             key={item.key}
             href={item.href}
             ref={(node) => setItemRef(item.key, node)}
-            onClick={(event) => onNavigate(event, item.key)}
+            onNavigate={onNavigate}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative z-10 flex min-h-11 items-center gap-2.5 rounded-lg py-1 pe-3 ps-3.5 text-sm font-medium outline-none transition-colors duration-200 ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
-              isSelected
+              "group relative z-10 flex min-h-11 items-center gap-2.5 rounded-lg py-1 pe-3 ps-3.5 text-sm font-medium outline-none active:bg-sidebar-accent transition-colors duration-(--motion-base) ease-[var(--ease-smooth)] focus-visible:ring-2 focus-visible:ring-ring/60",
+              isActive
                 ? "text-foreground"
                 : "text-muted-foreground hover:bg-sidebar-accent/45 hover:text-foreground",
-              isSelected && !view.visible && "tool-nav-item-fallback",
+              isActive && !view.visible && "tool-nav-item-fallback",
             )}
           >
-            <span
-              className={cn(
-                "tool-nav-icon flex size-6 shrink-0 items-center justify-center rounded-md",
-                isSelected
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground/80 group-hover:bg-foreground/5 group-hover:text-foreground",
-              )}
-            >
-              <Icon className="size-3.5" aria-hidden />
-            </span>
+            <NavIcon icon={item.icon} active={isActive} />
             <span className="min-w-0 truncate">
               {getNavLabel(item.key, i18n)}
             </span>
@@ -127,5 +93,22 @@ function NavGroupList({
         );
       })}
     </div>
+  );
+}
+
+/** Link owns pending state, including cancellation and superseding clicks. */
+function NavIcon({ icon: Icon, active }: { icon: NavItem["icon"]; active: boolean }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      className={cn(
+        "tool-nav-icon flex size-6 shrink-0 items-center justify-center rounded-md",
+        active || pending
+          ? "bg-foreground text-background shadow-sm"
+          : "text-muted-foreground/80 group-hover:bg-foreground/5 group-hover:text-foreground",
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden />
+    </span>
   );
 }

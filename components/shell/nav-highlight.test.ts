@@ -68,6 +68,13 @@ describe("nextNavHighlight", () => {
     });
   });
 
+  it("preserves an active slide on observer delivery and snaps on reflow", () => {
+    const box = { y: 0, height: 40 };
+    const sliding = { box, visible: true, slide: true };
+    expect(nextNavHighlight(sliding, box, false)).toBe(sliding);
+    expect(nextNavHighlight(sliding, { y: 2, height: 40 }, false).slide).toBe(false);
+  });
+
   it("returns the same object when hiding from an already hidden state", () => {
     expect(nextNavHighlight(INITIAL_NAV_HIGHLIGHT, null, true)).toBe(
       INITIAL_NAV_HIGHLIGHT,

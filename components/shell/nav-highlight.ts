@@ -43,11 +43,7 @@ export function nextNavHighlight(
   const sameBox =
     previous.box.y === measured.y && previous.box.height === measured.height;
 
-  if (
-    previous.visible &&
-    sameBox &&
-    previous.slide === (canAnimate && previous.visible)
-  ) {
+  if (previous.visible && sameBox) {
     return previous;
   }
 

@@ -236,9 +236,107 @@ try {
     assertHealthy();
   });
 
+  check("interrupted route fades keep the live form interactive and retire every header", () => {
+    open("/dns");
+    browser("press", "Control+k");
+    waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
+    browser("press", "Escape");
+    waitFor("!document.querySelector('[role=dialog]')");
+    const result = evaluate(`(async () => {
+      const layer = document.querySelector('.tool-route-exit');
+      const shell = document.querySelector('aside');
+      const click = path => document.querySelector('nav a[href="' + path + '"]').click();
+      const titles = [];
+      const observed = [];
+      // Extend the exit to keep the two commits overlapping even on busy CI.
+      const style = document.createElement('style');
+      style.textContent = '.tool-route-exit > header { animation-duration: 300ms }';
+      document.head.append(style);
+      const observer = new MutationObserver(() => {
+        const copy = layer.firstElementChild;
+        if (!copy) return;
+        titles.push(copy.querySelector('h1')?.textContent);
+        const input = document.querySelector('.tool-page-current input[name=q]');
+        const rect = input?.getBoundingClientRect();
+        observed.push({
+          count: layer.childElementCount, inert: layer.inert,
+          hidden: layer.getAttribute('aria-hidden'), ids: copy.querySelectorAll('[id]').length,
+          formHit: !!rect && document.elementFromPoint(rect.left + 8, rect.top + 8) === input,
+        });
+        if (titles.length === 1) click('/dns');
+      });
+      observer.observe(layer, {childList:true});
+      try {
+        click('/whois');
+        const until = performance.now() + 5000;
+        while ((titles.length < 2 || layer.childElementCount) && performance.now() < until)
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        return {titles, observed, empty: !layer.childElementCount, shell: !!shell && shell.isConnected};
+      } finally { observer.disconnect(); style.remove(); }
+    })()`);
+    assert.deepEqual(result.titles, ["DNS Lookup", "WHOIS Lookup"]);
+    assert.equal(result.empty && result.shell, true);
+    for (const frame of result.observed) {
+      assert.deepEqual(frame, {count:1, inert:true, hidden:"true", ids:0, formHit:true});
+    }
+  });
+
+  check("paused and suppressed exits release the header in the commit", () => {
+    for (const [css, path, title] of [
+      ["animation-play-state:paused!important", "/whois", "WHOIS Lookup"],
+      ["animation:none!important", "/dns", "DNS Lookup"],
+    ]) {
+      const count = evaluate(`(async () => {
+        const style = document.createElement('style');
+        style.textContent = '.tool-route-exit > header {' + ${JSON.stringify(css)} + '}';
+        document.head.append(style);
+        try {
+          document.querySelector('nav a[href="' + ${JSON.stringify(path)} + '"]').click();
+          const until = performance.now() + 5000;
+          while (document.querySelector('.tool-page-current h1')?.textContent !== ${JSON.stringify(title)}) {
+            if (performance.now() >= until) throw Error('Route failed to commit');
+            await new Promise(resolve => requestAnimationFrame(resolve));
+          }
+          return document.querySelector('.tool-route-exit').childElementCount;
+        } finally { style.remove(); }
+      })()`);
+      assert.equal(count, 0);
+    }
+  });
+
+  check("query and hash updates retain the route boundary and skip entrance motion", () => {
+    const same = evaluate(`(async () => {
+      const route = document.querySelector('.tool-page-current');
+      let starts = 0;
+      const listener = event => { if (event.animationName.startsWith('route-')) starts++; };
+      document.addEventListener('animationstart', listener);
+      try {
+        history.pushState(null, '', '?inspect=1#main-content');
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return route === document.querySelector('.tool-page-current') && starts === 0;
+      } finally { document.removeEventListener('animationstart', listener); }
+    })()`);
+    assert.equal(same, true);
+  });
+
+  check("offscreen headers stay offscreen on history navigation", () => {
+    browser("click", "footer a[href='/privacy-policy']");
+    browser("wait", "--url", "**/privacy-policy");
+    evaluate("window.scrollTo({top:document.body.scrollHeight,behavior:'instant'})");
+    assert.ok(evaluate("document.querySelector('.app-page-header').getBoundingClientRect().bottom <= 0"));
+    evaluate(`(() => {
+      window.__offscreenCopies = 0;
+      new MutationObserver(records => {
+        for (const record of records) window.__offscreenCopies += record.addedNodes.length;
+      }).observe(document.querySelector('.tool-route-exit'),{childList:true});
+      history.back();
+    })()`);
+    waitFor("document.querySelector('.tool-page-current h1')?.textContent === 'DNS Lookup'");
+    assert.equal(evaluate("window.__offscreenCopies"), 0);
+  });
+
   check("reduced motion avoids route snapshot cloning and leaves no stale copy", () => {
     browser("set", "media", "light", "reduced-motion");
-    // A fresh load under reduced motion, so no fallback copy of the page exists.
     open("/whois");
     browser("press", "Control+k");
     waitFor("document.activeElement?.getAttribute('role') === 'combobox'");
@@ -246,12 +344,12 @@ try {
       window.__routeClones=0;
       const original=Element.prototype.cloneNode;
       Element.prototype.cloneNode=function(...args){
-        if(this.classList.contains('tool-page-current')) window.__routeClones++;
+        if(this.matches('.tool-page-current, .app-page-header')) window.__routeClones++;
         return original.apply(this,args);
       };
       const stale=document.createElement('div');
-      stale.className='tool-page-snapshot';
-      document.querySelector('.tool-page-snapshot-layer').append(stale);
+      stale.className='app-page-header';
+      document.querySelector('.tool-route-exit').append(stale);
     })()`);
     browser("fill", "[role=combobox]", "dns");
     browser("press", "Enter");
@@ -260,8 +358,8 @@ try {
     // A commit that mounts no replacement copy must not leave the old one over the route.
     // The address bar updates a few ms before the route commits, so wait for the new page;
     // the cleanup runs in that same commit, so the layer must already be empty.
-    waitFor("document.querySelector('.tool-page-current:not(.tool-page-snapshot) h1')?.textContent === 'DNS Lookup'");
-    assert.equal(evaluate("document.querySelector('.tool-page-snapshot-layer').childElementCount"), 0);
+    waitFor("document.querySelector('.tool-page-current h1')?.textContent === 'DNS Lookup'");
+    assert.equal(evaluate("document.querySelector('.tool-route-exit').childElementCount"), 0);
   });
 
   check("same-tool navigation and history restore or clear lookup state", () => {
@@ -417,8 +515,7 @@ try {
     assertFits();
     browser("screenshot", join(artifacts, "ip-mobile-light.png"));
     browser("click", "header.sticky button[aria-label='Menu']");
-    // The sheet slides in for ~500 ms; a click while it moves can land on the overlay.
-    browser("wait", "700");
+    waitFor("document.querySelector('[role=dialog]')?.getAnimations().length === 0");
     browser("click", "[role=dialog] a[href='/dns']");
     browser("wait", "--url", "**/dns");
     assertHealthy();

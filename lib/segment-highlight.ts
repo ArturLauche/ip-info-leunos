@@ -48,11 +48,7 @@ export function nextSegmentHighlight(
     };
   }
 
-  if (
-    previous.visible &&
-    sameBox(previous.box, measured) &&
-    previous.slide === (canAnimate && previous.visible)
-  ) {
+  if (previous.visible && sameBox(previous.box, measured)) {
     return previous;
   }
 

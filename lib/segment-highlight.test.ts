@@ -100,6 +100,13 @@ describe("nextSegmentHighlight", () => {
     });
   });
 
+  it("preserves an active slide on observer delivery and snaps on reflow", () => {
+    const box = { x: 0, y: 0, width: 42, height: 36 };
+    const sliding = { box, visible: true, slide: true };
+    expect(nextSegmentHighlight(sliding, box, false)).toBe(sliding);
+    expect(nextSegmentHighlight(sliding, { ...box, x: 2 }, false).slide).toBe(false);
+  });
+
   it("returns the same object when hiding from an already hidden state", () => {
     expect(nextSegmentHighlight(INITIAL_SEGMENT_HIGHLIGHT, null, true)).toBe(
       INITIAL_SEGMENT_HIGHLIGHT,

@@ -99,7 +99,7 @@ export function SortableColumnHeader({
       <span
         aria-hidden
         className={cn(
-          "inline-flex shrink-0 items-center transition-opacity duration-150",
+          "inline-flex shrink-0 items-center transition-opacity duration-(--motion-fast)",
           active ? "opacity-100" : "opacity-30 group-hover/sort:opacity-70 group-focus-visible/sort:opacity-70",
         )}
       >
